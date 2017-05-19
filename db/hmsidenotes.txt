@@ -1,0 +1,115 @@
+f2 concerns:
+concern 1: update higher level database tables with compiled data from lower levels
+fn(level):
+  now = time.time()
+  last few level intervals = blah
+  for blah til now,
+    step: level
+    accumulate: lower level
+    done...
+  maybe level = 5
+  then fn(level - 1)
+  until level > 0 ??
+  NOTE:
+    only runs periodically so data might already be updated from concern 2
+    solution 1: check if exists when updating
+    solution 2: don't update with concern 2
+  NOTE2:
+    might need to change to fetchone() for memory issues
+    if implement cache tables, might not need to though =/
+
+
+
+
+
+
+concern 2: if proper data does not exist in a query, use lower levels. 
+  increment by date instead of secs = 
+  dateints = [yyyy, mm, dd, hh, MM, ss]
+  saveLevel = n
+  dateints[saveLevel] += 1
+  or something like that?
+  util.datetime2timestamp(datetime.datetime(*dateints))
+
+  *only update complete intervals within the given time range
+  do not update if the full interval is not in start to stop
+  (ie data starts at 10:59, time range = 10:55 to 11:15)
+  do NOT update 10:50 to 11:00 because time range DOES NOT include
+  DO     update 11:00 to 11:10 because time range DOES include
+  do NOT update 11:10 to 11:20 because time range DOES NOT include
+  
+  another note... start-level round the time range, then don't need to worry about this?
+  but this functionality should be responsibility of river? maybe maybe not...
+
+
+  from lower levels, construct higher level database values and update those databases as well
+  start, stop->
+  list of increments
+  found = no updates
+  not found = split increments
+  repeat
+  gather data
+  while thisLevel > startLevel: 
+    compile data into thisLevel + 1
+    save
+  updated tables up to this level
+  return the data
+
+
+
+#------------------------------
+#bugs:
+#------------------------------
+  2017-05-08%2015:09:00 to 2017-05-08%2015:10:00
+    are there 0 non-zeros? is that why there is that error? strange...
+    indeed... for the people maps: fully covered entire interval = all 0s
+    then map.nonzero() = empty set because all 0s
+    min doesn't have 0
+    likely not enclosed in separate try-catch = everything set to None
+    = all set to "" = all bad data even though data isn't bad...
+  possible bug:
+    return data, check for division by 0 errors?? 
+    (if count is 0 which it really shouldn't be but what if?)
+
+
+
+#------------------------------
+# data compression
+#------------------------------  
+  change tables to compressed versions?????
+    SET GLOBAL innodb_file_per_table=1;
+    SET GLOBAL innodb_file_format=Barracouda;
+    CREATE TABLE t1 (n1 V1...) ROW_FORMAT=COMPRESSED KEY_BLOCK_SIZE=8;
+
+
+  compress data before storing in database??
+  s, f = cv2.imencode('.png', frame)
+  restored = cv2.imdecode(f, cv2.cv.CV_LOAD_IMAGE_UNCHANGED)
+    #(documentation says cv2.cv.CV_LOAD_IMAGE_ANYDEPTH...)
+  np.all(f == restored) is True
+  
+  add compression option to FrameProcessor
+  lossy    (as jpg)
+  lossless (as png)
+  None     (as bmp) ???
+  apparently imdecode looks at the data to determine how to decode the data...
+  
+  compress at client side because communication with database is still by ports
+  still going to require that data transferring
+  
+  
+  
+#------------------------------
+# indexing
+#------------------------------
+  change star to PRIMARY KEY?
+  add PRIMARY KEY (start, stop)??
+  ex:
+  CREATE TABLE product (
+    category INT NOT NULL,
+    id       INT NOT NULL,
+    price    DECIMAL,
+    PRIMARY KEY(category, id));
+
+
+tested... without higher level data tables, is going to definitely be slow

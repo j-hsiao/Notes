@@ -1,0 +1,815 @@
+sql tutorial:
+  https://dev.mysql.com/doc/refman/5.7/en/tutorial.html
+  https://dev.mysql.com/doc/refman/5.7/en/selecting-all.html
+python sql db:
+  http://www.mikusa.com/python-mysql-docs/index.html
+  https://www.tutorialspoint.com/python/python_database_access.htm
+
+##############################
+contents
+##############################
+0::installation
+1::sql
+  1.1::connecting/disconnecting
+  1.2::entering queries
+  1.3::creating and using databases
+  1.4::getting information and tables
+  1.5::batch mode
+  1.6::data types
+    1.6.1::oveview
+    1.6.2::numeric
+    1.6.3::date and time
+    1.6.4::string
+  1.7::server administration
+  1.8::security
+    1.8.1::general guidelines
+    1.8.2::access privilege
+    1.8.3::privilege keywords
+    1.8.4::table structure
+    1.8.5::account names
+    1.8.6::account management
+    1.8.7::limiting access
+    1.8.8::assigning passwords
+  1.9::backup and recovery
+  1.10::other keywords
+  1.11::compression
+    1.11.1::enabling compression
+    1.11.2::tuning properties
+  1.12::indexing
+    1.12.1::primary keys
+    1.12.2::foreign keys
+    1.12.3::column indexes
+    1.12.4::multicolumn indexes
+
+
+  
+2::python MySQLdb
+  2.1::connection
+  2.2::cursor
+  2.3::transactions
+  2.4::exceptions:
+  
+
+
+##############################
+#0::installation
+##############################
+sudo apt-get update
+sudo apt-get install python-mysqldb
+sudo apt-get install mysql-server
+sudo mysql_secure_installation
+  (to change values to be "more secure")
+
+systemctl mysql start
+systemctl status mysql.service
+
+
+
+##############################
+#1::sql
+##############################
+______________________________
+#1.1::connecting/disconnecting||
+  use mysql -h host -u user -p
+    host is localhost by default
+    use --help for options
+  use QUIT
+    to disconnect
+
+______________________________
+#1.2::entering queries||
+  version and date:
+    SELECT VERSION(), CURRENT_DATE;
+  sql statements end with ;
+  can use mathematical expressions
+    SELECT SIN(PI()/4), (4+1)*5;
+  use \c to cancel a command if multiline
+
+______________________________
+#1.3::creating and using databases||
+  SHOW DATABASES;
+    shows available databases
+  USE database;
+    uses database
+  SHOW TABLES;
+    shows tables
+ GRANT ALL ON databasename.* TO 'user@host';
+    allows user@host to have all permissions...
+  ______________________________
+  database creation
+    CREATE DATABASE menagerie;
+      creates database
+    need to select database always, can provide after commandline
+      mysql -h host -u user -p database_name_goes_here
+    SELECT DATABASE()
+      view which database is selected
+  ______________________________
+  table creation
+    SHOW TABLES;
+    ex:
+      CREATE TABLE tablename (col1 constraints, col2 constraints...);
+    column types:
+      VARCHAR(len) (variable-length strings, maximum len)
+      CHAR(len)    (constantlength strings, length len)
+      DATE
+      DATETIME     YYYY-MM-DD HH:MM:SS
+      TIME
+
+    DESCRIBE tablename;
+      describes columns of tablename
+    NOTE:
+      column names cannot be reserved words
+      if table contains col name as reserved words from before
+      it became reserved, then use [] to select it
+      should change it later...
+
+
+  ______________________________
+  inserting data
+    initialize from text file:
+      have entries in rows, tab-delimited
+      use \N for null
+      LOAD DATA LOCAL INFILE 'path-to-file' INTO TABLE table-name [LINES TERMINATED BY '\r\n'];
+    insertion:
+      INSERT INTO table-name VALUES (comma-delimited-list-of-values);
+      dates are inserted as strings, null is just NULL
+  ______________________________
+  retrieving information from a table
+    SELECT thing1, thing2... FROM table-name WHERE conditions
+      thingi: a column name
+  ______________________________
+  fixing data
+    1. delete table using DELETE and then reload data with LOAD DATA
+      DELETE FROM tablename;
+      LOAD DATA LOCAL INFILE '/pathtofile' INTO TABLE tablename [LINES TERMINATED BY 'line-terminator'];
+      reenter any new data
+    2. UPDATE tablename SET field = value WHERE cond;
+       updates entry
+    WARNING:
+      UPDATE will update every entry if WHERE is excluded
+  ______________________________
+  conditions
+    Comparators:
+      =, >=, <=, >, <, <>(not equal??)
+    Logic:
+      AND, OR, NOT
+      TIP: USE PARENTHESES
+    NULL:
+      use IS
+
+    string comparison typically case INsensitive
+    DISTINCT:
+      use after SELECT to remove duplicate rows
+      ie. SELECT DISTINCT name FROM class
+    
+  ______________________________
+  sorting rows
+    use ORDER BY colname1, colname2
+    (sorts by colname 1 first, then colname2 within colname1 etc)
+    NOTE:
+      string sort = case insensitive
+      use BINARY to force case sensitive sorting
+    default = ascending
+    use DESC to sort in descending
+  ______________________________
+  DATE calculations
+    TIMESTAMPDIFF() calc dif in days
+    ex:
+      SELECT name, birth, CURDATE(), TIMESTAMPDIFF(YEAR, birth, CURDATE()) AS age FROM tablename;
+    YEAR()
+    MONTH()
+    DAYOFMONTH()
+    DATE_ADD()
+      ex:
+        SELECT name, birth FROM table WHERE MONTH(birth) = MONTH(DATE_ADD(CURDATE(), INTERVAL 1 MONTH));
+      equivalent:
+        SELECT name, birth FROM table WHERE MONTH(birth) = MOD(MONTH(CURDATE()), 12) + 1;
+      NOTE:
+        if using MOD, +2 must be after MOD because range(MOD(x, 12)) = 0,11
+        if add before, still get range 0,11...
+  ______________________________
+  NULL values
+    use IS or IS NOT
+    NULL means "missing data"
+    bools return 0 or 1
+    0 and NULL are false, all else is True
+    (can't use strings as bools)
+  ______________________________
+  Pattern Matching
+    use _ like grep .
+    use % like grep .*
+    use LIKE to trigger pattern matching
+    still case INsensitive
+    ex:
+      SELECT * FROM table WHERE colname LIKE 'f%ck'
+    REGEXP/RLIKE
+      use regular expressions instead
+      .    : any single char
+      [...]: character class, single char anything inside
+      *    : 0 or more matches
+      ^    : beginning
+      $    : end
+      [^]  : not
+      {n}  : repeat n times
+    NOTE:
+      LIKE  : only if matches all
+      REGEXP: if matches any
+        have to add ^ and $ to beginning and end if want to match all
+    use BINARY for case sensitive
+  ______________________________
+  counting rows
+    COUNT(x):
+      x = *:
+        count all the rows
+        ex:
+          SELECT COUNT(*) FROM pet;
+          SELECT owner, COUNT(*) FROM pet GROUP BY owner;
+      x = colname:
+        counts all rows where colname IS NOT NULL
+      obs:
+        x = evaluation statement? evaluate per row and
+            NULL = not counted NOT NULL = counted??
+    NOTE:
+      if using SELECT and COUNT(*)
+      MUST HAVE "GROUP BY selected-cols" at the end of query
+  ______________________________
+  multiple tables
+    combine tables:
+    tab1 INNER JOIN tab2 ON cond
+    ex:
+      pets INNER JOIN petevents ON pets.name = petevents.name
+    INNER JOIN:
+      add to result iff both tables meet the ON condition
+    NOTE:
+      can join table to itself
+      (compare table entries to others within same table)
+      ex: get all male-female pairs
+        SELECT p1.name, p1.sex, p2.name, p2.sex, p1.species FROM pet AS p1 INNER JOIN pet AS p2
+        ON (p1.species = p2.species) AND (p1.sex = 'f' AND p2.sex = 'm');
+______________________________
+#1.4::getting information and tables
+  SHOW DATABASES;
+    show all databases
+  SELECT DATABASE();
+    show selected database
+  SHOW TABLES;
+    shows tables in selected database
+  DESCRIBE tablename;
+    list Field   : column id
+         Type    : column type
+         Null    : NULL-allowed
+         Key     : indexed or not
+         Default : DEFAULT value,
+         Extra   : Extra special info ex AUTO_INCREMENT
+______________________________
+#1.5::batch mode||
+use a file as input:
+shell> mysql < input-file
+other options
+  --force: continue past errors
+  -t     : format as interactive session
+  -v     : echo sql queries too
+
+______________________________
+#1.6::data types||
+  ______________________________
+  #1.6.1::Overview
+    ______________________________
+    numeric:
+      when declared, use
+      type(M)
+        M is display width, 0 to 255
+        unrelated to the bits used for the number
+        ie: INT(2) displays only 2 digits
+        (right pads up to a minimum width of M, wider = not changed at all)
+    
+      numeric type
+        ZEROFILL: automatically become UNSIGNED
+      BIT(n):
+        bit-value type, n = [1, 64] (# of bits)
+      TINYINT(n) UNSIGNED, ZEROFILL
+        small integer, [-128, 127], [0,255]
+      BOOL, BOOLEAN
+        TINYINT (1)
+      SMALLINT  (16 bits)
+      MEDIUMINT (24 bits)
+      INT       (32 bits)
+      INTEGER   (same as above)
+      BIGINT    (64 bits)
+      DECIMAL [M, D]
+        M = digits, D = past decimal
+        M [ 0,65], default 10
+        D [0,30],  default 0
+      FLOAT (32-bit)
+      DOUBLE (64-bit)
+      DOUBLE PRECISION
+      NOTE: if where-ing using FLOAT
+        may cause errors because calcs all use DOUBLE
+        so DOUBLE values == FLOAT value may not be true
+          (epsilon comparison)
+        (i'm going to be using < and > so doesn't really matter so much maybe?)
+    ______________________________
+    date and time:
+      type(M):
+        M = fractional second precision
+      DATE
+        YYYY-MM-DD
+        can assign by string or numbers
+        numbers doesn't work...
+        1000-01-01 to 9999-12-31
+      DATETIME
+        1000-01-01 00:00:00.000000 to 9999-12-31 23:59:59.999999
+      TIMESTAMP
+        1970-01-01 00:00:01.000000 to 2038-01-19 03:14:07.999999
+      TIME
+        -838:59:59.000000 to 838:59:59.000000
+      YEAR
+        1901 to 2155
+    NOTE:
+      SUM() and AVG() do not work as is
+      must convert to numeric, and convert back
+      ex:
+        SELECT SEC_TO_TIME(SUM(TIME_TO_SEC(time_col))) FROM tbl;
+        SELECT SEC_TO_TIME(AVG(TIME_TO_SEC(time_col))) FROM tbl;
+        etc...
+  ______________________________
+  string
+    CHAR:
+      always right padded with spaces to specified length
+      length = [0,255]
+    VARCHAR:
+      variable-length char,
+      length = [0,65535]
+    BINARY:
+      binary byte strings, M = bytes
+    VARBINARY:
+      similar
+    TINYBLOB:
+      max of 255 bytes
+    TINYTEXT:
+      up to 255 characters
+    BLOB:
+      max of 65535 bytes
+    TEXT:
+      blob but text
+    MEDIUMBOLB:
+      16777215 bytes
+    MEDIUMTEXT:
+      see above
+    LONGBLOB:
+      4294967295 bytes
+    LONGTEXT:
+      see above
+    ENUM(v1, v2, v3, v4...):
+      stored as index of above list
+    SET(v1, v2, v3...):
+  ______________________________
+  #1.6.2::NUMERIC:
+    ZEROFILL: pad left with 0s
+              automatically UNSIGNED
+    UNSIGNED: no negative values allowed
+      doesn't change range of floats and doubles
+      but does change range of ints etc
+    AUTO_INCREMENT:
+      insert NULL, is set to next sequence value
+      insert NON-NULL = resets sequence
+    (col must be NOT NULL)
+    out-of-range values will be clipped into accepted range
+    (but if strict, will error)
+  ______________________________
+  #1.6.3::DATE AND TIME:
+    out of range = set to the 0 value
+      except TIME (which is clipped)
+    weird TIME range is allowed to represent elapsed time between events
+    automatic updates:
+      DEFAULT CURRENT_TIMESTAMP
+      ON UPATE CURRENT_TIMESTAMP
+    explicit conversion:
+      use CAST(val AS type)
+  ______________________________
+  #1.6.4::String:
+    blobs: binary strings (byte strings)
+    ...
+
+
+______________________________
+#1.7::server administration
+  TOO MUCH INFO
+
+
+______________________________
+#1.8::security
+  ______________________________
+  #1.8.1::general guidelines:
+    put all substitutions into ''
+    ex:
+      retrieve data WHERE id = 'blah OR 1 = 1'
+    result:
+      blah OR 1 = 1 becomes a single string
+      database automatically tries to convert to a number
+    enable strict mode
+    use quotes for everything
+    never give anyone besides root
+      access to user and mysql databases
+    use GRANT and REVOKE
+    hash passwords
+    check for encryption:
+      tcpdump     -l -i eth0 -w -src or dst port 3306 | strings
+  ______________________________
+  #1.8.2::access privilege system
+    privileges in mysql database
+    users identified by host and username
+
+    GRANT p1, p2, p3... ON db.table TO user@host;
+
+    FLUSH PRIVILEGES;
+    #reload privileges table
+
+
+    privilege levels:
+      administrative: all databases
+      databases     : database-specific
+      tables        : tables in a given or all databases
+
+    relevant privilege tables:
+      mysql.user              user accounts (connection, etc), global privileges
+      mysql.db                database-level
+      mysql.tables_priv       table-level
+      mysql.columns_priv      column-level
+      mysql.procs_priv        procedure and function
+      mysql.proxies_priv      proxy-user privileges
+  ______________________________
+  #1.8.3::privilege keywords
+    privelege                  column                  context
+    ALL                        'all privileges'        server administration
+    ALTER                      Alter_priv              tables
+    ALTER ROUTINE              Alter_routine_priv      stored routines
+    CREATE                     Create_priv             databases, tables, indices
+    CREATE ROUTINE             Create_routine_priv     stored routines
+    CREATE TABLESPACE          Create_tablespace_priv  server administration
+    CREATE TEMPORARY TABLES    Create_tmp_table_priv   tables
+    CREATE USER                Create_user_priv        server administration
+    CREATE VIEW                Create_view_priv        views
+    DELETE                     Delete_priv             tables
+    DROP                       Drop_priv               databses, tables, views
+    EVENT                      Event_priv              databases
+    EXECUTE                    Execute_priv            stored routines
+    FILE                       File_priv               file access on server host
+    GRANT OPTION               Grant_priv              databases, tables, stored routines
+    INDEX                      Index_priv              tables
+    INSERT                     Insert_priv             tables or columns
+    LOCK TABLES                Lock_tables_priv        databases
+    PROCESS                    Process_priv            server admin
+    PROXY                      proxies_priv(table)     server admin
+    REFERENCES                 References_priv         databases, tables
+    RELOAD                     Reload_priv             server admin
+    REPLICATION CLIENT         Repl_client_priv        server admin
+    REPLICATION SLAVE          Repl_slave_priv         server admin
+    SELECT                     Select_priv             tables, columns
+    SHOW DATABASES             Show_db_priv            server admin
+    SHOW VIEW                  Show_view_priv          views
+    SHUTDOWN                   Shutdown_priv           server admin
+    SUPER                      Super_priv              server admin
+    TRIGGER                    Trigger_priv            tables
+    UPDATE                     Update_priv             tables, columns
+    USAGE                      'no privileges'         server admin
+    
+
+  ______________________________
+  #1.8.4::table structure
+  generally:
+    host, scope, user, privileges...
+
+  ______________________________
+  #1.8.5::account names
+    syntax = 'user name' @ 'host name'
+    'user name' == 'user name' @ %
+    NOTE:
+      username and localhost must be quoted separately
+    user is case sensitive
+    host is not
+    '' = the anonymous user
+    hostnames:
+      localhost = 127.0.0.1
+      hostname
+      ip address
+  ______________________________
+  #1.8.6::account management
+    ______________________________
+    adding users:
+      CREATE USER
+      GRANT
+      ex:
+        mysql> CREATE USER 'finley'@'localhost' IDENTIFIED BY 'some_pass';
+        mysql> GRANT ALL PRIVILEGES ON *.* TO 'finley'@'localhost'
+            ->     WITH GRANT OPTION;
+        mysql> CREATE USER 'finley'@'%' IDENTIFIED BY 'some_pass';
+        mysql> GRANT ALL PRIVILEGES ON *.* TO 'finley'@'%'
+            ->     WITH GRANT OPTION;
+        mysql> CREATE USER 'admin'@'localhost' IDENTIFIED BY 'admin_pass';
+        mysql> GRANT RELOAD,PROCESS ON *.* TO 'admin'@'localhost';
+        mysql> CREATE USER 'dummy'@'localhost';
+      NOTES:
+        finly@localhost is necessary if ''@localhost exists
+        (localhost is more specific so ''@localhost would override
+         finly@%)
+     ______________________________
+     remove users:
+       DROP USER 'user'@'host'
+  ______________________________
+  #1.8.7::limiting access:
+    queries per hour
+    updates per hour
+    connections per hour
+    # simultaneous connections
+    ALTER USER 'name'@'host' WITH property value;
+  ______________________________
+ #1.8.8:: assigning passwords:
+    SET PASSWORD FOR 'uname'@'hname' = PASSWORD('auth_string')
+    for new accounts:
+      use IDENTIFIED BY when CREATE USER
+      ex:
+        CREATE USER 'uname'@'hname' IDENTIFIED BY 'newpass'
+    for existing:
+      ALTER USER 'uname'@'hname' IDENTIFIED BY 'newpass'
+      GRANT USAGE ON *.* TO 'uname'@'hname' IDENTIFIED BY 'newpass'  
+
+
+______________________________
+#1.9::backup and recovery
+
+
+______________________________
+#1.10::other keywords
+  ______________________________
+  IF
+    IF(expression, v-true, v-false)  
+  ______________________________
+  LIMIT N
+    limit return to N rows
+
+______________________________
+#1.11::compression
+  operations usually disk-io-bound
+  compress = smaller data transfer etc = increased speed, can store more data, etc
+  create table with ROW_FORMAT=COMPRESSED
+  use smaller page size (default 16 KB)
+  KEY_BLOCK_SIZE ctrls page size
+  innodb_file_per_table = 1
+  smaller = faster io BUT more frequent lookups?
+  ______________________________
+  #1.11.1::enabling compression for a table
+    innodb_file_format=Barracuda
+    ex:
+      SET GLOBAL innodb_file_per_table=1;
+      SET GLOBAL innodb_file_format=Barracuda;
+      CREATE TABLE t1 (c1 INT PRIMARY KEY) ROW_FORMAT=COMPRESSED KEY_BLOCK_SIZE=8;
+    ROW_FORMAT=COMPRESSED->KEY_BLOCK_SIZE defaults to innodb_page_size / 2
+    KEY_BLOCK_SZIEZ used, ROW FORMAT EFAULTS TO "COMPRESSED"
+    best to compress withmultiple values and thne empircally gather data
+    available sizes: 1, 2, 4, 8, 16
+    innodb_file_format = BARRACUDA
+    
+    for general table:
+      conditions:
+        FILE_BLOCK_SIZE = KEY_BLOCK_SIZE*1024
+        innodb_page_size=multiple of FILE_BLOCK_SIZE
+      ex:
+        CREATE TABLESPACE `ts2` ADD DATAFILE 'ts2.ibd' FILE_BLOCK_SIZE = 8192 Engine=InnoDB;
+        CREATE TABLE t4  (c1 INT PRIARY KEY) TABLESPACE ts2 ROW_FORMAT=COMPRESSED KEY_BLOCK_SIZE=8;
+    NOTE:
+      KEY_BLOCK_SIZE = compress innodb_page_size into KEY_BLOCK_SIZE chunks?
+      maybe... else why would choosing 16 "not typically result in much compression" (aside from overflow pages)
+      
+
+  ______________________________
+  #1.11.2::TUNING PCOMPRESSION
+    decision factors:
+      which tables to compress
+      compressed page size
+      size of buffer pool
+      OLTP vs DML
+      if DML operations, distributed = compression failures
+    when to use:
+      use on char string columns, non-compressed data, blobs, etc
+      CHAR, VARCHAR, TEXT, BLOB columns
+      long column values might be stored off-page: compressed well
+    file system compression better than mysql compression
+    zip .ibd file to estimate compression results
+    use for tables with more reads
+    approaches:
+      compress before save (some columns are "compressed")
+      hybrid: compress some tables, not others, vary compression location (client, server)
+    workload characteristics of compression:
+      dominated by reads: less need to update/reorganize/recompress
+      change non-indexed columns or blobs etc in off-page storage, might be acceptable
+      only insert on monotonically increasing primary key, few secondary indexes, little
+        need for reorganization
+      deletes fairly efficient
+      works best when i/o bound instead of cpu bound (or need to save space...)
+    generally 8k to 4k for page size
+  ______________________________
+  #1.11.3::monitoring compression at runtimes
+    use compression information schema tables
+    INNODB_CMP: info about compression activity for each compressed page size in use
+    COMPRESS_OPS_OK should be high compared to COMPRESS_OPS
+    
+      
+#______________________________
+#1.12::indexing
+  #1.12.1::primary keys
+    column or set of columns for most vital queries
+    NOT NULL = even faster
+    can use a unique id as primary index, assoc w/ foreign keys
+  #1.12.2::foreign keys
+    many dif columns, query multiple combos, split less used into different table
+    link by foreign keys
+    small table = other index = fast search, use foreign key to link back to main table fast
+  #1.12.3::column indexes
+    index consists of a single column
+    col_name(N) only checks first N chars of a string
+    ex:
+      CREATE TABLE test (blob_col BLOB, INDEX(blob_col(N)));    
+  #1.12.4::multicolumn indexes:
+    multiple columns combined into a single index
+      first N columns in index tarting from left
+      N ranging from 1 to all
+    ex:
+      CREATE TABLE test (
+        id         INT NOT NULL,
+        last_name  CHAR(30) NOT NULL,
+        first_name CHAR(30) NOT NULL,
+        PRIMARY KEY(id),
+        INDEX name (last_name, first_name));
+    name index used in:
+      SELECT * FROM test WHERE last_name='Widenius';
+      SELECT * FROM test WHERE last_name='Widenius' AND first_name='Michael';
+      SELECT * FROM test WHERE last_name='Widenius' AND (first_name='Michael' OR first_name='Monty');
+      SELECT * FROM test WHERE last_name='Widenius' AND first_name >='M' AND first_name <'N';
+    name index NOT used in:
+      SELECT * FROM test WHERE first_name='Michael';
+      SELECT * FROM test WHERE last_name='Widenius' OR first_name='Michael';
+    NOTE:
+      OR = two search + merge, so last_name='Widenius' can be indexed
+      BUT first_name='Michael' cannot use index... maybe???
+    for SELECT * FROM tbl WHERE col1=V1 AND col2=V2;
+      if multi-column index exists, will use it
+      elif single-column index exists, will merge indices then use merged index
+      
+
+    
+
+
+##############################
+##############################
+python MySQLdb::
+##############################
+##############################
+______________________________
+connections:
+  use:
+    db = MySQLdb.connect(host = host, user = user, passwd = pass, db = database)
+  or:
+    db = MySQLdb.connect(host, user, pass, database)  
+  NOTES:
+    success: db = connection object
+    failure: db = None?? or... exception... i think it is exception though (tested personally)
+
+
+  db.commit()
+    signals to database: make changes final
+    after commit, changes cannot be undone
+
+  db.rollback()
+    undo changes
+
+  db.close()
+    close the connection
+    any uncommitted changes are rolled back
+
+
+______________________________
+cursors:
+  ______________________________
+  creation:
+    cursor = db.cursor()
+      default cursor, rows returned as
+      a tuple of tuples
+    cursor = db.cursor(MySQLdb.cursors.DictCursor)
+      dictionary cursor, rows returned as
+      tuple of dictionaries
+
+
+
+
+  ______________________________
+  methods:
+    cursor.execute(string, params)
+      inputs:
+        string: query string, use %s as place holder if params = a sequence
+                              use %(key)s if params is a dict
+        params: the parameters to substitute in
+      returns: 
+        # of rows affected
+
+    cursor.fetchall()
+      returns:
+        all results in buffer
+    cursor.fetchone()
+      returns:
+        a single row in results buffer
+    cursor.rowcount
+      a read-only variable that
+      tells # of rows affected
+  
+  ______________________________
+  examples:
+    ex1: create table:
+      cursor.execute("CREATE TABLE tablename ( col1 DESC, col2 DESC...)")
+  
+  
+    ex2: substitution:
+      cursor.execute(query, params)
+        query : query string
+                use %s as a place holder for a sequence
+                use %(key)s if using a dictionary for params instead
+      ex1:
+        try:
+          cursor.execute("INSERT INTO tablename (col) VALUES (%s)", string)
+          db.commit()
+        except:
+          db.rollback()
+      ex2:
+        cursor.execute("SELECT * FROM tablename WHERE col = %s or id = %s", (1,2))
+        NOTE:
+          2 args: 1st = query 2nd =  TUPLE of values
+  
+  
+    ex3: select
+      non-api-rowcount = cur.execute("SELECT * FROM tablename")
+      api-way-to-get-rowcuont = cur.rowcount
+    
+      get the actual results
+      rows = cur.fetchall()
+    
+      row = cur.fetchone()
+    
+      rows_affected = cur.rowcount()
+
+  cursor.description
+    description of columns for the query
+    a tuple of tuples
+    index1: the column number
+    index2: the data index
+            0 = name
+            (idk the others...)
+
+  cursor.close()
+    closes the current cursor
+
+______________________________
+transactions:
+  transactions: data consistency mechanism
+  properties:
+    atomicity:    success = completion
+                  failure = nothing happens
+    consistency:  trasnactions start in consistent state
+                  transactions end in consistent state
+    isolation:    intermediate results are not visible outside of current transaction
+    durability:   once transaction committed, effects are persistent
+
+  committing:
+    see db.commit above
+  rolling back:
+    see db.rollback() above    
+
+
+
+______________________________
+exceptions:
+  all database calls can cause exception-need to put all in a trycatch
+  
+  types:
+    Warning
+      non-fatal issues
+    Error
+      base class
+    InterfaceError
+      errors in database module
+    DatabaseError
+      errors in database
+    DataError
+      error in data
+    OperationalError
+      error in operation like connection etc
+    IntegrityError
+      when integrity damaged like uniquness constraints etc
+    InternalError
+      internal database module error
+      like cursor not active
+    ProgrammingError
+      errors that can be safely blamed on programmer
+      (bad table name, etc)
+    NotSupportedError
+      try to call unsupported functionality
+    

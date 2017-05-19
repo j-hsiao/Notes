@@ -1,0 +1,314 @@
+##############################
+# contents::
+##############################
+1::BaseHTTPServer
+  1.1::HTTPServer
+    1.1.1::instance variables
+    1.1.2::methods      
+  1.2::BaseHTTPRequestHandler
+    1.2.1::instance variables
+    1.2.2::class variables
+    1.2.3::methods
+2::http tidbits
+  2.1::content-type
+  2.2::status
+
+
+##############################
+#1::BaseHTTPServer
+##############################
+______________________________
+#1.1::HTTPServer
+  SocketServer.TCPServer subclass
+  typically unmodified
+  can access by handler.server
+  ______________________________
+  #1.1.1::instance variables
+    address_family
+      socket.AF_INET
+      socket.AF_UNIX
+      etc
+    RequestHandlerClass:
+      request handler
+    server_address:
+      ex: ('host', int(port))
+    socket:
+      socket object
+    allow_reuse_address
+    request_queue_size
+      queue for requests
+    socket_type
+      socket.SOCK_STREAM or socket.SOCK_DGRAM
+    timeout
+      None
+      seconds for timeout
+
+
+
+  ______________________________
+  #1.1.2::methods
+    untouched:
+      fileno()
+        listening socket descriptor
+      handle_request()
+        process single request
+        get_request()
+        verify_request()
+        process_request()
+      serve_forever(poll_interval = 0.5)
+        serve til shutdown()
+        poll for shutdown every poll_iterval seconds
+      shutdown()
+        stop serve_forever()
+      server_close()
+        close server
+      address_family
+    modifiable:
+      finish_request()
+        create RequestHandlerClass and call its handle()
+      get_request()
+        accept request and return new socket object
+        and address
+      handle_error(req, client)
+        if RequestHandlerClass.handle() errors
+      handle_timeout()
+        if timeout
+      process_request(req, client)
+        calls finish_request()
+      server_activate()
+        activate server
+      server_bind()
+        binds to socket of desired address
+      verify_request(req, clie)
+        returns bool
+          True:  process req
+          False: don't
+          ex: access control
+      
+    
+
+
+
+______________________________
+#1.2::BaseHTTPRequestHandler
+  typical use: inherit from it
+  do_*
+    * = GET
+        PUT
+        POST
+        SPAM
+        etc...
+  ______________________________
+  #1.2.1::instance variables
+    client_address
+      (host, port)
+    server
+      the server
+    command
+      'GET', 'PUT', 'POST', etc
+    path
+      requested path
+      ex:
+        host:port/blahblah/bloo/foo/bar
+        path = '/blahblah/bloo/foo/bar'
+    request_version
+      'HTTP/1.0' etc
+    headers
+      self.MessageClass instance
+      handles header parsing
+      default:
+        mimetools.Message
+          choose_boundary()
+            unique string likelihood usable as boundary
+          decode(input, output, encoding)
+            input, output are files
+            encoding: base64
+                      quoted-printable
+                      uuencode
+                      x-uuencode
+                      uue
+                      x-uue
+                      7bit
+                      8bit
+          encode(input, output, encoding)
+            input, output are files
+          coypliteral(input, output)
+            copy lines
+          copybinary(input, output)
+            copy blocks (8192 bytes)
+          
+          getplist()
+            content-type: header
+            ex:
+              Content-type: text/html;  spam = 1; Spam=2; Spam
+              getplist() returns ['spam=1', 'Spam=2', 'Spam']
+          getparam(name)
+          getencoding()
+          gettype()
+          getmaintype()
+          getsubtype()
+    rfile:
+      input stream at start of optional input data
+    wfile:
+      output stream to write response
+  ______________________________
+  #1.2.2::class variables
+    server_version
+      white-space-delimited string
+      each string is name[/version]
+        ex:
+          'BaseHTTP/0.2 HTTP/1.0' etc
+    sys_version
+      python system version 
+        ex: 'Python/1.4'
+    error_message_format
+      format string to build error response to client
+      parenthesized keyed format specifiers
+        (operand = dict)
+        keys:
+          code:    HTTP error code
+          message: what happened
+          explain: explain error code number          
+    error_content_type
+      default: 'text/html'
+    protocol_version
+      'HTTP/1.1' => persistent connection
+                    MUST include Content-length header
+      'HTTP/1.0' => default, don't need to have content-length
+    MessageClass
+      parse HTTP headers
+    responses
+      mapping of errorcode ints to short and long explanations
+      short-> message
+      long -> explain
+      for error_message_format
+  ______________________________
+  #1.2.3::methods
+    handle()
+      call handle_one_request() for requests
+      never override
+    handle_one_request()
+      call the do_*() method
+      never override
+    send_error(code, [message])
+      sends header and error
+    send_response(code, message)
+      sends response header and logs accepted request
+      ex:
+      send_response(204, 'No Content')
+    send_header(key, value)
+      send headers
+    end_headers()
+      send blank line = end of headers
+    log_request([code, [size]])
+      code: response code
+      size: size of response
+    log_error(...)
+      pass params to log_message()
+    log_message(format, ...)
+      logs message to sys.stderr
+    version_string()
+      return software's version string
+    date_time_string([timestamp])
+      returns now or formated time.time()
+    log_date_time_string()
+      current date and time for logging
+    address_strign()
+      returns client address
+    
+      
+    
+##############################
+#2::http tidbits
+##############################
+  ______________________________
+  #2.1::content-type
+    type/subtype
+    types:
+      application
+      audio
+      example
+      font
+      image
+      message
+      model
+      multipart
+      text
+      video
+      chemical (unofficial)
+    common examples:
+      application/javascript
+      application/json
+      application/x-www-form-urlencoded
+      application/xml
+      application/zip
+      application/pdf
+      audio/mpeg
+      audio/vorbis
+      multipart/form-data
+      text/css
+      text/html
+      text/plain
+      image/png
+      image/jpeg
+      image/gif
+  ______________________________
+  #2.2::status
+    100 Continue
+    101 Switching Protocols
+    ______________________________
+    2xx successful
+      200 OK
+        success
+        GET  : requested resource in response
+        HEAD : headers sent
+        POST : entity containing result of action 
+        TRACE: entity containing request message
+      201 Created
+        thing created
+        newly created resource referenced by URI(s) returned in response
+        should be created before 201 finished
+      202 Accepted
+        accepted for processing but not complete
+        response should include pointer to status monitor
+        or estimate of when will be completed
+      203 Non-Authoritative Information
+        only use when header might not be the standard headers
+        and response would otherwise be 200 OK
+      204 No Content
+        no body to return, headers might be changed
+      205 Reset Content
+        request finished, user should refresh page, must not include an entity
+      206 Partial Content
+        partial get
+        Range field: desired range
+        If-Range request conditional
+        Content-Range: range included with response
+        multipart/byteranges content-type including content-range fields for each part
+        Content-Length must match # of octets in body
+        date
+        ETag and/or Content-Location if would have been sent with 200 to same request
+        expires, cache-control, and/or vary if field-value might differ frm any sent for previous response of
+        same variant
+    ______________________________
+    3xx redirection
+    ______________________________
+    4xx client error
+      400 Bad Request
+      401 Unauthorized
+      402 Payment Required
+      403 Forbidden
+      404 Not Found
+      405 Method Not Allowed
+      406 Not Acceptable
+      407 Proxy Authentication Required
+      408 Request Timeout
+      409 Conflict
+    ______________________________
+    5xx Server Error
+      500 Internal Service Error
+      501 Not Implemented
+      502 Bad Gateway
+      503 Service Unavailable
+      504 Gateway Timeout
+      505 HTTP Version Not Supported        

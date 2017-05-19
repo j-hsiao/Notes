@@ -1,0 +1,1325 @@
+OpenCL notes
+https://handsonopencl.github.io/
+
+##############################
+contents::
+##############################
+lect3: programming model
+lect4: opencl apis
+  C
+  C++
+  pyopencl
+review
+lect 5: kernel programming
+lect 6: memory hierarchy
+lect 7: synchronization
+lect 8: heterogenous computing
+lect 9: portability
+lect 10: performance
+lect 11: debugging
+lect 12: cuda to opencl
+extras:
+vectorization
+Event model
+C++ vs C
+
+
+
+##############################
+lect3: programming model::
+##############################
+  1 host, many devices
+  each device:
+    compute unit (CU)
+      processing element (PE)
+  
+  loops replaced by "kernels"
+
+
+  ex:
+    void mul(const int n,
+             const float *a,
+             const float *b,
+             float *c) {
+      int i;
+      for (i = 0; i < n; i++)
+        c[i] = a[i] * b[i];
+    }
+
+
+    vs
+
+    __kernel void mul(__global const float *a,
+                      __global const float *b,
+                      __global       float *c) {
+      int id = get_global_id(0);
+      c[id] = a[id] * b[id]
+
+
+  work done in N-dimensions, N in [1,3]
+  work size:
+    global size: entire problem (like image) (number of total iterations)
+    local (work-group) size: sub-problem (like convolution, subsection of image)
+                             # of work items per work group
+    work-item: running specific instance
+    *cuda compare*:
+      global scale = entire problem
+      work-group = thread block
+      work-item  = thread
+      thread in block can synch and share mem
+        between blocks can't
+  Memory Model:
+    private          : per work-item
+    local            : per work-group (shared b/w work-item)
+    global/constant  : visible to all work groups
+    host             : ram/disk
+    NOTE:
+      memory management is explicit
+  
+  Context and Command Queues
+    context: the environment (host, # devices, memory, command-queue count)
+    command-queue: like cuda streams
+                   1 device per command-queue
+  program objects:
+    context
+    kernel source/binary
+    target devices list
+    build options
+    clCreateProgramWithSource()
+    clCreateProgramWithBinary()
+  NOTE:
+    opencl uses runtime compilation (compile at runtime because
+      don't necessarily know the device params at compile time otherwise)
+  ______________________________
+  ex code:
+  __kernel void horizontal_reflect(read_only image2d_t src,
+                                   write_only image2d_t dest) {
+    int x = get_global_id(0);
+    int y = get_global_id(1);
+    int w = get_image_width(src);
+    float4 src_val = read_imagef(src, sampler, (int2)(width-1-x, y));
+    write_imagef(dst, (int2)(x, y), src_val);
+  ______________________________
+  ex code: kernel
+  __kernel void vadd(__global const float *a,
+                     __global const float *b,
+                     __global       float *c) {
+    int i = get_global_id(0);
+    c[i] = a[i] + b[i];
+  }
+  ______________________________
+
+  host code:
+    5 steps:
+      1. define platform (device + context + queues)
+      2. create/build program (dynamic library for kernels)
+      3. setup memory objects
+      4. define kernel(attach arguments)
+      5. submit commands (add to queues, xfer memory, etc)
+    ______________________________
+    1. define the platform:
+      ______________________________
+      grab 1st available platform:
+        err = clGetPlatformIDs(1, &firstPlatformId,
+                               &numPlatforms);
+
+      grab 1st cpu device
+        err = clGetDeviceIds(firstPlatformId,
+                             CL_DEVICE_TYPE_CPU, 1, &device_id, NULL);
+      simple context with single device:
+        context = clCreateContext(firstPlatformId, 1,
+                                  &device_id, NULL, NULL, &err);
+      create simple command-queue:
+        commands = clCreateCommandQueue(context, device_id,
+                                        0, &err);
+      ______________________________
+      command queues:
+        like cuda streams
+        each queue only goes to 1 device
+        but each device can have multiple queues
+        
+        in-order queues:
+          commands enqueued and follow fifo order for completion
+        no-order queues:
+          no order... random completion
+      synchpoints guarantee prior commands are completed
+    ______________________________
+    2. build the program
+      source code read from a file
+      or as a "string"
+      ______________________________
+      program = clCreateProgramWithSource(context, 1,
+                                          (const char**) &KernelSource,
+                                          Null, &err);
+      err = clBuildProgram(program, 0, NULL, NULL, NULL, NULL);
+      ______________________________
+      error messages: err
+      ______________________________
+      ex code:
+        if (err != CL_SUCCESS) {
+          size_t len;
+          char buffer[2048];
+          clGetProgramBuildInfo(program, device_id,
+            CL_PROGRAM_BUILD_LOG, sizeof(buffer), buffer, &len);
+          printf("%s\n", buffer);
+        }
+    ______________________________
+    3. setup memory objects
+      memory objects: memory...
+      ex: vector addition: need source1, source2, and output1
+      host handles memory
+        ______________________________
+        ex:
+          float h_a[LENGTH], float_b[LENGTH], h_c[LENGTH];
+          for (i = 0; i < length; i++) {
+            h_a[i] = rand() / (float)RAND_MAX;
+            h_b[i] = rand() / (float)RAND_MAX;
+          }
+        ______________________________
+        creation:
+          d_a = clCreateBuffer(context, CL_MEM_READ_ONLY,
+                               sizeof(float)*count, NULL, NULL);
+          d_b = clCreateBuffer(context, CL_MEM_READ_ONLY,
+                               sizeof(float)*count, NULL, NULL);
+          d_c = clCreateBuffer(context, CL_MEM_WRITE_ONLY,
+                               sizeof(float)*count, NULL, NULL);
+      memory object = reference-counted region of global memory
+      types:
+        Buffer:
+          linear collection of bytes (C char array)
+          contents fully exposed within kernels, access by pointers
+        image:
+          2 or 3-D memory region
+          image data can only be accessed with read/write functions
+            (data accessed by a "sampler": datastruct not guaranteed)
+          (used with graphics APIs like OpenGL)
+      ______________________________
+      buffers:
+        cl_mem type
+        arrays in host side hold data
+        buffer created by clCreateBuffer
+        ______________________________
+        ex:
+          //create buffer in device and copy host to device
+          cl_mem d_a = clCreateBuffer(context, CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR |
+                                               CL_MEM_WRITE_ONLY | CL_MEM_READWRITE...,
+                                      sizeof(float)*count, h_a, NULL);
+        CL_MEM flags are from device point of view
+        ______________________________
+        ex: device to host
+          clEnqueueReadBuffer(queue, d_c, CL_TRUE/CL_FALSE (blocking or not),
+                              sizeof(float)*count, h_c,
+                              NULL, NULL, NULL);
+        
+      naming convention:
+        prefix h_ = host
+        prefix d_ = device
+
+    ______________________________
+    4. define the kernel
+      ______________________________
+      ex. 
+        //note: "vadd" is name of the vector add kernel defined above
+        //create kernel
+        kernel = clCreateKernel(program, "vadd" &err);
+        //set arguments
+        err = clSetKernelArg(kernel, 0, sizeof(cl_mem), &d_a);
+        err |= clSetKernelArg(kernel, 1, sizeof(cl_mem), &d_b);
+        err |= clSetKernelArg(kernel, 2, sizeof(cl_mem), &d_c);
+        err |= clSetKernelArg(kernel, 3, sizeof(unsigned int) &count);
+    ______________________________
+    5. enqueue commands
+      //enqueue write host2device, nonblocking (CL_FALSE)
+      err = clEnqueueWriteBuffer(commands, d_a, CL_FALSE, 0,
+                                 sizeof(float) * count, h_a, 0, NULL, NULL);
+      err = clEnqueueWriteBuffer(commands, d_b, CL_FALSE, 0,
+                                 sizeof(float) * count, h_b, 0, NULL, NULL);
+      //kernel for execution (in-order so writes will finish before it's called)
+      err = clEnqueueNDRangeKernel(commands, kernel, 1,
+                                   NULL, &global, &local, 0, NULL, NULL);
+      err = clEnqueueReadBuffer(commands, d_c, CL_TRUE,
+                                sizeof(float)*count, h_c, 0, NULL, NULL);
+      
+      
+##############################
+lect4: opencl apis
+##############################
+host programs "ugly": very verbose-extreme portability = expose everything
+very reusable = package into python or c++
+______________________________
+C
+basically everything from lesson 3... 
+and more because arg identities are not given...->check documentation or something i guess
+  ______________________________
+  ex:NOTE: this is bullshit, obviously code has been deleted/omitted, wtf
+
+    cl_context context = clCreateContextFromType(0, CL_DEVICE_TYPE_GPU, NULL, NULL, NULL);
+    int cb;//content # of devices??
+
+    clGetContextInfo(context, CL_CONTEXT_DEVICES, 0, NULL, &cb);
+    cl_devices_id[] devices = malloc(cb);
+    clGetContextInfo(context, CL_CONTEXT_DEVICES, cb, devices, NULL);
+
+    //what is this type??
+    cmd_queue = clCreateCommandQueue(context, devices[0], 0, NULL);
+    
+    memobjs[0] = clCreateBuffer(context, CL_MEM_READ_ONLY|CL_MEM_COPY_HOST_PTR,
+                                sizeof(cl_float) *n, srcA, NULL);
+    memobjs[1] = clCreateBuffer(context, CL_MEM_READ_ONLY|CL_MEM_COPY_HOST_PTR,
+                                sizeof(cl_float) *n, srcB, NULL);
+    memobjs[2] = clCreateBuffer(context, CL_MEM_WRITE_ONLY,
+                                sizeof(cl_float) *n, NULL, NULL);
+    
+    program = clCreateProgramWithSource(context, 1, &program_source, NULL, NULL);
+    int err = clBuildProgram(program, 0, NULL, NULL, NULL, NULL);
+    kernel = clCreateKernel(program, "vec_add", NULL);
+    err = clSetKernelArg(kernel, 0, (void *) &memobjs[0], sizeof(cl_mem));
+    err = clSetKernelArg(kernel, 1, (void *) &memobjs[1], sizeof(cl_mem));
+    err = clSetKernelArg(kernel, 2, (void *) &memobjs[2], sizeof(cl_mem));
+
+    global_work_size[0] = n;
+    err = clEnqueueNDRangeKernel(cmd_queue, kernel, 1, NULL,
+                                 global_work_size, NULL, 0, NULL, NULL);
+
+    err = clEnqueueReadBuffer(cmd_queue, memobjs[2],
+                              CL_TRUE, 0, n*sizeof(cl_float), dst, 0, , NULL, NULL);
+______________________________
+C++
+  #include <cl.hpp>
+  uses common defaults
+  bundles params etc with objects
+  call kernel from host like a function
+  error checking with c++ exceptions
+  ______________________________
+  ex:
+    //enable exceptions:
+    #define __CL_ENABLE_EXCEPTIONS
+    //include header files
+    #include <CL/cl.hpp>
+    #include <cstdio>
+    #include <iostream>
+    #include <vector>
+
+    using namespace cl;
+    using namespace std;
+
+    #include N 1024
+    int main(void) {
+      Buffer d_a, d_b, d_c;
+      Context context(CL_DEVICE_TYPE_DEFAULT);
+      CommandQueue queue(context);
+      Program program(context, loadprogram("vadd.cl"), true);
+      auto vadd = make_kernel<Buffer, Buffer, Buffer>(program, "vadd");
+      d_a = Buffer(context, begin(h_a), end(h_a), true);
+      d_b = Buffer(context, begin(h_b), end(h_b), true);
+      d_c = Buffer(context, CL_MEM_WRITE_ONLY,
+                   sizeof(float) * N);
+      vadd(EnqueueArgs(queue, NDRange(count)),
+           d_a, d_b, d_c, count);
+      copy(queue, d_c, begin(h_c), end(h_c));
+    }
+  
+  ______________________________
+  Buffer constructor:
+    Buffer(startiterator, enditerator, bool readonly, bool usehostptr)
+      useHostPtr: default false (implicitly copied to device)
+        if true:
+          not copied
+          use host pointer
+          host pointer available to device
+          iterators must be continuous-memory
+          same as CL_MEM_USE_HOST_PTR
+        notes:
+          iterators is the <vector> as above...
+          blocking call
+          constructor enqueue copy to first device in context (useHostPtr == false)
+          automatically ensures buffer is copied to device that kernel is put on
+          if kernel goes to different device
+______________________________
+pyopencl
+  helper functions to choose platform/device at runtime
+  getInfo() methods are class attrs
+  call a kernel as method
+  multi-line strings: no need to escape new lines
+  ______________________________
+  ex:
+    import pyopencl as cl
+    import numpy as np
+    import deviceinfo
+    N = 1024
+    context = cl.create_some_context()
+    queue = cl.CommandQueue(context)
+    kernelsource = open('vadd.cl').read()
+    program = cl.Program(context, kernelsource).build()
+    
+    h_a = np.random.rand(N).astype(np.float32)
+    h_b = np.random.rand(N).astype(np.float32)
+    h_c = np.empty(N, np.float32)
+    
+    mf = cl.mem_flags
+    d_a = cl.Buffer(context, mf.READ_ONLY | mf.COPY_HOST_PTR, hostbuf=h_a)
+    d_b = cl.Buffer(context, mf.READ_ONLY | mf.COPY_HOST_PTR, hostbuf=h_a)
+    d_c = cl.Buffer(context, mf.WRITE_ONLY, h_c.nbytes)
+        
+  vadd = program.vadd
+  vadd.set_scalar_arg_dtypes([None, None, None, np.uint32])
+  vadd(queue, h_a.shape, None, d_a, d_b, d_c, N)
+  cl.enqueue_copy(queue, h_c, d_c)
+
+##############################
+review::
+##############################
+1. load kernel source code into program object
+2. make kernel functor
+3. initialize device memory
+4. call functor specify memory objects and global/local sizes
+5. read results
+note kernel function argument list must match kernel def on host
+
+______________________________
+C++
+  kernels: string (toy code)
+           separate file (real code)
+  kernel must be built:
+  program.build();
+    use true to build in program constructor, else use program.build with false in constructor (build flags)
+  define kernel functor from within program->enqueue
+    auto vadd = make_kernel<Buffer, Buffer, Buffer, int>(program, "vadd");
+  
+  ______________________________
+  kernel object:
+    Kernel ko_vadd(program, "vadd");
+    ::size_t local = ko_vadd.getWorkGroupInfo<CL_KERNEL_WORK_GROUP_SIZE>(Device::getDefault());
+  
+  ______________________________
+  set args and enqueue:
+    vadd(EnqueueArgs(queue, NDRange(count), NDRange(local)), d_a, d_b, d_c, count);
+  
+______________________________
+pyopencl
+  source string can be defined with 3 ' marks
+  ______________________________
+  ex:
+    source = """
+      __kernel void func() {}
+    """
+    source = open('file.cl').read()
+    program = pyopencl.Program(context, source).build()
+    program.kernel(q, t, l, a)
+  ______________________________
+  in above:
+    q = command queue
+    t = global size (a tuple)
+    l = local size (tuple or None)
+    a = argument list (numpy types or string)
+  ______________________________
+  program.kernel -> clCreateKernel() (recompiles kernel, unnecessary)
+    use kernel = program.kernel
+    kernel.set_scalar_arg_dtypes([list, of, arg, types])
+      buffer and local memory arguments should be None
+      scalar arguments could be np.float, np.uint32, etc
+##############################
+lect 5::
+##############################
+opencl C: ISO C99
+  restrictions: no recursion, function pointers, functions in C99 standard headers...
+  preprocessing directives defined by C99 are supported (#include etc)
+built-in data types
+  scalar and vector, pointers
+  data-type conversion functions:
+    convert_type<_sat><_roundingmode>
+  image types:
+    image2d_t, image3d_t, sampler_t
+built-in functions -mandatory
+  work-item functions, math.h, read and write image
+  relational, geometric functions, synchronization functions
+  printf (v1.2 only)
+built-in functions-optional
+  double precision, atomics to global/local memory
+  selection of rounding mode, writes to image3d_t surface
+
+______________________________
+C language highlights
+  function qualifiers:
+    __kernel (declares function as a kernel (host can see it to enqueue it)
+    kernels can call other kernels
+  address space qualifiers:
+    __global, __local, __constant, __private
+    pointer kernel args: declared w/ address space qualifier
+  work-item functions:
+    get_work_dim()
+    get_global_id
+    get_local_id
+    get_group_id
+  syncrhonization functions:
+    barriers:
+      all work-items within a work-group must execute barrier function before any work-item can continue
+    memory fences:
+      provides ordering between memory operations
+      
+  restrictions:
+    pointers to functions
+    pointers to pointers (but allowed only within a kernel)
+    bit-fields not supported
+    variable length arrays and structures not supported
+    recursion
+    double types optional, keyword reserved
+______________________________
+example:
+  x  2y + z = 1
+  x + 3y + 3z = 2
+  x + y + 4z = 6
+
+  vector and matrix problem
+  1   2   1     x     1
+  1   3   3  *  y  =  2
+  1   1   4     z     6
+
+  decompose into lower and upper triangular matrices:
+  1   0   0     1   2   1
+  1   1   0  *  0   1   2
+  1  -1   1     0   0   5
+
+  matmul:
+  sequential:
+    void mat_mul(int Mdim, int Ndim, int Pdim,
+                 float* A, float* B, float* C) {
+      int i, j, k;
+      for (i = 0; i < Ndim; i++) {
+        for (j = 0; j < Mdim; j++) {
+          for (k = 0; k < Pdim; k++) {
+            C[i*Ndim + j] += A[i*Ndim+k] * B[k*Pdim+j];
+      }
+    }
+  kernel:
+    __kernel void mat_mul(const int Mdim, const int Ndim, const int Pdim,
+                          __global float* A, __global float* B, __global float* C) {
+      int i, j, k;
+      i = get_global_id(0);
+      j = get_global_id(1);
+      float tmp = 0.0f;
+      for (k = 0; k < Pdim; k++) {
+        tmp += A[i*Ndim+k] * B[k*Pdim+j];
+      }
+      C[i*Ndim + j] += tmp;
+    }
+##############################
+lect 6: memory hierarchy::
+##############################
+MM: cost det by flops and memory movement
+  : maximize FLOPS per read/write
+
+______________________________
+dot-product algorithm analysis:
+  global dims: 1024x1024 (whole space)
+  local  dims: 128 x 128 (work-group size, execute in parallel)
+  private: per work-item (thread)
+    fastest, smallest
+    10s of 32-bit words
+  local  : shared per workgroup (shared memory in block)
+    shared by all work items
+  global/constant: all workgroups (global memory)
+    1-10 gigs global
+    10-100 constant
+  host memory: host...
+  
+  explicit mem management:
+    1-10 gigs/s bandwidth to gpus for xfers
+  ______________________________
+  private memory
+    VERY SCARCE
+    too much = spill to global memory
+               reduce work items parallelized
+  ______________________________
+  local memory
+    10s of KBytes per CU
+    multiple workgroups per compute unit
+      only part of local memory available to a work group
+    1-10 KBytes per work group
+    kernels do transferring b/w local and global/constant
+      async_work_group_copy()
+      async_work_group_strided_copy()
+    should put data that can be REUSED BY ALL WORK ITEMS
+    should access while conscious of bank conflicts and
+      coalescence
+    NOTES:
+      CPUs don't have local memory
+      GPUs often have on-chip caches
+  ______________________________
+  memory consistency
+    relaxed consistency model
+      w/in work item:
+        consistency with own private view of memory
+      w/in work group:
+        local memory consistent b/w work items at a barrier
+      global memory:
+        consistent win work group at a barrier but
+        may be different b/w different work groups!
+    use synchronization to enforce consistency
+  ______________________________
+  ex:
+    work item computes entire row in result
+    mxp * pxn = mxn
+    global dimension: 1024
+    local dimension : 64
+    (fewer items = less overhead ??)
+    ______________________________
+    code:
+      //note: this code is retarded
+      //should be row-major     
+      //i * Ndim implies A width is Ndim
+      // k * Pdim implies B width is Pdim
+      //BUT implies C is Pdim x Pdim which doesn't match...
+      //whatever...
+      //looking at host code, only works in this case because
+      //Mdim, Ndim, Pdim are all the same
+      __kernel void mmull(const int Mdim, const int Ndim, const int Pdim,
+                          __global float* A, __global float* B, __global float* C) {
+        int k, j;
+        int i = get_global_id(0);
+        float tmp;
+        for (j = 0; j < Mdim; j++) {
+          tmp = 0.0f;
+          for(k = 0; k < Pdim; k++) {
+            tmp += A[i * Ndim + k] * B[k * Pdim + j];
+          }
+          C[i*Ndim + j] += temp;
+        }
+      }
+    
+    ______________________________
+    host code:
+      int main (int argc, char *argv[]) {
+        std::vector<float> h_a, h_b, h_c;
+        int Mdim, Ndim, Pdim // A[N][P], B[P][M], C[N][M]
+        int i, err;
+        int szA, szB, szC; //num elements in each matrix
+        double start_time, run_time; //timing data
+        cl::Program program;
+        
+        Ndim = Pdim = Mdim = ORDER;
+        szA = Ndim * Pdim;
+        szB = Pdim * Mdim;
+        szC = Ndim * Mdim;
+        
+        h_A = std::vector<float>(szA);
+        h_B = std::vector<float>(szB);
+        h_C = std::vector<float>(szC);
+        
+        initmat(Mdim, Ndim, Pdim, h_a, h_b, h_c);
+        
+        //compile for first kernel to setup program
+        program = cl::Program(C_elem_KernelSource, true);
+        Context context(CL_DEVICE_TYPE_DEFAULT);
+        cl::CommandQueue queue(context);
+        std::vector<Device> devices = 
+          context.getInfow<CL_CONTEXT_DEVICES>();
+        cl::Device device = devices[0];
+        std::string s = device.getInfo<CL_DEVICE_NAME>();
+        std::cout << "\nUsing OpenCL Device " << s << "\n";
+        
+        //setup buffers, init matrices, write to mem
+        initmat(Mdim, Ndim, Pdim, h_A, h_b, h_c);
+        cl::Buffer d_a(context, begin(h_A), end(h_A), true);
+        cl::Buffer d_b(context, begin(h_B), end(h_B), true);
+        cl::Buffer d_c(context, CL_MEM_WRITE_ONLY, sizeof(float) * szC);
+
+        auto krow = cl::make_kernel<int, int, int, cl::Buffer, cl::Buffer, cl::Buffer>(program, "mmul");
+        zero_mat(Ndim, Mdim, h_C);
+        start_time = wtime();
+
+        krow(cl::EnqueueArgs(queue, cl::NDRange(Ndim), cl::NDRange(ORDER / 16)),Ndim, Mdim, Pdim,
+             a_in, b_in, c_out); //this is so sloppy, a_in, b_in, c_out not defined.. obv supposed to be
+                                 //d_a, d_b, d_c
+        cl::copy(queue, d_c, begin(h_C), end(h_C));
+        run_time = wtime() - start_time;
+        results(Mdim, Ndim, Pdim, h_C, run_time);
+      }
+
+  ______________________________
+  use private memory to store row in matrix
+  to speed things up
+    ______________________________
+    kernel:
+      //i want to facepalm so hard... "10s of 32 bit words"
+      //floats are 32bits
+      // store 1024 32-bit floats in "10s of 32 bit words" ?? bullshit
+      // A[N][P], B[P][M], C[N][M], again, M, N, P are all the same so this works... otherwise would be WRONG
+      __kernel void mmul(const int Mdim, const int Ndim, const int Pdim,
+                         __global float* A, __global float* B, __global float* C) {
+        int k, j;
+        int i = get_global_id(0);
+        float Awrk[1024]//this should totally be Pdim so such bad much sad
+        float tmp;
+        //store into magical Awrk... should totally "spill into global memory" so why doesn't it?
+        // i suppose it was "ASSUME there are 10s of 32-bit words"... but still...
+        for (k = 0; k < Pdim; k++) {
+          Awrk[k] = A[i*Ndim + k];
+        }
+        for  (j = 0; j < Mdim; j++) {
+          tmp = 0.0f;
+          for (k = 0; k < Pdim; k++) {
+            tmp += Awrk[k] * B[k * Pdim + j];
+          }
+          C[i * Ndim + j] += tmp;
+        }
+      }
+  ______________________________
+  note: above: way too much private mem
+    spills over to global memory
+    BUT stored in a much more accessible way
+    A not in local memory because each work item uses a DIFFERENT MUTUALLY EXCLUSIVE part of A
+  ______________________________
+  All work items use same B's columns->store in local memory?
+    ______________________________
+    kernel::
+      // A[N][P], B[P][M], C[N][M], again, M, N, P are all the same so this works... otherwise would be WRONG
+      __kernel void mmul(const int M, const int N, const int P,
+                         __global float *A,
+                         __global float *B,
+                         __global float *C,
+                         __local  float *Bwrk) {
+        int k, j;
+        int i = get_global_id(0);     //(overal global id)
+        int iloc = get_local_id(0);   //(id within work-group)
+        int nloc = get_local_size(0); //(# of work items in this work group??)
+        float Awrk[P];
+        float tmp;
+        for (k = 0; k < P; k++) {
+          Awrk[k] = A[i * P + k];
+        }
+        for ( j = 0; j < Mdim; j++) {
+          for (k = iloc; k < P; k += nloc) {
+            Bwrk[k] = B[k*M + j];
+          }
+          barrier(CLK_LOCAL_MEM_FENCE);
+          tmp = 0.0f;
+          for (k = 0; k < P; k++) {
+            tmp += Awrk[k] * Bwrk[k];
+          }
+          C[i*M + j] = tmp;
+      }
+    ______________________________
+    host code:
+      int main (int argc, char *argv[]) {
+        std::vector<float> h_a, h_b, h_c;
+        int Mdim, Ndim, Pdim // A[N][P], B[P][M], C[N][M]
+        int i, err;
+        int szA, szB, szC; //num elements in each matrix
+        double start_time, run_time; //timing data
+        cl::Program program;
+        
+        Ndim = Pdim = Mdim = ORDER;
+        szA = Ndim * Pdim;
+        szB = Pdim * Mdim;
+        szC = Ndim * Mdim;
+        
+        h_A = std::vector<float>(szA);
+        h_B = std::vector<float>(szB);
+        h_C = std::vector<float>(szC);
+        
+        initmat(Mdim, Ndim, Pdim, h_a, h_b, h_c);
+        
+        //compile for first kernel to setup program
+        program = cl::Program(C_elem_KernelSource, true);
+        Context context(CL_DEVICE_TYPE_DEFAULT);
+        cl::CommandQueue queue(context);
+        std::vector<Device> devices = 
+          context.getInfow<CL_CONTEXT_DEVICES>();
+        cl::Device device = devices[0];
+        std::string s = device.getInfo<CL_DEVICE_NAME>();
+        std::cout << "\nUsing OpenCL Device " << s << "\n";
+        
+        //setup buffers, init matrices, write to mem
+        initmat(Mdim, Ndim, Pdim, h_A, h_b, h_c);
+        cl::Buffer d_a(context, begin(h_A), end(h_A), true);
+        cl::Buffer d_b(context, begin(h_B), end(h_B), true);
+        cl::Buffer d_c(context, CL_MEM_WRITE_ONLY, sizeof(float) * szC);
+        
+        cl::LocalSpaceArg localmem = cl::Local(sizeof(float)*Pdim);
+
+        auto krow = cl::make_kernel<int, int, int, 
+                                    cl::Buffer, cl::Buffer, cl::Buffer, cl::LocalSpaceArg>(program, "mmul");
+        zero_mat(Ndim, Mdim, h_C);
+        start_time = wtime();
+
+        krow(cl::EnqueueArgs(queue, cl::NDRange(Ndim), cl::NDRange(ORDER / 16)),Ndim, Mdim, Pdim,
+             a_in, b_in, c_out, localmem); //this is so sloppy, a_in, b_in, c_out not defined.. obv supposed to be
+                                           //d_a, d_b, d_c
+        cl::copy(queue, d_c, begin(h_C), end(h_C));
+        run_time = wtime() - start_time;
+        results(Mdim, Ndim, Pdim, h_C, run_time);
+      }
+  ______________________________
+  other tips:
+    work item count should match device "vector width"
+      (for cuda gpu, a "warp" or "half-warp")
+      (wavefront for AMD)
+      (SIMD lanes exposed by vector units on CPU)
+    use blocking techniques (downscale the data to make it even faster/fit into private memory)
+      tiles->local memory
+      multiplication over tiles
+##############################
+lect 7: synchronization::
+##############################
+  1024x1024 work items?
+  128x128 workgroup size
+  ______________________________
+  work-item synchronization
+    same work-group
+    void barrier()
+      optional flags:
+      CLK_LOCAL_MEM_FENCE
+      CLK_GLOBAL_MEM_FENCE
+    work-item encounters a barrier(), wait til all work items finish the barrier
+    therefore: barrier in a branch, ALL must take branch or ALL must not
+    (else some take branch and enter barrier, stopped forever)
+  ______________________________
+  inter-work-group:
+    nada zip zilch none
+    only solution: finish kernel and start another
+  ______________________________
+  synchronization cases examples:
+    reduction: reduce set of numbers to 1 (sum etc)
+    sequential:
+    int reduce(int Ndim, int *A) {
+      int i;
+      int sum = 0;
+      for(i = 0; i < Ndim; i++) {
+        sum += A[i];
+      }
+      return sum;
+    }
+    reduce = cut array into bits
+    add up bits
+    new array
+    repeat
+##############################
+lect 8: heterogenous computing
+##############################
+  kernels run on multiple devices
+  can exploit many gpus/cpus
+  define a context w/ multiple platforms, devices, queues
+  synchronize b/w queues with events
+  more than 1 context
+  ______________________________
+  1. get all platforms and devices:
+  2. set up cl::Context(const VECTOR_CLASS<Device> &devices,
+                        cl_context_properties *properties = NULL,
+                        void (CL_CALLBACK *pfn_notify) (const char *errorinfo,
+                                                        const void *private_info_size,
+                                                        std::size_t cb, void *user_data) = NULL,
+                        void *user_data = NULL, cl_int *err = NULL)
+  3. command queue for each device
+
+
+##############################
+lect 9: portable performance
+##############################
+tips and tricks:
+  ______________________________
+  efficient access to memory:
+    memory coalescing (work-item i to access data[i]) (mem access)
+    pad arrays for multiples of multiples of 16       (mem alignment)
+  ______________________________
+  work items and group sizes
+    >=4 items per group on GPUs, more = better, but diminishing returns
+  ______________________________
+  divergence
+    branches->SIMD data parallel model
+  ______________________________
+  memory layout
+    ______________________________
+    structure of arrays vs array of structures
+      struct {float x, y, z, a; } Point;
+      xxxxxx...yyyyy....zzzzzz....aaaaaa (for coalescence, adjacent items = adjacent data)
+      xyzaxyzaxyzaxyza...                (for cache (1 item access multiple adjacent data)
+  ______________________________
+  use a profiler
+    occupancy: how active each PE is
+      occupancy > 0.5 = good
+    mem bandwidth
+      (aim for near peak)
+    divergence
+      (should be low)
+    registers per work item
+      (should be low, should use all)
+      (try for 16-32 per work item)
+  ______________________________
+  don't optimize too hard for a single platform
+    usually other platforms will suffer as a result
+    don't rely on memory sizes
+    be aware of caches...
+    make dynamic choice of kernel dimensions
+    double precision vs single precision
+    compilation feedback
+    check performance on many different platforms
+  ______________________________
+  discover devices at runtime
+    ______________________________
+    ex:
+      cl_uint nPlatforms;
+      cl_platform_id platforms[MAX_PLATFORMS];
+      int ret = clGetPlatformIDs(MAX_PLATFORMS, platforms, &nPlatforms);
+      //loop over platforms
+      for (int p = 0; p < nPlatforms; p++) {
+        //get all devices in platform
+        cl_uint nDevices = 0;
+        cl_device_id devices[MAX_DEVICES];
+        clGetDeviceIDs(platforms[p], deviceType, MAX_DEVICES, devices, &nDevices);
+        //loop over all devices in platform
+        for (int d = 0; d < nDevices; d++) {
+          getDeviceInformation(devices[d]);
+        }
+      }
+  ______________________________
+  run micro-benchmarks
+    run small tests to see what devices are faster/slower etc, which run better with which settings?
+    (use small amount of real work to waste less time/resources)
+    keep microbenchmark short, otherwise slow devices penalize faster ones
+    retest occasionally (errors can occur, devices can die, etc)
+    give more work to fast devices
+    don't overload host with host and kernel
+    ______________________________
+    timing code
+      for (int i = 0; i < numDevices; i ++) {
+        ret = clFinish(oclDevices[i].queue);
+        cl_ulong start, end;
+        ret = clGetEventProfilingInfo(oclDevices[i].kernelEvent,
+                                      CL_PROFILING_COMMAND_START,
+                                      sizeof(cl_ulong), &start, NULL);
+        ret |= clGeteventProfilingInfo(oclDevices[i].kernelEvent,
+                                       CL_PROFILING_COMMAND_END,
+                                       sizeof(cl_ulong), &end, NULL);
+        long timeTaken = (end - start);
+        speeds[i] = timeTaken / oclDevices[i].load;
+  ______________________________
+  workgroup sizes:
+    CPUs like 1 work item per work group
+    GPUs like many
+    need to pad total number of work-items to be exact multiple of preferred Work-Group size
+      dif per device
+    try to write adaptive code to optimize values at runtime
+  ______________________________
+  other considerations:
+    tiling size
+      (block based algorithms)
+      (block sizes etc)
+    data layout
+      array of structs or struct of arrays
+    caching and prefetching
+      local memory?
+      extra loads/stores assist cache?
+    work-item/work-group data mapping
+      parallelization scheme
+    operation-specific tuning
+      hardware difs
+      built-in functions
+      double vs float vs half
+  ______________________________
+  auto tuning
+    try them all, or a good subset
+    pick based on results
+    don't run huge things (bad combination of settings = wait super long = bad...)
+##############################
+lect 10: optimizing performance::
+##############################
+Extrae : make timestamps for API calls
+Paraver: view above results graphically
+use profilers... nvvp etc, codexl, etc
+
+
+##############################
+lect 11: debugging::
+##############################
+Parallel programs->debug = hard
+OpenCL 1.2, can use printf straight from kernel
+  __kernel void func(void) {
+     int i = get_global_id(0);
+     printf("%d\n", i);
+
+  }
+  call clFinish or equivalent to flush
+  write data to global buffer from kernel
+  copy to host and print from there
+use C++ and print errors
+err_code.c to print error codes as strings
+or cl.h for error messages
+double check indexing
+
+use GDB (on CPU)
+make sure compiled with right flags etc
+  with AMD:
+    program.build(" -g -o0 ");
+    __kernel void foo(args) = "__OpenCL_foo_kernel"
+    in gdb: break __OpenCL_foo_kernel
+    set environment variable CPU_MAX_COMPUTE_UNITS=1
+  with intel:
+    program.build(" -g -s /full/path/to/kernel.cl ");
+    in gdb: break foo
+  n = next line
+  s = step into
+  backtrace = last 5 frames
+    frame 5 to examine 5th frame
+  print varname to print variable
+other tools:
+  AMD CodeXL
+  NVIDIA Nsight
+  GPUVerify
+##############################
+cuda to opencl::
+##############################
+cuda                OpenCL
+local               private
+shared              local
+constant            constant
+device              global
+
+______________________________
+allocate/copy memory
+            cuda                          opencl
+  allocate  float* d_x;                   cl_mem d_x = clCreateBuffer(context, CL_MEM_READ_WRITE,
+            cudaMalloc(&d_x,                sizeof(float)*size, NULL, NULL);
+              sizeof(float)*size)         
+  H2D       cudaMemcpy(d_x, h_x,          clEnqueueWriteBuffer(queue, d_x,CL_TRUE, 0, 
+              sizeof(float)*size,           sizeof(float)*size, h_x, 0, NULL, NULL);
+              cudaMemcpyHostToDevice);
+  
+  D2H       cudaMemcpy(h_x, d_x,          clEnqueueReadBuffer(queue, d_x, CL_TRUE, 0,
+              sizeof(float)*size,           sizeof(float)*size, h_x, 0, NULL, NULL);
+              cudaMemcpyDeviceToHost);
+  
+           opencl C++
+  allocate cl::Buffer d_x(begin(h_x), end(h_x), true);
+  
+  H2D      cl::copy(begin(h_x), end(h_x), d_x);
+  
+  D2H      cl::copy(d_x, begin(h_x), end(h_x));
+______________________________
+declaring dynamic/local/shared memory
+cudaC                                   opencl C
+__shared__ int array[];                 __kernel void func(__local int *array)
+func<<<num_blocks,                      clSetKernelArg(kernel, 0, sizeof(int)*num_elements, NULL);
+       num_threads,
+       shared_mem_size>>>(args);
+
+opencl C++
+__kernel void func(__local int *array)
+cl::LocalSpaceArg localmem = cl::Local(shared_mem_size);
+func(EnqueueArgs(...), localmem);
+
+
+______________________________
+run a kernel:
+cudaC                                   opencl C
+dim3 threads_per_block(30,20);          const size_t global[2] = {300,200};
+dim3 num_blocks(10,10);                 const size_t local[2]  = {30, 20};
+kernel<<<num_blocks,                    clEnqueueNDRangeKernel(queue, &kernel, 2, 0, &global, &local,
+         threads_per_block>>>();          0, NULL NULL);
+
+
+opencl C++
+const cl::NDRange global(300,200);
+const cl::NDRange local(30,20);
+kernel (EnqueueArgs(global, local), ...);
+______________________________
+indexing:
+  cuda                     ocl
+  grimDim                  get_num_groups()
+  blockIdx                 get_group_id()
+  blockDim                 get_local_size()
+  gridDim*blockDim         get_global_size()
+  threadIdx                get_local_id()
+  blockIdx*blockdim +      get_global_id()
+  threadIdx
+
+
+______________________________
+kernels:
+  cuda                  ocl
+  with host code        in separate file or string
+  __global__            __kernel
+  
+______________________________
+host code:
+cuda: initialize gpu automatically
+ocl : requires explicit initialization for everything/anything
+______________________________
+syncrhonization:
+cuda                    ocl
+__syncthreads()         barrier()
+__threadfenceblock()    mem_fence(CLK_GLOBAL_MEM_FENCE | CLK_LOCAL_MEM_FENCE)
+nada                    read_mem_fence()
+nada                    write_mem_fence()
+__threadfence()         finisha  kernel and start another one
+______________________________
+vocabulary:
+GPU                  device
+multiprocessor       compute unit
+scalar/core          processing element
+global/device mem    global memory
+shared memory        local memory
+local memory         private memory
+thread block         work group
+thread               work item
+warp                 nada
+grid                 NDRange
+
+##############################
+vectorization::
+##############################
+explicit vectorization may hurt performance
+(operate on blocks of numbers)
+issues:
+  non-portable
+  assembly-type of programming (load, operate, read)
+  
+openCL provides vectorization code:
+  portable
+  lengths of 2, 4, 8, 16, ...
+  (char2, ushort 4, int8, float16, double2,...)
+  Endian safe
+  aligned at vector length
+  vector operations (elementwise) and built-in functions
+
+ex:
+  int4 v0 = (int4) -7;          [-7, -7, -7, -7]
+  int4 v1 = (int4) (0,1,2,3);   [ 0,  1,  2,  3]
+  
+loop unroll based on vector width
+handle uneven divides
+
+##############################
+Event model::
+##############################
+CL_QUEUED
+CL_SUBMITTED
+CL_RUNNING
+CL_COMPLETE
+ERROR_CODE
+
+cl_int clGetEventInfo(cl_event event, cl_event_info param_name,
+                      size_t param_value_size, void* param_value,
+                      size_t* param_value_size_ret)
+
+cl_int clEnqueueNDRangeKernel(
+    cl_command_queue command_queue,
+    cl_kernel kernel,
+    cl_uint work_dim,
+    const size_t* global_work_offset,
+    const size_t* global_work_size,
+    const size_t* local_work_size,
+    cl_uint num_events_in_wait_list,
+    const cl_event *event_wait_list,
+    cl_event *event)
+
+  num_events_in_wait_list: events this command waiting to complete before executing
+  event_wait_list        : the list of events waiting for
+  event                  : generated event
+
+
+______________________________
+basic usage:
+  used to impose order
+  (use in out-of-order queues)
+  ______________________________
+  ex:
+    cl_event k_events[2];
+    err = clEnqueueNDRangeKernel(commands, kernel1, 1,
+                                 NULL, &global, &local, 0, NULL, &k_events[0]);
+    err = clEnqueueNDRangeKernel(commands, kernel2, 1,
+                                 NULL, &global, &local, 0, NULL, &k_events[1]);
+    err = clEnqueueNDRangeKernel(commands, kernel3, 1,
+                                 NULL, &global, &local, 2, k_events, NULL);
+  synchs kernels b/w queues or in out-of-order queues
+    
+  ______________________________
+  vs barrier
+    barrier: synch point, all previously enqueued commands complete until before continue
+             only same queue
+    event  : finer grain control
+             only work with commands in same context
+             give more info (command state, executing, waiting, completed, etc)
+  ______________________________
+  user events: host generated events control commands
+    cl_event clCreateUserEvent(cl_context context, cl_int* errcode_ret)
+    cl_int   clSetUserEventStatus(cl_event event, cl_int execution_status)
+
+  ______________________________
+  command events:
+    from enqueue blah commands (last input)
+    cl_int clWaitForEvents(cl_uint num_events,
+                           const cl_event * event_list)
+  ______________________________
+  profiling:
+    read, write, map, copy mem objects
+    kernels, tasks, native kernels
+    acquire/release opengl objects
+
+    use CL_QUEUE_PROFILING_ENABLE flag when create queue
+    cl_int clGetEventProfilingInfo( cl_event event,
+                                    cl_profiling_info param_name,
+                                    size_t param_value_size,
+                                    void *param_value,
+                                    size_t *param_value_size_ret)
+      param_name values:
+        CL_PROFILING_COMMAND_QUEUED
+          device time (nanoseconds) when command inqueued by host (cl_ulong)
+        CL_PROFILING_COMMAND_SUBMIT
+          device time (nanoseconds) when command submitted
+        CL_PROFILING_COMMAND_START
+          device time (nanoseconds) when execution begins
+        CL_PROFILING_COMMAND_END
+          device time (nanoseconds) when execution finishes
+    ______________________________
+    ex:
+      cl_event prof_event;
+      cl_command_queue comm;
+      comm = clCreateCommandQueue(context, device_id,
+                                  CL_QUEUE_PROFILING_ENABLE,
+                                  &err);
+      err = clEnqueueNDRangeKernel( comm, kernel, nd,
+                                    NULL, global, NULL,
+                                    0, NULL, prof_event);
+      clFinish(comm);
+      err = clWaitForEvents(1, &prof_event)
+      cl_ulong start_time, stop_time;
+      size_t return_bytes;
+      err = clGetEventProfilingInfo(prof_event,
+                                    CL_PROFILING_COMMAND_QUEUED,
+                                    sizeof(cl_ulong),
+                                    &start_time,
+                                    &return_bytes);
+      err = clGetEventProfilingInfo(prof_event,
+                                    CL_PROFILING_COMMAND_END,
+                                    sizeof(cl_ulong),
+                                    &stop_time,
+                                    &return_bytes);
+      run_time = (double)(end_time - start_time);
+    ______________________________
+    ex2:
+      event = async_work_group_copy((__local float*) Bwrk, (__global float*) B,
+                                    (size_t) Pdim, (event_t) 0);
+      wait_group_events(1, &ev_cp);
+      do calcs
+  ______________________________
+  c++ interface:
+    Enqueue kernel w/ returned event:
+      Event event = vadd(EnqueueArgs(commands, NDRange(count), NDRange(local)),
+                         a_in, b_in, c_out, count);
+    wait on event:
+      event.wait();
+    extract data:
+      cl_ulong ev_start_time = event.getProfilingInfo<CL_PROFILING_COMMAND_START>();
+      cl_ulong ev_end_time = event.getProfilingInfo<CL_PROFILING_COMMAND_END>();
+
+##############################
+C++ vs C::
+##############################
+  ______________________________
+  includes:
+    c includes prefixed with "c"
+    <cstdio>
+  io from keyboard and console:
+    #include <iostream>
+    int a;
+    std::cin >> a;  //read a as an int
+    std::cout << a; //print a
+  ______________________________
+  namespaces:
+    namespaces->scope, like an "object"
+    use :: to dereference
+    default namespace is std
+    create namespace with:
+      namespace [name of namespace here]{
+        code within this namespace
+      };
+    set default namespace:
+      using namespace [name of namespace here];
+  ______________________________
+  references vs pointers
+    references are non-null pointers (don't need to check for NULL explicitly)
+  ______________________________
+  new/delete vs malloc/free
+    ex:
+      int * x = new int;
+      delete x;
+    use delete[] for arrays
+    ex:
+      int* array = new int[100];
+      delete[] array
+  ______________________________
+  overloading
+    same name, different args
+  ______________________________
+  classes vs structs
+    ex:
+      class Vector {
+        private:
+          int x_, y_, z_;
+        public:
+          Vector (int x, int y, int z) :x_(x), y_(y), z_(z){}
+          ~Vector {
+            cout << "vector destructor";
+          }
+          int getX() const {return x_;}
+      };
+    NOTE1:
+      using const on a function body implies
+      the function body will not modify the object at all
+      (can optimize etc, error check blah blah)
+  ______________________________
+  constructors:
+    version1 :
+      constructor(params):data(param), data(param)... {body}
+    version2 :
+      constructor(params){data = param; data = param;...}
+    differences:
+      version 2 must read memory from stack, but not version 1
+      object exists after inside the constructor (thread safety... idk how? no examples)
+      so version 1 is better for c++, use if possible
+  ______________________________
+  blocks of code:
+    out of scope, destructors automatically called
+  ______________________________
+  function objects:
+    function application operator overloaded->functor classes
+    struct Functor {
+      int operator() (int x) {return x * x; }
+    };
+    Functor f();
+    int value = f(10)
+  ______________________________
+  template functions:
+    types parameterized with types
+    template <typename T> 
+      T add(T x, T y) {return x + y; }
+    float f = add<float>(10.4f, 5.0f);
+    int i   = add<int>(100, 20);
+  ______________________________
+  template classes:
+    template <typename T> class Square {
+      T operator() (T x) { return x*x; }
+    };
+    Square<int> f_int();
+    int value = f_int(10);
+  ______________________________
+  function template:
+    #include <functional>
+    std::function...
+    struct Functor {
+      int operator() (int x) { return x * x; }
+    };
+    std::function<int (int)> square(Functor());
+
+    can contain state (functions cannot)
+    struct Foo {
+      int y_;
+      Foo() : y_(100) {}  
+      void operator()(int x) {return x + 100; }
+    };
+    ...this is a terrible example.. didn't even use the state
+    wtf
+  ______________________________
+      
+  
