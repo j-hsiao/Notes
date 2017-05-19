@@ -1,0 +1,314 @@
+sources:
+http://www.scipy-lectures.org/advanced/advanced_numpy/index.html#life-of-ndarray
+##############################
+contents::
+##############################
+1::life of ndarray
+  1.1::general
+  1.2::properties
+  1.3::data types
+    1.3.1::custom dtypes
+    1.3.2::casting/reinterp
+  1.4::strides
+  1.5::fake dimensions and strides
+  1.6::broadcasting
+2::universal functions
+3::interoperability features
+4::array siblings
+  4.1chararray
+  4.2maskedarray
+    4.2.1::domain-aware functions
+  4.3matrix
+5::summary
+6::contributing
+
+
+##############################
+#1::life of ndarray
+##############################
+ndarray: memory + indexing + type
+         (raw data, 
+         how to locate
+         how to interpret)
+
+______________________________
+#1.1::general
+definition:
+  typedef struct PyArrayObject {
+          PyObject_HEAD
+  
+          /* Block of memory */
+          char *data;
+  
+          /* Data type descriptor */
+          PyArray_Descr *descr;
+  
+          /* Indexing scheme */
+          int nd;
+          npy_intp *dimensions;
+          npy_intp *strides;
+  
+          /* Other stuff */
+          PyObject *base;
+          int flags;
+          PyObject *weakreflist;
+  } PyArrayObject;
+
+
+______________________________
+#1.2::properties
+x = np.array(data, dtype)
+  x.data : memory buffer
+  str(x.data) : mem buffer as string
+x.__array_interface__
+  {'data'    : (pointer, False),
+   'descr'   : [('', '<i4')],
+   'shape'   : (4,),
+   'strides' : None,
+   'typestr' : '<i4',
+   'version' : 3}
+
+
+arrays can share memory
+ex:
+  a = np.arrange(4).astype(np.uint8)
+  b = a[::2]
+  print a.__array_interface__
+  print a.flags
+  print b.__array_interface__
+  print b.flags
+
+arrays can be formed from buffers
+ex:
+  a = 'hello world'
+  b = np.fromstring(a, np.uint8)
+  b = np.frombuffer(a, np.uint8)
+  b = np.fromfile(fileobj, dtype)
+  print b
+  import struct
+  print struct.pack('11B', *b)
+
+
+______________________________
+#1.3::data types
+np.dtype
+  type: int8, int16, etc
+        str, unicode, void
+  itemsize : size of data block
+  byteorder: > : big-endian
+             < : little-endian
+             | : N/A
+  fields   : sub-dtypes if structured data type
+  shape    : shape of array if sub-array
+
+______________________________
+#1.3.1::custom dtype
+np.dtype(dict( names = [extra, field, names, go, here],
+               offsets = [offset1, offset2, offset3], #counted from struct start
+               formats = [typestrs]))
+np.dtype([('fieldname1', 'typestr1'), (filedname2, typestr2)...]
+np.dtype('u/i/SN')
+
+
+typestrs:n
+  i : int
+  u : unsigned
+  S : string
+  v?: void???
+
+______________________________
+#1.3.2::casting/reinterp
+  casting:
+    generally copies data
+    when:
+      on assignment
+      on array construction
+      on arithmetic
+      manually
+  reinterpretation
+    use same bits in different ways
+    x = np.arange(4).astype(npuint8)
+    1. change the dtype
+       x.dtype = 'i2'
+       add < or > if want to specifically choose little or big endian
+    2. create a new view:
+       x.view(dtypeargs)
+    when:
+      manually
+    ex:
+      x = np.zeros((10,10,4), dtype = np.int8)
+      x[:,:,0] = 1
+      x[:,:,1] = 2
+      x[:,:,2] = 3
+      x[:,:,3] = 4
+      y = x.view([('r', 'u1'),
+                  ('g', 'u1'),
+                  ('b', 'u1'),
+                  ('a', 'u1')])
+      assert(y['r'] == 1).all()
+      assert(y['g'] == 2).all()
+      assert(y['b'] == 3).all()
+      assert(y['a'] == 4).all()
+
+______________________________
+#1.4::strides
+  ex: transpose: just swaps strides
+    
+  by default, numpy uses C ordering
+    (times datatype size ofc)
+    (dim1, dim2)->
+    i1*dim2 + i2
+  instead of F ordering
+    (dim1, dim2) ->
+    i1 + i2*dim1
+  ______________________________
+  slicing
+    use [start:stop:step...]
+    can check .strides
+______________________________
+#1.5::fake dimensions and strides
+  np.lib.stride_tricks.as_strided
+  as_strided(x, shape = None, strides = None)
+    ! doesn't check memory bounds !
+  ex:
+    x = np.array([1,2,3,4], dtype = np.int16)
+    as_strided(x, strides = (2*2,), shape = (2,))
+    x[::2]
+
+  ex:
+    x = np.arange(1,5).astype(np.int8)
+    y = np.lib.stride_tricks.as_strided(x, strides = (0,1), shape = (3,4))
+
+______________________________
+#1.6::broadcasting
+  dims are matched from smallest up
+  matches with ones or equal
+  ie:
+  can do:
+  4 x 5 x 1 
+          5
+  (implemented using strides)
+
+ex1:
+x = np.array([[1,2,3],
+              [4,5,6],
+              [7,8,9]], dtype = np.int32)
+x_diag = as_strided(x, shape = (min(x.shape), ), strides = ((x.shape[1] + 1) * x.dtype.itemsize, ))
+x_super= as_strided(x[:, 1:], shape = (min(x[:,1:].shape),), strides = (x.shape[1] * x.itemsize, ))
+x_super= as_strided(x[1:, :], shape = (min(x[1:,:].shape),), strides = ((x.shape[1] + 1) * x.itemsize, ))
+
+
+ex2:
+x = np.arange(5*5*5*5).reshape(5,5,5,5)
+s = 0
+for i in range(5):
+    for j in range(5):
+        s += x[j,i,j,i]
+
+y = as_strided(x, shape = (5,5), strides = ((5*5*5 + 5)*x.itemsize,26 * x.itemsize))
+s2 = y.sum()
+
+print s
+print s2
+
+______________________________
+inplace operations:
+if modify shared data, results can be unexpected...
+
+x -= x.transpose(), element by element, data changed = use changed values for calcs
+
+
+##############################
+#2::universal functions
+##############################
+Ufunc performs and elementwise operation on all elements
+ex:
+  np.add
+  np.subtract
+  scipy.special.*,...
+automatic broadcasting
+ufunc only needs to supply element-wise operator
+elementwise operation needs to be implemented in C or Cython
+
+void ufunc_loop(void **args, int *dimensions, int *steps, void *data) {
+  /*
+   * int8 output = elementwise_function(int8 input1, int8 input2)
+   *
+   * this function must compute the ufunc for many values at once,
+   * in the way shown below.
+   */
+  char *input_1 = (char*) args[0];
+  char *input_1 = (char*) args[1];
+  char *output  = (char*) args[2];
+  int i;
+  for (i = 0; i < dimensions[0]; ++i) {
+    *output = elementwise_function(*input_1, *input_2);
+    input_1 += steps[0];
+    input_2 += steps[1];
+    output  += steps[2];
+  }
+
+numpy part:
+  char types[3]
+  types[0] = NPY_BYTE
+  types[1] = NPY_BYTE
+  types[2] = NPY_BYTE
+  PyObject *python_ufunc = PyUFunc_FromFuncAndData(
+    ufunc_loop,
+    NULL,
+    types,
+    1, //ntypes
+    2, //num inputs
+    1, //num outputs
+    identity_element,
+    name,
+    docstring,
+    unused)
+premade ufuncs:
+  PyUfunc_f_f  float elementwise_func(float input_1)
+  PyUfunc_ff_f float elementwise_func(float input_1, float input_2)
+  PyUfunc_d_d  double elementwise_func(double input_1)
+  PyUfunc_dd_d double elementwise_func(double input_1, double input_2)
+  PyUfunc_D_D  elementwise_func(npy_cdouble *input_1, npy_cdouble* output)
+  PyUfunc_DD_D elementwise_func(npy_cdouble *input_1, npy_cdouble *input_2,
+                                npy_cdouble *out)
+
+... not going to continue, not too interested in writing C for python
+maybe some day later but not today
+
+##############################
+#3::interoperability features
+##############################
+nah
+
+##############################
+#4::array siblings
+##############################
+______________________________
+#4.1::chararray:
+  x = np.array(['a', '   bbb', '   ccc']).view(np.chararray)
+  x.lstrip(' ')
+  x.upper()
+______________________________
+#4.2::masked_array:
+  ex:
+    x = np.array([1,2,3,-99,5])
+    mx = np.ma.masked_array(x, mask = [0,0,0,1,0])
+    mx
+  not everything respects masks
+  masked_array is a view
+  mask is cleared on assignment
+  modify mask:
+    mx[i] = np.ma.mask
+  mx.mask
+  mx.filled(val)
+    replace masked vals with val
+    returns normal array
+  mx.mask = np.ma.nomask
+  ______________________________
+  #4.2.1::domain-aware functions
+    np.ma.log(np.array([1,2,-1,-2,3,-5]))
+______________________________
+#4.3::matrix
+  always 2d
+  * is matmul not elemul
