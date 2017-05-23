@@ -1,0 +1,9 @@
+ctypes notes-C library loading etc...???
+(can use whatever libs as long as in sys.path it seems...)
+
+
+#------------------------------
+# contents
+#------------------------------
+1::ctypes
+2::cython
