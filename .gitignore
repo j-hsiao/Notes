@@ -1,3 +1,7 @@
 *~
 *.so
 *.exe
+*.c
+*.pyd
+*.html
+python-c/cythontest/build
