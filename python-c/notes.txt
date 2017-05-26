@@ -1,8 +1,14 @@
-http://cython.readthedocs.io/en/latest/src/tutorial/cython_tutorial.html
 http://cython.readthedocs.io/en/latest/src/quickstart/index.html
+http://cython.readthedocs.io/en/latest/src/tutorial/cython_tutorial.html
+http://cython.readthedocs.io/en/latest/src/userguide/index.html#indices-and-tables
+
+
+last on:
+http://cython.readthedocs.io/en/latest/src/tutorial/clibraries.html
+
+
 
 https://docs.python.org/2/distutils/index.html
-
 
 #------------------------------
 # contents
@@ -36,6 +42,14 @@ https://docs.python.org/2/distutils/index.html
     2.1.2::building
     2.1.3::static typing (c type variables)
     2.1.4::c type functions
+    2.1.5::pyximport
+    2.1.6::c functions
+      2.1.6.1::include C libraries
+      2.1.6.2::external declarations
+      2.1.6.3::naming parameters
+      2.1.6.4::libraries and wrappers
+    2.1.7::memory management
+
 #------------------------------
 #1::ctypes
 #------------------------------
@@ -580,20 +594,29 @@ ______________________________
     run cython command-line to make .c and then compile
     
   distutils method:
+    ______________________________
     hello.pyx:
       def say_hello_to(name):
         print("Hello {}!".format(name))
+    ______________________________
     setup.py:
       from distutils.core import setup
       from Cython.Build import cythonize
       setup(name = 'Hello world app',
-            ext_modules = cythonize("hello.pyx"),
-      )
-    python setup.py build_ext --inplace --compiler=______
-      bcpp
-      cygwin
-      mingw32
-      otherwise, default uses visual studios (eww)
+            ext_modules = cythonize("mod1.pyx", "mod2.pyx"),)
+    ______________________________
+    command line:
+      python setup.py build_ext --inplace --compiler=______
+        bcpp
+        cygwin
+        mingw32
+        otherwise, default uses visual studios (eww)
+    ______________________________
+    NOTE:
+      should import distutils before cython because
+      setup might replace extensions class
+      would disagree on which extensions class to use
+
 ______________________________
 #2.1.3::static typing (c type variables)
   NOTE: adding typing = harder to read, only use if
@@ -630,6 +653,10 @@ reasoning: (i don't really get it)
   ex: f(): args assumed to be C double, but Python float
   must be created to pass it in
 
+cdef: define a c data type
+  ex:
+    cdef int p[1000]
+    cdef double s
 
 change:
   cdef double f(double x) except? -2:
@@ -652,5 +679,154 @@ type-ing process
   1. profile
   2. check translation
      cython -a
+  3. checks:
+     some defs unnecessary 
+       (infered based on function return type etc)
+     integer arithmetic
+       (in case of overflow, falls back to python big nums)
 
+______________________________
+#2.1.5::pyximport
+automatically added to cython
+ex:
+  import pyximport; pyximport.install()
+  import helloworld
 
+can also import and compile .py files
+  ex:
+    pyximport.install(pyimport = True)
+  if compile fails, then goes to normal import
+  
+______________________________
+#2.1.6::c functions
+use cimport (only understood by cython, don't use in py file)
+ex:
+  from libc.stdlib cimport atoi
+  from libc.math cimport sin
+  cdef parse_charptr_to_py_int(char* s):
+      assert s is not NULL, "byte string value is NULL"
+      return atoi(s)
+cimport files found in:
+  Cython/Includes/*.pxd
+
+______________________________
+#2.1.6.1::include C libraries
+  cimport corresponding functions with cimport from .pxd
+  ______________________________
+  Dynamic linking
+    ex:
+      from distutils.core import setup
+      from distutils.extension import Extension
+      from Cython.Build import cythonize
+      ext_modules = [Extension("modname",
+                               sources=["f1.pyx"]
+                               libraries=["m"])]
+                               
+      setup(ext_modules=cythonize(ext_modules))
+  
+______________________________
+#2.1.6.2::external declarations:
+  if not in a .pxd file, must write it myself:
+  ex:
+    cdef extern from "math.h":
+        double sin(double x)
+        double e
+        double cos(double x)
+        cpdef double acosh(double x) except -1 
+        ...
+  
+______________________________
+#2.1.6.3::naming parameters
+cdef extern from "string.h":
+    char* strstr(const char*, const char*) #as defined in .h file
+    char* strstr(const char* haystack, const char* needle) #add it in in pxd for named arguments
+______________________________
+#2.1.6.4::libraries and wrappers
+  case study: CAlg library
+    ______________________________
+    libcalg/queue.h:
+      typedef struct _queue Queue;
+      typedef void *QueueValue;
+      Queue *Queue_new(void);
+      void queue_free(Queue *queue);
+      int queue_push_head(Queue *queue, QueueValue data);
+      QueueValue queue_pop_head(Queue *queue);
+      QueueValue queue_peek_head(Queue *queue);
+      int queue_push_tail(Queue *queue, QueueValue data);
+      QueueValue queue_pop_tail(Queue *queue);
+      QueueValue queue_peek_tail(Queue *queue);
+      int queue_is_empty(Queue *queue);
+    ______________________________
+    write a cqueue.pxd:
+      cdef extern from "libcalg/queue.h":
+          ctypedef struct Queue:
+              pass
+          ctypedef void* QueueValue;
+          Queue* queue_new()
+          void queue_free(Queue* queue)
+          int queue_push_head(Queue *queue, QueueValue data)
+          QueueValue queue_pop_head(Queue *queue)
+          QueueValue queue_peek_head(Queue *queue)
+          int queue_push_tail(Queue *queue, QueueValue data)
+          QueueValue queue_pop_tail(Queue *queue)
+          QueueValue queue_peek_tail(Queue *queue)
+          bint queue_is_empty(Queue *queue)
+    NOTE1:
+        basically a copy and paste of header signatures
+    NOTE2:
+        ctypedef struct vs cdef struct:
+          cdef    -> referred to in C as struct obj
+          ctypedef-> referred to in C as obj
+    NOTE3:
+        bint: boolean int
+        C has no bools so is an int in C
+        but converted to True or False in python
+    ______________________________
+    wrapper: queue.pyx
+      cimport cqueue #because cqueue.pxd is the pxd file name
+      cdef class Queue:
+          cdef cqueue.Queue* _c_queue
+          def __cinit__(self):
+              self._c_queue = cqueue.queue_new()
+
+    !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+    NOTE NOTE NOTE NOTE NOTE NOTE
+    !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+    if a .pxd and .pyx file with same name are in same dir
+    then .pxd interpreted as defining .pyx signatures
+    thus, if .pxd defines clibrary, MUST BE DIF from any .pyx
+
+    NOTE:
+      def __cinit__ instead of def __init__
+      difference:
+        cinit:                      init:
+        always called               maybe called
+        self doesn't exist yet      self exists already
+        (so only assign 
+         to cdef fields)
+        
+    NOTE2:
+      no-args __cinit__ is special case:
+        doesn't receive parameters
+        so subclasses can add whatever they want
+      any __cinit__ parameters must match
+      the params in __init__
+______________________________
+#2.1.7::memory management
+  ex: queue_new returns NULL b/c no memory:
+    cdef class Queue:
+        cdef cqueue.Queue* _c_queue
+        def __cinit__(self):
+            self._c_queue = cqueue.queue_new()
+            if self_c_queue is NULL:
+                raise MemoryError()
+
+        def __dealloc__(self):
+            if self._c_queue is not NULL:
+                cqueue.queue_free(self._c_queue)
+  ______________________________
+  setup.py:
+    setup(ext_modules = cythonize([Extension("queue", ["queue.pyx"],
+                                             libraries=["path to libs"])]))
+    
+  

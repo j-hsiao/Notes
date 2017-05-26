@@ -1,3 +1,5 @@
+import fib
+
 def say_hello_to(name):
     print 'Hello {}!'.format(name)
 
@@ -27,8 +29,7 @@ cdef double f(double x):
 
 cpdef double integrate_f(double a, double b, int N):
     cdef int i
-    cdef double s, dx
-    s = 0
+    cdef double dx, s = 0
     dx = (b - a) / N
     for i in range(N):
         s += f(a+i*dx)

@@ -1,0 +1,204 @@
+https://www.linux.com/learn/vim-101-beginners-guide-vim
+
+##############################
+#contents
+##############################
+1::vim
+  1.1::general
+  1.2::modes
+    1.2.1::command
+      1.2.1.1::movement
+      1.2.1.2::editing
+      1.2.1.3::search/replace
+      1.2.1.4::file manipulation
+      1.2.1.5::window manipulation
+      1.2.1.6::other
+    1.2.2::insert
+      1.2.1.1::controls
+    1.2.3::last-line
+      1.2.3.1::file manipulation
+      1.2.3.2::window manipulation
+      1.2.3.3::editing
+  1.3::config file
+  
+
+
+
+##############################
+#1::vim
+##############################
+#1.1::general
+  various modes:
+    command
+    insert
+    last-line
+  
+______________________________
+#1.2::modes
+  ______________________________
+  #1.2.1::command
+    keys = commands like movement,deletion etc
+    default mode
+    prefix a number to execute multiple times
+    NOTE: for j and k, entering a number too large does nothing
+    (on 2nd line, enter 20k does not move up at all)
+
+
+    ______________________________
+    #1.2.1.1::movement
+      h   : left
+      j   : move down
+      k   : up
+      l   : right
+      0   : beginning of line (zero not O)
+      $   : end of line
+      w   : forward 1 word
+      b   : backward 1 word
+      G   : file end
+      gg  : file beginning
+      `.  : last edit
+
+    ______________________________
+    #1.2.1.2::editing
+      i   : enter insert mode (before current character)
+      I   : move to beginning of line and enter insert mode
+      a   : enter insert mode (after current character)
+      A   : enter insert mode at end of line
+      o   : new line below and insert mode
+      O   : new line above and insert mode
+      r   : replace one character
+      R   : replace mode
+      x   : delete character
+      u   : undo and switch undo direction
+      C-r : continue undos
+      d   : start deletion operation
+        dd  : delete line
+        dw  : delete word
+        d0  : delete cursor to line start
+        d$  : delete cursor to end of line
+        dgg : delete to beginning of file
+        dG  : delete to end of file
+      p   : paste text AFTER the cursor
+      P   : paste text ON the cursor
+      v   : highlight text (C-space for emacs)
+            NOTE: this is ON cursor, inclusive for start and stop
+      V   : highlight lines
+      C-v : highlight columns
+      y   : yank (M-w for emacs), a "copy"
+
+    ______________________________
+    #1.2.1.3::search/replace
+      /   : search forwards
+      ?   : search backwards
+      n   : next result
+      N   : previous result
+
+    ______________________________
+    #1.2.1.4::file manipulation
+      ZZ  : save and quit
+
+    ______________________________
+    #1.2.1.5::window manipulation
+      C-w : switch viewport
+        [N][hjkl]: move viewport in corresponding direction N times
+        C-w      : cycle through
+        r        : move viewports forward (cw-cw ordering)
+        R        : move viewports backward (cw-cw ordering)
+        c        : close viewport (and file if only one left)
+        s        : split horizontal
+        v        : split vertical
+        >        : make viewport larger
+        <        : make viewport smaller
+      gt         : switch to next tab
+      gT         : switch to previous tab
+                   (tabs are their own frame so the viewports in each tab are stuck with that tab)
+      z          : fold manipulation
+        fN[jk]   : make a fold of N lines (combine into 1 and hide)
+        o        : opens fold
+        R        : opens all folds
+        m        : closes all folds
+        M        : closes all folds
+        d        : delete fold
+        E        : delete Every fold
+        j        : next fold
+        k        : previous fold
+      C-z        : suspend
+        
+    ______________________________
+    #1.2.1.6::other
+      .    : redo last command
+      g C-g:words, lines, bytes, position
+      q [a-z]    : macro, starts recording
+                   
+        
+
+  
+  ______________________________
+  #1.2.2::insert
+    normal text editing (only insert new text)
+    use like normal typing without movement or deletion etc
+    esc: exit insert, enter commandmode
+    ______________________________
+    #1.2.2.1::controls
+      keys: type
+      C-p : complete based on previous words
+      C-n : complete based on next words
+      backspace: move backwards, replace backspaced region or if press esc, deletes text
+
+  ______________________________
+  #1.2.3::last-line
+    from command-mode, type :
+    commands:
+    ______________________________
+    #1.2.3.1::file manipulation
+      :w [filename]           : save file
+      :q                      : quit current viewport (close file if only viewport with file left)
+    ______________________________
+    #1.2.3.2::window manipulation
+      :split  [fn] : split view horizontally opens file fn,
+                     or current file if fn is absent
+      :vsplit [fn] : split vertically, as above
+      :tabnew fn   : create new tab
+      :tabc        : close tab
+      
+    ______________________________
+    #1.2.3.3::editing
+      :%s/text/replacement/   : replace text no confirm, first match per line
+      :%s/text/replacement/g  : replace text globally no confirm
+      :%s/text/replacement/gc : replace text globally confirm
+      :ab alias text-to-set   : set alias for text
+      :una alias              : unset alias for text
+    ______________________________
+    #1.2.3.4::other
+      :source    : run file
+                   ex:
+                     :source ~/.vimrc
+      :sh        : open a new shell
+      :!         : runs vim command?
+        sort     : sorts highlighted text
+      :startline, stopline ! command       : runs command on line range
+      :%                                   : use entire buffer
+      
+
+______________________________
+#1.3::config file
+  nmap     : macros
+             ex:
+               nmap <silent> <C-n> <Esc>:call ToggleHLSearch()<CR>
+  /etc/vimrc
+  ~/vimrc
+  /usr/share/vim/vimrc
+  ex:
+    " .vimrc - startup file for Vim
+
+      syntax on
+     set viminfo='1000,f1,\"500,:100,/100
+     set mouse=a
+     autocmd FileType html,xml,xsl source ~/.vim/scripts/closetag.vim 
+  explanation:
+    " blahblah : a comment
+    syntax on  : syntax highlighting
+    set viminfo: store history length for vim (session info persists between sessions)
+    set mouse=a: enable mouse everywhere
+    autocmd    : execute command whenever open an xml, html, xsl file
+    
