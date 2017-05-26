@@ -5,3 +5,4 @@
 *.pyd
 *.html
 python-c/cythontest/build
+*.swp

@@ -19,10 +19,8 @@ https://www.linux.com/learn/vim-101-beginners-guide-vim
       1.2.3.1::file manipulation
       1.2.3.2::window manipulation
       1.2.3.3::editing
+      1.2.3.4::other
   1.3::config file
-  
-
-
 
 ##############################
 #1::vim
@@ -90,6 +88,8 @@ ______________________________
     #1.2.1.3::search/replace
       /   : search forwards
       ?   : search backwards
+        NOTES:
+          \< and \> represent beginning and end of words
       n   : next result
       N   : previous result
 
@@ -128,9 +128,10 @@ ______________________________
     #1.2.1.6::other
       .    : redo last command
       g C-g:words, lines, bytes, position
-      q [a-z]    : macro, starts recording
-                   
-        
+      q [a-z]    : macro, starts recording macro to input letter
+                 : to delete, record a null macro (delete on a, enter qaq)
+      @ [a-z]    : run the macro
+      
 
   
   ______________________________
@@ -178,7 +179,7 @@ ______________________________
         sort     : sorts highlighted text
       :startline, stopline ! command       : runs command on line range
       :%                                   : use entire buffer
-      
+      :h                                   : help  
 
 ______________________________
 #1.3::config file
