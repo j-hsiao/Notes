@@ -36,8 +36,10 @@ https://docs.python.org/2/distutils/index.html
     1.2.3::prototypes
     1.2.4::utility functions
     1.2.5::data types
+
 2::cython
-  2.1::setup
+  2.0::independent testing
+  2.1::intro
     2.1.1::installation
     2.1.2::building
     2.1.3::static typing (c type variables)
@@ -48,8 +50,25 @@ https://docs.python.org/2/distutils/index.html
       2.1.6.2::external declarations
       2.1.6.3::naming parameters
       2.1.6.4::libraries and wrappers
-    2.1.7::memory management
+      2.1.6.5::memory management
+      2.1.6.6::compile and link
+      2.1.6.7::mapping funcionality
+      2.1.6.8::error checking
+    2.1.7::extensions/cdef classes
+    2.1.8::pxd files: like c headers
+    2.1.9::caveats
+    2.1.10::profiling
+    2.1.11::strings and encoding
+    2.1.12::memory allocation
+    2.1.13::pure python mode
+      2.1.13.1::augmenting pxd
+      2.1.13.2::magic attributes
+    2.1.14::working with numpy
+    2.1.15::working with arrays
+  2.2::users guide
 
+    
+    
 #------------------------------
 #1::ctypes
 #------------------------------
@@ -567,7 +586,23 @@ ______________________________
 #------------------------------
 #2::cython
 #------------------------------
-#2.1::setup
+______________________________
+#2.0::independent testing
+  obs1:
+    cython-compile f1.py
+    f1.py imports f2.py and uses its functions
+    f2.py is left uncompiled
+    end result:
+    f1.py still uses f2.py
+    modify f2.py changes f1.py behavior (but can still lead to speed-ups)
+    
+  obs2:
+    using decorators seems like it doesn't really change runtime much from using .pyx
+    
+
+
+
+#2.1::intro
 
 ______________________________
 #2.1.1::installation
@@ -601,9 +636,14 @@ ______________________________
     ______________________________
     setup.py:
       from distutils.core import setup
+      from distutils.extension import Extension
       from Cython.Build import cythonize
+
+      exts = [Extension(name, [files]),
+              ...]
+
       setup(name = 'Hello world app',
-            ext_modules = cythonize("mod1.pyx", "mod2.pyx"),)
+            ext_modules = cythonize(exts),)
     ______________________________
     command line:
       python setup.py build_ext --inplace --compiler=______
@@ -812,7 +852,7 @@ ______________________________
       any __cinit__ parameters must match
       the params in __init__
 ______________________________
-#2.1.7::memory management
+#2.1.6.5::memory management
   ex: queue_new returns NULL b/c no memory:
     cdef class Queue:
         cdef cqueue.Queue* _c_queue
@@ -824,9 +864,693 @@ ______________________________
         def __dealloc__(self):
             if self._c_queue is not NULL:
                 cqueue.queue_free(self._c_queue)
-  ______________________________
-  setup.py:
-    setup(ext_modules = cythonize([Extension("queue", ["queue.pyx"],
-                                             libraries=["path to libs"])]))
-    
+______________________________
+#2.1.6.6::compile and link
+  setup(ext_modules = cythonize([Extension("queue", ["queue.pyx"],
+                                           libraries=["path to libs"])]))
+  pass flags for other stuff:
+  CFLAGS="-i/usr/local/otherincludestuffs"
+  LDFLAGS="-L/usr/local/otherlibdirs"
+
+______________________________
+#2.1.6.7::mapping functionality
+  map corresponding functionalities
+  ex:
+    cdef append(self, int value):
+        if not cqueue.queue_push_tail(self._c_queue, <void*>value):
+            raise MemoryError()
+    cdef extend(self, int* values, size_t count):
+        cdef size_t i
+        for i in range(count):
+            if not cqueue.queue_push_tail(self._c_queue,
+                                          <void*>values[i]):
+                raise MemoryError()
+    cdef int peek(self):
+        return cqueue.queue_peek_head(self._c_queue)
+        
+    cdef int pop(self):
+        return cqueue.queue_pop_head(self._c_queue)
+______________________________
+#2.1.6.8::error checking
+  empty queue, returns NULL pointer
+  issue:
+    NULL b/c empty, or NULL because 0 was stored?
+  to function signature, at the end, before the :
+    add:
+      except [?] val
+  except: exception may happen(only for cdef functions)
+  [?]   : add a ? if val might also be a valid value
+  val   : the value to return to the python caller
+          as in: if this cdef function errors, immediately return
+            the exception value (no ?, implies this value is ALWAYS an error when seen by python caller)
+            when ? is present, then the val MIGHT be a valid value:
+              when function returns val, then calls PyErr_Occurred automatically
+              (if it was an error, you should have raised an error => error,
+               if you didn't raise an error, then it assumes it was a valid return value)
+
+
+
+  ex: add except clause:
+    cdef int peek(self) except? -1:
+        value=<int>cqueue.queue_peek_head(self._c_queue)
+        if value == 0:
+            if cqueue.queue_is_empty(self._c_queue):
+                raise IndexError("Queue is empty")
+        return value
+    cdef int pop(self) except? -1:
+        if cqueue.queue_is_empty(self._c_queue):
+            raise IndexError("Queue is empty")
+        return cqueue.queue_pop_head(self._c_queue)
+    def __bool__(self):
+        return not cqueue.queue_is_empty(self._c_queue)
+
+______________________________
+#2.1.6.9::callbacks
+  ex: predicate: -1 on error, 0 for reject, 1 for accept
+  cdef int evaluate_predicate(void* context, cqueue.QueueValue value):
+      try:
+          func = <object>context
+          return bool(func(<int>value))
+      except:
+          return -1
+  def pop_until(self, python_predicate_function):
+      result=cqueue.queue_pop_head_until(self._c_queue, evaluate_predicate, <void*>python_predicate_function)
+      if result == -1:
+          raise RuntimeError("an error occurred")
+______________________________
+#2.1.7::extensions/cdef classes
+  classes may be written as normal in python
+    or...
+  cdef class
+
+  cdef cannot inherit from python classes
+
+  ex:
+    cdef class Function:
+        cpdef double evaluate(self, double x) except *:
+            return 0
+    cdef class SinOfSquareFunction(Function):
+        cpdef double evaluate(self, double x) except *:
+            return sin(x**2)
   
+    def integrate(Function f, double a, double b, int N):
+        cdef int i
+        cdef double dx, s = 0
+        if f is None:
+            raise ValueError("f cannot be None")
+        dx = (b-a)/N
+        for i in range(N):
+            s += f.evaluate(a+i*dx)
+        return s * dx
+    print (integrate(SinOfSquareFunction(), 0, 1, 10000))
+  
+    def class PyFunction(Function):
+        def evaluate(self, x):
+            return 2*x*x + 3*x - 10
+  
+    print (integrate(SinOfSquareFunction(), 0, 1, 10000))
+    
+  NOTE1:
+    evaluate is called fast only because Function has an evaluate method
+    function in integrate, f: typed so faster
+    typed, so must check for None (else uses None as if its a Function)->crash
+
+  ex:
+    cdef class WaveFunction(Function):
+        #python can't see this
+        cdef double offset
+        #python can see this
+        cdef public double freq
+        
+        @property
+        def period(self):
+            return 1.0 / self.freq
+
+        @property.setter
+        def period(self, val):
+            self.freq = 1.0 / val
+    
+  NOTE2:
+    cdef quirks:
+      all attributes must be pre-declared
+      accessible only from cython 
+      can be exposed to python
+______________________________
+#2.1.8::pxd files: like c headers
+  use cimport
+  uses:
+    share external C declarations
+    functions for inlining by C compiler (marked inline)
+      ex:
+        cdef inline int int_min(int a, int b):
+            return b if b < a else a
+    accompanying a pyx file so other pyx files can just include
+    the pxd (cimport pxd) instead of the pyx
+  NOTE:
+    any class attributes MUST be in pxd file
+______________________________
+#2.1.9::caveats
+  Cython                 Python
+
+  10**-2 == 0            10 ** -2 == 0.01
+
+  a % -b < 0             a % -b < 0
+  a % -b > 0 (if used @cython.cdivision(True))
+  
+  cdef unsigned n = 10; print(range(-n, n)) = empty (-n is large positive value because unsigned)
+
+  double                 float
+  long                   int
+  
+______________________________
+#2.1.10::profiling
+  use cython decorator:
+    full file:
+      # cython: profile=True
+    per function:
+      cimport cython
+      @cython.profile(True/False)
+  
+  use the cProfile module
+  
+  ______________________________
+  tracing:
+    in files:
+      # cython: linetrace=True
+    in setup.py:  
+      # distutils: define_macros=CYTHON_TRACE=1
+        or
+      # distutils: define_macros=CYTHON_TRACE_NOGIL=1
+  ______________________________
+  case study: basel problem
+    pi^2 = sum(1/x^2, x=1, infinity)
+
+    ex:
+      def recip_square(i):
+          return 1./i**2
+      def approx_pi(n=10000000):
+          val=0.
+          for k in range(1, n+1):
+              val += recip_square(k)
+          return (6 * val)**.5
+
+______________________________
+#2.1.11::strings and encoding
+  byte and unicode are separate
+  must have separate encode/decode steps
+
+  use c_string_type and c_string_encoding
+  ______________________________
+  cython string types:
+    bytes        : typical ascii string
+    bytearray    : ascii mutable string
+    str          : python str (byte in python2, unicode in python3)
+    unicode      : unicode string
+    basestring   : reps all types of text, used for backwards compatibility, incompatible with bytes type
+                   should rarely be used...??? then why make it?
+  NOTE:
+    str incompatible with python2 unicode type
+    (assign python2 unicode to str in cython = TypeError)
+    means maybe not type if going to use python2 (not safe)
+  
+  ______________________________
+  use prefixes to specify:
+    b'bytes'
+    u'unicode'
+    f'formated {value}'   ??? wats this
+
+  ______________________________
+  C strings are costly
+    (len is not cached)
+  
+  ______________________________
+  auto-casting:
+    cdef char* c_string = c_call_returning_a_c_string()
+    cdef bytes py_string = c_string
+    py_string = <bytes> cstring
+
+    cdef char* oc_string = py_string
+
+
+    use slicing to incorporate length as well:
+    (no need for linear-time strlen)
+    get_a_c_string(&c_string, &length)
+    py_bytes_string = c_string[:length]
+
+    NOTE1:
+      might fail due to memory allocation
+      wrap in try-finally
+    NOTE2:
+      assigning pystring to char* points to pystring buffer
+      make sure pystring is not garbage collected or 
+        data corruption/crashes may occur
+
+  ______________________________
+  strings from python
+    if deal only w/ bytestrings, maybe don't type as byte: restrict allowed input, use a view
+    ex:
+      def process_byte_data(unsigned char[:] data):
+          length = data.shape[0]
+          first_byte = data[0]
+          slice_view = data[1:-1]
+    may be good to copy data into a bytes object (can get rid of extra buffer size etc)
+    ex:
+      def process_byte_data(unsigned char[:] data):
+          if return_all:
+              return bytes(data)
+          else:
+              return bytes(data[5:35])
+  ______________________________
+  deal with unicode: first write converter to unicode
+    ex:
+      from cpython.version import PY_MAJOR_VERSION
+      cdef unicode_ustring(s):
+          if type(s) is unicode:
+              return <unicode>s
+          elif PY_MAJOR_VERSION < 3 and isinstance(s, bytes):
+              return (<bytes>s).decode('ascii')
+          elif isinstance(s, unicode):
+              return unicode(s)
+          else:
+              raise TypeError()
+  ______________________________
+    cdef char_type[:] _chars(s):
+        if isinstance(s, unicode):
+            s = (<unicode>s).encode('utf8')
+        return s
+  ______________________________
+  const:
+    libraries may require const
+    ex:
+      typcdef const char specialChar;
+      int process_string(const, char* s);
+      const unsigned char* look_up_cached_string(const unsigned char* key);
+      
+      cdef extern from "someheader.h":
+          ctypedef const char specialChar
+          int process_string(const char* s)
+          const unsigned char* look_up_cached_string(const unsigned char* key)
+          
+      note: generally can just ignore const in api functions
+      use libc.string types:
+        const_char
+        const_uchar
+  ______________________________
+  decode bytes to text:
+    bytes.decode
+    ONLY if no null bytes
+    ex:
+      ustring = byte_string.decode('UTF-8')
+      cdef char* some_c_string = c_call_returning_a_c_string()
+      ustring = some_c_string.decode('UTF-8')
+      get_a_c_string(&c_string, &length)
+      ustring = c_string[:length].decode('UTF-8')
+
+    ex:
+      from libc.stdlib cimport free
+      
+      cdef unicode tounicode(char* s):
+          return s.decode('UTF-8', 'strict')
+      
+      cdef unicode tounicode_with_length(
+              char* s, size_t length):
+          return s[:length].decode('UTF-8', 'strict')
+      
+      cdef unicode tounicode_with_length_and_free(
+              char* s, size_t length):
+          try:
+              return s[:length].decode('UTF-8', 'strict')
+          finally:
+              free(s)      
+  NOTE:
+    cython will not compile if no python pointer is kept (segfault just asking to happen)
+
+  ______________________________
+  C++ strings:
+    ex:
+      from libcpp.string cimport string
+      cdef string s = py_bytes_object
+      try:
+          s.append('abc')
+          py_bytes_object = s
+      finally:
+          del s
+  
+  ______________________________
+  automatics:
+    ex:
+      # cython: c_string_type=unicode, c_string_encoding=utf8
+      # cython: c_string_type=str, c_string_encoding=ascii
+  ______________________________
+  source code encoding:
+    hard-coded string literals: depend on source code encoding
+    ex:
+      # -*- coding: ISO-8859-15 -*-
+    whenever use none-byte non-ascii, prefix string with u for unicode...
+  ______________________________
+  single bytes and characters
+    can use Py_UNICODE, Py_UCS4, etc
+    normal = char
+    Py_UNICODE = 2-byte, 4-byte, or wchar_t (determined by CPython interpreter)
+    PyUCS4: uint32
+  
+    char by default goes to an int
+    want 1-char string, must cast to <bytes>
+  ______________________________
+  need be careful if narrow unicode 
+    (16-bits, some unicode require more than 16 bites)
+    ... don't think I'll ever use this so I'm going to skip
+
+______________________________
+#2.1.12::memory allocation
+  multidim simple types: NumPy, memory views, Python stdlib array
+  C malloc, realloc, free:
+    from libc.stdlib cimport malloc, free
+  python-c api:
+    from cpython.mem cimport PyMem_Malloc, PyMemRealloc, PyMem_Free
+
+  if possible, use python-c api functions (has optimizations and stuff etc)
+
+
+  malloc, realloc, free:
+    void* malloc(size_t size)
+    void* realloc(void* ptr, size_t size)
+    void free(void* ptr)
+
+
+
+
+  ex:
+    import random
+    from libc.stdlib cimport malloc, free
+    
+    def random_noise(int number=1):
+        cdef int i
+        # allocate number * sizeof(double) bytes of memory
+        cdef double *my_array = <double *>malloc(number * sizeof(double))
+        if not my_array:
+            raise MemoryError()
+    
+        try:
+            ran = random.normalvariate
+            for i in range(number):
+                my_array[i] = ran(0,1)
+    
+            return [ my_array[i] for i in range(number) ]
+        finally:
+            # return the previously allocated memory to the system
+            free(my_array)
+  
+  like in C, any malloc must be free'ed
+             any PyMem_Malloc must be PyMem_Free'ed
+  can just tie it to an object:
+
+    cdef class SomeMemory:
+      ex:    
+        cdef double* data
+    
+        def __cinit__(self, size_t number):
+            # allocate some memory (uninitialised, may contain arbitrary data)
+            self.data = <double*> PyMem_Malloc(number * sizeof(double))
+            if not self.data:
+                raise MemoryError()
+    
+        def resize(self, size_t new_number):
+            # Allocates new_number * sizeof(double) bytes,
+            # preserving the current content and making a best-effort to
+            # re-use the original data location.
+            mem = <double*> PyMem_Realloc(self.data, new_number * sizeof(double))
+            if not mem:
+                raise MemoryError()
+            # Only overwrite the pointer if the memory was really reallocated.
+            # On error (mem is NULL), the originally memory has not been freed.
+            self.data = mem
+    
+        def __dealloc__(self):
+            PyMem_Free(self.data)     # no-op if self.data is NULL
+
+______________________________
+#2.1.13::pure python mode
+  used to maintain python-runability
+  use an augmenting .pxd file (a blah.pxd file with a blah.py file in same dir)
+  or import cython and use decorators
+  
+
+  ______________________________
+  #2.1.13.1::augmenting pxd
+    pros: .py untouched
+    cons: .pxd and .py must both be maintained
+    .py definitions can be overridden by .pxd definitions
+    (by comparison, .pyx and .pxd must match perfectly)
+    
+    can only modify class and function definitions?
+    (cdef classes, cdef/cpdef functions)
+    
+    ex:
+    ______________________________
+    file.py:
+      def myfunction(x, y=2):
+          a = x-y
+          return a + x * y
+      
+      def _helper(a):
+          return a + 1
+      
+      class A:
+          def __init__(self, b=0):
+              self.a = 3
+              self.b = b
+      
+          def foo(self, x):
+              print x + _helper(1.0)
+    ______________________________
+    file.pxd        
+      cpdef int myfunction(int x, int y=*)
+      cdef double _helper(double a)
+      
+      cdef class A:
+          cdef public int a,b
+          cpdef foo(self, double x)
+
+    NOTE1:
+      use =* with default arguments to avoid repetition
+    NOTE2:
+      normal python def functions cannot be declared in .pxd files
+      therefore local variables cannot be typed
+    ______________________________
+    #2.1.13.2::magic attributes
+      pros: no extra .pxd file
+      cons: adds cython module dependency
+            (Cython.Shadow (cython.py) is a fake, can be copied if cython not installed)
+            
+      ______________________________
+      compiled switch:
+        cython.compiled (True if compiled, False otherwise)
+      ______________________________
+      cython.declare
+        cython.declare declares typed variable in current scope (replaces cdef type var [= value] )
+        ex:
+          x = cython.declare(cython.int)
+          y = cython.declare(cython.double, 3.1415926)
+          cython.declare(x=cython.int, y=cython.double) # ?? what does this do? in intepreter, returns an obj
+                                                        # used inside of an object? only? what happens when outside?
+          class A:
+              cython.declare(a=cythonint, b=cython.int)
+              def __init__(self, b=0):
+                  self.a=3
+                  self.b=b
+          #a cdef class
+          @cython.cclass
+          classB:
+              cython.declare(a=cython.int, b=cython.int)
+              c = cython.declare(cython.int, visibility='public')
+              d = cython.declare(cython.int, 5) #private
+              e = cython.declare(cython.int, 5, visibility = 'readonly')
+          
+          #how to make local variables typed as well (includes args)
+          @cython.locals(a=cython.double, b=cython.double, n=cython.p_double)
+          def foo(a, b, x, y):
+              n = a*b
+              ...
+
+          #specifies return type
+          @cython.returns(<type>)
+       
+      ______________________________
+      cython types:
+        basic types:
+          short, char, int, long, longlong
+          ushort, uchar, uint, ulong, ulonglong
+          bint, Py_ssize_t
+        pointers:
+          p_int, pp_int, etc
+          cython.pointer(cython.int)
+          cython.int[10]
+        can also use:
+          user-defined types
+          python built-in types (list, dict...)
+      
+      ______________________________
+      extension types and cdef functions
+        @cython.cclass: cdef class
+        @cython.cfunc: cdef func
+        @cython.ccall: cpdef func
+        @cython.locals: local and args
+        @cython.inline: c inline modifier
+        @cython.returns(return-type)
+      ______________________________
+      other cython things:
+        cython.address(obj)
+          equivalent of C & operator
+        cython.sizeof
+          equivalent of sizeof operator
+        cython.struct(name=type, ...)
+          ex:
+            MyStruct = cython.struct(x=cython.int, y=cython.double, d = cython.p_double)
+            a = cython.declare(MyStruct)
+            
+            ##########same as ##########
+            cdef struct MyStruct:
+                int x
+                double y
+                double * d
+            cdef MyStruct a
+        cython.union
+        cython.typedef
+        cython.cast
+          unsafe reinterpretation
+          cython.cast(newtype, oldvar)
+            ##########same as##########
+          <T>t
+
+          cython.cast(newtype, oldvar, typecheck=True)
+            ##########same as##########
+          <T?>t
+      ______________________________
+      other notes:
+        above can also be used with the .pxd file
+        ie: @cython.locals for typing local variables of functions
+            cython.declare for global variables
+    ______________________________
+    tips and tricks
+      ______________________________
+      calling C functions:
+        ______________________________
+        mymod.pxd
+          cdef extern from "math.h":
+              cpdef double sin(double x)
+        ______________________________
+        mymod.py
+          import cython
+          if not cython.compiled:
+            from math import sin
+          print(sin(0))
+
+      ______________________________
+      C arays for fixed size lists
+      import cython
+      @cython.locals(counts=cython.int[10], digit=cython.int)
+      def count_digits(digits):
+        counts=[0]*10
+        for digit in digits:
+            assert 0 <= digit <= 9
+            counts[digit] += 1
+        return counts
+
+______________________________
+2.1.14::working with numpy
+  cimport numpy as np
+  runtime typings: just use np.type
+  compiletime typings: use np.type_t, use ctypedef
+  ______________________________
+  efficient indexing:
+    declare np.ndarray types as:
+      np.ndarray[type, ndim=N]
+    make sure indices are typed
+  ______________________________
+  remove safeties:
+    cimport cython
+    @cython.boundscheck(False) # bounds checking
+    @cython.wraparound(False)  # negative indices
+______________________________
+2.1.15::working with arrays (array module)
+  can access underlying arrays, and can be passed with multiprocessing
+  ______________________________
+  safe usage with memory views:
+    ex:
+      from cpython cimport array
+      import array
+      cdef array.array a = array.array('i', [1, 2, 3])
+      cdef int[:] ca = a
+      
+      cdef int overhead(object a):
+          cdef int[:] ca = a
+          return ca[0]
+      
+      cdef int no_overhead(int[:] ca):
+          return ca[0]
+      
+      print overhead(a)  # new memory view will be constructed, overhead
+      print no_overhead(ca)  # ca is already a memory view, so no overhead
+  ______________________________
+  no-overhead unsafe access
+    from cpython cimport array
+    import array
+    
+    cdef array.array a = array.array('i', [1, 2, 3])
+    
+    # access underlying pointer:
+    print a.data.as_ints[0]
+    
+    from libc.string cimport memset
+    memset(a.data.as_voidptr, 0, len(a) * sizeof(int))
+  ______________________________
+  cloning, extending arrays
+    cloning ex:
+      from cpython cimport array
+      import array
+      
+      cdef array.array int_array_template = array.array('i', [])
+      cdef array.array newarray
+      
+      # create an array with 3 elements with same type as template
+      newarray = array.clone(int_array_template, 3, zero=False)
+    extending ex:
+      from cpython cimport array
+      import array
+      
+      cdef array.array a = array.array('i', [1, 2, 3])
+      cdef array.array b = array.array('i', [4, 5, 6])
+      
+      # extend a with b, resize as needed
+      array.extend(a, b)
+      # resize a, leaving just original three elements
+      array.resize(a, len(a) - len(b))    
+  ______________________________
+  reference::
+    ______________________________
+    data
+      data.as_voidptr
+      data.as_chars
+      data.as_schars
+      data.as_uchars
+      data.as_shorts
+      data.as_ints
+      data.as_uints
+      data.as_longs
+      data.as_ulongs
+      data.as_floats
+      data.as_doubles
+      data.as_pyunicodes
+    ______________________________
+    functions
+      int resize(array self, Py_ssize_t n) except -1
+      int resize_smart(array self, Py_ssize_t n) except -1
+      cdef inline array clone(array template, Py_ssize_t length, bint zero)
+      cdef inline array copy(array self)
+      cdef inline int extend_buffer(array self, char* stuff, Py_ssize_t n) except -1
+      cdef inline int extend(array self, array other) except -1
+      cdef inline void zero(array self)
+##############################
+2.2::users guide
+##############################

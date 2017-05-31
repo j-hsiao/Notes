@@ -47,5 +47,5 @@ import hello
 
     print timeit.timeit('ii(1000)', timport, number=100)
     print timeit.timeit('hello.iterincre(1000)', timport, number=100)
-    print timeit.timeit('integrate_f(0,10,100000)', timport, number=100)
-    print timeit.timeit('hello.integrate_f(0,10,100000)', timport, number=100)
+    print timeit.timeit('integrate_f(0,10,10000)', timport, number=100)
+    print timeit.timeit('hello.integrate_f(0,10,10000)', timport, number=100)
