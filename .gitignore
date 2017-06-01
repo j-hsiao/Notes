@@ -9,3 +9,4 @@ python-c/cythontest/build
 build
 *.swp
 *.prof
+*.h

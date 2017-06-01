@@ -39,6 +39,8 @@ https://docs.python.org/2/distutils/index.html
 
 2::cython
   2.0::independent testing
+    2.0.1::distutils.extension.Extension
+    2.0.2::multifiles
   2.1::intro
     2.1.1::installation
     2.1.2::building
@@ -598,10 +600,45 @@ ______________________________
     
   obs2:
     using decorators seems like it doesn't really change runtime much from using .pyx
-    
+______________________________
+#2.0.1::distutils.extension.Extension
+  constructor:
+    args:
+      extension name  = 'name_of_extension'
+      source files list = ['file1', 'file2', 'file3'...]
+    kwargs:    
+      swig_opts     = ['opt1', 'opt2'...]
+      include_dirs  = ['dir1', 'dir2'...]
+      define_marcos = [('mac1', v1)...]
+      undef_marcos  = ['mac1', 'mac2'...]
+      libraries     = ['lib1', 'lib2'...]
+      library_dirs  = ['path1', 'path2'...]
+
+    ex:
+      Extension('convtest', ['convtest.pyx'], include_dirs=[np.get_include()])
+
+______________________________
+#2.0.2::multifiles
+  NOTE1:
+    1 .so or .pyd per blah.py/pyx/pxd etc
+  NOTE2:
+    its slower with separate files (~60 times slower...)
+    (make sub so don't have to double pointer = ~30x slower... wut)
+  NOTE3:
+    use include "blah.pyx" to get rid of the 30x slower 
+      because different files from NOTE2
+  NOTE4:
+    use cimport instead of import helps a TON for NOTE 2 to 
+    NOTE3 is still faster than cimport though (but separate files = more
+    maintainability instead of hundreds of thousands of line in a single file)
+    also shorter compile times, don't need to compile everything if make a single
+    change... etc
+    i think go for pxd and pyx is best choice maybe?
+  
 
 
 
+______________________________
 #2.1::intro
 
 ______________________________
