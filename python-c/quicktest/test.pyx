@@ -1,4 +1,7 @@
-cimport consts.c1
+cimport test2
+import cython
+lnum2 = cython.declare(int, 69)
+cpdef int lnum = 69
+lnum3 = 69
 
-cpdef void hi(self):
-    print consts.c1.a
+lnum4 = test2.lnum

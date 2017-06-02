@@ -1,1 +1,1 @@
-cpdef double f(double x)
+cpdef inline double f(double x)
