@@ -1,0 +1,7 @@
+lsblk: list block devices
+mount: (sudo only)
+       ex: mkdir mountpoint1
+           sudo mount device_from_lsblk mountpoint1
+       (can now access device_from_lsblk at mountpoint1,
+        such as usb etc)
+umount
