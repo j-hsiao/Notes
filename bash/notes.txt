@@ -8,3 +8,12 @@ umount
 
 
 shuf->shuffle lines in a file (ex training list)
+
+
+variables truncation:
+${varname:startpos:runlength}
+
+ie:
+  >>>a='i wub u'
+  >>>echo ${a:2:3}
+  wub
