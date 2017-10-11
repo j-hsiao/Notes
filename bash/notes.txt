@@ -17,3 +17,12 @@ ie:
   >>>a='i wub u'
   >>>echo ${a:2:3}
   wub
+
+
+${!VAR}: dereference VAR and treat that as the variable name
+ex:
+    >>>a=b
+    >>>c=a
+    >>>echo ${!c}
+    b
+(same as echo ${a})
