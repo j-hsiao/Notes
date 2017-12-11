@@ -40,7 +40,8 @@ contents
     1.12.2::foreign keys
     1.12.3::column indexes
     1.12.4::multicolumn indexes
-
+  1.13::other
+    1.13.1::dumping
 
   
 2::python MySQLdb
@@ -655,7 +656,15 @@ ______________________________
     for SELECT * FROM tbl WHERE col1=V1 AND col2=V2;
       if multi-column index exists, will use it
       elif single-column index exists, will merge indices then use merged index
-      
+#______________________________
+#1.13::other
+  #1.13.1::dumping
+  ______________________________
+  dump:
+    mysqldump -u [user] -p [database name] > dumpfile
+  load:
+    mysql -u root -p [database name] < dumpfile
+
 
     
 

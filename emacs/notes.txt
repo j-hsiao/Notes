@@ -1,0 +1,32 @@
+movement:
+C-
+  a: beginning
+  e: end
+  p: prev line
+  n: next line
+  f: forward 1char
+  b: back 1char
+
+scroll:
+C-v: scroll down
+M-v: scroll up
+
+
+
+window:
+
+C-x 3: split vert
+C-x 2: split horz
+
+
+
+
+
+emacs runtime options:
+  --reverse-video
+  --no-splash
+
+
+modes:
+M-x python-mode
+    etc
