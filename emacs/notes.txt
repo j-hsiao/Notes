@@ -1,0 +1,113 @@
+movement:
+C-
+  a: beginning
+  e: end
+  p: prev line
+  n: next line
+  f: forward 1char
+  b: back 1char
+
+scroll:
+C-v: scroll down
+M-v: scroll up
+
+
+
+window:
+
+C-x 3: split vert
+C-x 2: split horz
+
+
+
+
+
+emacs runtime options:
+  --reverse-video
+  --no-splash
+
+
+modes:
+M-x python-mode
+    etc
+
+
+#--------------------------------------------------
+#                    registers
+#--------------------------------------------------
+saved things for retrieval later
+
+______________________________
+position
+    C-x r [space] [registervalue]
+        saves file and position to register
+    C-x r j [registervalue]
+        jumps to position and file (if file closed, tries to re-open it)
+
+______________________________
+text
+    C-x r s [register value]
+        copy text
+    C-x i s [register value]
+        insert text
+    M-x append-to-register <enter> [register value]
+    C-x r + [TEXT register value]
+        append region to register [register value]
+    M-x prepend-to-register <enter> [register value]
+    
+    Notes:
+    add C-u before each to also remove text from the buffer (otherwise just copies it)
+______________________________
+rectangle
+    C-x r r [register value]
+        copy rectangle
+    C-x r i [register value]
+        insert rectangle
+    
+    Notes:
+    add C-u before each to also remove text from the buffer (otherwise just copies it)
+______________________________
+macros
+    C-x C-k x [register] (macro to register)
+        save last macro to register
+    C-x r j [register]
+        perform macro
+
+
+#--------------------------------------------------
+#                     macros
+#--------------------------------------------------
+f3
+C-x (
+    start macro
+f4
+    stop macro (during definition)
+    execute last macro (after definition)
+C-x )
+    end macro
+C-x e
+    execute last macro
+
+NOTE:
+    add C-u N to repeat N times for the execute macro keys
+C-u f3
+    execute macro + continue appending to macro
+C-u C-u f3
+    append to macro (don't execute previous steps)
+C-x C-k r
+    run last macro on each line of region
+
+C-x C-k n
+    name the last macro (session duration)
+    (must be unique or error and no change)
+C-x C-k b
+    bind last macro to key sequence (session duration)
+    reserved values: C-x C-k ? where ? is in [0-9, A-Z]
+
+    will ask if wish to bind before binding if already exists a binding
+    (for reserved bindings, C-x C-k  is assumed, so only need to type
+     C-x C-k b [reserved binding key] to automatically register as C-x C-k [reserved binding key])
+
+M-x insert-kbd-macro
+    insert macro defintion as lisp code into buffer
+    add C-u to also save key-bindings
