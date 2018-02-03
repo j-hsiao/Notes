@@ -31,6 +31,29 @@ modes:
 M-x python-mode
     etc
 
+#------------------------------
+#            help
+#------------------------------
+C-h f : function
+C-h b : bindings
+C-h k : keys (enter key sequence)
+C-h v : describe variable
+
+
+
+
+#------------------------------
+#        auto fill
+#------------------------------
+C-x f :
+    set fill column
+M-q:
+    fill current paragraph
+M-o M-s :
+    center the text (by fill column)
+    
+
+
 
 #--------------------------------------------------
 #                    registers
