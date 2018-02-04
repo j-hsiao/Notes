@@ -55,7 +55,18 @@ ______________________________
       G   : file end
       gg  : file beginning
       `.  : last edit
-
+      H   : move cursor to top
+      M   : move cursor to middle
+      L   : move cursor to bottom
+      zz  : move line with cursor to center
+      zt  : move line with cursor to top
+      zb  : move line with cursor to bottom
+      C-d : move half page down
+      C-u : move half page up
+      C-b : move page up
+      C-f : move page down
+      C-y : scroll up one line
+      C-e : scroll down one line
     ______________________________
     #1.2.1.2::editing
       i   : enter insert mode (before current character)

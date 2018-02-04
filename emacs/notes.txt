@@ -55,6 +55,32 @@ M-o M-s :
 
 
 
+#------------------------------
+         miscellaneous
+#------------------------------
+
+C-x f
+    set fill column (70 is default)
+M-q
+    fill paragraph(try to add new lines etc to match the fill column
+    as maximum row length, (might be useful for automatically reducing
+    length of very long lines like in code with lots of arguments and
+    stuff etc, or automatically re-indenting arguments to match with
+    the opening argument parentheses)
+
+M-o M-s
+    center the line according to the fill column
+
+C-x $
+    selective display, use numerical argument
+    and lines with > N lines of indentation will
+    not be displayed
+    no numeric argument to turn back off
+
+
+
+
+
 #--------------------------------------------------
 #                    registers
 #--------------------------------------------------
@@ -80,6 +106,13 @@ text
     
     Notes:
     add C-u before each to also remove text from the buffer (otherwise just copies it)
+______________________________
+number
+    C-u [number] C-x r n [register]
+        save number to register
+    C-u [number] C-x r + [register]
+        increments [register] by [number]
+    C-x r i [register]
 ______________________________
 rectangle
     C-x r r [register value]
