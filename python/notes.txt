@@ -5,3 +5,25 @@ interpreter:
 
 Tkinter
 blah
+
+
+
+------------------------------
+modules
+------------------------------
+modules contain __init__.py
+imports can be relative
+  from . import something
+  from .. import something
+
+note, for runtime imports, use __import__:
+  __import__(name, globals={}, locals={}, fromlist=[], level=-1):
+    globals: determine context (subpackages etc)
+    locals: unused
+    fromlist: list of names (emulate from name import ...)
+              or empty list (import name)
+              NOTE: should be list with empty name: ['']
+                if want to import something like 'mod.rt'
+    level: -1: both relative and absolute
+            0: absolute
+           >0: # of parent directories to search relative to cur mod

@@ -58,9 +58,6 @@ ______________________________
       H   : move cursor to top
       M   : move cursor to middle
       L   : move cursor to bottom
-      zz  : move line with cursor to center
-      zt  : move line with cursor to top
-      zb  : move line with cursor to bottom
       C-d : move half page down
       C-u : move half page up
       C-b : move page up
@@ -131,9 +128,9 @@ ______________________________
       gT         : switch to previous tab
                    (tabs are their own frame so the viewports in each tab are stuck with that tab)
       z          : view manipulation (folds/cursor->screen pos)
-        z        : put cursor to mid of screen
-        t        : put cursor to top of screen
-        b        : put cursor to bottom of screen
+        z        : move current line to middle of screen 
+        t        : move current line to top of screen
+        b        : move current line to bottom of screen
         l        : scroll left
         h        : scroll right
         fN[jk]   : make a fold of N lines (combine into 1 and hide)
