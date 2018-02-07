@@ -58,9 +58,6 @@ ______________________________
       H   : move cursor to top
       M   : move cursor to middle
       L   : move cursor to bottom
-      zz  : move line with cursor to center
-      zt  : move line with cursor to top
-      zb  : move line with cursor to bottom
       C-d : move half page down
       C-u : move half page up
       C-b : move page up
@@ -78,8 +75,8 @@ ______________________________
       r   : replace one character
       R   : replace mode
       x   : delete character
-      u   : undo and switch undo direction
-      C-r : continue undos
+      u   : undo and (repeated = further undo)
+      C-r : change undo direction
       d   : start deletion operation
         dd  : delete line
         dw  : delete word
@@ -98,6 +95,7 @@ ______________________________
     ______________________________
     #1.2.1.3::search/replace
       /   : search forwards
+            add \c for case insensitive, \C for case sensitive
       ?   : search backwards
         NOTES:
           \< and \> represent beginning and end of words
@@ -110,6 +108,12 @@ ______________________________
 
     ______________________________
     #1.2.1.5::window manipulation
+      C-f : scroll down full page
+      C-b : scroll up full page
+      C-u : scroll up (half a screen by default)
+      C-d : scroll down (half a screen by default)
+      C-e : scroll down 1 line
+      C-y : scroll up 1 line
       C-w : switch viewport
         [N][hjkl]: move viewport in corresponding direction N times
         C-w      : cycle through
@@ -123,14 +127,24 @@ ______________________________
       gt         : switch to next tab
       gT         : switch to previous tab
                    (tabs are their own frame so the viewports in each tab are stuck with that tab)
-      z          : fold manipulation
+      z          : view manipulation (folds/cursor->screen pos)
+        z        : move current line to middle of screen 
+        t        : move current line to top of screen
+        b        : move current line to bottom of screen
+        l        : scroll left
+        h        : scroll right
         fN[jk]   : make a fold of N lines (combine into 1 and hide)
-        o        : opens fold
-        R        : opens all folds
-        m        : closes all folds
-        M        : closes all folds
-        d        : delete fold
-        E        : delete Every fold
+        o        : opens fold at the cursor by 1 level
+        O        : opens all folds at cursor
+        c        : close fold at cursor by 1 level
+        C        : close all folds at cursor
+        r        : opens all folds in file by 1 level
+        R        : opens all folds in file completely
+        m        : closes all folds in file by 1 level
+        M        : closes all folds in file completely
+        d        : delete fold at cursor 1 level
+	D        : delete all folds at cursor
+        E        : delete Every fold completely
         j        : next fold
         k        : previous fold
       C-z        : suspend
@@ -138,7 +152,7 @@ ______________________________
     ______________________________
     #1.2.1.6::other
       .    : redo last command
-      g C-g:words, lines, bytes, position
+      g C-g:     : count and display words, lines, bytes, position
       q [a-z]    : macro, starts recording macro to input letter
                  : to delete, record a null macro (delete on a, enter qaq)
       @ [a-z]    : run the macro
@@ -183,6 +197,7 @@ ______________________________
       :una alias              : unset alias for text
     ______________________________
     #1.2.3.4::other
+      :syntax    : [on|off] change syntax highlighting
       :source    : run file
                    ex:
                      :source ~/.vimrc
@@ -192,7 +207,22 @@ ______________________________
       :startline, stopline ! command       : runs command on line range
       :%                                   : use entire buffer
       :h                                   : help  
-
+    ______________________________
+    #1.2.3.5::set
+      paste, nopaste (paste identical to copy) etc
+      expandtab, noexpandtab
+      tabstop=N: change width of tab
+      softtabstop=N: should be same value as shiftwidth, controls tab and backspace when expandtab is set
+        tabstop and softtabstop intricacy: tabstop = width of tab, softtabstop = actual tabbing distance
+          ie: tabstop calculates how many tabs/spaces to mix in
+          ie: tabstop = 8, softtabstop = 4, then tabX3 = 12 spaces, but result will be 1 tab (width 8) and 4 spaces
+          ie: tabstop = 8, softtabstop = 12, then tabx1 = 12 spaces (result same as above)
+      shiftwidth: shift width... for tabbing
+      autoindent: indent to previous line
+      smartindent, cindent: insert one extra level of indentation in some cases
+      wrap/nowrap : wrap long lines or not
+      ignorecase : case insensitive searching
+      smartcase : case sensitive if caps used, (ignorecase should be on?)
 ______________________________
 #1.3::config file
   nmap     : macros

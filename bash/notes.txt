@@ -252,3 +252,55 @@ while more_lines():
 grep notes
 ##############################
 --color=auto
+
+
+##############################
+inputs
+##############################
+______________________________
+read
+______________________________
+-u(fd) read from filedescriptor instead
+
+
+
+
+______________________________
+heredocs
+______________________________
+  use << FILE_DELIMITER_OF_YOUR_CHOICE
+  text etc
+  can also use variables:
+  $var1
+  FILE_DELIMITER_OF_YOUR_CHOICE
+
+  NOTE:
+    if vars are in quotes, will not expand
+
+______________________________
+redirection
+______________________________
+------------------------------
+output
+
+  SRC>DEST
+    SRC:
+      & : stdout and stderr
+      FD: a filedescriptor (0-9)
+      empty : defaults to 1 (stdout)
+    DEST:
+      FNAME : a file name
+      &FD   : to file descriptor
+------------------------------
+input
+
+  DEST<SRC
+    DEST:
+      FD : a file descriptor (0-9) for the file
+    SRC:
+      FNAME: a file name
+------------------------------
+pipe
+
+  CMD1 | CMD2
+  redirects cmd1 stdout to cmd2 stdin
