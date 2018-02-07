@@ -165,6 +165,7 @@ ______________________________
     #1.2.3.1::file manipulation
       :w [filename]           : save file
       :q                      : quit current viewport (close file if only viewport with file left)
+      :o [fname]              : open file name
     ______________________________
     #1.2.3.2::window manipulation
       :split  [fn] : split view horizontally opens file fn,
@@ -197,9 +198,9 @@ ______________________________
   nmap     : macros
              ex:
                nmap <silent> <C-n> <Esc>:call ToggleHLSearch()<CR>
-  /etc/vimrc
-  ~/vimrc
-  /usr/share/vim/vimrc
+  /etc/vim/vimrc
+  ~/.vimrc
+  /usr/share/vim/.vimrc
   ex:
     " .vimrc - startup file for Vim
 
@@ -207,10 +208,29 @@ ______________________________
      set viminfo='1000,f1,\"500,:100,/100
      set mouse=a
      autocmd FileType html,xml,xsl source ~/.vim/scripts/closetag.vim 
-  explanation:
-    " blahblah : a comment
-    syntax on  : syntax highlighting
-    set viminfo: store history length for vim (session info persists between sessions)
-    set mouse=a: enable mouse everywhere
-    autocmd    : execute command whenever open an xml, html, xsl file
-    
+
+  options/syntax
+    " blahblah       : a comment
+    set value        : set the value
+      NOTE:
+        in general, add "no" in front to toggle off, ie number, nonumber
+      viminfo        : store history length for vim (session info persists between sessions)
+      mouse=a        : enable mouse everywhere
+      number         : line numbering
+      relativenumber : display relative numbering
+      autoindent     : inherit indent from previous lines
+      expandtab      : tabs->spaces
+      shiftwidth=N   : shift by N (also autoindent)
+      tabstop=N      : width of a TAB character
+      softtabstop=N  : if expandtab, softtabstop = shiftwidth is desired
+                       space to be inserted (tabstop = 8, softtabstop = 20
+                           noexpandtab)=>2 tabs, 4 spaces
+      ignorecase     : ignore case when searching
+      incsearch      : search shows partial matches
+      smartcase      : automatically switch to case sensitive when query has caps
+      wrap           : line wrapping
+
+      title          : set window title (file being edited)
+
+    syntax on        : turn on syntax highlighting
+    autocmd          : run command on open particular file
