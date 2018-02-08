@@ -4,29 +4,29 @@ basics
 clone a repo
     git clone uri
 
-checkout branch from repo:
-    (after clone)
-    display all branches
-        git branch -a
-    checkout branch from repo
-        git checkout 'branchname' (from above command)
-    checkout [new branch] (not in repo)
-        git branch 'newbranch'
-        git checkout 'newbranch'
-    checkout file
-        git checkout [branchname] -- [path-to-filename]
+checkout
+    git checkout [branchname]
+        checkout branch from repo (use git branch -a to see repo branches too)
+    git checkout -b [newbranch]
+        create/checkout branch
+    git checkout [branchname] -- [path-to-filename]
+        checkout file
 
+branch
+    git branch -a:
+        display all branches
+    git branch -d [name]
+        delete branch
 
+    
+reflog:
+    shows hashes for previous commits/checkouts etc
 
 reset:
-    show hashes?? string or whatever representing a commit
-        git reflog
-    reset to that commit
-        git reset --hard 'hash/string_thing'
-        NOTES:
-            --hard = files get reset too
-            if no --hard, just unstages files
-
+    git reset --hard 'hash/string_thing'
+        reset all files to state from corresponding commit
+    git reset
+        unstage commits
 
 pull changes from repo (fetch & merge)
     git pull [remote] [local]
