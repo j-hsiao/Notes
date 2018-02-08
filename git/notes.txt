@@ -19,6 +19,18 @@ branch
         delete branch
 
     
+diff
+    git diff -- [path-to-file]
+        difference between file current and since last stage
+        (so git reset if want to see dif since last commit)
+    git diff --cached [commit] [--] [path]
+        diff between staged changes for next commit and [commit] (defaults to head)
+    git diff commit -- path
+        dif between cur state and commit (not staged necessarily)
+    git diff commit commit -- path
+        dif between path for the two commits
+
+
 reflog:
     shows hashes for previous commits/checkouts etc
 
