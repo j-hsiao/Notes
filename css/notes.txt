@@ -1,0 +1,86 @@
+contents:
+1::intro
+3::general
+2::text
+  2a::links
+5::tables
+4::colors
+6::other
+
+------------------------------
+1::intro
+  adding to a website:
+    1. link to file:
+      <head>
+        <link rel="stylesheet" href="path to style sheet">
+      </head>
+    2. inline
+       <someElement style="CSS GOES HERE"/>
+  specifying targets:
+    #elementID                    elements with id
+    tagname                       all instances of tagname
+    tagname.classname             all instances of tagname with class
+    .classname                    for class name
+  
+
+------------------------------
+3::general
+  background-color        color for background
+  border                  width type color (5px solid blue)
+                          none
+  padding                 space between content and border
+  margin                  space outside the border
+  float                   left or right
+  background-image        url("uri to image")
+  width                   width of element (px or %), auto
+  height                  height of element (px or %), auto
+  max-width               px or %(of original)
+
+
+------------------------------
+2::text
+  color                   color of text
+  font-family             font style
+  font-size               size of font, (X%, px, or vw)
+                          (vw = viewport width: scales with size of viewport)
+  text-align              center, left, right
+  text-decoration         
+  ------------------------------
+  2a::links
+    refer to them as:
+      a:link
+      a:visited
+      a:hover
+      a:active
+------------------------------
+5::tables
+  border-spacing:         spacing between borders if not collapsed
+  border-collapse:        combine borders of adjacent cells
+------------------------------
+6::lists
+  list-style-type         disc, circle, square, none (<ul>)
+
+
+------------------------------
+4::colors
+  names:
+    Tomato
+  rgb:
+    rgb(255, 99, 71)
+  rgba:
+    rgba(255, 99, 71, 0.5)
+  hex:
+    #FF6347
+  HSL:
+    hsl(9, 100%, 64%)
+  HSLA:
+    hsla(9, 100%, 64%, 0.5)
+------------------------------
+6::other
+  ------------------------------
+  6a::responsive design
+    ex:
+      @media (max-width:800px) {
+        css code
+      }
+      (uses above css code when width > 800px)

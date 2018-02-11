@@ -1,0 +1,323 @@
+https://www.w3schools.com/html/html_forms.asp
+
+
+contents:
+1::intro
+  1a::general
+  1b::basic tags
+  1c::attributs
+2::other tags
+  2a::map
+  2b::picture
+  2c::table
+  2d::list
+3::layout
+  3a::block
+  3b::inline
+  3c::iframe
+4::other
+  4a::<script>
+  4b::<head>
+  4c::layout
+  4d::entities
+5::forms
+  5a::basics
+  5b::input
+  5c::other tags
+------------------------------
+1::intro
+  ------------------------------
+  1a::general
+    tags:
+      <tagname>content</tagname>
+    <!DOCTYPE>
+      helps to display correctly
+      <!DOCTYPE html>
+    single and double quotes are interchangeable
+  ------------------------------
+  1b::basic tags
+    <html>          contains html code
+    <body>          visible stuff
+    <head>          metadata
+    <h1>-<h6>       header (1 = biggest)
+    <p>             paragraph
+    <a>             links
+    <img>           image
+    <br/>           line break
+    <hr>            visual line break
+    <pre>           fixed-width font, preserves text as is
+    <b>             bold
+    <strong>        important
+    <i>             italics
+    <em>            emphasized
+    <mark>          marked (highlighted)
+    <small>         small
+    <del>           deleted (dashed)
+    <ins>           inserted text (underlined)
+    <sub>           subscript
+    <sup>           superscript
+    <q>             short quotations
+    <blockquote>    long quotes
+    <abbr>          abbreviations
+    <address>       contact info
+    <cite>          cite a title
+    <bdo>           can reverse text direction
+    <!-- stuff -->  comments
+
+
+  ------------------------------
+  1c::attributes
+    href:           uri for link ("http://www.google.com")
+                    bookmarks:add a # followed by ID
+                    
+    src:            path to image ("./image.jpg")
+      NOTE:
+        href: a "relationship"
+        src : insert
+        ie: <img src=path>, the image is "inserted" into the <img> tag spot
+            <a href=path>, the files at path are not inserted
+            NOTE:
+              ex: <script src=path>: script stuff is "inserted" into the src (so location of <script> matters)
+              <link rel="stylesheet", href=path> : establish the relationship...
+    alt:            textual description if image is gone
+    style:          inline CSS (see css notes)
+    lang:           language attribute for <html> tag ex: "en-US"
+    title:          tool tip
+    charset:        "UTF-8" for <meta> tag in <head>
+    cite:           source for <q> or <blockquote>
+    dir:            direction for text ("rtl", "ltr")
+    id:             identity string to identify element
+    class:          a name for a class, each element
+                    can have multiple classes (space delimited)
+    target:         _blank    new window or tab
+                    _self     in same window/tab
+                    _parent   in parent frame
+                    _top      in top frame
+                    framename named frame (see iframe)
+    usemap:         for <img> tag, map different areas on image
+                    to different links
+
+
+------------------------------
+2::other tags
+  ------------------------------
+  2a::map
+    tag:
+      <map>           image map (clickable areas of image)
+        <area>        area of area map
+    attr
+      shape:          shape for area (see <map>, <area>)
+      coords:         params for shape
+      name:           a name for map (used by <img>'s usemap attr)
+  ------------------------------
+  2b::picture
+    tag:
+      <picture>       general picture
+        <source>        choice for image with conditions (see media attr, srcset attr)
+        <img>           else case (should always have this)
+    attr
+      media:          viewport ex: "(min-width: 650px)"
+      srcset:         image path (see <source>)
+  ------------------------------
+  2c::table
+    tag:
+      <table>         a table
+        <caption>     title for table
+        <tr>          a row
+          <th>        header
+          <td>        data
+    attr:
+      colspan             column span for td or th
+      rowspan             colspan but for rows
+  ------------------------------
+  2d::list
+    tags
+      <ul>                unordered list
+      <ol>                ordered list
+      <dl>                description list
+        <dt>              item name
+        <dd>              item description
+        <li>              list item
+    attr
+      type              (<ol>), A, a, I, i, 1
+  ------------------------------
+  2e::code
+    for programming code
+  ------------------------------
+  2f::kbd
+    for keyboard input sequences
+  ------------------------------
+  2g::samp
+    for sample output
+  ------------------------------
+  2h::var
+    for variable names
+
+------------------------------
+3::layout
+  determined by the display value
+  ------------------------------
+  3a::block
+    starts on new line, takes up 100% of width
+    ex: <div>
+  ------------------------------
+  3b::inline
+    starts wherever last thing ends, takes up only
+    corresponding size
+    ex: <span>
+  ------------------------------
+  3c::iframe
+    tag:
+      <iframe src="URI"</iframe>
+    NOTE:
+      iframe appears unaffected by style height/width
+      must use attr height/width
+    attr:
+      name              identify the frame
+                        used by <a> tag's target attr
+------------------------------
+4::other
+  ------------------------------
+  4a::<script>
+    tag:
+      <script src="path_to_external_js"></script>
+      <noscript>stuff</noscript>
+    NOTE:
+      noscript for ppl who disabled javascript
+      or something
+      
+  ------------------------------
+  4b::<head>
+    metadata
+    tags:
+      <title>
+      <style>
+      <meta>
+      <link>
+      <script>
+      <base>
+    specifics
+      <meta>
+        attr
+          charset         "UTF-8"
+          name            "name of metadata"
+          content         "the actual metadata"
+        ex:
+          <meta name="keywords" content="kittens, cats, catVideos">
+          <meta http-equiv="refresh" content="30">
+        NOTE:
+          "should add this to all http"
+          <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <base>
+      base url
+      ex:
+        <base href="base url" target="_blank">
+        (src values are prepended with baseurl)
+  ------------------------------
+  4c::layout
+    tags
+      <header>          header
+      <nav>             navigation links
+      <section>         section of doc
+      <article>         independent self-contained article
+      <aside>           like sidebar, image, etc?
+      <footer>          footer for doc/section
+      <details>         additional details
+      <summary>         heading for <details>
+  ------------------------------
+  4d::entities
+    use entities like escaping chacters
+    ex: < or > indicate tags
+        to display < or >
+        use &entity_name or &#number
+    common
+      &nbsp     &160      non-breaking space (words stick together)
+      &lt       &#60      <
+      &gt       &#62      >
+      &amp      &#38      &
+      &quot     &#34      "
+      &apos     &#39      '
+                &#8209    non-breaking hyphen (like above except hyphen)
+      
+------------------------------
+5::forms
+  ------------------------------
+  5a::basics
+    tag
+      <form></form>
+    attr
+      action            form handler page
+      target            _self (current window)
+                        _blank (new window)
+                        _parent
+                        _top
+                        _iframe name
+      method            GET, POST
+      accept-charset
+      autocomplete
+      enctype
+      
+  ------------------------------
+  5b::input
+    tag
+      <input>
+    attr:
+      type              radio, text, submit, range, number, password, reset
+                        checkbox, color, date, datetime-local, email
+                        month, search, tel, time, url, week
+      name              a "key" for the input
+      value             a (default) value
+      max, max          min value
+      disabled          not used
+      maxlength         .
+      pattern           regexp
+      readonly          .
+      required          .
+      size              width of input field (chars)
+      step              .
+      autocomplete      .
+      autofocus         .
+      form              specify parent form (space delimited, use the form id)
+      formaction
+      formenctype
+      formmethod
+      formnovalidate
+      formtarget
+          NOTE: attrs beginning with "form" are used by input elements
+                overriding the <form> version of the attrs
+
+      height, width     
+      list
+      multiple
+      placeholder
+      
+  ------------------------------
+  5c::other tags
+    <fieldset>
+      groups related data
+    <legend>
+      caption for fieldset (ie, personal information, hobbies, etc)
+    <select>
+      drop-down list
+      attr
+        size            number of rows for un-focused dropdown
+        multiple        (no arg) allow multiple selections
+      <optgroup>        related dropdown values>
+      <option>
+        attr
+          selected      (no arg)make this the default
+    <textarea>
+      attr
+        rows
+        columns
+    <button>
+      attr
+        type            "button"
+        onclick         js function
+    <datalist>
+      drop-down list of predefined options
+      should be inside <input list="id of datalist">
+      <option>
+        value           value of predefined option
+    <output>
+      result of a calculation
