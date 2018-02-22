@@ -1,10 +1,14 @@
+https://www.w3schools.com/css/css_border.asp
+
 contents:
 1::intro
-3::general
-2::text
-  2a::links
-5::tables
-4::colors
+2::general properties
+  2a::background
+  2b::border
+3::text properties
+  3a::links
+4::table properties
+5::colors
 6::other
 
 ------------------------------
@@ -16,6 +20,25 @@ contents:
       </head>
     2. inline
        <someElement style="CSS GOES HERE"/>
+    3. internal
+        <head>
+          <style>
+            ...code...
+          </style>
+        </head>
+  style ordering:
+    1. inline styling
+    2. external/internal (depending on order of definition in <head>)
+    3. browser defaults
+  syntax:
+    target1, target2, target3... {
+      property: value;
+      property: value;
+      ...
+      /*comment*/
+    }
+
+
   specifying targets:
     #elementID                    elements with id
     tagname                       all instances of tagname
@@ -24,21 +47,64 @@ contents:
   
 
 ------------------------------
-3::general
-  background-color        color for background
-  border                  width type color (5px solid blue)
-                          none
-  padding                 space between content and border
+2::general properties
+  ------------------------------
+  2a::background
+    background-color        color for background
+    background-image        url("uri to image")
+                            none
+                            linear-gradient(direction, colorstops)
+                                                                  direction: Ndeg,
+                                                                             0deg : bottom to top
+                                                                             + = clockwise rotation
+                                                                  colorstops color & position(optional, 0-100%)
+                            radial-gradient(shape size (at) position, colors)                     
+                                                                  shape:   ellipse (default)
+                                                                           circle
+                                                                  size:    farthest-corner (default)
+                                                                           closest-side
+                                                                           closest-corner
+                                                                           farthest-side
+                                                                  position center (default)
+                                                                  colors:  color and stop position (0-100% or length along axis, optional)
+                            repeating-linear-gradient(angle color-stops)
+                                                                  see linear-gradient
+                            repeating-radial-gradient()           
+    background-repeat       repeat
+                            repeat-x
+                            repeat-y
+                            no-repeat
+                            space                                 (repeated, spacing in between so no clipping)
+                            round                                 repeated and squished
+                            
+    
+    background-attachment   scroll
+                            fixed
+                            local
+    background-position     version 1: right/center/left top/center/bottom
+                            version 2: x% y%
+                            version 3: xpos ypos
+                            
+    background              shorthand:
+                              color image repeat attachment position 
+  ------------------------------
+  2b::border
+    border                  width type color (ex: '5px solid blue')
+                            none
+  ------------------------------
+  
+
+
   margin                  space outside the border
+  padding                 space between content and border
   float                   left or right
-  background-image        url("uri to image")
   width                   width of element (px or %), auto
   height                  height of element (px or %), auto
   max-width               px or %(of original)
-
+  
 
 ------------------------------
-2::text
+3::text properties
   color                   color of text
   font-family             font style
   font-size               size of font, (X%, px, or vw)
@@ -46,14 +112,14 @@ contents:
   text-align              center, left, right
   text-decoration         
   ------------------------------
-  2a::links
+  3a::links
     refer to them as:
       a:link
       a:visited
       a:hover
       a:active
 ------------------------------
-5::tables
+4::tables
   border-spacing:         spacing between borders if not collapsed
   border-collapse:        combine borders of adjacent cells
 ------------------------------
@@ -62,7 +128,7 @@ contents:
 
 
 ------------------------------
-4::colors
+5::colors
   names:
     Tomato
   rgb:

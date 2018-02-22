@@ -1,6 +1,4 @@
-https://www.w3schools.com/html/html_forms.asp
-
-
+https://www.w3schools.com/html/html5_geolocation.asp
 contents:
 1::intro
   1a::general
@@ -24,6 +22,25 @@ contents:
   5a::basics
   5b::input
   5c::other tags
+6::html5
+  6a::html support
+  6b::new elements
+  6c::graphics
+    6c1::canvas
+    6c2::svg
+    6c3::google maps
+7::media
+  7a::video
+  7b::audio
+  7c::plug-ins
+  7d::youtube
+8::apis
+  8a::geolocation
+  8b::drag'n'drop
+  8c::web storage
+  8d::web workers
+  8e::SSE
+
 ------------------------------
 1::intro
   ------------------------------
@@ -321,3 +338,311 @@ contents:
         value           value of predefined option
     <output>
       result of a calculation
+------------------------------
+6::html5
+  ------------------------------
+  6a::html support
+    header, section, footer, aside, nav, main, article, figure {
+        display: block;
+    }
+  ------------------------------
+  6b::new elements
+    article             .
+    aside               .
+    bdi                 isolate text with dif direction
+    details             details user can view or hide
+    dialog              dialog box/window
+    figcaption          caption for <figure>
+    figure              self-contained content
+    footer              .
+    header              .
+    main                .
+    mark                highlighted
+    menuitem            command/menu item frm popup menu
+    meter               scalar measurement (gauge)
+    nav                 nav links
+    progress            progress bar
+    rp                  ruby annotation replacement
+    rt                  explanation/pronunciation for weird chars
+    ruby                ruby annotation equivalent of above
+    section             .
+    summary             .
+    time                .
+    wbr                 possible line break??
+    datalist            .
+    output              .
+    canvas              graphics
+    svg                 graphics
+    audio               sound
+    embed               
+    source              
+    track               
+    video               
+
+    ------------------------------
+    input types         attrs
+    color               autocomplete
+    date                autofocus
+    datetime            form
+    datetime-local      formaction
+    email               formenctype
+    month               frommethod
+    number              formnovalidate
+    range               formtarget
+    search              height/width
+    tel                 list
+    time                min/max
+    url                 multiple
+    week                pattern
+                        placeholder
+                        required
+                        step
+  ------------------------------
+  6c::graphics
+    ------------------------------
+    6c1::canvas
+      draw with JS
+        guideline:
+          get canvas
+          get context
+          write params
+          context.stroke()
+        NOTE:
+          coordinates: all (x, y)
+          axes: left-right = 0-width
+                top-bottom = 0-height
+      ex:
+        var canvas = document.getElementById("CanvasID");
+        var context = canvas.getContext("2d");
+        //LINE
+        context.moveTo(0,0);
+        context.lineTo(200,100); //(x,y)
+        context.stroke();
+        //CIRCLE
+        context.beginPath();
+        context.arc(95,50,40,0,2*Math.PI); //cx, cy, rad, startRadian, stopRadian, clockwise, far right = 0
+        context.stroke()
+        //TEXT
+        context.font = "30px Arial";
+        context.fillText("stuffToFill", left, bottom);
+        //STROKE TEXT
+        context.strokeText("stuffToFill", left, bottom);
+        //LINEAR GRADIENT
+        var grad = context.createLinearGradient(0,0,200,0);//xy for each color
+        grad.addColorStop(0, "red");
+        grad.addColorStop(1, "white");
+        context.fillStyle = grad;
+        context.fillRect(10,10,150,80); //left, top, width, height
+        //CIRCULAR GRADIENT
+        var grad = context.createRadialGradient(75, 50, 5, 90, 60, 100);//x,y,rad for each color
+        grad.addColorStop(0, "red");
+        grad.addColorStop(1, "white");
+        context.fillStyle = grad;
+        context.fillRect(10,10,150,80); //left, top, width, height
+        //IMAGE FILE
+        var img = document.getElementByID("scream");
+        context.drawImage(img, 10, 10);
+    ------------------------------
+    6c2::svg
+      <svg>
+        code goes here
+      </svg>
+
+      ------------------------------
+      Circle
+        <circle cx="x" cy="y" r="r" stroke="color" stroke-width="width" fill="color"/>
+      ------------------------------
+      Rect
+        <rect width="w" height="h" style="fill:rgb(0,0,255);stroke-width:10;stroke:rgb(0,0,0)"/>
+      ------------------------------
+      RectWidth
+        <rect width="w" height="h" rx="rx" ry="ry" style="fill:rgb(0,0,255);stroke-width:10;stroke:rgb(0,0,0)"/>
+      ------------------------------
+      Polygon
+        <polygon points="x,y x,y x,y x,y x,y"
+        style="fill:color;stroke:color;stroke-width:width;fill-rule:rule;"/>
+    ------------------------------
+    6c3::google maps
+      create a div
+      use JS to add map:
+        function myMap() {
+          var mapOptions = {
+              center: new google.maps.LatLng(lat, long),
+              zoom: zoomval,
+              mapTypeId: google.maps.MapTypeId.HYBRID //ROADMAP, SATELLITE, HYBRID, TERRAIN
+          }
+        var map = new google.maps.Map(document.getElementById("map"), mapOptions);
+
+      get javascript to get map
+        <script src="https://maps.googleapis.com/maps/api/js?callback=myMap"></script>
+------------------------------
+7::media
+  ------------------------------
+  7a::video
+    tag:
+      <video>           video tag
+      <source>          source (use multiple sources, uses the first one that works)
+    attr:
+      height/width      .
+      src               path to video file
+      type              "video/type" (mp4, webm, ogg)
+      controls          add controls
+      autoplay
+    dom(js):
+      var vid = getElementById("video")
+      vid.paused        T/F
+      vid.play()        play
+      vid.pause()       pause
+      vid.width         can set to change size
+  ------------------------------
+  7b::audio
+    tags
+      audio             audio...
+      source            see video source
+    attr
+      src               path to file
+      type              "audio/type" (mpeg, ogg, etc)
+      controls
+  ------------------------------
+  7c::plug-ins
+    programs to extend browser functions
+    tags:
+      object
+      embed
+    attr
+      object:
+        data    path2file
+      embed
+        src     path2fielem
+      shared
+        height  .
+        width   .
+        type    "application/pdf" etc
+    difference:
+      object: has closing tag (can put stuff inside)
+      embed : no closing tags
+  ------------------------------
+  7d::youtube
+    add vid to youtube
+    create iframe
+    iframe src=>url
+    width, height
+
+    ex:
+      <iframe width="420" height="315" src="https://ww.youtube.com/embed/idwhasdf">
+      </iframe>
+    add querystring to url:
+    autoplay:       0: no, 1: yes
+    playlist:       ,-delimited list of ids
+    loop:           0: no, 1: yes
+    controls:       0:no, 1:yes
+
+------------------------------
+8::apis
+  ------------------------------
+  8a::geolocation
+    use js
+    navigator.geolocation
+        defined = supported, else not
+        ie: if (navigator.geolocation) { console.log("supported");}
+
+    navigator.geolocation.getCurrentPosition(callable1, callable2)
+      calls callable1(position) if no errors
+        position
+          coords
+            latitude
+            longitude
+            accuracy
+            altitude
+            altitudeAccuracy
+            heading
+            speed
+          timestamp
+        ex: position.coords.latitude
+      calls callable2(error) if errors
+        error.code = error code
+        example values:
+          error.PERMISSION_DENIED
+          error.POSITION_UNAVAILABLE
+          error.TIMEOUT
+          error.UNKNOWN_ERROR
+    other navigator.geolocation members:
+      watchPosition()  : continually update position
+      clearWatch()     : stop above func
+  ------------------------------
+  8b::drag'n'drop
+    steps:
+      1. add to draggable element:
+          draggable="true"
+          ondragstart="jsFunc"
+              jsFunc(ev)
+                  use ev.dataTransfer.setData("key", value);
+      2. on possible destination elements:
+          ondragover="jsFunc"
+              jsFunc(ev)
+                  ev.preventDefault()
+              NOTE:
+                this ev is different from the other evs:
+                  data set in the ondragstart func will not be seen
+                  in this ev
+          ondrop="jsFunc"
+              jsFunc(ev)
+                  ev.preventDefault()
+                  var value = ev.dataTransfer.getData("key");
+                  ev.target.appendChild(document.getElementById(value));
+  ------------------------------
+  8c::web storage
+    local data storage (ex, cookies are sent to server every time)
+    storage is by protocol + domain
+
+    storage objects:
+      window.localStorage               no expire
+      window.sessionStorage             1 session (til tab closed)
+    ex:
+      1. check storage
+          if (typeof(Storage) !== "undefined") {console.log("supported")}
+              NOTE: use typeof(thing) !== "undefined" to avoid any errors
+                     (thing is undefined error for example)
+              (or use window.localStorage or something...)
+      2. store stuff
+          window.localStorage.setItem("key", "value");
+      3. get stuff
+          window.localStorage.getItem("key");
+      4. remove stuff
+          window.localStorage.removeItem("key");
+      NOTE:
+          values seem to be automatically converted into string so
+          when accessing, you must convert it back to what it should be
+
+  ------------------------------
+  8d::web workers
+    multiprocessing
+      if (typeof(Worker) !== "undefined") {console.log("supported");}
+    steps:
+        1. write a script (separate file??)
+            use postMessage(i) to put data on queue
+        2. create worker if not already exist
+            if (typeof(w) == "undefined") {
+                w = new Worker("scriptPath.extension");
+            }
+        3. add onmessage callback to worker
+            w.onmessage = function(event){
+                console.log(event.data);
+            }
+        4. terminate a worker
+            w.terminate();
+            w = undefined;
+  ------------------------------
+  8e::SSE
+    server sent events: SSE are automatically sent (no need to poll)
+    ex:
+        var source = new EventSource("path");
+        source.onmessage = function(event){console.log(event.data)}
+
+    others:
+        source.onopen = function()
+        source.onerror = function(error)
+    server side constantly sends data:
+        contentType = "text/event-stream"\r\n
+        \r\n
+        "data: actual_data_to_send"
