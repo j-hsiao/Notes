@@ -1,10 +1,18 @@
-https://www.w3schools.com/css/css_border.asp
+https://www.w3schools.com/css/css_text.asp
 
 contents:
 1::intro
 2::general properties
   2a::background
+  2b::boxmodel
+    2b1::border
+    2b2::margin
+    2b3::padding
+    2b4::box-sizing
+    2b5::height/width
+    2b6::outline
   2b::border
+  2c::margins
 3::text properties
   3a::links
 4::table properties
@@ -88,19 +96,82 @@ contents:
     background              shorthand:
                               color image repeat attachment position 
   ------------------------------
-  2b::border
-    border                  width type color (ex: '5px solid blue')
-                            none
-  ------------------------------
-  
+  2b::boxmodel
+    generally 1-4 values:
+      4: top right bottom left
+      3: top, sides, bottom
+      2: top/bottom, sides
+      1: all
+    sizes = px, pt, cm, em, %, auto...
+    ------------------------------
+    2b1::border
+      border                  width type color (ex: '5px solid blue')
+
+      border-X                X: top, right, bottom, left
+                              see border
+
+      border-style            dotted    ridge
+                              dashed    inset
+                              solid     outset
+                              double    none
+                              groove    hidden
+
+      border-width            N(px,pt,cm,em...)
+                              thin, medium, thick
+
+      border-color            see 5::colors
+
+      border-X-N              X: top, right, bottom, left
+                              N: style, width, color
+
+      border-radius           Npx
+    ------------------------------
+    2b2::margins
+      NOTE:
+        negative values allowed
+      margin                  see 1-4 values
+      margin-X                X: top, right, bottom, left
+                              only 1 value
+      NOTE: elements arranged in top/bottom have "margin collapse"
+            (effective margin = max(top ele's bottom margin, bottom ele's top margin)
+            (doesn't happen for left/right)
+    ------------------------------
+    2b3::padding
+      see margins, replace "margin" with "padding" except "auto"
+    ------------------------------
+    2b4::boxsizing
+      make width/height correspond to set box
+      values:
+        content-box
+        border-box
+        initial
+        inherit
+        padding-box??
+        margin-box??
+    ------------------------------
+    2b5::height/width
+      px, cm, %, auto, em, etc
+      width             ..
+      height            ..
+      max-width         ..
+      max-height        ..
+      min-width         ..
+      min-height        ..
+
+    ------------------------------
+    2b6::outline
+      outline around the border (doesn't affect element size so might overlap others)
+      outline-style             see border-style
+      outline-color             see border-color
+                                invert: invert background colors
+      outline-width             see border-width
+      outline-offset            dist b/w border and outline (can be <0)
+      outline
 
 
-  margin                  space outside the border
-  padding                 space between content and border
-  float                   left or right
-  width                   width of element (px or %), auto
-  height                  height of element (px or %), auto
-  max-width               px or %(of original)
+
+    float                   left or right
+    max-width               px or %(of original)
   
 
 ------------------------------
