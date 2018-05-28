@@ -1,0 +1,172 @@
+sources:
+https://tkdocs.com/tutorial/firstexample.html
+
+from tkinter import *
+from tkinter import ttk
+
+*NOTE: import tkinter does not really give all the stuff
+also cannot import tkinter.thing
+example:
+from tkinter import StringVar           ok
+import tkinter.StringVar                ERROR
+import tkinter;tkinter.StringVar        ERROR
+
+
+(if 
+##############################
+contents
+##############################
+:1: general
+:2: classes
+  :2a: Tk
+  :2b: StringVar
+  :2c: ttk.Frame
+  :2d: ttk.Entry
+
+
+
+
+
+
+##############################
+:1: general
+##############################
+  ------------------------------
+  example:
+  ------------------------------
+    from tkinter import *
+    from tkinter import ttk
+    
+    def calculate(*args):
+        try:
+            value = float(feet.get())
+            meters.set((0.3048 * value * 10000.0 + 0.5)/10000.0)
+        except ValueError:
+            pass
+        
+    root = Tk()
+    root.title("Feet to Meters")
+    
+    mainframe = ttk.Frame(root, padding="3 3 12 12")
+    mainframe.grid(column=0, row=0, sticky=(N, W, E, S))
+    mainframe.columnconfigure(0, weight=1)
+    mainframe.rowconfigure(0, weight=1)
+    
+    feet = StringVar()
+    meters = StringVar()
+    
+    feet_entry = ttk.Entry(mainframe, width=7, textvariable=feet)
+    feet_entry.grid(column=2, row=1, sticky=(W, E))
+    
+    ttk.Label(mainframe, textvariable=meters).grid(column=2, row=2, sticky=(W, E))
+    ttk.Button(mainframe, text="Calculate", command=calculate).grid(column=3, row=3, sticky=W)
+    
+    ttk.Label(mainframe, text="feet").grid(column=3, row=1, sticky=W)
+    ttk.Label(mainframe, text="is equivalent to").grid(column=1, row=2, sticky=E)
+    ttk.Label(mainframe, text="meters").grid(column=3, row=2, sticky=W)
+    
+    for child in mainframe.winfo_children(): child.grid_configure(padx=5, pady=5)
+    
+    feet_entry.focus()
+    root.bind('<Return>', calculate)
+    
+    root.mainloop()
+
+root: Tk()
+handle on the root window
+
+
+
+##############################
+:2:classes
+##############################
+general functions:
+    grid(column = M, row = N, sticky = (N, W, E, S...))
+        row/column: where to place the item
+        sticky    : alignment (north, south, east, west)
+        
+
+    columnconfigure(X, weight=_, padx = _, pady = _)
+    rowconfigure(Y, weight=Y, padx = _, pady = _)
+        these two affect window resize behavior (expand to fill space)
+        these indicate the row/column to expand/resize
+
+    winfo_children()
+
+    focus()
+    
+    configure(*args, **kwargs)
+        args: name of a property to describe
+        kwargs: set the property
+        no args or kwargs: describe everything(properties, valid values, etc)
+
+    bind('key description', callback)
+        callback takes 1 arg: an "event" (e has params, often x, and y)
+
+        description syntax:
+            modifier-modifier-type-detail
+
+
+            modifiers:
+                Control
+                Alt
+                Shift
+                Lock
+                Extended
+                Button1/B1
+                Button2/B2
+                Button3/B3
+                Button4/B4
+                Button5/B5
+                Mod1, M1, Command
+                Mod2, M2, Option
+                Mod3, M3
+                Mod4, M4
+                Mod5, M5
+                Meta, M
+                Double
+                Triple
+                Quadruple
+            types:
+                FocusOut            Activate
+                Gravity             ButtonPress, Button
+                KeyPress, Key       ButtonRelease
+                KeyRelease,         Circulate
+                Leave,              CirculateRequest
+                Map,                Colormap
+                MapRequest          Configure
+                Motion              ConfigureRequest
+                MouseWheel          Create
+                Property            Deactivate
+                Reparent            Destroy
+                ResizeRequest       Enter
+                Unmap               Expose
+                Visibility          Focusin
+        http://www.tcl.tk/man/tcl8.5/TkCmd/bind.htm
+
+
+:2a: Tk()
+    the root window
+    methods:
+        title(titlestring)
+        mainloop()
+    notes:
+        not "themed"=>background may be different
+
+
+:2b: StringVar()
+    a string variable...??
+
+:2c: ttk.Frame(parentWindow, padding="3 3 12 12")
+    an empty frame
+
+:2d: ttk.Entry(parent, width, textvariable)
+    text entrybox
+    textvariable: where to store the text input
+
+
+:2e: ttk.Label(parent, text = TEXTSTRING, textvariable=VAR_TO_GET_VALUE_FROM)
+    text label
+    
+:2f: ttk.Button(parent, text=TEXT, command=FUNC)
+    a button
