@@ -1,5 +1,5 @@
 sources:
-https://tkdocs.com/tutorial/widgets.html
+https://tkdocs.com/tutorial/morewidgets.html
 
 from tkinter import *
 from tkinter import ttk
@@ -19,11 +19,19 @@ contents
 :1: general
 :2: classes
   :2a: Tk
-  :2b: StringVar
+  :2b: Vars
+    :2b1:StringVar
+    :2b2:BooleanVar
   :2c: ttk.Frame
   :2d: ttk.Entry
+  :2e: ttk.Label
+  :2f: ttk.Button
+  :2g: ttk.Checkbutton
+  :2h: ttk.Radiobutton
+  :2i: ttk.Combobox
 
-
+:3: geometry manager
+  :3a: grid
 
 
 
@@ -138,7 +146,32 @@ general functions:
                           TkTooltipFont
         foreground      : name ('red'), hex (#ff340a)
         background      : name ('red'), hex (#ff340a)
+
+        default         : active: default, normal: normal (for appearance)
+        onvalue         : value for on  (like checkbutton)
+        offvalue        : value for off(like checkbutton)
+        value           : value (ie for radio button)
+        values          : for multiple values (like Combobox), a list of values
+        show            : example: Entry->show a different character (ie type a password)
         
+
+
+    ##############################
+    general functions
+    ##############################
+    state(['disabled'])            disable the widget
+    state(['!disabled'])           enablethe widget
+
+    instate(['disabled'])          True if disabled
+    instate(['!disabled'])         True if not disabled
+    instate(['!disabled'], cmd)    if not disabled, do cmd
+
+    flags:
+        active        disabled        focus
+        pressed       selected        background
+        readonly      alternate       invalid
+
+
 
 
 
@@ -183,11 +216,21 @@ general functions:
                 ResizeRequest       Enter
                 Unmap               Expose
                 Visibility          Focusin
+                                    <<ComboboxSelected>> (for comboboxes)
+
 
             example Double-B1
 
         http://www.tcl.tk/man/tcl8.5/TkCmd/bind.htm
 
+
+
+NOTE: for each
+just do:
+    from tkinter import ttk
+    ttk.CLASSNAME().configure().keys() to see fields
+    or 
+    ttk.CLASSNAME().configure()[field] to see explanations
 
 :2a: Tk()
     the root window
@@ -198,20 +241,106 @@ general functions:
         not "themed"=>background may be different
 
 
-:2b: StringVar()
-    a string variable...??
+:2b: vars
+    :2b1:StringVar()
+        a string variable for linking to widget
+    :2b2:BooleanVar()
+        a boolean variable for linking to widget
 
 :2c: ttk.Frame(parentWindow, padding="3 3 12 12")
     an empty frame (rectangle)
     
-
-
 :2d: ttk.Entry(parent, width, textvariable)
     text entrybox
     textvariable: where to store the text input
+    width->characters
+    methods:
+        get(): get value
+        delete(start, stop):
+            'end' = last index
+        insert(0, 'somestring'):
+            insert new text at index
+    states:
+        invalid
+        readonly (can't type but can highlight/copy)
+    validate:
+        'none'
+        'key' (on each keystroke)
+        focus/focusin/focusout,
+        all
+        2 callbacks:
+            validate: return 0 or 1 (True or False)
+            invalidcommand: runs when invalid
+        
 
 
 :2e: ttk.Label(parent)
 
 :2f: ttk.Button(parent, text=TEXT, command=FUNC)
-    a button
+    a button,
+    methods:
+    invoke: invoke the callback
+    
+:2g: ttk.CheckButton(parent, configs)
+    a checkbutton
+    methods:
+        invoke (see above)
+    instate:
+        alternate = 3rd value, (ie when you see some checklists
+        and check some but not all)
+
+:2h: ttk.Radiobutton
+    instate:
+        alternate
+
+:2i: ttk.Combobox
+    for choosing from a list or enter own value maybe
+    selectionclear()
+    get()
+    set(val)
+    current():      return selected index
+    current(index): select the index
+
+
+##############################
+:3: gemoetry manager
+##############################
+:3a: grid
+    
+    idea: columns and rows (put on graph paper)
+    ------------------------------
+    widget.grid
+        column     :
+        row        : 
+        columnspan :
+        rowspan    :
+        sticky     : any of 'nswe' (any combination, stretch to be stuck to corresponding spot)
+        padx       : 'v1 v2' (if v2 omited, same as v2)(pad within grid) (borderline in master)
+        pady       : 'v1 v2'(if v2 omited, same as v1)(pad within grid)(borderline in master)
+        ipadx      : same as aboves but
+        ipady      : as if borderline is 0 (if frame is 20x20, pad = 10, allocated a 30x30 grid, ipad = stretch
+                     pad = don't)
+        NOTE:
+            this is for putting widget into parent's row/column spot
+
+    ------------------------------
+    widget.{row, column}configure
+        weight  (growth rate for resizing window)
+        minsize (column/row should not shrink beyond that
+        pad     (padding values, 'v1, v2, v3, v4' etc
+        NOTE:
+            this is used for splitting up the widget into row/col
+
+
+    ------------------------------
+    padding
+        master.configure(padding = 'values')(pad within grid)
+        (padding at edges of master so can wrap a widget in Frame and use Frame's padding
+
+    ------------------------------
+    grid_slaves()    : returns map of gridded slaves
+    grid_info()      : gives gridinfo on the widget
+    grid_configure() : change grid configuration values
+    ------------------------------
+    forget([list of widgets]): removes them, forgets grid settings
+    remove([list of widgets]): removed them, remembers grid settings
