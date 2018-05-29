@@ -1,5 +1,5 @@
 sources:
-https://tkdocs.com/tutorial/firstexample.html
+https://tkdocs.com/tutorial/widgets.html
 
 from tkinter import *
 from tkinter import ttk
@@ -100,13 +100,54 @@ general functions:
         kwargs: set the property
         no args or kwargs: describe everything(properties, valid values, etc)
 
+    ##############################
+    general configurations:
+    ##############################
+        width/height    : (ex: 5, 5c, 5i, 5p) (cm, inches, printer's points)
+        cursor          : 
+        style           : themes
+        padding         : like html padding,
+                          all: 1 number
+                          horz, vert: 2 numbers
+                          left top right bottom: 4 numbers
+        borderwidth     : border width
+        relief          : border style (flat, raised, sunken, solid, ridge, groove)
+        class           : 
+        takefocus       : 
+        
+        text            : 'TEXTSTRING'
+        textvariable    : StringVar()
+        image           : PhotoImage(file = 'path2file.jpg')
+        compound        : str:
+                          text, image (only text or image)
+                          center, top, left, bottom, right
+                              (put text at position on image)
+        wraplength      : pixel length of text to wrap
+        anchor          : n, ne, e, se, s, sw, w, nw, center
+                          if item has more space than needed
+                          in the grid, anchor to these positions
+        justify         : left, center, right
+        font            : TkDefaultFont
+                          TkTextFont
+                          TkFixedFont
+                          TkMenuFont
+                          TkHeadingFont
+                          TkCaptionFont
+                          TkSmallCaptionFont
+                          TkIconFont
+                          TkTooltipFont
+        foreground      : name ('red'), hex (#ff340a)
+        background      : name ('red'), hex (#ff340a)
+        
+
+
+
+
     bind('key description', callback)
         callback takes 1 arg: an "event" (e has params, often x, and y)
 
         description syntax:
             modifier-modifier-type-detail
-
-
             modifiers:
                 Control
                 Alt
@@ -142,6 +183,9 @@ general functions:
                 ResizeRequest       Enter
                 Unmap               Expose
                 Visibility          Focusin
+
+            example Double-B1
+
         http://www.tcl.tk/man/tcl8.5/TkCmd/bind.htm
 
 
@@ -158,15 +202,16 @@ general functions:
     a string variable...??
 
 :2c: ttk.Frame(parentWindow, padding="3 3 12 12")
-    an empty frame
+    an empty frame (rectangle)
+    
+
 
 :2d: ttk.Entry(parent, width, textvariable)
     text entrybox
     textvariable: where to store the text input
 
 
-:2e: ttk.Label(parent, text = TEXTSTRING, textvariable=VAR_TO_GET_VALUE_FROM)
-    text label
-    
+:2e: ttk.Label(parent)
+
 :2f: ttk.Button(parent, text=TEXT, command=FUNC)
     a button
