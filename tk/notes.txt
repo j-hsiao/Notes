@@ -29,7 +29,8 @@ contents
   :2g: ttk.Checkbutton
   :2h: ttk.Radiobutton
   :2i: ttk.Combobox
-
+  :2j: ttk.Listbox
+  
 :3: geometry manager
   :3a: grid
 
@@ -300,6 +301,11 @@ just do:
     set(val)
     current():      return selected index
     current(index): select the index
+
+:2j: Listbox
+    list of boxes, allow multi-selection
+    
+
 
 
 ##############################
