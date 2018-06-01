@@ -12,16 +12,21 @@ import tkinter.StringVar                ERROR
 import tkinter;tkinter.StringVar        ERROR
 
 
-(if 
+
 ##############################
 contents
 ##############################
 :1: general
 :2: classes
-  :2a: Tk
+:1.5:general configurations:
+  :2a: tkinter.Tk
   :2b: Vars
-    :2b1:StringVar
-    :2b2:BooleanVar
+    :2b1:tkinter.StringVar
+    :2b2:tkinter.BooleanVar
+    :2b3: tkinter.DoubleVar()
+    :2b4: tkinter.IntVar()
+    :2b5: tkinter.Variable()
+        
   :2c: ttk.Frame
   :2d: ttk.Entry
   :2e: ttk.Label
@@ -29,12 +34,28 @@ contents
   :2g: ttk.Checkbutton
   :2h: ttk.Radiobutton
   :2i: ttk.Combobox
-  :2j: ttk.Listbox
-  
+  :2j: tkinter.Listbox
+  :2k: ttk.Scrollbar
+  :2l: ttk.Sizegrip
+  :2m: tkinter.Text
+  :2n: ttk.Progressbar
+  :2o: ttk.Scale
+  :2p: tkinter.Spinbox
+  :2q: 
+  :2r: 
+  :2s: 
+  :2t: 
+  :2v: 
+  :2w: 
+  :2x: 
+  :2y: 
+  :2z: 
+
+
 :3: geometry manager
   :3a: grid
 
-
+:4: menus
 
 
 ##############################
@@ -110,32 +131,20 @@ general functions:
         no args or kwargs: describe everything(properties, valid values, etc)
 
     ##############################
-    general configurations:
+    :1.5:general configurations:
     ##############################
-        width/height    : (ex: 5, 5c, 5i, 5p) (cm, inches, printer's points)
-        cursor          : 
-        style           : themes
-        padding         : like html padding,
-                          all: 1 number
-                          horz, vert: 2 numbers
-                          left top right bottom: 4 numbers
+        anchor          : n, ne, e, se, s, sw, w, nw, center
+                          if item has more space than needed
+                          in the grid, anchor to these positions
+        background      : name ('red'), hex (#ff340a)
         borderwidth     : border width
-        relief          : border style (flat, raised, sunken, solid, ridge, groove)
         class           : 
-        takefocus       : 
-        
-        text            : 'TEXTSTRING'
-        textvariable    : StringVar()
-        image           : PhotoImage(file = 'path2file.jpg')
         compound        : str:
                           text, image (only text or image)
                           center, top, left, bottom, right
                               (put text at position on image)
-        wraplength      : pixel length of text to wrap
-        anchor          : n, ne, e, se, s, sw, w, nw, center
-                          if item has more space than needed
-                          in the grid, anchor to these positions
-        justify         : left, center, right
+        cursor          : 
+        default         : active: default, normal: normal (for appearance, like Button)
         font            : TkDefaultFont
                           TkTextFont
                           TkFixedFont
@@ -146,16 +155,93 @@ general functions:
                           TkIconFont
                           TkTooltipFont
         foreground      : name ('red'), hex (#ff340a)
-        background      : name ('red'), hex (#ff340a)
-
-        default         : active: default, normal: normal (for appearance)
-        onvalue         : value for on  (like checkbutton)
+        from(from_)     : (need _ because from = reserved)
+                          lower bound (ie of ttk.Scale)
+        image           : PhotoImage(file = 'path2file.gif') (only gif or ppm or whatever weird thing)
+                          otherwise use PIL (pip install pillow
+                              from PIL import ImageTk
+                              ImageTk.PhotoImage(file = 'path2file')
+                              Image.fromarray(pixels)
+        justify         : left, center, right
+        length          : len (pixels)
+        maximum         : (ttk.Progressbar)
+        mode            : 'determinate', 'indeterminate' (ttk.Progressbar)
         offvalue        : value for off(like checkbutton)
+        onvalue         : value for on  (like checkbutton)
+        orient          : 'vertical', 'horizontal' (scrollbars, )
+        padding         : like html padding,
+                          all: 1 number
+                          horz, vert: 2 numbers
+                          left top right bottom: 4 numbers
+        relief          : border style (flat, raised, sunken, solid, ridge, groove)
+        selectmode      : ex for Listbox, 'browse' (single), 'extended' (multi)
+        show            : example: Entry->show a different character (ie type a password)
+        state           : for tkinter widgets (not ttk), 'normal', 'disabled'
+        style           : themes
+        takefocus       : 
+        text            : 'TEXTSTRING'
+        textvariable    : StringVar()
+        to              : to value
         value           : value (ie for radio button)
         values          : for multiple values (like Combobox), a list of values
-        show            : example: Entry->show a different character (ie type a password)
-        
+        width/height    : (ex: 5, 5c, 5i, 5p) (cm, inches, printer's points)
+        wrap            : 'none', 'char', 'word' (Text)
+                        : True/False (tk.Spinbox) (get to end of list, wrap around?)
+        wraplength      : pixel length of text to wrap (Entry)
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+        
 
     ##############################
     general functions
@@ -178,13 +264,26 @@ general functions:
 
 
     bind('key description', callback)
-        callback takes 1 arg: an "event" (e has params, often x, and y)
+        patterns:
+            keydescs separated by white space
+            
+            1: 'k'
+                k = a key
+                (any non-space not '<'
+                 single-printing ascii character)
+            2: <modifier-modifier-type-detail>
+                must have at least one type and one detail
 
+            3: <<name>>
+                a "virtual event"???
+                no modifiers allowed
+
+        callback takes 1 arg: an "event" (e has params, often x, and y)
         description syntax:
-            modifier-modifier-type-detail
+            <modifier-modifier-...moremodifiers...-type-detail>
             modifiers:
                 Control
-                Alt
+                Alt, (Alt_L, Alt_R)
                 Shift
                 Lock
                 Extended
@@ -233,7 +332,7 @@ just do:
     or 
     ttk.CLASSNAME().configure()[field] to see explanations
 
-:2a: Tk()
+:2a: tkinter.Tk()
     the root window
     methods:
         title(titlestring)
@@ -243,10 +342,13 @@ just do:
 
 
 :2b: vars
-    :2b1:StringVar()
+    :2b1:tkinter.StringVar()
         a string variable for linking to widget
-    :2b2:BooleanVar()
+    :2b2:tkinter.BooleanVar()
         a boolean variable for linking to widget
+    :2b3: tkinter.DoubleVar()
+    :2b4: tkinter.IntVar()
+    :2b5: tkinter.Variable()
 
 :2c: ttk.Frame(parentWindow, padding="3 3 12 12")
     an empty frame (rectangle)
@@ -302,9 +404,75 @@ just do:
     current():      return selected index
     current(index): select the index
 
-:2j: Listbox
+:2j: tkinter.Listbox
     list of boxes, allow multi-selection
-    
+    listvariable: just a python list... isn't working...
+    use tkinter.StringVar()
+    'item1 {item 2} item3'
+    has 3 items
+    virtual event: <ListboxSelect>
+    alternatively:
+        .insert(ind, *items)
+        .delete(start, stop = None)
+            single item at index start if stop is None
+            else from start to stop inclusive
+        .get(start, stop = None)
+            single item at index start if stop is None
+            else from start to stop inclusive
+        .size()
+    others:
+        .curselection()
+        .selection_includes(index)
+        .selection_clear(start, stop = None)
+        .selection_set(start, stop = None)
+        .see(index)
+
+    :2k: ttk.Scrollbar    
+        command:
+            pair with a scrollable widget:
+                use targetWidget.yview or targetWidget.xview
+
+            on targetWidget:
+                xscrollcommand
+                yscrollcommand
+                    use corresponding scrollbar's set command
+    :2l: ttk.Sizegrip
+    :2m: tkinter.Text
+        methods:
+            .see(index)
+                index: (lineNumber.charNumber)
+                line = 1-based, charNumber = 0-based
+                (1.0 = first line 0th char)
+            .get(start, stop)
+                start, stop = index format (see .see(index))
+            .insert(index, strval)
+                index: see .see(index)
+            .delete(start, stop)
+                see .get
+    :2n: ttk.Progressbar
+        orient, length (pixels), mode
+            mode: determinate
+                can give approximate % completion
+                change value to between 0 and maximum
+                use configure(value = val)
+                or configure(variable = tkinter.DoubleVar())
+                or progbar.step(amt)
+            mode: indeterminate
+                bar.start()
+                bar.stop()
+
+    :2o: ttk.Scale
+        orient, from(_), to, length, variable(float), value,
+        command (value appended to args),
+        methods:
+            state/instate
+    :2p: tkinter.Spinbox
+        to, from_, textvariable, increment,
+        values, command, state
+        methods:
+            set, get
+        
+        
 
 
 
@@ -350,3 +518,40 @@ just do:
     ------------------------------
     forget([list of widgets]): removes them, forgets grid settings
     remove([list of widgets]): removed them, remembers grid settings
+
+##############################
+:4: menus
+##############################
+    root = tkinter.Tk()
+    root.tk.call('tk', 'windowingsystem')->'x11', 'win32', 'aqua'
+
+    root.option_add('*tearOff', tk.FALSE)
+        allows removal of menu from window to own window
+
+    win = Toplevel(root)
+    menubar = tk.Menu(win)
+    win['menu'] = menubar
+
+    ex:
+        menubar = tk.Menu(parent)
+        menu_file = Menu(menubar)
+        menu_edit = Menu(menubar)
+        menubar.add_cascade(menu = menu_file, label = 'File')
+        menubar.add_cascade(menu = menu_edit, label = 'Edit')
+        menu_file.add_command(label = 'New', command = func)
+        menu_file.add_command(label = 'Open...', command = func)
+        menu_file.add_command(label = 'Close', command = func)
+
+    summary:
+    add_cascade(menu, label)
+        add a submenu
+    add_command(command, label, accelerator):
+        a menu item
+    add_separator()
+        ...???
+    add_checkbutton(label, variable, onvalue, offvalue, command, accelerator)
+    add_radiobuttn(label, variable, value, command, accelerator)
+        display indicator
+    accelerators: just an indication of associated shortcut keys
+        (still have to manually create the bindings though)
+    
