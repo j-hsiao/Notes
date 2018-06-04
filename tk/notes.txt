@@ -1,5 +1,5 @@
 sources:
-https://tkdocs.com/tutorial/morewidgets.html
+https://tkdocs.com/tutorial/fonts.html
 
 from tkinter import *
 from tkinter import ttk
@@ -41,10 +41,10 @@ contents
   :2n: ttk.Progressbar
   :2o: ttk.Scale
   :2p: tkinter.Spinbox
-  :2q: 
-  :2r: 
-  :2s: 
-  :2t: 
+  :2q: ttk.Separator
+  :2r: ttk.Labelframe
+  :2s: ttk.Panedwindow
+  :2t: ttk.Notebook
   :2v: 
   :2w: 
   :2x: 
@@ -54,8 +54,12 @@ contents
 
 :3: geometry manager
   :3a: grid
-
 :4: menus
+:5: windows
+:6: dialogs
+:7: fonts
+:8: colors
+:9: images
 
 
 ##############################
@@ -129,6 +133,9 @@ general functions:
         args: name of a property to describe
         kwargs: set the property
         no args or kwargs: describe everything(properties, valid values, etc)
+
+    destroy()
+        destroys object and all descendents
 
     ##############################
     :1.5:general configurations:
@@ -471,8 +478,37 @@ just do:
         values, command, state
         methods:
             set, get
-        
-        
+    :2q: ttk.Separator
+        orient
+        weird... i don't see anything when I add a separator...
+
+    :2r: ttk.Labelframe
+        text
+        see Frame
+
+    :2s: ttk.Panedwindow
+        resize between adjacent widgets
+
+        orient, height, width
+        method:
+            add(widget)
+            insert(position widget)
+            forget(position)
+
+    :2t: ttk.Notebook
+        tabbed frames
+        methods:
+            add(widget, text=tabDescription)
+            state(disabled, normal, hidden)
+            insert(position, widget, **kwargs)
+            forget(position)
+            tabs()
+            select(arg = None)
+                None = currently selected
+                else index or widget to select it
+            tab(tabindex, **kwargs)
+
+
 
 
 
@@ -516,8 +552,8 @@ just do:
     grid_info()      : gives gridinfo on the widget
     grid_configure() : change grid configuration values
     ------------------------------
-    forget([list of widgets]): removes them, forgets grid settings
-    remove([list of widgets]): removed them, remembers grid settings
+    grid_forget([list of widgets]): removes them, forgets grid settings
+    grid_remove([list of widgets]): removed them, remembers grid settings
 
 ##############################
 :4: menus
@@ -543,15 +579,200 @@ just do:
         menu_file.add_command(label = 'Close', command = func)
 
     summary:
-    add_cascade(menu, label)
-        add a submenu
-    add_command(command, label, accelerator):
-        a menu item
-    add_separator()
-        ...???
-    add_checkbutton(label, variable, onvalue, offvalue, command, accelerator)
-    add_radiobuttn(label, variable, value, command, accelerator)
-        display indicator
-    accelerators: just an indication of associated shortcut keys
-        (still have to manually create the bindings though)
+        add_cascade(menu, label)
+            add a submenu
+        add_command(command, label, accelerator):
+            a menu item
+        add_separator()
+            ...???
+        add_checkbutton(label, variable, onvalue, offvalue, command, accelerator)
+        add_radiobuttn(label, variable, value, command, accelerator)
+            display indicator
+        accelerators: just an indication of associated shortcut keys
+            (still have to manually create the bindings though)
+
+    other configs:
+        underline = index_of_letter_to_underline
+        image = tk.PhotoImage
+                PIL.ImageTk.PhotoImage
+        compound = l,t,rb, center, none
+
     
+    ##############################
+    context menus (right click)
+        create menu,
+        menu.post(x,y)
+
+##############################
+:5: windows
+##############################
+newWindow = tk.Toplevel(parent)
+
+window methods:
+    geometry(arg = None)
+        if None:
+            return current geometry
+        else:
+            '[width]x[height][+/-][posx][+/-][posy]'
+            (+ => distance from top/left,
+             - => distance from bottom/right)
+        example:
+            make window 500x500, move top left to 0,0
+                root.geometry('500x500+/-0+/-0')
+                (can omit one of size or position)
+            move to top right
+                '-0+0'
+    title(arg = None)
+        if None:
+            return current title
+        else:
+            set the title, return ''
+
+    after(milliseconds, lambda):
+        call lambda (no args) after milliseconds
+
+
+    lift(otherWindow = None)
+    lower(otherWindow = None)
+        move to the extremes if None
+        else:
+            to just above/below the other window
+
+        NOTE:
+            above 2 are for stack order
+            root.tk.eval('wm stackorder '+str(root))
+            returns a str with str(window)
+            as order of windows from bottom to top
+            can use str.index EXCEPT:
+                observation: root is '.'
+                tops are '.[some number]'
+                implies str.index(root) is always 0
+                may need to use regexp
+                or... seems to be space delimited
+                add space to ends and do .index(
+                ' ' + str(desiredWindow) + ' ')
+        NOTE2:
+            the stackorder is only aware of things
+            under the same root
+            make another root, it is not seen
+        NOTE3:
+            root seems like it is always '.'
+            might be able to just do
+            window.tk.eval('wm stackorder .')
+        NOTE4:
+            wm stackorder {}
+            works with "sibling widgets" too (widgets in same plane?)
+    resizable(xok, yok)
+        T/F if x/y resizable or not
+    minsize(x,y)
+    maxsize(x,y)
+
+    iconify()
+    deiconify()
+    withdraw()
+    state(state)
+        'normal'
+        'iconic'
+        'withdrawn'
+        NOTE:
+            on ubuntu, deiconify works after withdraw()
+            but not after iconify()
+##############################
+:6:dialogs
+##############################
+files:
+    from tkinter import filedialog
+    filedialog.askopenfilename()
+    filedialog.asksaveasfilename()
+        kwargs:
+            confirmoverwrite = T/F, default=True
+            defaultextension: adds extension if user doesn't add one
+            filetypes: ['name {extensions...}']
+                       ex:
+                           ['txt {.txt}',
+                           'jpg {.jpg .JPEG .jpeg}',
+                           'all {*}']
+            initialdir: path_to_initial_dir
+            initialfile: path_to_initial_file
+            multiple: T/F, can choose multiple files when opening?
+            parent: window: makes dialog appear on top of parent
+            title: title of dialogbox
+    filedialog.askdirectory()
+        kwargs:
+            initialdir
+            mustexist
+            parent
+            title
+    return values:
+        success = return FULL PATH
+        fail(canceled) = ''
+colors:
+    from tkinter import colorchooser
+    colorchooser.askcolor(initialcolor = '#FF0000')
+messages:
+    from tkinter import messagebox
+        askokcancel
+        askquestion
+        askretrycancel
+        askyesno
+        askyesnocancel
+        showerror
+        showinfo
+        showwarning
+    args:
+        title    : title
+        message  : message
+        detail   : extra stuff
+        icon     : 'info', 'error', 'question', 'warning'
+        default  : 'ok', 'cancel', 'retry', etc...
+                   (which button to have initial focus)
+        parent   : parent window
+##############################
+:7: fonts
+##############################
+should create a style and use style
+instead of directly using the font option
+
+  ------------------------------
+  default fonts
+  ------------------------------
+  TkDefaultFont         : for everything else
+  TkTextFont            : text entry widgets
+  TkFixedFont           : fixed-width
+  TkMenuFont            : menu
+  TkHeadingFont         : column headings
+  TkCaptionFont         : for dialog caption bars
+  TkSmallCaptionFont    : smaller form of above
+  TkIconFont            : icon captions
+  TkTooltipFont         : tooltips
+  
+
+  from tkinter import font
+  font.Font(family = 'fontFamily', size = size, weight = weight)
+
+  weight:          'bold', 'normal'
+  slant:           'roman', 'italic'
+  underline:       bool
+  overstrike:      bool
+  
+  NOTE:
+      guaranteed:
+          Courier, Times, Helvetica
+          Monospaced, serif, sans-serif
+      font.families() to get all families
+      NOTE:
+          must call tkinter.Tk() before font.families()
+
+
+
+
+
+
+##############################
+:8: colors
+##############################
+
+
+##############################
+:9: images
+##############################
