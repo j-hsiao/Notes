@@ -1,0 +1,223 @@
+https://www.w3schools.com/css/css_text.asp
+
+contents:
+1::intro
+2::general properties
+  2a::background
+  2b::boxmodel
+    2b1::border
+    2b2::margin
+    2b3::padding
+    2b4::box-sizing
+    2b5::height/width
+    2b6::outline
+  2b::border
+  2c::margins
+3::text properties
+  3a::links
+4::table properties
+5::colors
+6::other
+
+------------------------------
+1::intro
+  adding to a website:
+    1. link to file:
+      <head>
+        <link rel="stylesheet" href="path to style sheet">
+      </head>
+    2. inline
+       <someElement style="CSS GOES HERE"/>
+    3. internal
+        <head>
+          <style>
+            ...code...
+          </style>
+        </head>
+  style ordering:
+    1. inline styling
+    2. external/internal (depending on order of definition in <head>)
+    3. browser defaults
+  syntax:
+    target1, target2, target3... {
+      property: value;
+      property: value;
+      ...
+      /*comment*/
+    }
+
+
+  specifying targets:
+    #elementID                    elements with id
+    tagname                       all instances of tagname
+    tagname.classname             all instances of tagname with class
+    .classname                    for class name
+  
+
+------------------------------
+2::general properties
+  ------------------------------
+  2a::background
+    background-color        color for background
+    background-image        url("uri to image")
+                            none
+                            linear-gradient(direction, colorstops)
+                                                                  direction: Ndeg,
+                                                                             0deg : bottom to top
+                                                                             + = clockwise rotation
+                                                                  colorstops color & position(optional, 0-100%)
+                            radial-gradient(shape size (at) position, colors)                     
+                                                                  shape:   ellipse (default)
+                                                                           circle
+                                                                  size:    farthest-corner (default)
+                                                                           closest-side
+                                                                           closest-corner
+                                                                           farthest-side
+                                                                  position center (default)
+                                                                  colors:  color and stop position (0-100% or length along axis, optional)
+                            repeating-linear-gradient(angle color-stops)
+                                                                  see linear-gradient
+                            repeating-radial-gradient()           
+    background-repeat       repeat
+                            repeat-x
+                            repeat-y
+                            no-repeat
+                            space                                 (repeated, spacing in between so no clipping)
+                            round                                 repeated and squished
+                            
+    
+    background-attachment   scroll
+                            fixed
+                            local
+    background-position     version 1: right/center/left top/center/bottom
+                            version 2: x% y%
+                            version 3: xpos ypos
+                            
+    background              shorthand:
+                              color image repeat attachment position 
+  ------------------------------
+  2b::boxmodel
+    generally 1-4 values:
+      4: top right bottom left
+      3: top, sides, bottom
+      2: top/bottom, sides
+      1: all
+    sizes = px, pt, cm, em, %, auto...
+    ------------------------------
+    2b1::border
+      border                  width type color (ex: '5px solid blue')
+
+      border-X                X: top, right, bottom, left
+                              see border
+
+      border-style            dotted    ridge
+                              dashed    inset
+                              solid     outset
+                              double    none
+                              groove    hidden
+
+      border-width            N(px,pt,cm,em...)
+                              thin, medium, thick
+
+      border-color            see 5::colors
+
+      border-X-N              X: top, right, bottom, left
+                              N: style, width, color
+
+      border-radius           Npx
+    ------------------------------
+    2b2::margins
+      NOTE:
+        negative values allowed
+      margin                  see 1-4 values
+      margin-X                X: top, right, bottom, left
+                              only 1 value
+      NOTE: elements arranged in top/bottom have "margin collapse"
+            (effective margin = max(top ele's bottom margin, bottom ele's top margin)
+            (doesn't happen for left/right)
+    ------------------------------
+    2b3::padding
+      see margins, replace "margin" with "padding" except "auto"
+    ------------------------------
+    2b4::boxsizing
+      make width/height correspond to set box
+      values:
+        content-box
+        border-box
+        initial
+        inherit
+        padding-box??
+        margin-box??
+    ------------------------------
+    2b5::height/width
+      px, cm, %, auto, em, etc
+      width             ..
+      height            ..
+      max-width         ..
+      max-height        ..
+      min-width         ..
+      min-height        ..
+
+    ------------------------------
+    2b6::outline
+      outline around the border (doesn't affect element size so might overlap others)
+      outline-style             see border-style
+      outline-color             see border-color
+                                invert: invert background colors
+      outline-width             see border-width
+      outline-offset            dist b/w border and outline (can be <0)
+      outline
+
+
+
+    float                   left or right
+    max-width               px or %(of original)
+  
+
+------------------------------
+3::text properties
+  color                   color of text
+  font-family             font style
+  font-size               size of font, (X%, px, or vw)
+                          (vw = viewport width: scales with size of viewport)
+  text-align              center, left, right
+  text-decoration         
+  ------------------------------
+  3a::links
+    refer to them as:
+      a:link
+      a:visited
+      a:hover
+      a:active
+------------------------------
+4::tables
+  border-spacing:         spacing between borders if not collapsed
+  border-collapse:        combine borders of adjacent cells
+------------------------------
+6::lists
+  list-style-type         disc, circle, square, none (<ul>)
+
+
+------------------------------
+5::colors
+  names:
+    Tomato
+  rgb:
+    rgb(255, 99, 71)
+  rgba:
+    rgba(255, 99, 71, 0.5)
+  hex:
+    #FF6347
+  HSL:
+    hsl(9, 100%, 64%)
+  HSLA:
+    hsla(9, 100%, 64%, 0.5)
+------------------------------
+6::other
+  ------------------------------
+  6a::responsive design
+    ex:
+      @media (max-width:800px) {
+        css code
+      }
+      (uses above css code when width > 800px)
