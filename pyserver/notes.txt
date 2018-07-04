@@ -12,7 +12,8 @@
 2::http tidbits
   2.1::content-type
   2.2::status
-
+3::socket
+  3.1::example
 
 ##############################
 #1::BaseHTTPServer
@@ -186,7 +187,11 @@ ______________________________
   #1.2.3::methods
     handle()
       call handle_one_request() for requests
-      never override
+      "should" never override
+      BUT:
+        if want shutdown when server shutdown, must override (assuming non-keep-alive)
+        (see misc)
+
     handle_one_request()
       call the do_*() method
       never override
@@ -306,9 +311,31 @@ ______________________________
       409 Conflict
     ______________________________
     5xx Server Error
-      500 Internal Service Error
+      500 Internal Server Error
       501 Not Implemented
       502 Bad Gateway
       503 Service Unavailable
       504 Gateway Timeout
       505 HTTP Version Not Supported        
+##############################
+#3::socket
+##############################
+______________________________
+#3.1::example
+  for result in socket.getaddrinfo(host, port, socket.AF_INET,socket.SOCK_STREAM,
+                                   0, socket.AI_PASSIVE):
+      af, socktype, proto, cannon, sa = res
+      try:
+          s = socket.socket(af, socktype, proto)
+      except:
+          s = None
+          continue
+      try:
+          s.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+          s.bind(sa)
+      except:
+          s.close()
+          s =None
+          continue
+      break
+  return s
