@@ -1,5 +1,5 @@
 sources:
-https://tkdocs.com/tutorial/fonts.html
+https://tkdocs.com/tutorial/tree.html
 
 from tkinter import *
 from tkinter import ttk
@@ -17,8 +17,10 @@ import tkinter;tkinter.StringVar        ERROR
 contents
 ##############################
 :1: general
-:2: classes
 :1.5:general configurations:
+:1.6: general functions
+
+:2: classes
   :2a: tkinter.Tk
   :2b: Vars
     :2b1:tkinter.StringVar
@@ -26,7 +28,6 @@ contents
     :2b3: tkinter.DoubleVar()
     :2b4: tkinter.IntVar()
     :2b5: tkinter.Variable()
-        
   :2c: ttk.Frame
   :2d: ttk.Entry
   :2e: ttk.Label
@@ -45,7 +46,8 @@ contents
   :2r: ttk.Labelframe
   :2s: ttk.Panedwindow
   :2t: ttk.Notebook
-  :2v: 
+  :2u: ttk.Treeview
+  :2v:
   :2w: 
   :2x: 
   :2y: 
@@ -60,7 +62,7 @@ contents
 :7: fonts
 :8: colors
 :9: images
-
+:10: canvas
 
 ##############################
 :1: general
@@ -112,7 +114,68 @@ handle on the root window
 
 
 ##############################
-:2:classes
+:1.5:general configurations:
+##############################
+    anchor          : n, ne, e, se, s, sw, w, nw, center
+                      if item has more space than needed
+                      in the grid, anchor to these positions
+    background      : name ('red'), hex (#ff340a)
+    borderwidth     : border width
+    class           : 
+    compound        : str:
+                      text, image (only text or image)
+                      center, top, left, bottom, right
+                          (put text at position on image)
+    cursor          : 
+    default         : active: default, normal: normal (for appearance, like Button)
+    elide           : tag config for tk.Text
+    font            : TkDefaultFont
+                      TkTextFont
+                      TkFixedFont
+                      TkMenuFont
+                      TkHeadingFont
+                      TkCaptionFont
+                      TkSmallCaptionFont
+                      TkIconFont
+                      TkTooltipFont
+    foreground      : name ('red'), hex (#ff340a)
+    from(from_)     : (need _ because from = reserved)
+                      lower bound (ie of ttk.Scale)
+    image           : PhotoImage(file = 'path2file.gif') (only gif or ppm or whatever weird thing)
+                      otherwise use PIL (pip install pillow
+                          from PIL import ImageTk
+                          ImageTk.PhotoImage(file = 'path2file')
+                          Image.fromarray(pixels)
+    justify         : left, center, right
+    length          : len (pixels)
+    maximum         : (ttk.Progressbar)
+    mode            : 'determinate', 'indeterminate' (ttk.Progressbar)
+    offvalue        : value for off(like checkbutton)
+    onvalue         : value for on  (like checkbutton)
+    orient          : 'vertical', 'horizontal' (scrollbars, )
+    padding         : like html padding,
+                      all: 1 number
+                      horz, vert: 2 numbers
+                      left top right bottom: 4 numbers
+    relief          : border style (flat, raised, sunken, solid, ridge, groove)
+    selectmode      : ex for Listbox, 'browse' (single), 'extended' (multi)
+    show            : example: Entry->show a different character (ie type a password)
+    state           : for tkinter widgets (not ttk), 'normal', 'disabled'
+    style           : themes
+    takefocus       : 
+    text            : 'TEXTSTRING'
+    textvariable    : StringVar()
+    to              : to value
+    undo            : allow undo (tk.Text)
+    value           : value (ie for radio button)
+    values          : for multiple values (like Combobox), a list of values
+    width/height    : (ex: 5, 5c, 5i, 5p) (cm, inches, printer's points)
+    wrap            : 'none', 'char', 'word' (Text)
+                    : True/False (tk.Spinbox) (get to end of list, wrap around?)
+    wraplength      : pixel length of text to wrap (Entry)
+
+##############################
+:1.6: general functions
 ##############################
 general functions:
     grid(column = M, row = N, sticky = (N, W, E, S...))
@@ -137,200 +200,87 @@ general functions:
     destroy()
         destroys object and all descendents
 
-    ##############################
-    :1.5:general configurations:
-    ##############################
-        anchor          : n, ne, e, se, s, sw, w, nw, center
-                          if item has more space than needed
-                          in the grid, anchor to these positions
-        background      : name ('red'), hex (#ff340a)
-        borderwidth     : border width
-        class           : 
-        compound        : str:
-                          text, image (only text or image)
-                          center, top, left, bottom, right
-                              (put text at position on image)
-        cursor          : 
-        default         : active: default, normal: normal (for appearance, like Button)
-        font            : TkDefaultFont
-                          TkTextFont
-                          TkFixedFont
-                          TkMenuFont
-                          TkHeadingFont
-                          TkCaptionFont
-                          TkSmallCaptionFont
-                          TkIconFont
-                          TkTooltipFont
-        foreground      : name ('red'), hex (#ff340a)
-        from(from_)     : (need _ because from = reserved)
-                          lower bound (ie of ttk.Scale)
-        image           : PhotoImage(file = 'path2file.gif') (only gif or ppm or whatever weird thing)
-                          otherwise use PIL (pip install pillow
-                              from PIL import ImageTk
-                              ImageTk.PhotoImage(file = 'path2file')
-                              Image.fromarray(pixels)
-        justify         : left, center, right
-        length          : len (pixels)
-        maximum         : (ttk.Progressbar)
-        mode            : 'determinate', 'indeterminate' (ttk.Progressbar)
-        offvalue        : value for off(like checkbutton)
-        onvalue         : value for on  (like checkbutton)
-        orient          : 'vertical', 'horizontal' (scrollbars, )
-        padding         : like html padding,
-                          all: 1 number
-                          horz, vert: 2 numbers
-                          left top right bottom: 4 numbers
-        relief          : border style (flat, raised, sunken, solid, ridge, groove)
-        selectmode      : ex for Listbox, 'browse' (single), 'extended' (multi)
-        show            : example: Entry->show a different character (ie type a password)
-        state           : for tkinter widgets (not ttk), 'normal', 'disabled'
-        style           : themes
-        takefocus       : 
-        text            : 'TEXTSTRING'
-        textvariable    : StringVar()
-        to              : to value
-        value           : value (ie for radio button)
-        values          : for multiple values (like Combobox), a list of values
-        width/height    : (ex: 5, 5c, 5i, 5p) (cm, inches, printer's points)
-        wrap            : 'none', 'char', 'word' (Text)
-                        : True/False (tk.Spinbox) (get to end of list, wrap around?)
-        wraplength      : pixel length of text to wrap (Entry)
 
+##############################
+:1.6: general functions
+##############################
+state(['disabled'])            disable the widget
+state(['!disabled'])           enablethe widget
 
+instate(['disabled'])          True if disabled
+instate(['!disabled'])         True if not disabled
+instate(['!disabled'], cmd)    if not disabled, do cmd
 
+flags:
+    active        disabled        focus
+    pressed       selected        background
+    readonly      alternate       invalid
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-        
-
-    ##############################
-    general functions
-    ##############################
-    state(['disabled'])            disable the widget
-    state(['!disabled'])           enablethe widget
-
-    instate(['disabled'])          True if disabled
-    instate(['!disabled'])         True if not disabled
-    instate(['!disabled'], cmd)    if not disabled, do cmd
-
-    flags:
-        active        disabled        focus
-        pressed       selected        background
-        readonly      alternate       invalid
-
-
-
-
-
-
-    bind('key description', callback)
-        patterns:
-            keydescs separated by white space
+bind('key description', callback)
+    patterns:
+        keydescs separated by white space
             
-            1: 'k'
-                k = a key
-                (any non-space not '<'
-                 single-printing ascii character)
-            2: <modifier-modifier-type-detail>
-                must have at least one type and one detail
+        1: 'k'
+            k = a key
+            (any non-space not '<'
+             single-printing ascii character)
+        2: <modifier-modifier-type-detail>
+            must have at least one type and one detail
 
-            3: <<name>>
-                a "virtual event"???
-                no modifiers allowed
+        3: <<name>>
+            a "virtual event"???
+            no modifiers allowed
 
-        callback takes 1 arg: an "event" (e has params, often x, and y)
-        description syntax:
-            <modifier-modifier-...moremodifiers...-type-detail>
-            modifiers:
-                Control
-                Alt, (Alt_L, Alt_R)
-                Shift
-                Lock
-                Extended
-                Button1/B1
-                Button2/B2
-                Button3/B3
-                Button4/B4
-                Button5/B5
-                Mod1, M1, Command
-                Mod2, M2, Option
-                Mod3, M3
-                Mod4, M4
-                Mod5, M5
-                Meta, M
-                Double
-                Triple
-                Quadruple
-            types:
-                FocusOut            Activate
-                Gravity             ButtonPress, Button
-                KeyPress, Key       ButtonRelease
-                KeyRelease,         Circulate
-                Leave,              CirculateRequest
-                Map,                Colormap
-                MapRequest          Configure
-                Motion              ConfigureRequest
-                MouseWheel          Create
-                Property            Deactivate
-                Reparent            Destroy
-                ResizeRequest       Enter
-                Unmap               Expose
-                Visibility          Focusin
-                                    <<ComboboxSelected>> (for comboboxes)
+    callback takes 1 arg: an "event" (e has params, often x, and y)
+    description syntax:
+        <modifier-modifier-...moremodifiers...-type-detail>
+        modifiers:
+            Control
+            Alt, (Alt_L, Alt_R)
+            Shift
+            Lock
+            Extended
+            Button1/B1
+            Button2/B2
+            Button3/B3
+            Button4/B4
+            Button5/B5
+            Mod1, M1, Command
+            Mod2, M2, Option
+            Mod3, M3
+            Mod4, M4
+            Mod5, M5
+            Meta, M
+            Double
+            Triple
+            Quadruple
+        types:
+            FocusOut            Activate
+            Gravity             ButtonPress, Button
+            KeyPress, Key       ButtonRelease
+            KeyRelease,         Circulate
+            Leave,              CirculateRequest
+            Map,                Colormap
+            MapRequest          Configure
+            Motion              ConfigureRequest
+            MouseWheel          Create
+            Property            Deactivate
+            Reparent            Destroy
+            ResizeRequest       Enter
+            Unmap               Expose
+            Visibility          Focusin
+                                <<ComboboxSelected>> (for comboboxes)
+        example Double-Button-1
 
-
-            example Double-B1
-
-        http://www.tcl.tk/man/tcl8.5/TkCmd/bind.htm
+    http://www.tcl.tk/man/tcl8.5/TkCmd/bind.htm
 
 
+
+
+
+##############################
+:2:classes
+##############################
 
 NOTE: for each
 just do:
@@ -338,6 +288,7 @@ just do:
     ttk.CLASSNAME().configure().keys() to see fields
     or 
     ttk.CLASSNAME().configure()[field] to see explanations
+
 
 :2a: tkinter.Tk()
     the root window
@@ -445,17 +396,97 @@ just do:
                     use corresponding scrollbar's set command
     :2l: ttk.Sizegrip
     :2m: tkinter.Text
+        wrap, undo
         methods:
             .see(index)
                 index: (lineNumber.charNumber)
                 line = 1-based, charNumber = 0-based
                 (1.0 = first line 0th char)
+                tagname.first
+                tagname.last
+                markname
             .get(start, stop)
                 start, stop = index format (see .see(index))
-            .insert(index, strval)
+                special values:
+                    chars: unit for get
+                    lines
+                    linestart
+                    wordstart
+                    lineend
+                    wordend
+                always ends with '\n'
+            .insert(index, strval, tags = ())
                 index: see .see(index)
+                last index is non-inclusive
+                tags: associated tags
             .delete(start, stop)
                 see .get
+            .tag_add(tagname, start, stop)
+            .tag_configure(tagname, **kwargs)
+                overstrike        background
+                relief            bgstipple
+                rmargin           borderwidth
+                spacing1          elide (hide text)
+                spacing2          fgstipple
+                spacing3          font
+                tabs              foreground
+                tabstyle          justify
+                underline         lmargin1
+                wrap              lmargin2
+                                  offset
+            .tag_cget(tagname)
+                queries configuration values
+            tag_raise
+            tag_lower
+                change priorities
+                default: more recent = higher priority
+                (clashes = use higher priority to resolve)
+            tag_delete(tag)
+            tag_remove(tagname, start, stop)
+            tag_ranges(tagname)
+                list of ranges with tagname
+            tag_nextrange
+            tag_prevrange
+                search tagged range
+            tag_names(index = None)
+                None: all tags
+                index: all tags applied to index
+            tag_bind(tagname, 'binddescr', callback)
+            mark_set(name, ind)
+                mark = just before char at ind
+            mark_unset(name)
+            mark_next()
+            mark_previous()
+            mark_names()
+            mark_gravity(markname, 'left/right')
+                which char does the mark stick to?
+                (when text inserted at mark)
+            image_create(ind, image=PhotoImage())
+            window_create(ind, window=thing)
+            search...
+            edit_modified
+                query if text changed
+            edit_undo
+            edit_redo
+                (for these, undo config should be true)
+            peer:
+                share text data b/w widgets...
+                (like multiwindow in emacs?)
+    Other:
+        virtual events:
+            <<Selection>>
+            <<Modified>>
+
+        'sel' tag: selected text
+
+        Marks
+            marks: spot between text
+            'insert': insert point for new txt when type
+            'current': mouse position
+        images/widgets
+            make sure added im/widget is
+            descendent of the text widget they are
+            added to
     :2n: ttk.Progressbar
         orient, length (pixels), mode
             mode: determinate
@@ -507,6 +538,10 @@ just do:
                 None = currently selected
                 else index or widget to select it
             tab(tabindex, **kwargs)
+    :2u: ttk.Treeview
+        view object and attributes
+        scrollable
+        
 
 
 
@@ -732,47 +767,154 @@ messages:
 ##############################
 should create a style and use style
 instead of directly using the font option
-
-  ------------------------------
-  default fonts
-  ------------------------------
-  TkDefaultFont         : for everything else
-  TkTextFont            : text entry widgets
-  TkFixedFont           : fixed-width
-  TkMenuFont            : menu
-  TkHeadingFont         : column headings
-  TkCaptionFont         : for dialog caption bars
-  TkSmallCaptionFont    : smaller form of above
-  TkIconFont            : icon captions
-  TkTooltipFont         : tooltips
   
-
-  from tkinter import font
-  font.Font(family = 'fontFamily', size = size, weight = weight)
-
-  weight:          'bold', 'normal'
-  slant:           'roman', 'italic'
-  underline:       bool
-  overstrike:      bool
+    ------------------------------
+    default fonts
+    ------------------------------
+    TkDefaultFont         : for everything else
+    TkTextFont            : text entry widgets
+    TkFixedFont           : fixed-width
+    TkMenuFont            : menu
+    TkHeadingFont         : column headings
+    TkCaptionFont         : for dialog caption bars
+    TkSmallCaptionFont    : smaller form of above
+    TkIconFont            : icon captions
+    TkTooltipFont         : tooltips
+    
   
-  NOTE:
-      guaranteed:
-          Courier, Times, Helvetica
-          Monospaced, serif, sans-serif
-      font.families() to get all families
-      NOTE:
-          must call tkinter.Tk() before font.families()
-
-
-
-
+    from tkinter import font
+    font.Font(family = 'fontFamily', size = size, weight = weight)
+  
+    weight:          'bold', 'normal'
+    slant:           'roman', 'italic'
+    underline:       bool
+    overstrike:      bool
+    
+    NOTE:
+        guaranteed:
+            Courier, Times, Helvetica
+            Monospaced, serif, sans-serif
+        font.families() to get all families
+        NOTE:
+            must call tkinter.Tk() before font.families()
+    alternative: font descriptions
+        ex: 'Helvetica 12 bold italic'
 
 
 ##############################
 :8: colors
 ##############################
+system specific color names
+rgb "#[hexvalue]"
+x11 (mostly just use very common basic colors)
 
+colors reference:
+http://www.tcl.tk/man/tcl8.5/TkCmd/colors.htm
 
 ##############################
 :9: images
 ##############################
+tk.PhotoImage(file = 'file.gif')
+default allowable formats:
+    gif
+    PPM/PNM
+
+pip install pillow
+from PIL import ImageTk, Image
+ImageTk.PhotoImage(file = 'fname')
+ImageTk.PhotoImage(Image.fromarray(
+    numpy_array_image(RGB)))
+
+
+    more image formats available
+
+
+##############################
+:10: canvas
+##############################
+Tk.Canvas(parent)
+    represents a canvas to draw stuff on
+width, height: space in UI
+scrollregion: actual size, ex("0 0 1000 1000")???
+
+
+
+
+
+______________________________
+item options:
+    use canvas.itemconfigure(value, **options)
+    to change options, or set when
+    creating it
+
+    acitvedash          : 
+    activefill          : 
+    activestipple       : 
+    activewidth         : 
+    arrow               : 
+    arrowshape          : 
+    capstyle            : 
+    dash                : 
+    dashoffset          : 
+    disableddash        : 
+    disabledfill        : 
+    disabledstipple     : 
+    disabledwidth       : 
+    fill                : color
+    joinstyle           : 
+    offset              : 
+    smooth              : 
+    splinesteps         : 
+    state               : 
+    stipple             : 
+    tags                : tags: extra group ids
+    width               : pixel width
+
+______________________________
+adding items:
+    call a function, returns a value
+    item can be modified by
+    
+    canvas.create_line(x0,y0,x1,y1)
+    canvas.create_rectangle
+    canvas.create_oval
+    canvas.create_arc
+    canvas.create_polygon
+    canvas.create_image
+    canvas.create_bitmap
+    canvas.create_text
+    canvas.create_window
+        (other widgets in a frame)
+    
+
+
+        
+______________________________
+binding:
+    canvas.tag_bind(
+        itemID, 'bindingDescr', callback)
+
+______________________________
+tagging:
+    canvas.addtag(tag, modifier, identifier):
+        tag: tag to add
+        modifier: 'withtag'
+    canvas.gettags()
+        return list of tags for an item
+    canvas.find_withtag(desiredTag)
+        returns list of corresponding ids
+    canvas.dtag(identifier, tag)
+        removes tag from identified
+
+______________________________
+others
+    canvas.delete(identifier)
+    canvas.move(identifier, amt)
+    canvas.coords(identifier, coords)
+    canvas.raise(identifier)
+    canvas.lower(identifier)
+
+    canvas.canvasx(val)
+    canvas.canvasy(val)
+        translates event.x event.y to
+        actual canvas coordinates

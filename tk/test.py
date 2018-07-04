@@ -43,6 +43,22 @@ def start(prog, *args):
 def stop(prog, *args):
     prog.stop()
 
+
+def begin_lines(canvas, point, *args):
+    ev = args[0]
+    point[:] = (ev.x, ev.y)
+
+
+def draw_line(canvas, point, *args):
+    canvas.create_line(
+        args[0].x, args[0].y,
+        point[0], point[1],
+        fill = 'red',
+        width = 3
+    )
+    point[:] = args[0].x, args[0].y
+
+
 if __name__ == '__main__':
     path = '/home/andy/Downloads/fisheye/testim1.jpg'
     root = tkinter.Tk()
@@ -92,11 +108,29 @@ if __name__ == '__main__':
         length = 500, mode = 'determinate',
         maximum = 5,
         value = 0)
-    prog.grid(column = 0, row = 999, )
+    prog.grid(column = 0, row = 6)
     # prog.bind('<Double-Button-1>', wrap(step, prog))
     prog.bind('<Button-1>', wrap(start, prog))
     prog.bind('<Double-Button-1>', wrap(stop, prog))
     
+
+    canvas = tkinter.Canvas(frame, width = 500, height = 500)
+    canvas.grid(row = 5, column = 0)
+    canvas.create_line(
+        10,10,490,490)
+    canpoint = [0,0]
+
+    canvas.bind(
+        '<Button-1>',
+        (lambda *args : begin_lines(
+            canvas, canpoint, *args)))
+    canvas.bind(
+        '<Button1-Motion>',
+        (lambda *args : draw_line(
+            canvas, canpoint, *args)))
+
+    
+
 
     try:
         label.configure(
