@@ -1,26 +1,26 @@
-https://www.w3schools.com/css/css_text.asp
+https://www.w3schools.com/css/css_list.asp
 
 contents:
-1::intro
-2::general properties
-  2a::background
-  2b::boxmodel
-    2b1::border
-    2b2::margin
-    2b3::padding
-    2b4::box-sizing
-    2b5::height/width
-    2b6::outline
-  2b::border
-  2c::margins
-3::text properties
-  3a::links
-4::table properties
-5::colors
-6::other
-
+.1::intro
+.2::general properties
+  .2a::background
+  .2b::boxmodel
+    .2b1::border
+    .2b2::margin
+    .2b3::padding
+    .2b4::box-sizing
+    .2b5::height/width
+    .2b6::outline
+.3::text properties
+  .3a::fonts
+  .3b::links
+.4::tables
+.5::lists
+.6::colors
+.7::other
+  .7a::responsive design
 ------------------------------
-1::intro
+.1::intro
   adding to a website:
     1. link to file:
       <head>
@@ -55,9 +55,9 @@ contents:
   
 
 ------------------------------
-2::general properties
+.2::general properties
   ------------------------------
-  2a::background
+  .2a::background
     background-color        color for background
     background-image        url("uri to image")
                             none
@@ -96,7 +96,7 @@ contents:
     background              shorthand:
                               color image repeat attachment position 
   ------------------------------
-  2b::boxmodel
+  .2b::boxmodel
     generally 1-4 values:
       4: top right bottom left
       3: top, sides, bottom
@@ -104,7 +104,7 @@ contents:
       1: all
     sizes = px, pt, cm, em, %, auto...
     ------------------------------
-    2b1::border
+    .2b1::border
       border                  width type color (ex: '5px solid blue')
 
       border-X                X: top, right, bottom, left
@@ -126,7 +126,7 @@ contents:
 
       border-radius           Npx
     ------------------------------
-    2b2::margins
+    .2b2::margins
       NOTE:
         negative values allowed
       margin                  see 1-4 values
@@ -136,10 +136,10 @@ contents:
             (effective margin = max(top ele's bottom margin, bottom ele's top margin)
             (doesn't happen for left/right)
     ------------------------------
-    2b3::padding
+    .2b3::padding
       see margins, replace "margin" with "padding" except "auto"
     ------------------------------
-    2b4::boxsizing
+    .2b4::boxsizing
       make width/height correspond to set box
       values:
         content-box
@@ -149,7 +149,7 @@ contents:
         padding-box??
         margin-box??
     ------------------------------
-    2b5::height/width
+    .2b5::height/width
       px, cm, %, auto, em, etc
       width             ..
       height            ..
@@ -159,7 +159,7 @@ contents:
       min-height        ..
 
     ------------------------------
-    2b6::outline
+    .2b6::outline
       outline around the border (doesn't affect element size so might overlap others)
       outline-style             see border-style
       outline-color             see border-color
@@ -175,31 +175,72 @@ contents:
   
 
 ------------------------------
-3::text properties
+.3::text properties
   color                   color of text
-  font-family             font style
+  font-family             comma delimited list of values
+                          extra notes:
+                              serif = fancy endings
+                              sans-serif = no fancy endings
+                              2 types:
+                                1. generic: (serif, sans-serif, monospace)
+                                2. font family: (times new roman, arial, etc)
+                              value: comma delimited list of quoted names
   font-size               size of font, (X%, px, or vw)
                           (vw = viewport width: scales with size of viewport)
-  text-align              center, left, right
-  text-decoration         
+                          tip:
+                            set body font-size to 100%
+                            set everything else as em
+  font-weight             normal, bold
+  font-style              normal, italic, oblique
+  font-variant            normal, small-caps, 
+  text-align              center, left, right, justify
+  text-decoration         none            overline
+                          line-through    underline
+  text-transform          uppercase       lowercase
+                          capitalize
+  text-indent             Npx,em,etc
+  letter-spacing          Npx
+  line-height             space b/w lines
+                          Npx etc
+                          (unitless for a ratio)
+  direction               rtl, ltr
+  word-spacing            Npx
+  text-shadow             x-offset, y-offset, color
+  vertical-align          length, %, sub, super, top
+                          middle, bottom, text-bottom
+  white-space             normal, nowrap, pre, pre-line
+                          pre-wrap
+  text-overflow           clip, ellipsis, string
+  unicode-bidi            normal, embed, bidi-override
+
+  
+
+
   ------------------------------
-  3a::links
-    refer to them as:
+  .3b::links
+    special qualified link states:
+    refer to them as (and order them as:)
       a:link
       a:visited
       a:hover
       a:active
+    
+
 ------------------------------
-4::tables
+.4::tables
   border-spacing:         spacing between borders if not collapsed
   border-collapse:        combine borders of adjacent cells
 ------------------------------
-6::lists
+.5::lists
   list-style-type         disc, circle, square, none (<ul>)
+                          upper-roman, lower-alpha
+  list-style-position     outside, inside
+  list-style-image        url('path2image')
+  list-style              type position image
 
 
 ------------------------------
-5::colors
+.6::colors
   names:
     Tomato
   rgb:
@@ -213,9 +254,9 @@ contents:
   HSLA:
     hsla(9, 100%, 64%, 0.5)
 ------------------------------
-6::other
+.7::other
   ------------------------------
-  6a::responsive design
+  .7a::responsive design
     ex:
       @media (max-width:800px) {
         css code
