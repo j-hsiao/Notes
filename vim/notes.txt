@@ -170,8 +170,8 @@ ______________________________
         v        : split vertical
         >        : make viewport larger
         <        : make viewport smaller
-      gt         : switch to next tab
-                   can be prefixed with a number to go to then Nth tab
+      [i]gt      : switch to next tab
+                   i: tab number to go to
       gT         : switch to previous tab
                    (tabs are their own frame so the viewports in each tab are stuck with that tab)
       z          : view manipulation (folds/cursor->screen pos)
@@ -242,6 +242,9 @@ ______________________________
                      or current file if fn is absent
       :vsplit [fn] : split vertically, as above
       :tabnew fn   : create new tab
+      :tabe fn     : same as above
+      :tabf fn     : similar, but uses path
+      :tabs        : list current tabs
       :tabc        : close tab
       
     ______________________________
