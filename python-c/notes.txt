@@ -1495,7 +1495,7 @@ ______________________________
         return counts
 
 ______________________________
-2.1.14::working with numpy
+#2.1.14::working with numpy
   cimport numpy as np
   runtime typings: just use np.type
   compiletime typings: use np.type_t, use ctypedef
