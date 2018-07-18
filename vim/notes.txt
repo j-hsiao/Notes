@@ -119,6 +119,27 @@ ______________________________
       C-t : indent line
     ______________________________
     #1.2.1.3::search/replace
+      :[%]s/text/replacement/[gciI]: substitute
+                                   %: all lines if present, else current line
+                                   g: globally (not just first match per line)
+                                   c: ask for confirmation before replacing
+                                   i: case insensitive
+                                   I: case sensitive
+           other notes:
+             searching:
+               . * \ [ ^ $ are meta characters
+               + ? | & { ( ) } must be escaped to use meanings
+               \t : tab
+               \s : white space
+               \n : newline
+               \r : carriage return
+               \zs, \ze : start/end pattern
+                          ie: :s/I want to \zskill\ze you/hug/
+             replacing:
+               \r: newline
+               \n: null byte
+               \0: entire pattern
+               \1...: backreferences
       /   : search forwards
             add \c for case insensitive, \C for case sensitive
       ?   : search backwards
@@ -225,9 +246,6 @@ ______________________________
       
     ______________________________
     #1.2.3.3::editing
-      :%s/text/replacement/   : replace text no confirm, first match per line
-      :%s/text/replacement/g  : replace text globally no confirm
-      :%s/text/replacement/gc : replace text globally confirm
       :ab alias text-to-set   : set alias for text
       :una alias              : unset alias for text
     ______________________________
