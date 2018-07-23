@@ -69,6 +69,8 @@ ______________________________
       b   : backward 1 word
       G   : file end
       gg  : file beginning
+      [N]gg: go to Nth line
+      [N]G : same as above
       `.  : last edit
       H   : move cursor to top
       M   : move cursor to middle
