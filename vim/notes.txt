@@ -9,6 +9,7 @@ https://www.linux.com/learn/vim-101-beginners-guide-vim
   1.2::modes
     1.2.1::command
       1.2.1.1::movement
+        1.2.1.1.1::marks
       1.2.1.2::editing
       1.2.1.3::search/replace
       1.2.1.4::file manipulation
@@ -79,6 +80,11 @@ ______________________________
       C-f : move page down
       C-y : scroll up one line
       C-e : scroll down one line
+      ______________________________
+      #1.2.1.1.1::marks
+        mx  : set mark to key x, x = a-z, or A-Z (global)
+        `x  : go to exact mark position
+        'x  : go to line with the mark
     ______________________________
     #1.2.1.2::editing
       i   : enter insert mode (before current character)
