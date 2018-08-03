@@ -1,3 +1,20 @@
+##############################
+contents
+##############################
+1::drives and devices
+2::variable manipulations
+3::file manipulations
+4::regexp
+5::stream manipulation
+  5.1::sed
+  5.2::grep
+6::inputs
+7::redirection
+
+
+##############################
+1::drives and devices
+##############################
 lsblk: list block devices
 blkid: list blkid (UUID, partition types etc
    can use for editing /etc/fstab
@@ -23,8 +40,6 @@ blkid: list blkid (UUID, partition types etc
                rw          : mount read-write
                user        : any user can mount filesystem (implies noexec, nosuid, nodev)
                nouser      : only root can mount
-               
-               
 
 mount: (sudo only)
        ex: mkdir mountpoint1
@@ -34,29 +49,25 @@ mount: (sudo only)
 umount
 
 
-shuf->shuffle lines in a file (ex training list)
-
-
 ##############################
-# variables manipulation
+2::variables manipulation
 ##############################
 variables truncation:
-${varname:startpos:runlength}
-ie:
-  >>>a='i wub u'
-  >>>echo ${a:2:3}
-  wub
+  ${varname:startpos:runlength}
+  ie:
+    > a='i wub u'
+    > echo ${a:2:3}
+    wub
 
 
-${!VAR}: dereference VAR and treat that as the variable name
-ex:
-    >>>a=b
-    >>>c=a
-    >>>echo ${!c}
-    b
-(same as echo ${a} because c is a)
+var as varname:
+  ${!VAR}: dereference VAR and treat that as the variable name
+  ex:
+      > varToPrint=PATH
+      > echo ${!varToPrint}
+      *prints path*
 
-cut by pattern
+remove pattern from beginning/end
     ${varname#pattern}
         remove pattern from beginning (short)
     ${varname##pattern}
@@ -71,10 +82,15 @@ var as bool
     ${VAR:-somestr}  -> var if var else somestr
 
 
+##############################
+3::file manipulation
+##############################
+shuf->shuffle lines in a file (ex training list)
+
 
 
 ##############################
-regexp::
+4::regexp
 ##############################
 ------------------------------
 basic
@@ -160,192 +176,207 @@ escapes:
 
 
 ##############################
-sed notes::
+5::stream manipulation
 ##############################
-------------------------------
-options:
-------------------------------
--n, --quiet, --silent
-suppress output
-
--e
-script expression
-
--f
-script file
-
--i
-edit in-place
-
--l N
-length for l command
-
--b, --binary
-binary mode
-
--E, -r, --regexp-extended
-extended regexps
-
-
-
-
-
-------------------------------
-script:
-------------------------------
-[addr]X[options]
-
+  ##############################
+  5.1::sed notes
+  ##############################
   ------------------------------
-   general
+  options:
   ------------------------------
+  -n, --quiet, --silent
+  suppress output
+
+  -e
+  script expression
+
+  -f
+  script file
+
+  -i
+  edit in-place
+
+  -l N
+  length for l command
+
+  -b, --binary
+  binary mode
+
+  -E, -r, --regexp-extended
+  extended regexps
+
+
+
 
 
   ------------------------------
-  addr:
+  script:
   ------------------------------
-  optional
-  indicate range in file to operate on (inclusive)
-  format = START,STOP
-    possible values:
-    integer: line number n (start at 1)
-  /exp/f      : exp = regexp (all lines that match),
-                  NOTE:
-                  / can also be any \char ie
-                  \;regexp;
-                f: GNU extension
-                   I: case insensitive
-                   M: multiline
+  [addr]X[options]
 
-  !           : not in address space
-                ie:
-                  1,5!p (don't print lines 1-5)
-  n~step      : start at n, then take steps
-  
+    ------------------------------
+     general
+    ------------------------------
+
+
+    ------------------------------
+    addr:
+    ------------------------------
+    optional
+    indicate range in file to operate on (inclusive)
+    format = START,STOP
+      possible values:
+      integer: line number n (start at 1)
+    /exp/f      : exp = regexp (all lines that match),
+                    NOTE:
+                    / can also be any \char ie
+                    \;regexp;
+                  f: GNU extension
+                     I: case insensitive
+                     M: multiline
+
+    !           : not in address space
+                  ie:
+                    1,5!p (don't print lines 1-5)
+    n~step      : start at n, then take steps
+    
+    ------------------------------
+    commands:
+    ------------------------------
+    q             : quit (only takes a single address)
+    s/a/b/f       : substitute a with b, flags = flags
+                    /: usually /, but can actually be any character
+                       (will need \ if want to use it in expression or replacement)
+                    a: regexp expression
+                    b: can contain \N: N=1-9 reference to previous \(\) match
+                                   & : whole matched portion
+                                   GNU sed extension:
+                                   \L: lowercase until \U or \E
+                                   \l: next into lowercase
+                                   \U: upper until \L or \E
+                                   \u: next to uppercase
+                                   \E: stop case conversion
+                    f: flags
+                       g      : globally
+                       n      : a number, replace the nth match
+                       P      : print new pattern space
+                       w fname: write to filename
+                       i/I    : case insensitive
+                       m      : GNU extension, multiline
+
+    a text        : append text after line
+    c text        : replace region with text
+    i text        : insert text before line
+    F             : print filename of current file
+    w fname       : write patternspace to filename
+    z             : empty pattern space
+    {cmd1;cmd2...}: group of commands (use same address space)
+    y/a/b/        : like tr (ab = string of chars)
+                    if char == a[i], then replace with b[i]
+    l n           : print unambiguously (blankspace print with escaped values), n = wrap length
+                    n = GNU sed extension
+    r fname       : insert file contents
+
+    #pattern-space related
+    d             : delete pattern space
+    g             : replace patternspace with hold space
+    h             : reploace hold with patternspace
+    n             : replace patternspace with next line of input
+    p             : print pattern space
+
+    D             : delete patternspace up to first newline
+    G             : appends line from hold space to pattern space with newline before it
+    H             : appends line from patternspace to hold space with newline before it
+    N             : appends next line from file with \nbefore it
+    P             : prints line from patternspace til first newline
+    
+
+
   ------------------------------
-  commands:
+  execution
   ------------------------------
-  q             : quit (only takes a single address)
-  s/a/b/f       : substitute a with b, flags = flags
-                  /: usually /, but can actually be any character
-                     (will need \ if want to use it in expression or replacement)
-                  a: regexp expression
-                  b: can contain \N: N=1-9 reference to previous \(\) match
-                                 & : whole matched portion
-                                 GNU sed extension:
-                                 \L: lowercase until \U or \E
-                                 \l: next into lowercase
-                                 \U: upper until \L or \E
-                                 \u: next to uppercase
-                                 \E: stop case conversion
-                  f: flags
-                     g      : globally
-                     n      : a number, replace the nth match
-                     P      : print new pattern space
-                     w fname: write to filename
-                     i/I    : case insensitive
-                     m      : GNU extension, multiline
+  2 data buffers: "pattern space", "hold space"
+  steps:(in python)
+  f = file(fname, 'r')
+  pattern = ''
+  hold = ''
+  while more_lines():
+      l = f.readline()
+      pattern = l.strip()
+      execute_commands(pattern_space)
 
-  a text        : append text after line
-  c text        : replace region with text
-  i text        : insert text before line
-  F             : print filename of current file
-  w fname       : write patternspace to filename
-  z             : empty pattern space
-  {cmd1;cmd2...}: group of commands (use same address space)
-  y/a/b/        : like tr (ab = string of chars)
-                  if char == a[i], then replace with b[i]
-  l n           : print unambiguously (blankspace print with escaped values), n = wrap length
-                  n = GNU sed extension
-  r fname       : insert file contents
-
-  #pattern-space related
-  d             : delete pattern space
-  g             : replace patternspace with hold space
-  h             : reploace hold with patternspace
-  n             : replace patternspace with next line of input
-  p             : print pattern space
-
-  D             : delete patternspace up to first newline
-  G             : appends line from hold space to pattern space with newline before it
-  H             : appends line from patternspace to hold space with newline before it
-  N             : appends next line from file with \nbefore it
-  P             : prints line from patternspace til first newline
-  
-
-
-------------------------------
-execution
-------------------------------
-2 data buffers: "pattern space", "hold space"
-steps:(in python)
-f = file(fname, 'r')
-pattern = ''
-hold = ''
-while more_lines():
-    l = f.readline()
-    pattern = l.strip()
-    execute_commands(pattern_space)
-
-
-
-
-
-
-
-
-##############################
-grep notes
-##############################
---color=auto
+  ##############################
+  5.2::grep
+  ##############################
+    --color=auto
+    see 4::regexp
 
 
 ##############################
-inputs
+6::inputs
 ##############################
-______________________________
-read
-______________________________
--u(fd) read from filedescriptor instead
+  read
+    -u(fd) read from filedescriptor instead
 
+  heredocs
+    someCommand << FILE_DELIMITER_OF_YOUR_CHOICE
+    text etc
+    can also use variables:
+    $var1
+    FILE_DELIMITER_OF_YOUR_CHOICE
 
+    NOTE:
+      if vars are in quotes, will not expand
+  herestring
+    someCommand <<< stringvalue_or_dereference
 
+  ______________________________
+  redirection
+  ______________________________
+  ------------------------------
+  output
 
-______________________________
-heredocs
-______________________________
-  use << FILE_DELIMITER_OF_YOUR_CHOICE
-  text etc
-  can also use variables:
-  $var1
-  FILE_DELIMITER_OF_YOUR_CHOICE
+    SRC>DEST
+      SRC:
+        & : stdout and stderr
+        FD: a filedescriptor (0-9)
+        empty : defaults to 1 (stdout)
+      DEST:
+        FNAME : a file name
+        &FD   : to file descriptor
+  ------------------------------
+  input
 
-  NOTE:
-    if vars are in quotes, will not expand
+    DEST<SRC
+      DEST:
+        FD : a file descriptor (0-9) for the file
+      SRC:
+        FNAME: a file name
+  ------------------------------
+  pipe
 
-______________________________
-redirection
-______________________________
-------------------------------
-output
+    CMD1 | CMD2
+    redirects cmd1 stdout to cmd2 stdin
+##############################
+7::redirection
+##############################
+  command orig>new <inputsource
+    notes:
+      orig by default is stdout (1)
+      new: to use fd, use &fd
+        ie: stderr to stdout:
+            echo hello 2>&1
+      inputsource: some input source
+    ordering:
+      think of ordering like variable assignment
+      instead of pipe building...
+      ie: 2>&1 1>foo.txt
+        stderr is assigned to stdout
+        stdout is assigned to foo.txt
+        therefore stderr printed to terminal
+        and stdout printed to file
+      ie: 1>foo.txt 2>&1
+        stdout assigned to foo.txt
+        stderr assigned to stdout (which currently points to foo.txt)
+        thus both stdout and stderr go to foo.txt
 
-  SRC>DEST
-    SRC:
-      & : stdout and stderr
-      FD: a filedescriptor (0-9)
-      empty : defaults to 1 (stdout)
-    DEST:
-      FNAME : a file name
-      &FD   : to file descriptor
-------------------------------
-input
-
-  DEST<SRC
-    DEST:
-      FD : a file descriptor (0-9) for the file
-    SRC:
-      FNAME: a file name
-------------------------------
-pipe
-
-  CMD1 | CMD2
-  redirects cmd1 stdout to cmd2 stdin
