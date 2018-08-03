@@ -27,3 +27,26 @@ note, for runtime imports, use __import__:
     level: -1: both relative and absolute
             0: absolute
            >0: # of parent directories to search relative to cur mod
+
+
+for running files inside a module (might use absolute imports)
+use python -m module.submodule
+ex:
+workingdir = /home
+
+/home
+        /mymod
+                /submodir
+                    bar.py
+                foo.py
+want to run  mymod/foo.py
+
+in foo.py:
+    from mymod.submodir import bar
+
+python mymod/foo.py => error, no module named mymod
+    (because import dir for foo.py is then set to its dir)
+
+instead run:
+python -m mymod.foo
+

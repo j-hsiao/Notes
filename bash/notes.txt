@@ -37,9 +37,11 @@ umount
 shuf->shuffle lines in a file (ex training list)
 
 
+##############################
+# variables manipulation
+##############################
 variables truncation:
 ${varname:startpos:runlength}
-
 ie:
   >>>a='i wub u'
   >>>echo ${a:2:3}
@@ -52,7 +54,23 @@ ex:
     >>>c=a
     >>>echo ${!c}
     b
-(same as echo ${a})
+(same as echo ${a} because c is a)
+
+cut by pattern
+    ${varname#pattern}
+        remove pattern from beginning (short)
+    ${varname##pattern}
+        remove pattern from beginning (as long as possible)
+    ${varname%pattern}
+        remove pattern from end (short)
+    ${varname%%pattern}
+        remove pattern from end (as long as possible)
+
+var as bool
+    ${VAR:+somestr}  -> somestr if var else ''
+    ${VAR:-somestr}  -> var if var else somestr
+
+
 
 
 ##############################
