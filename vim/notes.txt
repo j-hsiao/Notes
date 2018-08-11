@@ -327,6 +327,7 @@ ______________________________
       wrap           : line wrapping
 
       title          : set window title (file being edited)
+      hlsearch       : highlight search
 
     syntax on        : turn on syntax highlighting
     autocmd          : run command on open particular file
