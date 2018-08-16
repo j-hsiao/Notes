@@ -269,7 +269,8 @@ bind('key description', callback)
             ResizeRequest       Enter
             Unmap               Expose
             Visibility          Focusin
-                                <<ComboboxSelected>> (for comboboxes)
+            Tab                 <<ComboboxSelected>> (for comboboxes)
+            
         example Double-Button-1
 
     http://www.tcl.tk/man/tcl8.5/TkCmd/bind.htm
@@ -836,6 +837,7 @@ Tk.Canvas(parent)
     represents a canvas to draw stuff on
 width, height: space in UI
 scrollregion: actual size, ex("0 0 1000 1000")???
+NOTE: canvas is scrollable
 
 
 
