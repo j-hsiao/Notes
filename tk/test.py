@@ -1,8 +1,14 @@
 from PIL import Image, ImageTk
-import tkinter
-from tkinter import ttk
+
+
+# import tkinter
+# from tkinter import ttk
+import Tkinter as tkinter
+import ttk
+
 import traceback
 import cv2
+import numpy as np
 import base64
 
 
@@ -60,9 +66,8 @@ def draw_line(canvas, point, *args):
 
 
 if __name__ == '__main__':
-    path = '/home/andy/Downloads/fisheye/testim1.jpg'
     root = tkinter.Tk()
-    im = cv2.imread(path)
+    im = np.random.random_integers(0,255, (500,500,3)).astype(np.uint8)
     pim = ImageTk.PhotoImage(
         Image.fromarray(im[:,:,::-1])
     )

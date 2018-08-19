@@ -309,6 +309,15 @@ just do:
     :2b4: tkinter.IntVar()
     :2b5: tkinter.Variable()
 
+    vars have a trace method:
+    trace(mode, callback)
+        mode: 'w', 'r', 'u' (write, read, unset)
+        callback: a callback function taking some args
+        
+    
+
+
+
 :2c: ttk.Frame(parentWindow, padding="3 3 12 12")
     an empty frame (rectangle)
     
@@ -837,6 +846,8 @@ Tk.Canvas(parent)
     represents a canvas to draw stuff on
 width, height: space in UI
 scrollregion: actual size, ex("0 0 1000 1000")???
+
+create_window((x,y), window = widget, anchor = 'nsew')
 NOTE: canvas is scrollable
 
 

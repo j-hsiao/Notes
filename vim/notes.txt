@@ -66,8 +66,9 @@ ______________________________
       l   : right
       0   : beginning of line (zero not O)
       $   : end of line
-      w   : forward 1 word
-      b   : backward 1 word
+      w   : forward 1 word, cursor at beginning
+      b   : backward 1 word, cursor at beginning
+      e   : forward 1 word, cursor at end
       [N]gg: go to Nth line, if N omitted, go to first line
       [N]G : same as above,  if N omitted, go to last line
       `.  : last edit
