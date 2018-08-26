@@ -330,7 +330,6 @@ ______________________________
       hlsearch       : highlight search
 
     syntax on        : turn on syntax highlighting
-    autocmd          : run command on open particular file
   ______________________________
   key mapping
   {cmd} {attr} {lhs} {rhs}
@@ -355,3 +354,24 @@ ______________________________
   nmap     : macros
              ex:
                nmap <silent> <C-n> <Esc>:call ToggleHLSearch()<CR>
+  ______________________________
+  autocmd
+  syntax: [autocmd] [events] [pattern] [command]
+    events: comma delimited list of events
+      BufNewFile    : open a new file
+      BufWritePre   : before a write
+      BufRead       : open an existing file
+      FileType      : whenever filetype is set
+          ie: python, javascript, html, etc
+      BufReadCmd    : before starting to edit a new buffer
+    pattern: filename pattern
+    command: command to run
+  note: autocmds are run whenever file is sourced
+  thus duplicates will be created
+  can use augroups:
+      augroup groupname
+      autocmd!
+      autocmd commands
+      augroup END
+  enter groupe, autocmd! clears everything in that group
+  and then runs the commands
