@@ -1,0 +1,25 @@
+python3 differences...
+
+bytes still bytes
+str->bytes
+unicode->str
+
+
+import system
+... welp, testing __package__ doesn't really seem to do anything much...
+maybe because it's automatically set? dunno
+
+anyways, simply put:
+no more:
+/pack
+        /submod1
+        /subpack
+                /submod2
+
+in submod1:
+bad:
+    import subpack  
+    from subpack import submod2
+change to:
+    from . import subpack
+    from .subpack import submod2
