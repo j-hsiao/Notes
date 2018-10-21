@@ -211,16 +211,25 @@ ______________________________
     ______________________________
     #1.2.1.6::other
       .    : redo last command
+      C-g        : current file, line, column
       g C-g:     : count and display words, lines, bytes, position
       q [a-z]    : macro, starts recording macro to input letter
                  : to delete, record a null macro (delete on a, enter qaq)
-      "[a-z]p    : paste contents of register (for instance to add a default
-                   macro to .vimrc)
+      "[a-z]     : select a register
+                   then can use commands to interact with the register
+                   (for example: select text -> "ay
+                                 1. text is selected
+                                 2. "a selects register a
+                                 3. y copies selected text into register y
 
+                                 "ap
+                                 1. "a selects register a
+                                 2. p pastes contents of register a
+                   (ie if save a macro to a register, then can paste its contents
+                    into .vimrc or something like that:
+                    let @[key] = 'pasted macro content'
       @ [a-z]    : run the macro
-      
 
-  
   ______________________________
   #1.2.2::insert
     normal text editing (only insert new text)
@@ -232,6 +241,14 @@ ______________________________
       C-p : complete based on previous words
       C-n : complete based on next words
       backspace: move backwards, replace backspaced region or if press esc, deletes text
+      C-w : delete a word
+      C-t : shift right
+      C-d : shift left
+      C-u : delete current line
+      C-r [register]: paste from register, interpreting values
+      C-r C-r [register]: paste register as is
+      C-v : literal value (like emacs C-q)
+      C-[ or [esc] : exit insert mode
 
   ______________________________
   #1.2.3::last-line

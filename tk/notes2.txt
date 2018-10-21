@@ -1,0 +1,1319 @@
+https://tkdocs.com/tutorial/styles.html
+contents:
+______________________________
+importing
+basics
+creating an application
+geometry management
+widgets overview
+  general principles
+  general properties
+  general methods
+  Frame
+  Label
+  Button
+  Checkbutton
+  Radiobutton
+  Entry
+  Listbox
+  Scrollbar
+  SizeGrip
+  Progressbar
+  Scale
+  Spinbox
+  Menu (tk only)
+  Toplevel (tk only)
+  Separator
+  Labelframe
+  Panedwindow
+  Notebook
+  Canvas ( tk only)
+  Text (tk only)
+  Treeview
+events and callbacks
+dialogs
+  filedialog
+  colorchooser
+  messagebox
+fonts
+images
+
+
+
+
+
+##############################
+::importing
+##############################
+NOTE:
+    python2:
+        direct imports:
+        Canvas
+        Dialog
+        FileDialog
+        FixTk
+        ScrolledText
+	SimpleDialog
+        Tix
+        Tkconstants
+        Tkdnd
+        Tkinter
+	tkColorChooser
+        tkCommonDialog
+        tkFileDialog
+        tkFont
+        tkMessageBox
+	tkSimpleDialog
+        ttk
+        turtle
+    python3:
+        i think all are in tkinter?
+        and may be named differently
+        ie:
+        from tkinter import FileDialog
+                vs
+        import tkFileDialog
+
+
+##############################
+::basics
+##############################
+widget: something in the window, generally
+        organized within frames
+configuration options: see widget.configure()
+
+##############################
+::creating an application:
+##############################
+1. create a root window
+    root = tk.Tk()
+    '''add stuff to window etc'''
+    root.mainloop()
+
+
+##############################
+::geometry management
+##############################
+geometry managers put widgets into window
+  grid
+  place
+  pack
+  other
+______________________________
+::  grid
+  assign widgets columns and rows to occupy
+  size the rows and columns accordingly to fit everything
+  rows and columns are 0-indexed
+
+  adding widgets:
+    widget.grid(**kwargs):
+      row: row index
+      column: column index
+      rowspan: # of rows to take up
+      columnspan: # of columns to take up
+      sticky: "nsew", default is center, similar to anchor widget configuration
+              opposite values ('ns', 'ew') makes the widget
+              stretch to fill up the cell in the corresponding
+              direction
+      padx: extra padding in x direction
+      pady: extra padding in y direction
+      ipadx: internal padding: give as if widget is fatter
+      ipady: internal padding: give widget extra space as if widget is fatter
+        1 value = both sides, 2 = one per, order is
+          left-right, or top-bottom (placed within the cell)
+  resizing:
+    window = containing "widget"
+      could be root, a Frame, etc
+    window.rowconfigure(**kwargs)
+    window.columnconfigure(**kwargs)
+      weight: ratio to change when window size changes
+      minsize: minimum size for row or column
+      pad: padding, similar to padding widget configuration
+        (between columns/rows)
+        NOTE: this seems to be ignored if widget is
+        gridded with sticky = "nsew"
+  introspection:
+    window.grid_slaves(**kwargs):
+      no kwargs: return all slaves
+      row = N: return slaves in row N
+      column = n: return slaves in column N
+    widget.grid_info():
+      return grid info
+    widget.grid_configure(**kwargs):
+      (like grid() except change settings)
+
+      
+
+
+
+
+
+
+
+
+##############################
+::widgets overview
+##############################
+______________________________
+::  Tk
+  methods:
+    globalgetvar
+    getvar
+    globalsetvar
+    setvar
+______________________________
+::  general principles:
+  widgets are created and first argument
+  should be a parent widget
+  all the rest are kwargs for configuration
+  options
+  use widget.configure() to see configueration options
+  check general properties for descriptions
+
+
+  xxxxvariable: generally take a tk variable
+                  tk.BooleanVar()
+                  tk.DoubleVar()
+                  tk.IntVar()
+                  tk.StringVar()
+                variables have get and set methods
+    variable methods:
+      trace(mode, callback)
+      trace_variable
+        adds a callback function to the variable
+          activated when variable is accessed
+          for mode, returns a function name
+        mode: 'r', 'w', 'u' for read, write, or undefined
+        callback: a callback function
+          takes 3 arguments: name, dunno, action
+            name: tk name of the variable
+        NOTE: callback is called AFTER
+          any changes to the variable
+      trace_vdelete(mode, name)
+        remove callback from variable
+        name is the value returned when adding
+        the callback
+    ex:
+      root = tk.Tk()
+      v = tk.StringVar()
+      def callback(name, dunno, mode):
+        print('variable {}({}) accessed: {}'.format(
+          name, root.globalgetvar(name), mode))
+      v.trace('r', callback)
+      v.trace('w', callback)
+      v.set('hi')
+      *prints stuff*
+      v.get()
+      *prints stuff*
+
+
+  configurations can be set using configure and kwargs
+  or by using __setitem__ with []
+  ie:
+    widget.configure(property=value)
+    widget['property'] = value
+
+______________________________
+::  general properties:
+  anchor: str: stick to location within allotted space
+    n     ne 
+    s     nw 
+    e     se 
+    w     sw 
+    center
+
+  background: string: background color
+    "colorname" ex "red", "blue"
+    "#rrggbb" hex values
+
+  borderwidth: int
+    borderwidth
+
+  command: function
+    function to call
+
+  compound: str: image location relative to text
+    none    left
+    image   right
+    center  bottom
+    top
+            
+  default: str: default state?
+    normal
+    active
+    disabled
+
+  file: str
+    "filename"
+
+  font: Font
+    TkDefaultFont   TkCaptionFont
+    TkTextFont      TkIconFont
+    TkFixedFont     TkTooltipFont
+    TkMenuFont      font.Font()
+
+  foreground: str: foreground color
+    see background for value descriptions
+    
+  height: str
+  width:  
+    "350c": 350 cm
+    "350i": 350 inches
+    "350" : 350 pixels or chars (depending on context)
+    "350p": 350 printer points
+
+  justify: str
+    left
+    right
+    center
+    
+  length: int
+    a length
+  listvariable:
+    variable that is a list
+
+  maximum: int
+    number for the maximum
+      progressbar: segments in the progressbar
+
+  mode: str: progressbar mode
+    determinate
+    indeterminate
+
+  offvalue: something
+    value for when internal state is off
+
+  onvalue: something
+    value for when internal state is on
+
+  orient: str: orientation
+    horizontal
+    vertical
+
+  padding: str
+    "5"    : 5px all around
+    "5 10" : 5 px horizontal, 10 px vertical
+    "l t r b": l t r b pixels in corresponding places
+            
+
+  relief: str
+    flat
+    raised
+    sunken
+    solid
+    ridge
+    groove
+
+  selectmode: str
+    browse   (single)
+    extended (multiselect allowed)
+
+  show: char: character to show, ie for ttk.Entry
+    '*'
+
+  style: not learned yet
+
+  text: str
+    "text to display"
+
+  textvariable: tk.xxxVar
+    variable to use for text
+    tk.TextVariable
+
+  wrap: str
+    none
+    char
+    word
+
+  wraplength: str
+    see height/width values
+
+  value: anything
+    value to use
+
+  values: list of anything
+    values for the widget to use (ie ttk.Combobox)
+
+  xscrollcommand: Scrollbar.set
+  yscrollcommand: Scrollbar.set
+    scrolling
+    
+______________________________
+::  general methods
+  instate(flags, [cmd]): for ttk widgets
+    flags: list of flag names to check
+        active    background
+        disabled  readonly
+        focus     alternate
+        pressed   invalid
+        selected
+    cmd  : optional command to run if flags matches
+
+
+  state(flags): for ttk widgets
+    flags: list of flag names to set or unset, see state
+      ex: state(['disabled']) sets the disabled flag
+          state(['!disabled']) unsets disabled flag
+  update()
+    enter event loop til all events are processed
+    may be necessary to get winfo_height and width
+  winfo_height()
+    returns height in pixels
+  winfo_width()
+    returns width in pixels
+        
+        
+        
+
+
+______________________________
+:: Frame
+  ttk.Frame
+  tk.Frame
+    rectangle, container for other widgets
+  properties:
+    borderwidth     relief
+    class           style
+    cursor          takefocus
+    height          width
+    padding
+    
+    
+   
+______________________________
+:: Label
+  ttk.Label
+  tk.Label
+    text or image
+  properties:
+    anchor        padding
+    background    relief
+    borderwidth   style
+    class         takefocus
+    compound      text
+    cursor        textvariable
+    font          underline
+    foreground    width
+    image         wraplength
+    justify       
+    
+______________________________
+:: Button
+  ttk.Button
+  tk.Button
+    button for doing action when clicked
+  properties:
+    class        style
+    command      takefocus
+    compound     text
+    cursor       textvariable
+    default      underline
+    image        width
+    padding      
+  useful methods:
+    invoke: invoke callback
+    
+______________________________
+:: Checkbutton
+  ttk.Checkbutton
+  tk.Checkbutton
+    a checkbox, essentially a button + an internal state
+    onvalue defaults to 1
+    offvalue defaults to 0
+    if variable contains neither, then
+    checkbutton.instate(['alternate']) should be true?
+    but it doesn't work
+  properties:
+    class       style
+    command     takefocus
+    compound    text
+    cursor      textvariable
+    image       underline
+    offvalue    variable
+    onvalue     width
+    padding
+    
+______________________________ 
+:: Radiobutton
+  ttk.Radiobutton
+  tk.Radiobutton
+    a radiobutton, generally used in a set
+    to create a set, link buttons in the set
+    to the same variable
+    if variable doesn't exist, then
+      in "tristate", ie alternate flag is set
+  properties:
+    class       text
+    compound    variable
+    cursor      underline
+    image       value
+    padding     variable
+    style       width
+    takefocus
+    
+______________________________ 
+:: Entry
+  ttk.Entry
+  tk.Entry
+    single-line text entry
+  properties:
+    background           show
+    class                style
+    cursor               takefocus
+    exportselection      textvariable
+    font                 validate
+    foreground           validatecommand
+    invalidcommand       width
+    justify              xscrollcommand
+  methods:
+    delete(start, stop)
+      start, stop: 0-based index
+                   or "end"
+      delete characters in the given range
+
+    insert(pos, value)
+      insert value at position
+    
+    
+______________________________    
+:: Combobox
+  ttk.Combobox
+  NOTE: there is no tk.Combobox
+  events:
+    <ComboboxSelected>
+  like an Entry, but with additional
+    predefined options
+  properties:
+    background         show
+    class              style
+    cursor             takefocus
+    exportselection    textvariable
+    font               validate
+    foreground         validatecommand
+    height             values
+    invalidcommand     width
+    justify            xscrollcommand
+    postcommand
+    
+  note:
+    readonly flag can be set requiring
+    user to choose from the list
+    otherwise user can also type their own value
+  methods:
+    current([index]):
+      if index not given:
+        index of item (-1 if not in predefined list)
+      else:
+        set the value to predefinedList[index]
+
+    get(): get the value
+
+______________________________
+:: Listbox
+  tk.Listbox
+  (no ttk)
+    a list of items that can be selected
+
+  properties:
+    activestyle            highlightcolor
+    background             highlightthickness
+    bd                     listvariable
+    bg                     relief
+    borderwidth            selectbackground
+    cursor                 selectborderwidth
+    disabledforeground     selectforeground
+    exportselection        selectmode
+    fg                     setgrid
+    font                   state
+    foreground             takefocus
+    height                 width
+    highlightbackground    xscrollcommand
+                           yscrollcommand
+
+  methods:
+    curselection()
+      list of selected indices, may be empty if none selected
+      
+    delete(first, last = None):
+      delete items from first to last inclusive
+      first, last: 0-based index, or "end"
+
+    get(first, last = None)
+      get item or items if last is not None
+
+    insert(index, *items):
+      inserts items at index, 0-indexed, or "end"
+
+    see(index)
+      make index vi
+
+    selection_clear(start, stop = None)
+      clear selections
+
+    selection_includes(index)
+      whether index is in curselection()
+
+    selection_set(start, stop = None)
+      set selections
+
+    size()
+      # of items in list
+
+  events:
+    <ListboxSelect>
+______________________________
+:: Scrollbar
+  tk.Scrollbar
+  ttk.Scrollbar
+    a scrollbar...
+    for command, use the corresponding widget's
+      xview or yview accordingly
+      then for the widget's [x/y]scrollcommand, use
+      Scrollbar.set
+  properties:
+    class       orient
+    command     style
+    cursor      takefocus
+
+  methods:
+    get()
+      return current slider values
+
+    set(*args):
+      set fractional values of slider position
+        (upper and lower ends as value between 0 and 1)
+
+______________________________
+:: Sizegrip
+  ttk.Sizegrip
+    sizegrip for resizing
+  properties:
+    class      style
+    cursor     takefocus
+______________________________
+:: Progressbar
+  ttk.Progressbar
+    progress bar...
+  properties:
+    class        phase
+    cursor       style
+    length       takefocus
+    maximum      value
+    mode         variable
+    orient
+  methods:
+    start()
+      start indeterminate mode
+
+    step(amount):
+      amount to increment by
+
+    stop()
+      stop indeterminate mode
+
+______________________________
+:: Scale
+  ttk.Scale
+  tk.Scale
+    a slider
+  properties
+    activebackground              label
+    background                    length
+    bd                            orient
+    bg                            relief
+    bigincrement                  repeatdelay
+    borderwidth                   repeatinterval
+    command                       resolution
+    cursor                        showvalue
+    digits                        sliderlength
+    fg                            sliderrelief
+    font                          state
+    foreground                    takefocus
+    from_                         tickinterval
+    highlightbackground           to
+    highlightcolor                troughcolor
+    highlightthickness            variable
+                                  width
+
+  more useful configs:
+    command: callback for when changed
+    from_: minval
+    to: maxval
+  methods:
+    get():
+      get value
+
+    set(value):
+      set scale's value
+    
+
+______________________________
+:: Spinbox
+  tk.Spinbox
+  ttk.Spinbox (8.5.9+)
+    like entry + scale
+    enter value between x and y
+  properties
+    activebackground       insertwidth
+    background             invalidcommand
+    bd                     invcmd
+    bg                     justify
+    borderwidth            readonlybackground
+    buttonbackground       relief
+    buttoncursor           repeatdelay
+    buttondownrelief       repeatinterval
+    buttonuprelief         selectbackground
+    command                selectborderwidth
+    cursor                 selectforeground
+    disabledbackground     state
+    disabledforeground     takefocus
+    exportselection        textvariable
+    fg                     to
+    font                   validate
+    foreground             validatecommand
+    format                 values
+    from_                  vcmd
+    highlightbackground    width
+    highlightcolor         wrap
+    highlightthickness     xscrollcommand
+    increment
+    insertbackground
+    insertborderwidth
+    insertofftime
+    insertontime
+
+  from_ start
+  to: end
+  increment: increment per click
+  values: list of string to choose
+  wrap: wrap end and beginning together
+  width: width
+  command: callback on change
+
+______________________________
+:: Menu
+  tk.Menu
+    a menu item
+  should call 
+    root.option_add('*tearOff', False)
+  before using menus otherwise
+  menu can be removed
+  adding a menu:
+    r = tk.Tk()
+    menu = tk.Menu(r)
+    r.configure(menu = menu)
+  submenus:
+    submenu = tk.Menu(menu)
+    menu.add_cascade(menu = submenu, label = name)
+  properties:
+    pass
+  methods:
+    add_cascade(menu = x, label = x)
+      add a menu widget as a submenu
+
+    item manipulation methods
+      add_command(...)
+        add a command
+
+      add_checkbutton(...)
+        add a checkbutton to the menu
+        commands are run after update
+
+      add_radiobutton(...)
+        add a radiobutton to the menu
+        commands are run after update
+
+      add_separator()
+        add a separating line
+
+      notes:
+        args:
+          command: a callback to run after update
+          label: name for the item in the menu
+          variable: associated variable (for checkbutton and radiobutton)
+          onvalue/offvalue: for checkbutton
+          value: for radiobutton
+          accelerator: shortcut keycombo
+          underline: index between 0 and len(label), ie when alt+space, can see n underlined for minimize etc
+          images: tk.Image
+          compound: see general properties->compound
+          state: 'normal', 'disabled'
+
+    delete(start, stop = None)
+      delete items from the menu
+
+    entrycget(ind, option):
+      ind is index (0 to n-1)
+        or a label
+      option is the option name
+
+    entryconfigure(label, kwargs)
+      similar to entrycget except for changing? idk
+
+    insert(index, itemType, **kwargs)
+      insert item into menu at index
+
+    post(x, y)
+      make the menu pop up at x,y
+      (use event.x_root, event.y_root in the callback)
+      example:
+        window.bind('<2>', lambda event : menu.post(event.x_root, event.y_root))
+    
+______________________________
+:: Toplevel
+  tk.Toplevel
+    a window
+  methods:
+    deiconify():
+      unminimize
+
+    geometry(geom = None)
+      if None, return geometry
+      otherwise, set geometry
+      (geometry is a string of format [width]x[height]+/-[xpos]+/-[ypos])
+
+    iconify():
+      minimize
+
+    lift(winname = None)
+      lift window up 1 level or above winname if given
+
+    lower(winname = None)
+      lower window 1 level or below winname if given
+
+    maxsize(x,y)
+      specify window size bounds
+
+    minsize(x, y)
+      specify window size bounds
+
+    resizable(xbool, ybool):
+      specify whether window can be resized
+      in x or y directions
+
+    root.tk.eval('wm stackorder ' + str(window))
+
+    state(state = None):
+      return state if state is None else change state
+        values: normal, iconic
+
+    title(name = None)
+      if None, return title
+      otherwise set title
+      
+______________________________
+:: Separator
+  ttk.Separator
+    a separating line
+  properties:
+    class     style
+    cursor    takefocus
+    orient
+______________________________
+:: Labelframe
+  ttk.Labelframe
+    a labeled frame
+  properties:
+    class          relief
+    cursor         style
+    height         takefocus
+    labelanchor    text
+    labelwidget    underline
+    padding        width
+
+______________________________
+:: Panedwindow
+  ttk.Panedwindow
+    like a split-window function
+  properties:
+    class      orient
+    cursor     style
+    height     takefcus
+               width
+  methods:
+    add(object, **kwargs):
+      add the object
+      which should be a child of the panedwindow
+      kwargs:
+        weight: same as weight when gridding
+
+    forget(window)
+      window: index or object
+
+    insert(index, object):
+      insert object
+    
+______________________________
+:: Notebook
+  ttk.Notebook
+    tabbed windows
+  methods:
+    add(object, **kwargs)
+      add object
+      kwargs:
+        text: tabname
+        state: 'normal', 'disabled', 'hidden'
+        
+    insert(index, object)
+      insert object at index
+
+    select(index):
+      select the tab
+      index is the tab or 0 to n-1
+    
+    tab(tabid, [option], **kwargs):
+      if kwargs:
+        set options
+      if option:
+        query option value
+      tabid:
+        index or subwindow
+
+    tabs():
+      get all tabs
+
+______________________________    
+:: canvas
+  tk.Canvas
+    a canvas
+  methods:
+    addtag(name, 'withtag', id/tag)
+      add a tag
+
+    canvasx(val)
+    canvasy(val)
+      return actual canvas coordinates
+      translated from canvas global coordinates
+
+    coords(identifier, *coordargs)
+      list of coordinates for item
+      if *coordargs not given else change
+      coordinates
+      
+    create_bitmap
+
+    create_image
+
+    create_line(left, top, right, bottom, **kwargs)
+      fill = color
+      width = width
+      tags = ['list', 'of', 'tags']
+
+    create_oval
+
+    create_polygon
+
+    create_rectangle(left, top, right, bottom, **kwargs):
+      same as line except its a rectangle
+      outline: color
+
+    create_text
+
+    create_window(coords)
+
+    delete(*identifiers)
+
+    dtag(id, tag)
+      delete a tag
+      id is id, tag or 'all'
+
+    find_withtag(tag)
+      list of items with tag
+
+    gettags(id)
+      return list of tags
+
+    itemconfigure(id, **kwargs):
+      id: returned id from canavs.create_*
+
+    move(identifier, x, y):
+      move object by x,y
+
+    tag_bind(id, event, callback):
+      bind an event to item
+
+    tag_lower(tag, otag = None)
+    tag_raise(tag, otag = None)
+      raise/lower tag past otag if given
+      else by 1 level
+
+      
+  properties:
+    background              insertontime
+    bd                      insertwidth
+    bg                      offset
+    borderwidth             relief
+    closeenough             scrollregion
+    confine                 selectbackground
+    cursor                  selectborderwidth
+    height                  selectforeground
+    highlightbackground     state
+    highlightcolor          takefocus
+    highlightthickness      width
+    insertbackground        xscrollcommand
+    insertborderwidth       xscrollincrement
+    insertofftime           yscrollcommand
+                            yscrollincrement
+
+    notes:
+      width/height: seen area
+      scrollregion: (left, top, right, bottom)
+        actual canvas size
+
+______________________________
+:: Text
+  tk.Text
+    text area
+  ______________________________
+  properties:
+    autoseparators                padx
+    background                    pady
+    bd                            relief
+    bg                            selectbackground
+    blockcursor                   selectborderwidth
+    borderwidth                   selectforeground
+    cursor                        setgrid
+    endline                       spacing1
+    exportselection               spacing2
+    fg                            spacing3
+    font                          startline
+    foreground                    state
+    height                        tabs
+    highlightbackground           tabstyle
+    highlightcolor                takefocus
+    highlightthickness            undo
+    inactiveselectbackground      width
+    insertbackground              wrap
+    insertborderwidth             xscrollcommand
+    insertofftime                 yscrollcommand
+    insertontime
+    insertwidth
+    maxundo
+  ______________________________
+  methods:
+    delete(start, stop):
+      delete text in range, exludes stop
+
+    edit_undo
+      undo if possible or throw exception
+      need text.configure(undo = True)
+
+    edit_modified(arg = None):
+      if None, return modified flag
+      else: set modified flag
+
+    edit_redo
+      redo if possible or throw an exception
+      need text.configure(undo = True)
+
+    get(start, stop):
+      get the text
+      start, stop are indices (line.char) or end
+      
+    image_create(index, image = im)
+      add an image at index
+
+    index(index):
+      use with something line
+      end or x.end
+      (position at last line or last char of line x)
+
+    insert(index, text, tags):
+      index: "line.char" or "end"
+      tags: space-delimited string of tagnames
+
+    mark_set(name, index)
+      put a mark in the text
+      (before the char at index)
+
+    mark_unset(name)
+
+    mark_next(index)
+
+    mark_previous(index)
+
+    mark_names()
+
+    mark_gravity(name, 'left|right')
+      mark sticks to the char on its
+      left/right
+
+    replace(start, stop, text)
+
+    search(pattern, index, **kwargs):
+      stopindex
+      forwards
+      backwards
+      exact
+      regexp
+      nocase
+      count
+      elide
+
+    see(index):
+      scroll to see index
+
+    tag_add(name, start, stop):
+      tag the text
+      
+    tag_bind(tagname, event, callback):
+      bind a callback to tagname text
+      
+    tag_cget(tagname)
+      return configuration of tag
+
+    tag_configure(tagname, kwargs)
+      background        overstrike
+      bgstipple         relief
+      borderwidth       rmargin
+      elide             spacing1
+      fgstipple         spacing2
+      font              spacing3
+      foreground        tabs
+      justify           tabstyle
+      lmargin1          underline
+      lmargin2          wrap
+      offset
+
+      NOTE:
+        multiple tags to a region,
+        uses the most recently created tag
+      NOTE:
+        elide: text is hidden
+    tag_delete(tagname)
+
+    tag_lower(tagname, tagname):
+      see tag_raise
+
+    tag_nextrange(tagname, start, stop)
+      see tag_prevrange
+
+    tag_prevrange(tagname, start, stop)
+      search for a range of text with tagname
+      start at start and then search
+      forward/backward for next/prev
+
+    tag_raise(tagname, tagname):
+      change ordering for configuration
+
+    tag_ranges(tagname):
+      return ranges for tagname
+      
+    tag_remove(tagname, start, stop)
+
+    window_create(index, window = win)
+      add a window (like a canvas)
+  ______________________________
+  events:
+    <Modified>
+    <Selection>
+  Indices:
+    line.char
+    'end'
+    tagname.first
+    tagname.last
+    markname
+  Selection:
+    automatic internal tag "sel"
+    for selected text
+  Marks:
+    2 default marks:
+    "insert" where text would be inserted
+    "current": under mouse position
+    
+  peering:
+    apparently can share text with other texts
+    using a "peer" method, but
+    seems like not present in Tkinter
+
+______________________________
+:: Treeview
+  ttk.Treeview
+    expandable lines
+  properties:
+    class             selectmode
+    columns           show
+    cursor            style
+    displaycolumns    takefocus
+    height            xscrollcommand
+    padding           yscrollcommand
+
+    extra property notes:
+      columns: tuple of column headers
+               ('col1', 'col2', 'col3')
+      displaycolumns: list of colheaders or numbers
+                      or '#all' or (space delimited string)
+      show: list of values (or space delimited string)
+            tree, headings, 
+      selectmode: extended, browse, none
+
+  methods:
+    column(colname, **kwargs):
+      (the column itself)
+      colname: in columns configuration
+               '#0' for the root column
+      anchor: 'center', nsew
+      minwidth: minimum width
+      id   : identifier
+      stretch: like row/columnconfigure weight parameter
+      width: column width
+
+    delete(item):
+      delete item and descendants
+
+    detach(item):
+      detach from tree
+      can be re-inserted by using move
+
+    get_children(item):
+      list of item's children
+
+    heading(colname):
+      (the label for the column)
+      anchor: nsew or center
+      command: when heading clicked
+                example: sort items? etc
+      image: image
+      text: text to show
+
+    insert(parent, index, iid = None, **kwargs)
+      args:
+        parent: parent id or '' for top-level item index: index into list
+               can also use 'end'
+               index is clipped into proper range
+        iid: item id, if not unique, a new one is generated
+        text: text to display
+        values: (v1, v2, v3...)
+                corresponds to columns
+        tags: list of tags
+      returns identifier
+
+    item(item, **kwargs):
+      configure() for item
+        text
+        image
+        values
+        open
+        tags
+
+    move(item, parent, index):
+      move item to under parent at index
+      recursion not allowed
+
+    next(item):
+      next sibling
+
+    parent(item):
+      parent of item
+
+    prev(item):
+      previous sibling
+
+    selection(selop = None, items = None)
+      selop:
+        None: return selected items
+        set: set items as selection
+        add: add items to selection
+        remove: remove items from selection
+        toggle: toggle selection state per item
+
+    set(item, column = None, value = None)
+      set column value for the item
+
+    tag_bind(tagname, event, callback):
+      bind event to tags
+
+    tag_configure(tagname, **kwargs):
+      foreground
+      background
+      font
+      image
+
+  events:
+    <TreeviewSelect>
+    <TreeviewOpen>
+    <TreeviewClose>
+
+      
+
+
+
+
+
+
+
+
+##############################
+::events and callbacks
+##############################
+widget.bind(key, callback)
+
+
+
+##############################
+::dialogs
+##############################
+______________________________
+:: tkFileDialog or tkinter.filedialog
+  methods:
+    askopenfilename()
+    asksaveasfilename()
+      confirmoverwrite: bool
+      defaultextension: str to append to filename if no extension
+      filetypes: filetypes pattern
+        list of strings:
+          [
+            'type {.ext1 .ext2 .ext3}',
+            'jpg {.jpg .JPEG .jpeg .JPG}',
+            'all {*}']
+      initialdir
+      initialfile
+      multiple: allow multi-selection
+      parent
+      title
+    askdirectory()
+______________________________
+:: tkColorChooser or tkinter.colorchooser
+  colorchooser.askcolor(
+    initialcolor = '#hexval')
+______________________________
+:: tkMessageBox or tkinter.messagebox
+  askokcancel
+  askquestion
+  askretrycancel
+  askyesno
+  askyesnocancel
+  showerror
+  showinfo
+  showwarning
+    message: message
+    detail: secondary detail
+    title: window title
+    icon: strval
+      info, error, question, warning
+    default: which button is default?
+    parent: parent for message
+##############################
+::fonts
+##############################
+  tkFont or tkinter.font
+  font.Font(**kwargs):
+    family: fontfamily
+      guaranteed:
+        Courier, Times, Helvetica
+        (mono, serif, sans-serif respectively)
+    size: size
+    weight: 'bold', 'normal'
+    slant: 'roman', 'italic'
+    underline: t/f
+    overstriek: t/f
+  font.families():
+    all available fonts
+##############################
+::images
+##############################
+  pip install pillow
+  from PIL import ImageTk, Image
+  myimg = ImageTk.PhotoImage(
+    Image.open('myimage.png'))
+  Image.fromarray(nparray)
