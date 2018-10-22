@@ -190,6 +190,11 @@ ______________________________
       gT         : switch to previous tab
                    (tabs are their own frame so the viewports in each tab are stuck with that tab)
       z          : view manipulation (folds/cursor->screen pos)
+                   a note about folds:
+                     fdm or foldmethod can be set to:
+                        manual: (normal)
+                        indent: (based on indentation)
+                        syntax: (syntax files...)
         z        : move current line to middle of screen 
         t        : move current line to top of screen
         b        : move current line to bottom of screen
