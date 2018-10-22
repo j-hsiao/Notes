@@ -176,8 +176,14 @@ ______________________________
         c        : close viewport (and file if only one left)
         s        : split horizontal
         v        : split vertical
-        >        : make viewport larger
-        <        : make viewport smaller
+        >        : make viewport wider
+        <        : make viewport thinner
+        +        : make viewport taller
+        -        : make viewport shorter
+        =        : make viewports equal
+        _        : set viewport height to prefixed number (ie 50 C-w _ = 50 lines tall)  
+        |        : set viewport width to prefixed number ( ie 50 C-w | = 50 chars wide (includes the space
+                   from :number))
       [i]gt      : switch to next tab
                    i: tab number to go to, 1-indexed
                    if omitted, go to next tab
