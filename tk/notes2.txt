@@ -385,6 +385,8 @@ ______________________________
     cursor          takefocus
     height          width
     padding
+  NOTE: 
+    tk.Frame has more properties
     
     
    
@@ -921,7 +923,13 @@ ______________________________
 
     create_text
 
-    create_window(coords)
+    create_window(coords, **kw)
+      anchor: 'nsew'
+      height: height of window
+      width: width of window
+      state: hidden, normal, disabled
+      tags: as normal for tags
+      window: the thing to put in the window
 
     delete(*identifiers)
 
