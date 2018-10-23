@@ -176,14 +176,25 @@ ______________________________
         c        : close viewport (and file if only one left)
         s        : split horizontal
         v        : split vertical
-        >        : make viewport larger
-        <        : make viewport smaller
+        >        : make viewport wider
+        <        : make viewport thinner
+        +        : make viewport taller
+        -        : make viewport shorter
+        =        : make viewports equal
+        _        : set viewport height to prefixed number (ie 50 C-w _ = 50 lines tall)  
+        |        : set viewport width to prefixed number ( ie 50 C-w | = 50 chars wide (includes the space
+                   from :number))
       [i]gt      : switch to next tab
                    i: tab number to go to, 1-indexed
                    if omitted, go to next tab
       gT         : switch to previous tab
                    (tabs are their own frame so the viewports in each tab are stuck with that tab)
       z          : view manipulation (folds/cursor->screen pos)
+                   a note about folds:
+                     fdm or foldmethod can be set to:
+                        manual: (normal)
+                        indent: (based on indentation)
+                        syntax: (syntax files...)
         z        : move current line to middle of screen 
         t        : move current line to top of screen
         b        : move current line to bottom of screen
@@ -246,6 +257,7 @@ ______________________________
       C-w : delete a word
       C-t : shift right
       C-d : shift left
+      C-o : switch to normal mode for 1 command and then switch back
       C-u : delete current line
       C-r [register]: paste from register, interpreting values
       C-r C-r [register]: paste register as is
@@ -295,6 +307,12 @@ ______________________________
       :startline, stopline ! command       : runs command on line range
       :%                                   : use entire buffer
       :h                                   : help  
+      :normal @[register]                  : run macro in the register
+                                             can also highlight a region
+                                             then run normal @[register]
+                                             to run register on each line
+                                             (as long as the macro stays
+                                             on each line)
     ______________________________
     #1.2.3.5::set
       paste, nopaste (paste identical to copy) etc
