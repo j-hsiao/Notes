@@ -1264,7 +1264,17 @@ widget.bind(key, callback, **kw)
       if '', callback replaces bindings
       if '+', callback appended to list of bindings
     callback:
-      a function that takes 1 arg (an event)
+      a function that takes 1 arg (an EventObj below)
+      return "break" to break event propagation
+      return "continue" to continue to next tags
+      example:
+        entry within frame
+        if entry gets an event and returns break
+        then frame does not get an event
+        but if returns None, then frame gets a turn too
+        see docs for more details
+
+
   EventObj
     properties:
       widget    : widget that got the event
@@ -1364,31 +1374,6 @@ widget.bind(key, callback, **kw)
         Return
         Escape
         etc
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
     <<name>>
       virtual event, can be user-generated or
