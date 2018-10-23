@@ -37,7 +37,7 @@ dialogs
   messagebox
 fonts
 images
-
+styles and themes
 
 
 
@@ -361,7 +361,15 @@ ______________________________
     returns height in pixels
   winfo_width()
     returns width in pixels
-        
+  after(ms, func, *args)
+    call func after ms milliseconds with args
+    returns an identifier for the scheduled event call
+  after_cancel(identifier)
+    cancels scheduled call with identifier
+  NOTE:
+    generally think of it like recursion
+    call after again within the function
+    with some stopping condition
         
         
 
@@ -800,6 +808,10 @@ ______________________________
     title(name = None)
       if None, return title
       otherwise set title
+    winfo_screenwidth()
+      return width of screen
+    winfo_screenheight()
+      return height of screen
       
 ______________________________
 :: Separator
@@ -1246,7 +1258,142 @@ ______________________________
 ##############################
 ::events and callbacks
 ##############################
-widget.bind(key, callback)
+widget.bind(key, callback, **kw)
+  kw:
+    add:
+      if '', callback replaces bindings
+      if '+', callback appended to list of bindings
+    callback:
+      a function that takes 1 arg (an event)
+  EventObj
+    properties:
+      widget    : widget that got the event
+      focus     : for enter/leave events
+                  True if enter else False
+      height    : new height of window on resize
+      keycode   : keycode for keyboard
+      state     : see doc
+      time      : timestamp
+      width     : width of window on resize
+      x         : mouse pos
+      y         : mouse pos
+      char      : unicode char
+      send_event: 0 = "normal", 1 = "synthetic"
+      keysym    : textual string for keyboard
+      keysm_num : an int
+      type      : type field from event
+      x_root    : relative to virtual root window
+      y_root    : relative to virtual root window
+      
+
+  key:
+    '[key]':
+      not space or "<"
+    <modifier-modifier-type-detail>
+      require at least one of type or detail
+      must be separated by whitespace or dashes
+      
+    modifiers
+      Control             Mod1, M1, Command
+      Alt                 Mod2, M2, Option
+      Shift               Mod3, M3
+      Lock                Mod4, M4
+      Extended            Mod5, M5
+      Button1, B1         Meta, M
+      Button2, B2         Double
+      Button3, B3         Triple
+      Button4, B4         Quadruple
+      Button5, B5
+    Event type
+      Activate                 FocusOut
+      ButtonPress, Button      Gravity
+      ButtonRelease            KeyPress, Key
+      Circulate                KeyRelease
+      CirculateRequest         Leave
+      Colormap                 Map
+      Configure                MapRequest
+      ConfigureRequest         Motion
+      Create                   MouseWheel
+      Deactivate               Property
+      Destroy                  Reparent
+      Enter                    ResizeRequest
+      Expose                   Unmap
+      FocusIn                  Visibility
+    TypeNotes
+      activate:
+        window focus/defocus
+      MouseWheel:
+        use %D substitution??
+        + = up, - = down
+      KeyPress, KeyRelease: 
+        keyboard
+      ButtonPress, ButtonRelease, Motion:
+        mouse
+      Configure:
+        window resize/position change
+      Map/Unmap
+        see docs
+      Visibility:
+        window obscurity changes
+      Expose:
+        window should be redrawn
+      Destroy:
+        window destroyed
+      FocusIn/FocusOut
+        keyboard focus changes
+      Enter/Leave
+        mouse enter/leave
+      Property:
+        when window X property changes
+      Colormap:
+        colormap for window changed
+      MapRequest, CirculateRequest, 
+      ResizeRequest, ConfigureRequest, Create
+        ignore these
+      Gravity/Reparent/Circulate
+        ignore these
+    Detail
+      mouse: 1-5
+        if omitted, then any button works
+      keyboard:
+        a-zA-Z
+        comma
+        Shift_L, Shift_R
+        Alt_L, Alt_R, etc
+        Space
+        Return
+        Escape
+        etc
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+    <<name>>
+      virtual event, can be user-generated or
+root.generate_event('<<virtual event>>', **kw)
+
 
 
 
@@ -1317,3 +1464,7 @@ ______________________________
   myimg = ImageTk.PhotoImage(
     Image.open('myimage.png'))
   Image.fromarray(nparray)
+##############################
+::styles and themes
+##############################
+
