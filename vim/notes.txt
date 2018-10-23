@@ -257,6 +257,7 @@ ______________________________
       C-w : delete a word
       C-t : shift right
       C-d : shift left
+      C-o : switch to normal mode for 1 command and then switch back
       C-u : delete current line
       C-r [register]: paste from register, interpreting values
       C-r C-r [register]: paste register as is
@@ -306,6 +307,12 @@ ______________________________
       :startline, stopline ! command       : runs command on line range
       :%                                   : use entire buffer
       :h                                   : help  
+      :normal @[register]                  : run macro in the register
+                                             can also highlight a region
+                                             then run normal @[register]
+                                             to run register on each line
+                                             (as long as the macro stays
+                                             on each line)
     ______________________________
     #1.2.3.5::set
       paste, nopaste (paste identical to copy) etc
