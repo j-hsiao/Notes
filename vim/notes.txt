@@ -170,10 +170,12 @@ ______________________________
       C-y : scroll up 1 line
       C-w : switch viewport
         [N][hjkl]: move viewport in corresponding direction N times
+        HJKL     : move viewport to left, bottom, top, right and make maximum height/width 
         C-w      : cycle through
         r        : move viewports forward (cw-cw ordering)
         R        : move viewports backward (cw-cw ordering)
-        c        : close viewport (and file if only one left)
+        cq       : close viewport (and file if only one left)
+        o        : close other viewports (only current one remains)
         s        : split horizontal
         v        : split vertical
         >        : make viewport wider
@@ -242,6 +244,8 @@ ______________________________
                    NOTE: + or * may be special "clipboard" registers, try them...
                          doesn't seem to work on cygwin at home though...
       @ [a-z]    : run the macro
+      C-o        : jump to a previous jump (cursor) position
+      C-i        : go to newer jump(cursor) position
 
   ______________________________
   #1.2.2::insert
