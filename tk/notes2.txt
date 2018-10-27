@@ -1379,6 +1379,7 @@ widget.bind(key, callback, **kw)
         if omitted, then any button works
       keyboard:
         a-zA-Z
+        space
         Caps_Lock
         Return
         Insert
