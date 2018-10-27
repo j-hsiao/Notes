@@ -374,6 +374,12 @@ ______________________________
     generally think of it like recursion
     call after again within the function
     with some stopping condition
+  xview(args)
+  yview(args)
+    'moveto' as first argument:
+      arg2 = position between 0 and 1
+             for the left position in view
+             ( so 0.5, the left position is at 50% of the entire widget)
         
         
 
@@ -785,6 +791,7 @@ ______________________________
       if None, return geometry
       otherwise, set geometry
       (geometry is a string of format [width]x[height]+/-[xpos]+/-[ypos])
+      1,1 = top left (not 0,0)
 
     iconify():
       minimize
