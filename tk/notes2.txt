@@ -356,7 +356,11 @@ ______________________________
           state(['!disabled']) unsets disabled flag
   update()
     enter event loop til all events are processed
-    may be necessary to get winfo_height and width
+    including events, after calls, drawing tasks, etc, everything
+  update_idletasks()
+    flush any "idle" tasks, mostly just drawing things
+    due to resizing or anything like that
+    probably should call this one instead of update
   winfo_height()
     returns height in pixels
   winfo_width()
@@ -1375,13 +1379,55 @@ widget.bind(key, callback, **kw)
         if omitted, then any button works
       keyboard:
         a-zA-Z
-        comma
-        Shift_L, Shift_R
-        Alt_L, Alt_R, etc
-        Space
+        Caps_Lock
         Return
-        Escape
-        etc
+        Insert
+        Home
+        Prior (page up)
+        Next  (page down)
+        End
+        Delete
+        Num_Lock
+        Shift_R
+        Shift_L
+        Control_R
+        Control_L
+        Alt_R
+        Alt_L
+        App         (the weird button that sometimes right clicks?)
+        Win_L       (windows key, left)
+        quoteleft   `
+        asciitilde  ~
+        exclam      !
+        at          @
+        numbersign  #
+        dollar      $
+        percent     %
+        asciicircum ^
+        ampersand   &
+        asterisk    *
+        parenleft   (
+        parenright  )
+        minus       -
+        underscore  _
+        equal       =
+        plus        +
+        semicolon   ;
+        colon       :
+        quoteright  '
+        quotedbl    "
+        bracketleft [
+        bracketright]
+        braceleft   {
+        braceright  }
+        comma       ,
+        period      .
+        slash       /
+        less        <
+        greater     >
+        question    ?
+        backslash   \
+        bar         |
 
     <<name>>
       virtual event, can be user-generated or
