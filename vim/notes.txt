@@ -59,6 +59,10 @@ ______________________________
       _   : move to first non-white-space character on line
       -   : move to first non-white character in line above
       +   : move to first non-white character on line below
+      fx  : goto x
+      Fx  : goto x (backwards)
+      tx  : gobefore x
+      Tx  : goafter x
       backspace : move back one char (wraps, unlike h)
       spacebar  : move forward one char (wraps unlike l)
       h   : left
@@ -244,8 +248,8 @@ ______________________________
                    NOTE: + or * may be special "clipboard" registers, try them...
                          doesn't seem to work on cygwin at home though...
       @ [a-z]    : run the macro
-      C-o        : jump to a previous jump (cursor) position
-      C-i        : go to newer jump(cursor) position
+      C-o        : undo a jump (ie search for something or jump to a mark)
+      C-i        : redo a jump
 
   ______________________________
   #1.2.2::insert
@@ -301,6 +305,16 @@ ______________________________
       :una alias              : unset alias for text
     ______________________________
     #1.2.3.4::other
+      |          : pipe, for entering multiple commands
+                   for instance:
+                   :s/a/x | s/b/y
+                   substitutes x for a and y for b
+                   note: ranges are attached per statement between | so
+                   1,10s/a/x | s/b/y
+                   substitutes x for a on lines 1-10
+                   but substitute y for b only on last line
+                   can use g// cmd to make cmd happen for all lines
+                   note | commands are like or
       :syntax    : [on|off] change syntax highlighting
       :source    : run file
                    ex:
@@ -311,12 +325,14 @@ ______________________________
       :startline, stopline ! command       : runs command on line range
       :%                                   : use entire buffer
       :h                                   : help  
-      :normal @[register]                  : run macro in the register
-                                             can also highlight a region
-                                             then run normal @[register]
-                                             to run register on each line
-                                             (as long as the macro stays
-                                             on each line)
+      :norm[al] cmd                        : normal: run a normal command
+                                             cmd is the command as typed in normal mode
+                                             for instance:
+                                             :norm @a runs the macro a on the current line
+                                             can be given a range like the % modifier for all lines
+                                             or performed on a selected region
+      :g[lobal]/pat/cmd                    : run cmd globally on lines matching pat
+                                             can be given a range
     ______________________________
     #1.2.3.5::set
       paste, nopaste (paste identical to copy) etc
