@@ -284,6 +284,7 @@ ______________________________
       :e [fname]              : edit file (apparently use this instead of :o is preferred)
       :o [fname]              : open file name
       :b [name/number]        : change to corresponding buffer
+      :bd [name/number]       : close the buffer
       :ls, :files, :buffers   : list current buffers
     ______________________________
     #1.2.3.2::window manipulation
@@ -333,6 +334,9 @@ ______________________________
                                              or performed on a selected region
       :g[lobal]/pat/cmd                    : run cmd globally on lines matching pat
                                              can be given a range
+                                             for instance:
+                                             :g/^$/d deletes all empty lines
+                                             :g/^\s*$/d deletes all lines without non-whitespace characters
     ______________________________
     #1.2.3.5::set
       paste, nopaste (paste identical to copy) etc
