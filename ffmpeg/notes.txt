@@ -1,0 +1,9 @@
+webcam:
+ffmpeg -f v4l2 -input_format h264 -video_size [width]x[height] -framerate fps -i /dev/video[x] [typical output stuffs]
+ffmpeg -f v4l2 -list_formats all -i /dev/video[x]
+
+
+ffmpeg -v error
+
+
+ffprobe -v error -show_entries stream=width,height -of csv=s=x:p=0 -i input
