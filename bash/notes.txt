@@ -79,7 +79,9 @@ remove pattern from beginning/end
 
 var as bool
     ${VAR:+somestr}  -> somestr if var else ''
+                        (like "and")
     ${VAR:-somestr}  -> var if var else somestr
+                        (like an "or")
 
 
 ##############################
