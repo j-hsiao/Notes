@@ -1,0 +1,118 @@
+contents
+::general
+::stream selelction
+
+______________________________
+::general
+
+ffmpeg [global options] [[input options] -i input] {[output options] -o output}
+
+files:
+N inputs and O outputs
+
+files referred to by indices (0-based)
+streams referred in format "I:S" for Sth stream in Ith input
+
+all options are reset at each file
+
+copying: use -codec copy: only perform mux/demux, no decode/encode
+
+______________________________
+::stream selection
+    -vn/ -an / -sn / -dn
+    skips video, audio, subtitle, data streams
+
+    option 1: automatic
+        pick 1 stream from all inputs with priorties:
+            highest resolution (video)
+            most channels (audio)
+            first matching subtitle encoder type (text vs image based)
+
+    option 2: manual
+        use -map option on an output file
+        example:
+            -map 1:a -c:a copy
+                selects audio stream from file 1 and copies it
+______________________________
+::options
+    numerical options:
+        all numerical options can accept a suffix of the units
+        ie :
+            K, M, G
+            Ki, Mi, Gi
+            add a B to indicate bytes instead of bits
+    boolean options
+        when present, set the value to True
+        can be prefixed with "no" to make it false
+        ex:
+            -foo: foo is True
+            -nofoo: foo is False
+    stream specifiers:
+        use a stream specifier to indicate 
+        which stream the option applies to
+        if absent, matches all streams
+
+
+useful global options:
+    -codecs  : list codecs
+    -encoders: list encoders
+    -decoders: list decoders
+    -pix_fmts: pixel formats
+    -colors  : color names
+    -sources : autodetect sources
+    -y       : overwrite output without asking
+    -n       : no overwrite: exit instead
+    -sinks   : autodetect sinks
+    -v       : loglevel:
+                quiet: no logging
+                error: errors
+                warning: warnings and errors
+
+argument formats:
+    time:
+        [-][HH:]MM:SS[.m...]
+        [-]S+[.m...]
+        - indicating negative duration
+    resolution:
+        [width]x[height]
+    date:
+        YYYYMMDD or YYYY-MM-DD
+        for a date range, add a 'T' or 't' between the two dates
+        Z at the end to indicate UTC otherwise local
+        can also indicate now
+AV options:
+    -f fmt
+    -i input
+    -stream_loop number   : 0: no loop
+                            -1: infinite
+    -c/-codec[:stream] codec
+        copy for copy, otherwise codec
+    -t duration
+        for input: read this much
+        for output: write this much
+    -fs size
+        filesize limit for output, stop writing once reached
+    -ss pos
+        for input: seek to position (closest point before position)
+        for output: discard output until reach pos
+    -sseof pos
+        same as -ss except from eof (0 is at end, -HH:MM:SS before the end)
+    -itsoffset offset
+        add offset to input file timestamp (add positive offset for delay)
+    -timestamp date
+        recording timestamp
+    -stdin
+        allow stdin interaction
+        boolean
+V options:
+    -frames number
+        # of frames for output
+    -r[stream] fps
+        framerate (hertz, fraction, abbreviation)
+    -s[stream] size
+        [width]x[height]
+    -vcodec
+        video codec, alias for -codec:v
+    -pix_fmt[stream]
+        pixel formats
+
