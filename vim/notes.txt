@@ -308,6 +308,8 @@ ______________________________
       :una alias              : unset alias for text
     ______________________________
     #1.2.3.4::other
+      C-f        : open commandline in a window to be edited normally (like a normal file in vim)
+                   add a new-line at the end to execute the line
       |          : pipe, for entering multiple commands
                    for instance:
                    :s/a/x | s/b/y
@@ -323,8 +325,24 @@ ______________________________
                    ex:
                      :source ~/.vimrc
       :sh        : open a new shell
-      :!         : runs vim command?
-        sort     : sorts highlighted text
+      :!         : runs a shell command
+                   if text is highlighted, replace the selection with stdout of command
+                   otherwise, display stdout
+        examples:
+          action:
+            *highlight region* :!sort
+          result:
+            pipe region to sort command
+            replace region with sorted result
+          action:
+            :!date
+          result:
+            display date, press enter to return to editing buffer
+
+                : NOTE
+                    the !command can be used after :w or :r
+                    in the case of :w, write selection to command (don't replace selection)
+                    in the case of :r, read stdout of command and paste lines below current position
       :startline, stopline ! command       : runs command on line range
       :%                                   : use entire buffer
       :h                                   : help  

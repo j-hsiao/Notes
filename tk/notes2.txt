@@ -15,6 +15,7 @@ widgets overview
   Checkbutton
   Radiobutton
   Entry
+  Combobox
   Listbox
   Scrollbar
   SizeGrip
