@@ -78,10 +78,37 @@ remove pattern from beginning/end
         remove pattern from end (as long as possible)
 
 var as bool
-    ${VAR:+somestr}  -> somestr if var else ''
-                        (like "and")
-    ${VAR:-somestr}  -> var if var else somestr
-                        (like an "or")
+    ${VAR+somestr}  -> somestr if var is set else ''
+                       acts like "and"
+    ${VAR-somestr}  -> var if var is set else somestr
+                       acts like "or"
+    (the extra : means consider var to be "unset" if it is set to empty string)
+    ${VAR:+somestr}
+    ${VAR:-somestr}
+
+    examples
+    a=
+    b=hello
+
+    expression      result
+
+    ${a+thing}      thing
+    ${b+thing}      thing
+    ${c+thing}      '' (empty string)
+
+    ${a:+thing}     '' (empty string)
+    ${b:+thing}     thing
+    ${c:+thing}     '' (empty string)
+
+    ${a-thing}      ${a}
+    ${b-thing}      ${b}
+    ${c-thing}      thing
+
+    ${a:-thing}     thing
+    ${b:-thing}     ${b}
+    ${c:-thing}     thing
+    
+
 
 
 ##############################
@@ -331,6 +358,9 @@ escapes:
       if vars are in quotes, will not expand
   herestring
     someCommand <<< stringvalue_or_dereference
+    *NOTE:
+        herestring causes a new-line to be appended to the end
+        use echo -n if you don't want that
 
   ______________________________
   redirection
