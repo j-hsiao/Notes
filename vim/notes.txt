@@ -24,6 +24,7 @@ NOTE: cygwin vi uses .virc not .vimrc
       1.2.3.3::editing
       1.2.3.4::other
   1.3::config file
+  1.4::functions
 
 ##############################
 #1::vim
@@ -228,7 +229,6 @@ ______________________________
         j        : next fold
         k        : previous fold
       C-z        : suspend
-        
     ______________________________
     #1.2.1.6::other
       .          : redo last command
@@ -468,3 +468,11 @@ ______________________________
       augroup END
   enter groupe, autocmd! clears everything in that group
   and then runs the commands
+
+##############################
+#1.4::functions
+##############################
+  winwidth(0) return current width
+  winheight(0) return current height
+  repeat("str", count): return repeated string
+
