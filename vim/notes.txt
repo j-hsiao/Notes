@@ -17,7 +17,7 @@ NOTE: cygwin vi uses .virc not .vimrc
       1.2.1.5::window manipulation
       1.2.1.6::other
     1.2.2::insert
-      1.2.1.1::controls
+      1.2.2.1::controls
     1.2.3::last-line(command line mode)
       1.2.3.1::file manipulation
       1.2.3.2::window manipulation
@@ -76,6 +76,7 @@ ______________________________
       e   : forward 1 word, cursor at end
       [N]gg: go to Nth line, if N omitted, go to first line
       [N]G : same as above,  if N omitted, go to last line
+      %   : jump to matching character (brace, parantheses, bracket, etc)
       `.  : last edit
       H   : move cursor to top
       M   : move cursor to middle
@@ -91,6 +92,7 @@ ______________________________
         mx  : set mark to key x, x = a-z, or A-Z (global)
         `x  : go to exact mark position
         'x  : go to line with the mark
+        :marks: see current marks
     ______________________________
     #1.2.1.2::editing
       i   : enter insert mode (before current character)
@@ -229,7 +231,7 @@ ______________________________
         
     ______________________________
     #1.2.1.6::other
-      .    : redo last command
+      .          : redo last command
       C-g        : current file, line, column
       g C-g:     : count and display words, lines, bytes, position
       q [a-z]    : macro, starts recording macro to input letter
@@ -320,6 +322,13 @@ ______________________________
                    but substitute y for b only on last line
                    can use g// cmd to make cmd happen for all lines
                    note | commands are like or
+      :mks[ession] : save a file to store session (windows open, mapping, etc)
+                     use source (below) to restore session
+                     or run vim with -S saved_session
+      :Ex[plore] : file explorer...
+                   navigate as a normal file
+                   use enter to enter dir/open a file
+                   use - to up a dir
       :syntax    : [on|off] change syntax highlighting
       :source    : run file
                    ex:
@@ -393,6 +402,9 @@ ______________________________
         in general, add "no" in front to toggle off, ie number, nonumber
       viminfo        : store history length for vim (session info persists between sessions)
       mouse=a        : enable mouse everywhere
+      scrolloff=n    : keep at least n lines from top and bottom of the screen
+                       within limitations (ie, set n=999 and if less than 999 lines on a screen,
+                       cursor will always be centered)
       number         : line numbering
       relativenumber : display relative numbering
       autoindent     : inherit indent from previous lines
