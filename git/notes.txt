@@ -1,5 +1,71 @@
 ------------------------------
-basics
+contents
+------------------------------
+1::spec
+2::basics
+
+
+------------------------------
+1::spec
+------------------------------
+______________________________
+pathspecs
+    rules
+        paths match itself
+        scope is limited to directory up to the last slash
+        rest of pathspec = for pattern matching
+
+
+        examples:
+            d1/*.jpg
+                any .jpg under d1 directory tree
+                including:
+                    d1/im1.jpg
+                    d1/d2/im2.jpg
+
+        magic signature
+            short:
+                :sig:pathmatcher
+            long:
+                :(magic,words,comma,delimited)pathmatcher
+
+            ______________________________
+            terms:
+                top      (/), pathspec is from top of git tree
+                exclude  (^ or !), ignore paths
+                literal  treat * and ? as literal
+                icase    case insensitive
+
+
+        notes:
+            generally can add -- to delimit the start of pathspecs
+______________________________
+refspecs
+    format:
+        [+]<src>:<dst>
+        
+        +: update even if not fast-forward
+        src: source file
+        dst: local file path
+    example:
+        git push origin master:refs/heads/master
+            push local master to origin master
+
+        git push origin :refs/heads/master
+            push nothing (delete) origin master
+
+______________________________
+other
+    tags:
+        refs/tags/<tagname>
+    heads:
+        refs/heads/<headname>
+
+
+
+
+------------------------------
+2::basics
 ------------------------------
 clone a repo
     git clone uri
@@ -56,3 +122,4 @@ tags:
     push tags:
         git push origin [tagname]
     
+
