@@ -71,6 +71,20 @@ __________________
         no parameters
         pointers to memory location
           (no info about type/size)
+
+      array
+        type name[size][size][size...]
+        type array[size][size] = {
+          {v1, v2, v3...vsize},
+          {v1,v2,v3,...vsize},
+          ...}
+
+        assignment:
+          array[ind] = val
+      pointer
+        type* name
+          pointer can be accessed by indexing
+
     :1.3.2:declaration
       not initialized:
         type v1, v2, v3...;
@@ -79,6 +93,64 @@ __________________
 
 
   :1.4:statements/expressions
+    ______________________________
+    if statements
+      if (condition){
+        stuff
+      } else if (condition) {
+        stuff
+      } else {
+        stuff
+      }
+    ______________________________
+    switch
+      switch (expr) {
+        case const-expr :
+          stuff
+          break;
+        case const-expr:
+          stuff;
+          break;
+        default :
+          stuff;
+      }
+      note: break is not necessary
+      it only prevents following cases from being checke
+    ______________________________
+    while
+      while(cond){
+        stuff;
+      }
+
+      do {
+        stuff;
+      } while (condition)
+    ______________________________
+    for ( init; condition; update ) {
+      stuff;
+    }
+
+    ______________________________
+    functions
+      retType funcName( params ){
+        body;
+      }
+      generally use call-by-value
+      unless params are explicitly pointers or something... ish?
+
+      params: for arrays/pointers, use
+        type* name
+        name[]
+        name[size]
+      when returning arrays:
+        1. pass pointer as arg
+        2. use static variable
+        3. malloc
+
+      
+
+
+
   :1.5:comments
     // single-line comment
     /*
