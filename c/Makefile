@@ -1,4 +1,4 @@
-test: test.c
-	gcc -o test test.c
-run: test
-	./test
+main: test.c
+	gcc -o main test.c
+run: main
+	./main
