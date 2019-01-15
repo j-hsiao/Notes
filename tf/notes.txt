@@ -1,6 +1,7 @@
 https://github.com/uber/horovod#usage
 https://github.com/tensorflow/tensorflow/blob/master/tensorflow/contrib/eager/python/examples/resnet50/resnet50.py
 https://www.tensorflow.org/guide/tensors
+keras: build advanced models
 
 contents
 :1: graph
@@ -15,7 +16,9 @@ contents
   :4.2: get model
   :4.3: get error func
   :4.4: train
-
+:5: keras
+:6: distributed tf
+  
 ______________________________
 :1: graph
   tf.Graph: a graph
@@ -219,3 +222,155 @@ ______________________________
   :4.4: train
     tf.train.Optimizer
       tf.train.GradientDescentOptimizer(mul)
+
+______________________________
+:5: keras
+  tf.keras
+  require pyyaml to save models
+  default = checkpoint
+  also supported = save_format='h5' -> hdf5
+  ______________________________
+  layers
+    common params:
+      activation
+      kernel_initializer
+      bias_initializer
+      kernel_regularizer
+      bias_regularizer
+  ______________________________
+  models
+    sequential
+      just a chain of layers
+        model = tf.keras.Sequential()
+        model.add(layers.Dense(64, activation = 'relu'))
+        model.add(layers.Dense(64, activation = 'relu'))
+        model.add(layers.Dense(10, activation = 'softmax'))
+  ______________________________
+  training
+    model.compile(optimizer, loss, metrics)
+      optimizer:
+        tf.train optimizer instances
+          AdamOptimizer
+          RMSPropOptimizer
+          GradientDescentOptimizer
+        loss
+          func to minimize:
+            mse
+            categorical_crossentropy
+            binary_crossentropy
+            tf.keras.losses.*
+        metrics
+          for monitoring
+          tf.keras.metrics
+    model.fit(data, labels, epochs, batch_size, validation_data, steps_per_epoch)
+      data: iterable of data to train on
+      labels: iterable of labels for data
+      batch_size: ...
+      validation_data: tuple of (validData, validLabels)
+      steps_per_epoch: steps per epoch
+    model.evaluate(data, labels, batch_size)
+    model.evaluate(tf.data.Dataset, steps)
+      evaluate loss given labels
+      (find the accuracy)
+    model.predict(data, batch_size = 32)
+      run prediction on all inputs
+
+______________________________
+:6: distributed tf
+  cluster: group of jobs (dict of {job:[tasks...]})
+  job: group of tasks (jobname: list of tasks)
+  task: a single worker (a server)
+
+
+  clusters
+    spec: 
+      a dict:
+        {
+          "jobname1" : [addr1, addr2, addr3...],
+          "jobname2" : [addr1, addr2, addr3...],
+          ...
+        }
+    pass spec to tf.train.ClusterSpec
+  servers
+    1 server per task
+    each server:
+      set of local gpus
+      list of other servers for same job
+      a tf.Session
+    2-server example:
+      cluster = tf.train.ClusterSpec(
+        {'job' : ['localhost:2222', 'localhost:2223']})
+      server0 = tf.train.Server(
+        cluster, job_name = 'job', task_index = 0)
+      server1 = tf.train.Server(
+        cluster, job_name = 'job', task_index = 1)
+    session = tf.Session(server.target)
+  task identifiers:
+    taken from cluster specs
+    format:
+      /job:{jobname}/task:{task_index}
+
+    with tf.device(task_identifier):
+      do tf stuff
+
+    with tf.Session("grpc://addr:port") as sess:
+      sess.run(stuff)
+      
+
+  typical setup:
+    "in-graph replication"
+      all parameters on a single server
+      have a parameter job and worker job
+      parameter job: do stuff with parameters
+      worker job: use paramters to run/derive and 
+                  send update to parameter server
+    "between-graph replication"
+      build similar graphs, use
+      tf.train.replica_device_setter
+      1 param server : 1 worker server
+      use tf.train.SyncReplicasOptimizer
+        to sync params across param servers
+
+      SyncReplicasOptimizer
+        ps (parameter server):
+          accumulator per variable
+          accumulator averages gradients
+          apply gradients
+          increment global step after all updated
+          push global step to tocken_queue
+        replicas:
+          fetch vars and compute
+          push to gradient accumulators
+          pop from global step queue
+          update local step
+          start batch
+
+        example usage:
+          from an optimizer:
+            opt = something
+            opt = tf.train.SyncReplicasOptimizer(
+              opt, replicas_to_aggregate=50,
+              total_num_replicas=50)
+            train = opt.minimize(
+              total_loss, global_step = self.global_step)
+            sync_replicas_hook = opt.make_session_run_hook(is_chief)
+            with training.MonitoredTrainingSession(
+                master = workers[worker_id].target,
+                is_chief = is_chief,
+                hooks = [sync_replicas_hook]) as mon_sess:
+              while not mon_sess.should_stop():
+                mon_sess.run(training_op)
+
+          
+
+  other notes:
+    sess.run(tf.global_variables_intializer())
+    on one of the servers
+    other:
+      while len(sess.run(tf.report_unintialized_variables())) > 0
+        sleep
+
+
+
+
+
