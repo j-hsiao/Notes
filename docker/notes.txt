@@ -1,0 +1,67 @@
+contents:
+/1/ intro
+/2/ commands
+
+
+
+
+______________________________
+/1/ intro
+  install:
+    sudo apt-get install docker-ce
+
+  daemon:
+    manages docker objects, networks, volumes
+    listents to docker api requests
+  client:
+    interact with daemon
+  registry:
+    like a github, except docker
+  objects:
+    image:
+      read-only template
+      consists of:
+        code
+        libraries
+        environment vars
+        config files
+    containers:
+      runnable instance of an image
+
+  namespaces:
+    separate containers
+      pid
+      net
+      ipc
+      mnt
+      uts
+  control groups (cgroups):
+    limits application to particular resources
+    example: control ram per container
+  union file system:
+    light weight filesystem
+  container format:
+    combo of namespace, cgroups, ufs
+    
+
+______________________________
+/2/ commands
+  docker --version
+    return version of docker
+  docker info;docker version
+    more info
+  docker pull
+  docker push
+  docker run
+    ex:
+      docker run -i -t ubuntu /bin/bash
+        pulls ubuntu if not already
+        creates container if not already
+          (docker container create)
+        allocate filesystem
+        create network interface
+        start container, execute /bin/bash, attach to terminal
+  docker ps
+      ps, except for docker containers instead of processes
+        
+   
