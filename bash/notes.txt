@@ -78,6 +78,14 @@ remove pattern from beginning/end
         remove pattern from end (as long as possible)
 
 var as bool
+    rethought:
+        ${VAR[:]+/-val}: use val in the case where VAR is + or -, else ${VAR}
+                         the : indicates that VAR='' is negative
+                         so +/- = var exists
+                         :+/:-  = var is non-empty (not exist is also empty)
+
+
+
     ${VAR+somestr}  -> somestr if var is set else ''
                        acts like "and"
     ${VAR-somestr}  -> var if var is set else somestr
