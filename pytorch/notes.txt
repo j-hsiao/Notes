@@ -1,5 +1,10 @@
 contents:
+.0. sources
 .1. distribution
+______________________________
+.0. sources
+    https://seba-1511.github.io/tutorials/intermediate/dist_tuto.html
+    https://pytorch.org/docs/stable/distributed.html
 
 ______________________________
 .1. distribution
