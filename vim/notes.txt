@@ -329,6 +329,9 @@ ______________________________
                    navigate as a normal file
                    use enter to enter dir/open a file
                    use - to up a dir
+                   alternatives:
+                        :Lex[plore]   open explorer in its own window on the left, chosen files are opened on the right
+                        :Rex[plore]   return to/from explorer (so don't close vim)
       :syntax    : [on|off] change syntax highlighting
       :source    : run file
                    ex:

@@ -1,0 +1,33 @@
+contents:
+.1. distribution
+
+______________________________
+.1. distribution
+    torch.distributed
+
+    init_process_group(
+            backend, init_method,
+            timeout, **kwargs)
+        backend:
+            a str or backend
+            mpi, gloo, nccl
+        init_method:
+            url for initialization
+            tcp://ip:port
+        world_size: # of procs
+        rank: rank of proc
+        timeout: seconds, for gloo
+
+    torch.nn.parallel.DistributedDataParallel(
+            model, device_ids, output_device,
+            dim, broadcast_buffers, process_group,
+            bucket_cap_mb, check_reduction):
+        wrap a model to become distributed
+        model: the torch model
+        device_ids: list of device ids
+        output_device: same as device_ids[0]?
+        others: can be ignored?
+
+
+    torch.cuda.set_device(i):
+        set the gpu to use

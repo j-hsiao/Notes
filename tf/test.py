@@ -57,3 +57,4 @@ for i in range(1000):
         feed_dict = {inval : x, answers : y})
     print(errorv)
     print(outv)
+
