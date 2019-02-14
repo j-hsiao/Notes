@@ -62,6 +62,8 @@ variables truncation:
 
 var as varname:
   ${!VAR}: dereference VAR and treat that as the variable name
+  same as:
+    eval \${${VAR}}
   ex:
       > varToPrint=PATH
       > echo ${!varToPrint}
@@ -76,6 +78,15 @@ remove pattern from beginning/end
         remove pattern from end (short)
     ${varname%%pattern}
         remove pattern from end (as long as possible)
+    ${varname/pattern/replacement}
+        replace pattern with replacement
+    ${varname//pattern/replacement}
+        global replace pattern with replacement
+    ${varname/#pattern/replacement}
+        replace pattern match at beginning with replacement
+    ${varname/%pattern/replacement}
+        replace pattern match at end with replacement
+
 
 var as bool
     rethought:
