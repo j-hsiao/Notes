@@ -1,5 +1,20 @@
 contents:
+.0. sources
 .1. distribution
+    .1.1. point to point
+    .1.2. collective comm
+    .1.3. groups
+    .1.4. single to multi
+.2. pytorch blitz
+    .2.1. tensors
+    .2.2. autograd
+    .2.3. networks
+    .2.4. datasets/training
+______________________________
+.0. sources
+    https://seba-1511.github.io/tutorials/intermediate/dist_tuto.html
+    https://pytorch.org/docs/stable/distributed.html
+    https://seba-1511.github.io/tutorials/beginner/blitz/tensor_tutorial.html
 
 ______________________________
 .1. distribution
@@ -17,6 +32,11 @@ ______________________________
         world_size: # of procs
         rank: rank of proc
         timeout: seconds, for gloo
+        group_name: group name for file to avoid
+                    collisions when init_method is a 
+                    shared fs
+
+        connects all procs to each other (fully connected graph)
 
     torch.nn.parallel.DistributedDataParallel(
             model, device_ids, output_device,
@@ -31,3 +51,194 @@ ______________________________
 
     torch.cuda.set_device(i):
         set the gpu to use
+
+    ______________________________
+    .1.1. point to point
+    1 proc to another
+    data transfer: send, recv, isend, irecv
+        dist.send(tensor = tensor, dst = worldRank)
+        dist.recv(tensor = tensor, src = worldRank)
+        (isend, irecv are non-blocking and return an object
+        that can be wait()ed on
+    
+    ______________________________
+    .1.2. collective comm
+    scatter    : list items scattered to respective proc
+    gather     : from all procs to this proc into a list
+    reduce     : from all procs to this proc, opped together
+    All-reduce : from all procs to all procs,opped together
+    broadcast  : same item to all procs
+    all-gather : everyone gets a list of everyone's item
+
+    reduce ops:
+        torch.distributed.reduce_op
+            SUM
+            PRODUCT
+            MAX
+            MIN
+
+    ______________________________
+    .1.3. groups
+    group: subset of processes
+
+    newgroup = dist.new_group(list_of_proc_ranks)
+
+    ______________________________
+    .1.4. single to multi
+        optimizer.zero_grad()
+        inputs-> inputs.cuda(gpu) #(to use gpu)
+        out = model(inputs)
+        loss = efunc(out, target)
+        loss.backward()
+        # !new step here!
+        average_gradients(model)
+        optimizer.step()
+
+        def average_gradients(model):
+            size = float(dist.get_world_size())
+            for param in model.parameters():
+                dist.all_reduce(
+                    param.grad.data, op = dist.reduce_op.SUM)
+                param.grad.data /= size
+
+
+______________________________
+.2. pytorch blitz
+    goals:
+        faster numpy by using gpus
+        deep learning
+    ______________________________
+    .2.1. tensors
+        ndarray counterpart
+        ex:
+            import torch
+            torch.Tensor(5,3)   | np.empty(5,3)
+            x = torch.rand(5,3) | x = np.random.rand(5,3)
+            x.size()            | x.shape
+            (x.shape works too)
+        ex:
+            x = torch.rand(5,3)         | x = np.random.rand(5,3)
+            y = torch.rand(5,3)         | y = np.random.rand(5,3)
+            z1 = x+y                    | z1 = x + y
+            z2 = torch.add(x,y)         | z2 = np.sum((x,y), axis = 0)
+            z3 = torch.Tensor(5,3)      | z3 = np.empty(5,3)
+            torch.add(x,y,out = z3)     | np.sum((x,y), axis = 0, out = z3)
+            y.add_(x)                   | y += x
+        note:
+            inplace operations always end with an _
+
+        same indexing method
+        convert to numpy:
+            x = torch.rand(5,3)
+            asnp = x.numpy()
+            y = torch.from_numpy(asnp)
+
+        CUDA tensors
+            x = torch.rand(5,3)
+            x = x.cuda()
+            y = x.cuda()
+            x + y
+    ______________________________
+    .2.2. autograd
+        autograd.Variable
+            wraps a tensor
+            keeps track of operations on tensor
+            call .backward() to calc all gradients
+        var.data = tensor
+        var.grad = gradient
+        
+        vars have a grad_fn value (which function made the gradient)
+        example:
+            from torch import autograd
+            x = autograd.Variable(
+                torch.rand(5,3), requires_grad = 1)
+            y = x + 2
+            z = y * y * 3
+            out = z.mean()
+            out.backward(torch.ones(out.shape))
+            x.grad
+        NOTE:
+            gradients are accumulated (summed)
+            so between calls, the gradients
+            should all be zeroed
+    ______________________________
+    .2.3. networks
+        torch.nn
+        output = net.forward(input)
+        example:
+            import torch
+            from torch.autograd import Variable
+            from torch import nn
+            from torch.nn import functional as F
+
+            class Net(nn.Module):
+                def __init__(self):
+                    super(Net, self).__init__()
+                    # kernel
+                    self.conv1 = nn.Conv2d(1, 6, 5)
+                    self.conv2 = nn.Conv2d(6, 16, 5)
+                    # an affine operation: y = Wx + b
+                    self.fc1 = nn.Linear(16 * 5 * 5, 120)
+                    self.fc2 = nn.Linear(120, 84)
+                    self.fc3 = nn.Linear(84, 10)
+
+                def forward(self, x):
+                    '''
+                    x: an autograd.Variable
+                    returns: an autograd.Variable
+                    '''
+                    # Max pooling over a (2, 2) window
+                    x = F.max_pool2d(F.relu(self.conv1(x)), (2, 2))
+                    # If the size is a square you can only specify a single number
+                    x = F.max_pool2d(F.relu(self.conv2(x)), 2)
+                    x = x.view(-1, self.num_flat_features(x))
+                    x = F.relu(self.fc1(x))
+                    x = F.relu(self.fc2(x))
+                    x = self.fc3(x)
+                    return x
+
+                def num_flat_features(self, x):
+                    size = x.size()[1:]  # all dimensions except the batch dimension
+                    num_features = 1
+                    for s in size:
+                        num_features *= s
+                    return num_features
+        net.parameters(): return list of learnable parameters
+        net.zero_grad(): zero gradients to allow backward() call
+        single items should be batched as well
+            (input.unsqueeze(0))
+        ______________________________
+        loss
+            measure of error between output and target_output
+        ______________________________
+        updates
+            use torch.optim.update_func(net.parameters(), lr = learning_rate)
+            example:
+                import torch.optim as optim
+
+                # create your optimizer
+                optimizer = optim.SGD(net.parameters(), lr=0.01)
+
+                # in your training loop:
+                optimizer.zero_grad()   # zero the gradient buffers
+                output = net(input)
+                loss = criterion(output, target)
+                loss.backward()
+                optimizer.step()    # Does the update
+    ______________________________
+    .2.4. datasets/training
+        torchvision: for image datasets
+        torchvision:
+            give PIL images from 0. to 1.
+        torchvision.transforms
+            functions given to transforms.Compose
+            to determine how to preprocess the inputs
+        torch.utils.data.DataLoader
+            DataLoader(
+                dataset, batch_size = x,
+                shuffle = x, num_workers = x)
+        to use GPU:
+            model.cuda()
+            input.cuda()
+            labels.cuda()
+
