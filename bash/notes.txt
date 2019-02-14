@@ -347,6 +347,8 @@ escapes:
   ##############################
     --color=auto
     see 4::regexp
+    -A[n] print n lines after matches
+    -B[n] print n lines before matches
 
 
 ##############################
