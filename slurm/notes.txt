@@ -1,0 +1,3 @@
+https://slurm.schedmd.com/quickstart_admin.html
+
+sudo apt-get install slurm-wlm
