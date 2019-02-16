@@ -440,7 +440,7 @@ ______________________________
       unmap   : remove map
       mapclear: clear all maps
 
-  attr: optional, one of:
+  attr: optional, one of: enclosed in <>
       buffer, silent, expr, script, unique, special
   lhs: left hand side, the key sequence
   rhs: the right hand side, what to run
