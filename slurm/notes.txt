@@ -1,3 +1,212 @@
 https://slurm.schedmd.com/quickstart_admin.html
+vid: 58:32
 
-sudo apt-get install slurm-wlm
+contents:
+=1= general
+=2= design/architecture
+=3= commands
+=4= configuration
+
+
+
+______________________________
+=1= general
+  parts:
+    ______________________________
+    resource manager
+      allocate resources to parallel jobs
+      comms usually by mpi
+        resources:
+          ram (share too)
+          switch/interconnects
+          sockets, cores, hyperthreads, gpus
+          licenses
+    ______________________________
+    job scheduler
+      schedule jobs if more jobs than resources can support
+______________________________
+=2= design/architecture
+  plugin building blocks customize behavior (like dlls)
+
+  plugin types:
+    job submit: when job is submitted or modified
+    resource selection:
+      resource allocation per job
+        can be by node, by hyperthread, by core, etc
+  entities:
+    jobs: resource requests
+    job steps: parallel tasks
+    partitions: job queues w/ limits/access controls
+    nodes:
+      sockets
+        cores
+          hyperthreads
+      memory
+      gpus
+      other resources
+  nodes:
+    sockets, cores, threads
+    cpus
+    memory size
+    tmp disk space
+    features (os version etc)
+    weight (job priority for this node)
+    boot time
+    state (down, drain, etc)
+      reason, time, uid
+      idle->allocated->completing
+      down: crashed/shut down
+      drained: not doing anything and accepting no more work
+      draining: not accepting more work but still doing something
+  queue/partition
+    associated with set of nodes
+    jobsize, time limits
+    access control list
+    preemption rules
+    state info
+    over-subscription, gang scheduling rules
+  job: (group of processes running something)
+    id
+    name
+    time limit
+    size (resource limits/needs)
+    nodes (include/exclude)
+    dependency (order etc)
+    account name
+    qos
+    state
+      pending
+      configuring
+      running/resizing/suspended
+      completing
+      cancelled, completed, failed, timed out, nodefail, preempted
+  job steps (a single process running in a set of procs which is a job)
+    jobid.stepid
+    name
+    time
+    size
+    nodes
+  daemons
+    slurmctld(controllers)
+      1 per cluster
+      monitors everything (resources, jobs, allocation, etc)
+    slurmd
+      launch tasks per node
+    slurmdbd
+      collects accounting info
+      uploads configs
+      1 per "enterprise"
+    mysql: configs etc
+      accounting info
+      fair-share of allocations, etc
+    slurmstepd
+      started by slurmd per job step
+      shepherd a job step
+    commandlines:
+      -c: clear/reset
+      -D: run in foreground, log to stdout
+      -v: verbose
+        add v for more and more verbose
+      --help
+      --usage
+      
+    other:
+      short: sep by space
+      long form: use an =
+      time: days-hours:minutes:seconds
+______________________________
+=3= commands
+  sbatch:
+    submit for execution
+  salloc:
+    resource allocation and start a shell
+    (interactive method)
+  srun: 
+    create job allocation and launch job step
+    can also take a configuration file with --multi-prog
+    for dif args per program
+      format:
+        #taskID program   arguments
+        0       master
+        1-4     slave     --rank=%o
+      srun --ntasks=5 --multi-prog configfile
+  sattach: attach terminal to existing job/jobstep
+
+  sinfo: system status
+  squeue: job and step status
+  smap: gui version of above
+  sview: better gui of above
+  scontrol: view/update partitionsjobs, steps, etc
+
+  sacct: accounting info by job/step
+  sstat: current jobs/steps
+  sreport: resource by cluster/partition/user/account, etc
+
+  sacctmgr: db management (accounts, resource limits, etc
+  sprio: job priority
+  sshare: fair-share info
+  sdiag: scheduling
+
+  scancel: cancel jobs
+  sbcast: file transfer to allocated nodes
+  srun_cr: support berkeley checkpoint/restart
+  strigger: event trigger tool
+    run something when event happens
+
+
+  examples:
+    sbatch -ntasks=128 -time=60 --depend=12341234 command.sh
+
+    srun --ntasks=2 --label hostname --exclusive
+
+    salloc --ntasks=8 --time=10 bash
+
+  launch sequence:
+    srun <-> slurmctld
+      1. send request, get allocation and details
+      2. step request, get step credential (key to requested resources)
+      3. connect to slurmd on allocated nodes and give key
+      4. request forwarded to other allocated nodes
+      5. start up stepd
+      6. stepd runs steps
+      7. finishes, notify srun
+      8. srun notifies slrumctld
+      9. resources released
+    
+______________________________
+=4= install
+  install options:
+    sudo apt-get install slurm-wlm
+    download tarball
+    github
+      mkdir build && cd build
+      unzippedslurm[version]/configure --prefix=dir --sysconfdir=dir --enable-debug
+      make
+      make install
+
+    use rpm
+      rpmbuild -ta slurm-2.3.1.tar.bz2
+      rpm --install <rpm files>
+      slurm-blahsomestuffversio-rpm
+______________________________
+=5= configuration
+  slurmd -C
+    print system info (for slurm config file)
+    ex:
+      slurmd -C
+      NodeName=jette CPUs=6 Sockets=1 CoresPerSocket=6 ThreadsPerCore=1
+          RealMemory=8000 TmpDisk=930837
+  
+  tool:
+    doc/html/configurator.html
+
+  minimum requirements:
+    nodes in cluster, partitions
+
+  example:
+    ControlMachine=hostname
+    AuthType=auth/munge
+    CacheGroups0
+    CryptoType=crypto/munge
+    NodeName=linux[1-32] CPUs=1 State=UNKNOWN
+    PartitionName=debug Nodes=linux[1-32] Default=YES MaxTime=INFINITE State=UP
