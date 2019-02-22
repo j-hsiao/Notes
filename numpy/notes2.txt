@@ -1,0 +1,52 @@
+notes on more specific tidbits of numpy
+contents:
+=1= einsum
+=2= tensordot
+
+
+______________________________
+=1= einsum
+    operations:
+        multiply
+        sum
+        transpose
+    generally more memory-efficient/faster
+    notation:
+        [a-z],[a-z],[a-z]...->[a-z]
+        each input has axes labeled
+        if different inputs have the same label
+        for a dimension, that dimension will be
+        multiplied elementwise
+        omitted dimensions in the output will be
+        summed
+
+        note: axes can also be given by list of numbers
+    caveats:
+        no promotion (so may overflow)
+    example:
+        a = np.arange(3)
+        b = np.arange(12).reshape(3,4)
+
+        (a[:,np.newaxis] * b).sum(axis = 1)
+        np.einsum('i,ij->i',a,b)
+
+    example:
+        a = np.arange(9).reshape(3,3)
+        b = np.arange(9,18).reshape(3,3)
+        to get np.matmul(a,b):
+        np.einsum('ij,jk->ik')
+______________________________
+=2= tensordot
+    tensordot(a,b,axes=2)
+        a, b: n-d array
+        axes:
+            [a-axes, b-axes]: dot a-axes with corresponding position in b-axes
+            [a-axis, b-axis]: dot a-axis with b-axis
+            N: dot last N axes in a with the first N axes in b
+    given 2 n-d arrays,
+    construct an array by dotting along
+    the given axes
+    example:
+        matmul:
+        np.tensordot(a,b,axes=(1,0))
+

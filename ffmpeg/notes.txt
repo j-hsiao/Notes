@@ -112,6 +112,8 @@ V options:
         framerate (hertz, fraction, abbreviation)
     -s[stream] size
         [width]x[height]
+    -video_size size
+        same as above, above is deprecated?
     -vcodec
         video codec, alias for -codec:v
     -pix_fmt[stream]

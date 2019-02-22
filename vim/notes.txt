@@ -369,6 +369,7 @@ ______________________________
                                              for instance:
                                              :g/^$/d deletes all empty lines
                                              :g/^\s*$/d deletes all lines without non-whitespace characters
+      :vb, :visualbell                     : turn off beeping, flash screen instead
     ______________________________
     #1.2.3.5::set
       paste, nopaste (paste identical to copy) etc
@@ -440,7 +441,7 @@ ______________________________
       unmap   : remove map
       mapclear: clear all maps
 
-  attr: optional, one of:
+  attr: optional, one of: enclosed in <>
       buffer, silent, expr, script, unique, special
   lhs: left hand side, the key sequence
   rhs: the right hand side, what to run
