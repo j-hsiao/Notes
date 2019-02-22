@@ -361,6 +361,19 @@ escapes:
     -A[n] print n lines after matches
     -B[n] print n lines before matches
 
+    useful options:
+    -v: inverted search (print things that don't match)
+    -F: interpret pattern as list of literal string patterns
+    -f: use file to get patterns
+    -x: match entire line (automatically surround pattern with ^$)
+    -i: ignore case
+    -n: line number
+    -r: recursive
+    -m: max-matches
+
+    can also use with find to make it recursive and control depth:
+    find . -maxdepth blah -mindepth 1 -type f -exec 'grep pattern {}'
+
 
 ##############################
 6::inputs
