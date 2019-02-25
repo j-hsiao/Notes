@@ -1,0 +1,29 @@
+contents:
+-1- ssh
+  -1.1- config
+  -1.2- encryption/keys
+-2- scp
+
+______________________________
+-1- ssh
+    ssh user@domain
+    ssh -l user domain
+    ______________________________
+    -1.1- config
+        config files:
+            /etc/ssh/ssh_config
+            ~/.ssh/config
+        Host name
+            HostName ip/domain
+            User defaultUser
+            IdentityFile path/to/file
+            Port <port number>
+            other options
+    _______________________________
+    -1.2- encryption/keys
+        ssh-keygen -t type -b bits -f file -C comment -n ""
+        rsa:
+            generates an rsa and rsa.pub file
+            put the rsa.pub file in the target host
+            ~/.ssh/authorized_keys
+            when sshing use the rsa file to the -i argument

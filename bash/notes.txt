@@ -370,6 +370,7 @@ escapes:
     -n: line number
     -r: recursive
     -m: max-matches
+    -z: change entire file into a single line
 
     can also use with find to make it recursive and control depth:
     find . -maxdepth blah -mindepth 1 -type f -exec 'grep pattern {}'
