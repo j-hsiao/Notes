@@ -5,7 +5,8 @@ contents:
 =1= general
 =2= design/architecture
 =3= commands
-=4= configuration
+=4= install
+=5= configuration
 
 
 
@@ -174,7 +175,7 @@ ______________________________
       9. resources released
     
 ______________________________
-=4= install
+=4= install/
   install options:
     sudo apt-get install slurm-wlm
     download tarball
@@ -188,6 +189,22 @@ ______________________________
       rpmbuild -ta slurm-2.3.1.tar.bz2
       rpm --install <rpm files>
       slurm-blahsomestuffversio-rpm
+
+  mkdir /tmp/slurm -> configuration dir
+  cd build_<your platform here>
+  ./config_<your platform here>
+
+  slurm/install_linux/etc/slurm.conf
+    sample slurm file
+    change things
+    (user name (slurmuser), hostname, ...)
+
+  install_linux/sbin:
+    ./slurmctld -Dcv
+    ./slrumd -Dcv
+
+  add bin to search path
+
 ______________________________
 =5= configuration
   slurmd -C
@@ -197,16 +214,38 @@ ______________________________
       NodeName=jette CPUs=6 Sockets=1 CoresPerSocket=6 ThreadsPerCore=1
           RealMemory=8000 TmpDisk=930837
   
-  tool:
+  tool ( download the zipped code or git repo ):
     doc/html/configurator.html
 
   minimum requirements:
     nodes in cluster, partitions
 
   example:
-    ControlMachine=hostname
+    ControlMachine=(hostname)
     AuthType=auth/munge
     CacheGroups0
     CryptoType=crypto/munge
     NodeName=linux[1-32] CPUs=1 State=UNKNOWN
     PartitionName=debug Nodes=linux[1-32] Default=YES MaxTime=INFINITE State=UP
+
+  configs: requires auth (install munge first)
+  nodes must have a munge key and running daemons
+
+  credentials include:
+    user id
+    group id
+    time stamp
+    other things:
+      allocated nodes
+      cpus per node, job/step, memory, gpus, etc
+
+  ______________________________
+  verify configuration/operation
+    testsuite/expect
+    create globals.locals w/ info:
+      set slurm_dir "/path/to/slurm/install.linux"
+      set build_dir "/path/to/slurm/build.linux"
+      set src_dir "/path/to/slurm.git"
+    run individual tests or run "regression" for all tests
+    regression > file
+    stderr: pass/fail etc, check file for any fail details
