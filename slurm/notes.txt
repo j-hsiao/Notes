@@ -1,13 +1,14 @@
 https://slurm.schedmd.com/quickstart_admin.html
-vid: 58:32
+
+must upgrade slurmdbd first (it must support updates for others to udpate/communicate)
 
 contents:
 =1= general
 =2= design/architecture
 =3= commands
-=4= configuration
-
-
+=4= install
+=5= configuration
+=6= slurmdb
 
 ______________________________
 =1= general
@@ -118,6 +119,23 @@ ______________________________
 =3= commands
   sbatch:
     submit for execution
+    commands in commandline or jobscript (comments)
+    example:
+        -H: hold (submit but don't run)
+        -N node
+        -n task
+        --mem-per-cpu=XXXM
+        -tHH:MM:SS (time limit)
+        --qos=test (queue to run faster...? how related to partitions?)
+        scriptToRun
+    output:
+        job id
+        file: slurm-jobid.out
+    script: add #SBATCH comments to add args as commandline parameters
+
+        #SBATCH options
+        #SBATCH options
+
   salloc:
     resource allocation and start a shell
     (interactive method)
@@ -134,9 +152,13 @@ ______________________________
 
   sinfo: system status
   squeue: job and step status
+    squeue -u $USER
+        ST: state (PD=pending, R=running)
+        PARTITION: potential nodes to run on
   smap: gui version of above
   sview: better gui of above
   scontrol: view/update partitionsjobs, steps, etc
+    show job <jobid>
 
   sacct: accounting info by job/step
   sstat: current jobs/steps
@@ -148,6 +170,7 @@ ______________________________
   sdiag: scheduling
 
   scancel: cancel jobs
+    scancel jobid jobid jobid ...
   sbcast: file transfer to allocated nodes
   srun_cr: support berkeley checkpoint/restart
   strigger: event trigger tool
@@ -210,3 +233,47 @@ ______________________________
     CryptoType=crypto/munge
     NodeName=linux[1-32] CPUs=1 State=UNKNOWN
     PartitionName=debug Nodes=linux[1-32] Default=YES MaxTime=INFINITE State=UP
+
+    ClusterName=name (lowercase)
+    JobAcctGatherType=jobacct_gather/linux
+    AccountingStorageType=accounting_storage/slurmdbd
+    JobCompType=jobcomp_none
+
+    AccountingStorageEnforce=...
+      associations (require valid db entry)
+      limits
+      qos (quality of service)
+
+    slurmdbd.conf
+      AuthType=auth/munge
+      StorageType=accounting_storage/mysql
+      StorageUser=...
+      StoragePass=...
+      PrivateData=...
+      PurgeJobAfter=... (data expiration)
+      PurgeStepAfter=... (data expiration
+      StoragePass=...
+
+______________________________
+=6= slurmdb
+    single db is recommended (easier to administer)
+    data maintained by username (all nodes should have same corresponding users)
+
+    slurmdbd: database daemon
+        uses database for users
+        push update info to slurmctld
+        slurmctld will cache data if dbd not responding
+    association
+        (cluster, acct, user, partition, etc...)
+        have associated resources/limits
+        accounts must be unique
+    coordinator:
+        manage user accounts
+    sacctmgr:
+        view/modify database
+        add clusters
+        add/del accounts, change limits, etc
+    sacct: info
+    sreport: summarize/process sacct output
+    sstat: detailed processing of sacct
+
