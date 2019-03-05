@@ -1,13 +1,297 @@
+https://mxnet.incubator.apache.org/versions/master/tutorials/index.html
 https://mxnet.incubator.apache.org/api/python/symbol/symbol.html
 
 contents:
 ______________________________
-=1= symbol
-=2= module
-
+=1= NDArray
+=2= symbol
+=3= kvstore
+=4= module
+=5= data
+=6= metrics
 
 ______________________________
-=1= symbol
+=1= NDArray
+    mxnet's np.ndarray
+
+    from mxnet import nd as mxnp
+
+    mxnp:
+        shared:
+            add
+            arange
+            array
+            broadcast_to
+            dot
+            empty
+            full
+            load
+            mean
+            ones
+            save
+            sum
+            zeros
+        new:
+            slice_axis(arr, axis = N, begin = x, end = y)
+                make a slice from x to y along axis N
+            concat(a1, a2...?)
+                concatenate along axis 0
+            sum_axis(arr, axis = N)
+                sum along axis
+    mxnp.ndarray:
+        shared:
+            funcs:
+                reshape
+                copy
+            attrs:
+                dtype
+                shape
+                size
+        new:
+            funcs:
+                copyto([ context | ndarray ])
+                    copy into ndarray
+                    or copy to context (see above)
+                asnumpy()
+                    convert to np.ndarray
+                wait_to_read()
+                    wait until operation is finished
+            attrs:
+                context
+                    mx.cpu() or mx.gpu(n)
+    ______________________________
+    array operations
+        lazy operations => use wait_to_read()
+        ______________________________
+        slicing
+            use mxnd.slice_axis to slice different axes
+            basically same as nparray slicing/indexing
+        ______________________________
+        advanced indexing
+            use lists or something to index
+            always returns a copy
+
+    ______________________________
+    contexts
+        mx.Context([ mx.gpu(N) | mx.cpu() ])
+        use a with statement
+        or set the ndarray's ctx value with the corresponding gpu/cpu
+
+        all operands must be on same device for an operation to be performed
+
+    ______________________________
+    serialization
+        use python pickle
+
+______________________________
+=2= symbol
+    defines a graph of computation before doing computation
+    allows memory recycling (inplace computation)
+    and stuff
+
+
     auto-differentiation
     represent symbolic expressions
     variables can be output of a symbol or free (bind with value later)
+
+    example:
+        >>> a = mx.sym.Variable('a')
+        >>> b = mx.sym.Variable('b')
+        >>> c = 2 * a + b
+        >>> e = c.bind(mx.cpu(), {'a' : mx.nd.array([1,2]), 'b': mx.nd.array([2,3])})
+        >>> y = e.forward()
+        >>> y[0].asnumpy()
+        array([4., 7., dtype = float32)
+
+    use similarly to ndarray (+ * / -, reshape, broadcast_to, etc)
+    
+    funcs:
+        infer_shape(inputShapeKwargs)
+        infer_type(inputTypeKwargs)
+            guess the output shapes/types
+
+    ______________________________
+    binding/eval with data
+        bind:
+            symbol.bind(context, args = mappingdict)
+                returns an "executor"
+
+            executor.forward()
+            results = executor.outputs
+
+        eval:
+            output = symbol.eval(context, args = mappingdict)
+
+    ______________________________
+    loading/saving
+        saves the graph, no values to save (at least for free variables...)
+
+        symbol.tojson()
+        symbol.save('jsonfile.json')
+        mx.sym.load('jsonfile.json')
+
+______________________________
+=3= kvstore
+    data sharing b/w devices
+    kv = mx.kv
+
+    create('name')
+        create a kvstore
+    init(key, value)
+        key: a key or list of keys
+        value: a value or list of values per key
+
+        NOTE: when adding to the store, the values are copied
+
+    pull(key, out)
+        key: a key or list of keys
+        out: outputs per key, broadcasted
+
+    push(key, value)
+        key: a key or list of keys
+        value: value or values per key
+            if values per key, then values are 
+            summed and then combined with with original value
+            with an updater function
+
+    _set_updater(func)
+        set updater function for kvstore
+        func(key, newval, origval):
+            mutate origval
+______________________________
+=4= module
+    mx.io.NDArrayIter(
+        ndarray, labelarray, batch_size, shuffle = bool
+    )
+        create an iterator for the data
+        ( see "=5= data" section for more details )
+
+    mx.module.Module(
+        symbol, context, data_names, label_names
+    )
+        symbol: symbol to run as model
+        context: device or list of devices (mx.cpu, mx.gpu)
+        data_names: list of input data variable names
+        label_names: list of input label var names
+
+    ______________________________
+    intermediate-level interface
+        steps:
+            bind
+                allocate mem:
+                mod.bind(
+                    data_shapes = iter.provide_data
+                    label_shapes = iter.provide_label)
+            init_params
+                initialize params
+                mod.init_params(
+                    initializer = mx.init.MY_CHOSEN_INITALIZER)
+            init_optimizer
+                optimizer, default sgd
+                    mod.init_optimizer(
+                        optimizer = 'name of optimizer',
+                        optimizer_params = (stuffs))
+            metric.create   evaluation metric
+                mx.metric.create('name')
+            forward
+                mod.forward(batch, is_train = bool)
+            update_metric
+                mod.update_metric(metric, batch.label)
+            backward
+                mod.backward()
+            update
+                mod.update()
+
+    ______________________________
+    high-lvl interface
+        mod.fit(
+            train_iter,
+            eval_data = eval_iter,
+            optimizer = 'optimizer name',
+            optimizer_params = {params dict},
+            eval_metric = 'name of metric',
+            num_epoch = # of epochs
+            epoch_end_callback=mx.callback.do_checkpoint('model_prefix_name')
+        )
+            train the model with params
+
+
+        mod.predict(val_iter)
+            run data in iter through the model
+
+        mod.score(val_iter, [list of metric names])
+            run prediction and eval, toss the 
+            forward results
+
+        mx.model.load_checkpoint(
+            'model_prefix_name', epochCount
+        )
+            returns symbol, arg_params, aux_params
+            mod.set_params(arg_params, aux_params)
+
+______________________________
+=5= data
+    https://mxnet.incubator.apache.org/versions/master/tutorials/basic/data.html
+    (left off at pack/unpack...)
+
+    mx.io: common data formats, utility funcs
+    mx.recordio: recordio data format
+    mx.image   : image iterators/augmentation funcs
+
+
+    iter funcs:
+        provide_data : give data shape description
+            (list of (name, shape) per datum)
+        provide_label: give label shape description
+            (list of (name, shaep) per label)
+        reset()      : reset iterator
+
+    iterators:
+        io
+            NDArrayIter
+                for in-memory data inside ndarrays
+            CSVIter
+            LibSVMIter
+            ImageRecordIter
+            ImageREcordInt8Iter
+            ImageRecordUInt8Iter
+            MNISTIter
+        recordio
+            MXRecordIO(file, mode)
+                write(data): write data to file
+                read(): read datum from file
+            MXIndexedRecordIO(index, db, mode)
+                write(index, record)
+                read_idx(index)
+
+        image
+            ImageIter
+            ImageDetIter
+    others:
+        io
+            DataDesc: description of name, shape, type
+            DataBatch: batch of data
+            DataIter: base iterator class
+            ResizeIter: resize data to # of batches
+            PrefetchingIter: pre-fetch for others
+            MXDataIter: c++ data iter wrapper
+        recordio:
+            pack: 
+            unpack: 
+                (un)pack string to MXImageRecord
+            pack_img
+            unpack_img
+                (un)pack image to MXImageRecord
+
+
+
+______________________________
+=6= metrics
+    https://mxnet.incubator.apache.org/versions/master/api/python/metric/metric.html
+
+    top_k_acc
+    F1
+    RMSE
+    MSE
+    MAE
+    ce (cross entropy)
