@@ -10,7 +10,7 @@ contents
   5.2::grep
 6::inputs
 7::redirection
-
+8::completion
 
 ##############################
 1::drives and devices
@@ -447,3 +447,101 @@ escapes:
         stderr assigned to stdout (which currently points to foo.txt)
         thus both stdout and stderr go to foo.txt
 
+##############################
+8::completion
+##############################
+    code into ~/.bash_completion
+    use command name to determine completion for arguments
+    completion priority order:
+        1: 
+            if empty:
+                use any with -E option
+            if a path:
+                use for corresponding path
+                use any with -D option
+        2: glob expansions
+        3: -w options (split by IFS, expanded etc)
+        4: functions with -F invoked
+        5: functions with -C invoked
+        6: filtered with -X option
+        7: prefix/suffix from -P and -S added to candidates
+        8: if no candidates, -o dirnames supplied to complete,
+            directory completion attempted
+    ______________________________
+    builtins:
+    compgen [option] [word]
+        print completions for word
+    complete [-abcdefgjksuv] [-o comp-option] [-DEI] [-A action] [-G globpat]
+        [ -W wordlist ] [-F function] [-C command] [-X filterpat]
+        [-P prefix] [-S suffix] name [name ...]
+    complete -pr [-DEI] [name...]
+
+    -p: print to reuse as input
+    -r: remove specification for each name
+    -D: default completion
+    -E: empty completion
+    -I: initial non-assignment word or after delim (like ;, |)
+        -DEI is order of precedence
+    -o comp-option:
+        bashdefault: use default when no matches
+        default: use readline's filename when no matches
+        dirnames: use dirname when no matches
+        filenames: specify completions are filenames (so process like filenames), used with -F
+        noquote: don't quote if filenames
+        nosort: don't sort
+        nospace: don't append space to end of the completion
+                 ie: | is the cursor
+                    cmd arg[tab] -> cmd complete|
+                    vs
+                    cmd arg[tab] -> cmd complete |
+        plusdirs: add dir completion
+    -A action
+        alias: alias names
+        arrayvar: array variable names
+        binding: key binding names
+        builtin: names of shell builtin commands
+        command: command names
+        directory: directory names
+        disabled: disabled shell builtins
+        enabled: enabled shell builtins
+        export: exported shell vars
+        file: file names
+        function: shell funcs
+        group: group names
+        helptopic: topics to help
+        hostname: hostname from file specified by HOSTFILE var
+        job: job names
+        keyword: shell keywords
+        running: running jobs
+        service: service names
+        setopt: valid args to set -o
+        shopt: option names accepted by shopt
+        signal: signal names
+        stopped: stopped jobs
+        user: user names
+        variable: shell vars
+    -C: command to execute in subshell, output = completions
+    -F: bash func, args are:
+        cmd word preword
+        ex:
+            python -m asdf[tab]
+            -> $1 = python
+            -> $2 = asdf
+            -> $3 = -m
+        COMP_WORDS: completion words array
+        COMP_CWORD: current word
+        COMPREPLY : the completion candidates
+    -G pat expand for completions
+    -P: prefix prepended to completions
+    -S: suffix to append to completions
+    -W: list of words split by IFS to be used as completion
+    -X: remove matches to pattern
+        prepend with a ! to remove non-matches
+    NOTE:
+        pats (-G, -W, -X) should be quoted
+
+    example using -F method:
+        compfunc () {
+            do stuff
+        }
+        complete -o filenames -o nospace -o bashdefault -F compfunc cd

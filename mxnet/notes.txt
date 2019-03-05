@@ -1,0 +1,13 @@
+https://mxnet.incubator.apache.org/api/python/symbol/symbol.html
+
+contents:
+______________________________
+=1= symbol
+=2= module
+
+
+______________________________
+=1= symbol
+    auto-differentiation
+    represent symbolic expressions
+    variables can be output of a symbol or free (bind with value later)
