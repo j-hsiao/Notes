@@ -1,3 +1,8 @@
+______________________________
+contents:
+=1= modules
+=2= context manager
+
 interpreter:
 ~/.inputrc
 
@@ -9,7 +14,7 @@ blah
 
 
 ------------------------------
-modules
+=1= modules
 ------------------------------
 modules contain __init__.py
 imports can be relative
@@ -50,3 +55,15 @@ python mymod/foo.py => error, no module named mymod
 instead run:
 python -m mymod.foo
 
+------------------------------
+=2= context manager
+------------------------------
+used in with statement
+should have __enter__() and __exit__(exceptionType, exceptionValue, traceback)
+
+    __enter__():
+        return an item to be bound by the with statement
+        with manager as f:   ->    f = manager.__enter__()
+    __exit__(exceptionType, exceptionValue, traceback):
+        all None if no exception
+        return a Truthy value to indicate exception was handled and should not be raised
