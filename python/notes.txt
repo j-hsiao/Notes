@@ -3,6 +3,7 @@ contents:
 =1= modules
 =2= context manager
 =3= closure
+=4= memoryview
 
 interpreter:
 ~/.inputrc
@@ -153,4 +154,18 @@ summary, closure compared to object classes:
     python3 closures are more memory efficient, but python2, closures are less memory efficient
 
 
+______________________________
+=4= memoryview
+    memoryview: view of memory without copies
+                much more efficient
+                bytes-like
+                has some issues between python2/3
 
+                                                    python2             python3
+    b''.join()                                      X                   O
+    memoryview(nparray)                             O                   O
+    np.frombuffer                                   X                   O
+    np.fromstring                                   X                   X
+    memoryview(b'hi')[0]                            b'h'                104
+    memoryview(b'hi') == b'hi'                      O                   O
+    memoryview(b'hi') == bytearray(b'hi')           O                   O
