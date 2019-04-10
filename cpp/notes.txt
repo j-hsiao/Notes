@@ -1,0 +1,229 @@
+contents
+
+=1= compilers
+=2= basics
+    =2.1= variables
+    =2.2= constants
+    =2.3= operators
+    =2.4= basic io
+=7= reference
+    =7.1= <cstdint>
+    =7.2= <limits>
+    =7.3= <string>
+
+
+
+
+------------------------------
+=1= compilers
+    actually generally a tool-chain
+        consisting of a compiler and linker
+
+    
+------------------------------
+=2= basics
+    // comment
+    /* multiline
+    comment*/
+    #include <standardfile>
+    #include "localfile"
+
+    type name(args){
+        body;
+    }
+
+    ------------------------------
+    =2.1= variables
+        [a-zA-Z_][a-zA-Z0-9_]*
+        ______________________________
+        fundamental types:
+            char
+                char                >=8 bits
+                char16_t            >= 16 bits
+                char32_t            >= 32 bits
+                wchar_t             largest character set supported
+            int
+                signed:
+                    signed char     >= 8 bits
+                    short           >= 16 bits
+                    int             >= 16 bits
+                    long            >= 32 bits
+                    long long       >= 64 bits
+                unsigned:
+                    char            >= 8 bits
+                    short           >= 16 bits
+                    int             >= 16 bits
+                    long            >= 32 bits
+                    longlong        >= 64 bits
+            float
+                float               unspecified
+                double              > float
+                longdouble          > double
+            bool
+            void
+                    no storage
+            null pointer
+                decltype(nullptr)
+
+        ______________________________
+        declaration/initialization:
+            type name1, name2, name3...;
+
+            type n1 = val1;
+            type n2(val2);
+            type n3 {val1};
+
+            auto name1 = val1; // same type as val1
+            decltype(foo) bar; // bar is set to same type as foo
+
+    ------------------------------
+    =2.2= constants
+        numeric:
+            ints:
+                9128749127      int
+                0113 (octal)    int
+                0x69 (hex)      int
+                69l             long
+                69ll            longlong
+            uints:
+                69u             uint
+                69ul            ulong
+                69ull           ulonglong
+            floats:
+                3.1415          double
+                6.02e23         double
+                1.6e-19         double
+
+                3.1415f         float
+                6.02e23l        long double
+        strings:
+            "some string"       string
+            'c'                 char
+            u'x'                char16_t
+            U'x'                char32_t
+            L'x'                wchar_t
+            R"delim(strdat)delim"  raw string
+            u8"asdf"            utf-8 encoded string
+
+            escapes
+                \n      newline
+                \r      carriage return
+                \t      tab
+                \v      vertical tab
+                \b      backspace
+                \f      form feed (page feed)
+                \a      beep
+                \'      single quote
+                \"      double quote
+                \?      a ?
+                \\      a \
+                \111    octal code
+                \x69    hex code
+
+            strings are concatenated when
+            separated by white space
+            " str1" " str2" == " str1 str2"
+
+        bool:
+            true
+            false
+
+        pointers:
+            nullptr
+
+        const:
+            indicate a variable is a constant
+
+            const double pi = 3.14159
+
+        #define seq1 seq2
+            use preprocessor to define a constant
+            preprocessor replaces seq1 with seq2
+
+    ______________________________
+    =2.3= operators
+        = assignment
+            copy bits from right to left
+
+            n1 = n2 = n3 = val;
+            assign val to all names
+
+        +-*/%, standard meanings
+
+        compound assignment:
+            operators can be prepended to =
+            to assign the operated value
+                +=, -=, %=, /=, *=, >>=, <<=, &=, ^=, |=
+
+        incr decr:
+            i++         inc by 1 after assign
+            ++i         inc by 1 before assign
+            i--         dec by 1 after assign
+            --i         dec by 1 before assign
+
+        comparison
+            == != > < >= <=
+
+        logic
+            ! && ||
+        ternary
+            bool ? truval : falseval
+
+        comma
+            similar to combine lines into one line
+            in assignment, only the last line is considered
+            ie:
+                a = (b = 3, b + 69)
+                a == 72
+                b == 3
+        bitwise
+            & | ^ ~ << >>
+
+        casting
+            (type) var
+            type(var)
+
+        sizeof
+            # of bytes
+    ______________________________
+    =2.4= basic io
+        c++ uses "streams"
+        use << and >> operators to move data into/out of
+        streams
+
+        insertions can be chained
+        cout << "this" << " is" << " a" << " sentence";
+        
+        cout
+            standard output
+
+        endl
+            newline and flush
+            (if just used '\n', it wouldn't flush)
+
+        cin
+
+
+
+
+
+
+
+
+------------------------------
+=7= reference
+
+    =7.1= <cstdint>
+        types:
+            intXX_t
+            intptr_t
+            uintXX_t
+            uintptr_t
+            
+            where XX = 8, 16, 32, 64
+        macros:
+            [INT | UINT]XX_[MIN | MAX]
+    =7.2= <limits>
+        numeric_limits()
+    =7.3= <string>
+        string (type)
