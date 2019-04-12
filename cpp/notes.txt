@@ -11,6 +11,9 @@ contents
     =2.7= type aliases
     =2.8= classes
     =2.9= casting
+    =2.10= exceptions
+    =2.11= preprocessor directives
+    =2.12= file io
 =3= syntax
     =3.1= branches
     =3.2= loops
@@ -607,16 +610,261 @@ contents
             check type of an expression
             returns a type_info from <typeinfo>
 
-http://www.cplusplus.com/doc/tutorial/exceptions/
+    ______________________________
+    =2.10= exceptions
+        ______________________________
+        syntax:
+            try {
+                potential exception;
+                throw 69;
+            }
+            catch (int e)
+            {
+                cout << "error " << e << " occurred." << endl;
+            }
+            catch (string msg)
+            {
+                cout << msg << "happened." << endl;
+            }
+            catch (...)
+            {
+                cout << "something excepted" << endl;
+            }
+            normal code
+
+        the arg to catch must match the throw arg
+        (or use ... to specify default handler)
+
+        throw: like python raise
+        when used in a catch block, re-throws the exception
+
+        ______________________________
+        dynamic exception specifications
+            add throw ( type ) to indicate a function may throw the type (deprecated in C++)
+            ie:
+                double penetration(int seconds) throw (int);
+            calls std::unexpected if throw something of a different type or std::terminate
+            leave it out to behave normally
+
+        ______________________________
+        exception classes:
+            #include <exception>
+            std::exception
+                base class for exceptions
+                specifically for being thrown
+
+            class TheMatch: public std::exception
+            {
+                virtual const char* what() const throw()
+                {
+                    return "TheMatch was thrown";
+                }
+            }
+
+            try {
+                throw TheMatch;
+            } catch (std::exception& e) {
+                cout << e.what() << endl;
+            }
+
+                NOTE:
+                    use exception& e so subclasses will also be caught here
+                    otherwise, probably try to implicitly up cast
+            ______________________________
+            standard exception subclasses
+                logic_error
+                    indicates internal logic has problem
+                runtime_error
+                    detected during runtime
+
+            std::logic_error
+
+        ______________________________
+        standard exceptions:
+            bad_alloc               thrown by "new" on allocation failure
+            bad_cast                thrown by "dynamic_cast"
+            bad_exception           thrown by dynamic exception specifiers
+            bad_typeid              thrown by typeid
+            bad_function_call       thrown by empty function objects
+            bad_weak_ptr            thrown by shared_ptr when passed a bad weak_ptr
 
 
+    ______________________________
+    =2.11= preprocessor directives
+        instructions for preprocessor 
+            (copy/paste code into a single file for compilation among other things)
+
+        can use trailling \ to continue on next line
+        no trailing ; 
+
+        ______________________________
+        #define/undef
+            #define PATTERN REPLACEMENT
+            define a macro
+            replace PATTERN with REPLACEMENT anywhere it is found
+
+            ex:
+                #define CANDY "GOOD"
+            function macro
+                example 1: normal function macro
+                    code:
+                        #define max(a, b) a>b?a:b
+                        max(x, y)
+                    result:
+                        x>y?x:y
+
+                example 2: function macro with # operator
+                    surround the named argument with double quotes
+                    ie:
+                        code:
+                            #define boink(x) #x
+                            cout << boink(wut)
+                        result:
+                            cout << "wut"
+                example 3: function macro with ## operator
+                    concatenate the two params
+                    ie:
+                        code:
+                            #define cat(a,b) a ## b
+                            cat(c,out) << "why!" << endl;
+                        result:
+                            cout << "why!" << endl;
+
+        ______________________________
+        #conditionals
+
+        ifdef arg                   if arg is defined (#define)d
+
+        ifndef arg                  if arg is not (#define)d
+                        NOTE: doesn't need to be defined in the same file
+                              the arg may have been defined in an included header
+
+        if cond                     cond must be a constant expression (though can contain macros)
+        elif cond                   same as if except follows an if
+        else
+        endif                       end an if clause
+
+                        NOTE:
+                            for if and elif, cond may also use "defined" or "!defined", same result is #ifdef or #ifndef
+                            ie:
+                                    #if defined MAXVAL && MAXVAL > 69
+                                    etc...
+                                    ie: > < == >= <= || && !  etc can be used 
+
+        ______________________________
+        #line
+            control printed line number and file name upon an error
+            syntax
+                # line number "replacement"
+                    number: new line number for next line of code
+                    filename: replacement for the name of the file
+
+                ie:
+                    instead of "error at line 69 in file wut.cpp" or something like that,
+                    it would be:
+                        "error at line number in in file replacement"
+        ______________________________
+        #error
+            throw a preprocessor exception
+
+        ______________________________
+        #include
+            include a file
+            #include <name>             c++ implemented code (may be a file or not, depends on compiler and stuff)
+            #include "name"             a filefile
+
+        ______________________________
+        #pragma
+            special compiler options
+            may be ignored without error if not supported
+            like omp parallel
+
+        ______________________________
+        predefined macros
+            __LINE__                            current line in source code
+            __FILE__                            current file name
+            __DATE__                            date during compilation
+            __TIME__                            time during compilation
+            __cplusplus                         199711L (for c++ 1998/2003) or 201103L (c++ 2011)
+            __STDC_HOSTED__                     1 if is a "hosted implementation" (all of standard C is available)
+            __STDC__                            1 if conform to C standard and in C
+            __STDC_VERSION__                    in C:   199401L
+                                                        199901L
+                                                        201112L
+            __STDC_MB_MIGHT_NEQ_WC__            1 if multi-byte encoding may give a character different values in literals
+            __STDC_ISO_10646__                  yyyymmL date of unicode standard and encoding of wchar_t characters
+            __STDCPP_STRICT_POINTER_SAFETY__    1 if has strict pointer safety
+            __STDCPP_THREADS__                  1 if threading is available
 
 
+    ______________________________
+    =2.12= file io
+        ofstream: output file stream
+        ifstream: input file stream
+        fstream : both in and out
 
-            
+        stream.open("path", mode)
+            open the file
+            mode: combination of flags
+                ios::in         read
+                ios::out        write
+                ios::binary     binary mode
+                ios::ate        at end
+                ios::app        append
+                ios::trunc      truncate the file
 
+            ios::in and ios::out are automatically added to 
+            corresponding i/ofstream object (even if given mode doesn't include them)
+            for fstream, given mode is as is
 
+        is_open()
+            return True if opened else False
+        bad()
+            failed to read or write (ie no space, or file not opened, etc)
+        fail()
+            bad() or a formatting error (ie read an invalid int)
+        eof()
+            if at end
+        good()
+            if no problem
+        clear()
+            reset state flags
 
+        tell[g|p]()
+            tell current get/put (read/write) position
+        seek[g|p](int x)
+            seek current get/put (read/write) position
+
+        seek[g|p](int offset, int whence)
+            offset:
+                offset amount to seek
+            whence:
+                ios::beg
+                ios::cur
+                ios::end
+        stream.close()
+        read(block, size)
+        write(char* block, int size)
+            read/write data from/into the block (a char*) for N bytes
+            reads:
+                if eof encountered, then stream.fail() and stream.eof()
+            writes:
+                seems like it will keep writing until all is written
+                data is buffered
+                writing to physical device (file or socket or whatever??)
+                when:
+                    file is closed
+                    buffer is full
+                    explicitly (endl or flush())
+                    sync()
+        gcount()
+            # of bytes read by the stream
+            (generally use this when encountered eof to see where the data ends)
+        types:
+            streampos       (an int-like type for file position, can cast to int (should be large enough to hold size)
+            ios::pos_type   same as above but more generic
+            stremaoff       for offset, alias of an int
+            ios::off_type   same as above, but more generic
 ______________________________
 =3= syntax
     compound statements:
@@ -977,3 +1225,12 @@ ______________________________
         calloc
         realloc
         free
+
+    =7.8= <exception>
+        std::exception: exception baseclass
+
+    =7.9= <fstream>
+        file io:
+            ifstream
+            ofstream
+            fstream
