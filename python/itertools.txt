@@ -1,0 +1,152 @@
+contents
+-1- infinite
+    -1.1- count
+    -1.2- cycle
+    -1.3- repeat
+-2- terminating
+    -2.1- chain
+    -2.2- compress
+    -2.3- dropwhile
+    -2.4- groupby
+    -2.5- ifilter
+    -2.6- ifilterfalse
+    -2.7- imap
+    -2.8- islice
+    -2.9- izip
+    -2.10- izip_longest
+    -2.11- starmap
+    -2.12- takewhile
+    -2.13- tee
+-3- combinatoric
+    -3.1- combinations
+    -3.2- combinations_with_replacement
+    -3.3- permutations
+    -3.4- product
+
+
+##############################
+-1- infinite
+##############################
+    ------------------------------
+    -1.1- count(start = 0, step = 1)
+        count to infinity
+
+    ------------------------------
+    -1.2- cycle(iterable):
+        iterate through iterable
+        and then start at beginning again
+        NOTE:
+            saves a copy of the iterable
+            so it can repeat
+
+    ------------------------------
+    -1.3- repeat(obj, times):
+        (obj for _ in range(times))
+        
+
+##############################
+-2- terminating
+##############################
+    ------------------------------
+    -2.1- chain(*iterables)
+        concatenation of iterables
+
+        ------------------------------
+        -2.1.1- chain.from-iterable(iterproducer)
+            alternate method of making a chain:
+            chains the iterables returned from an iterable
+            (allows for infinite amount of iterables to chain together)
+    
+    ------------------------------
+    -2.2- compress(data, selectors)
+        selectors is more like a mask
+        returns things from data if corresponding
+        thing in selectors is True
+
+    ------------------------------
+    -2.3- dropwhile(predicate, iterable)
+        find the first thing in iterable
+        such that predicate(thing) is False
+        then return things from iterable from then on
+
+    ------------------------------
+    -2.4- groupby(iterable, key):
+        key: a key function
+        return (key, group)
+        each thing in group has the same key
+        group ends once the key changes
+        even if the key has been encountered before
+
+    ------------------------------
+    -2.5- ifilter(predicate, iterable):
+        if predicate is None:
+            predicate = bool
+        (_ for _ in iterable if predicate(_))
+
+    ------------------------------
+    -2.6- ifilterfalse(predicate, iterable):
+        same as above, but for falsey stuffs
+
+    ------------------------------
+    -2.7- imap(function, *iterables):
+        call function with args from iterables
+        (function(*thing) for thing in zip(*iterables))
+
+    ------------------------------
+    -2.8- islice(iterable, stop):
+          islice(iterable, start, stop, step = 1):
+
+        like slicing an iterator
+
+    ------------------------------
+    -2.9- izip(*iterables):
+        zip with a generator instead of a list
+        stop at shortest iterable
+
+    ------------------------------
+    -2.10- izip_longest(*iterables, fillvalue):
+        zip with a generator instead of a list
+        stop at longest iterable, replace None for shorter ones
+
+
+    ------------------------------
+    -2.11- starmap(func, iterable):
+        similar to imap
+        iterable is pre-zipped
+
+        (func(*args) for args in iterable)
+
+    ------------------------------
+    -2.12- takewhile(predicate, iterable):
+        return things until predicate(thing) is False
+
+
+    ------------------------------
+    -2.13- tee(iterable, n = 2)
+        clone an iterable
+
+
+##############################
+-3- combinatoric
+##############################
+    ------------------------------
+    -3.1- combinations(iterable, r):
+        combinations of contents of iterable
+        n! / (r! * (n - r)!)
+
+    ------------------------------
+    -3.2- combinations_with_replacement(iterable, r):
+        combinations with replacemetn
+        (n+r-1)! / (r! (n-1)!)
+    ------------------------------
+    -3.3- permutations(iterable, r = None)
+        r defaults to len(iterable)
+
+        (n! / ((n - r)!))
+    ------------------------------
+    -3.4- product(*iterables, repeat):
+        cartesian product
+        repeat: for use when product with self
+
+        n^repeat
+
