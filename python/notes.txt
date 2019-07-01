@@ -4,6 +4,7 @@ contents:
 =2= context manager
 =3= closure
 =4= memoryview
+=5= decorator
 
 interpreter:
 ~/.inputrc
@@ -169,3 +170,32 @@ ______________________________
     memoryview(b'hi')[0]                            b'h'                104
     memoryview(b'hi') == b'hi'                      O                   O
     memoryview(b'hi') == bytearray(b'hi')           O                   O
+
+______________________________
+=5= decorator
+
+    decorator: take a func
+        return a new func
+
+    example1:
+        def bye(func):
+            def f(*args, **kwargs):
+                return func(*args, **kwargs) + ', bye.'
+
+        @bye
+        def somefunc(name):
+            return 'hello {}'.format(name)
+
+    example2: decorator just needs to be a function, can be the return of a function call
+        def appender(text):
+            def dec(func):
+                def decorated(*args, **kwargs):
+                    return ', '.join([func(*args, **kwargs), text])
+
+        @appender('bye')
+        def somefunc(name):
+            return 'hello {}'.format(name)
+        
+    functools.wraps
+        adds the original function's docstrings to the wrapped function
+
