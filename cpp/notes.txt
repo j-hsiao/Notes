@@ -24,6 +24,8 @@ contents
     =4.3= pointers
     =4.4= structs
     =4.5= unions
+=5= other
+    =5.1= templates
 =7= reference
     =7.1= <cstdint>
     =7.2= <limits>
@@ -1186,6 +1188,124 @@ ______________________________
             use fundamental (int, uint, char, etc)
             as the type for the enum values
 
+
+
+------------------------------
+=5= other
+    ______________________________
+    =5.1= templates
+        ______________________________
+        variadic vs non-variadic
+            C++ <11, always "non-variadic"
+
+            variadic: variable args
+
+        ______________________________
+        function templates
+
+            decl:
+                template <class identifier> T func(T v1, T v2){body;}
+                template <typename identifier> T func(T v1, T v2){body;}
+
+            call:
+                func<type>(args) (explicit, safer to use)
+                func(args)       (implicit, might cause compilation 
+                                  issues depending on compiler)
+
+            NOTE: the two are interchangeable
+                just the second version is more clear
+                (the identifier could just be a primitive type, not a class)
+            
+        ______________________________
+        class templates
+            decl:
+                
+
+        ______________________________
+        variable templates (C++ 14)
+            template <typename T> constexpr T pi = T(3.14159265359793238462643383L);
+
+        ______________________________
+        specialization
+            template is used, a "specialization" is created 
+            (version of template specifically for handling the corresponding type)
+            ______________________________
+            explicit
+                programmer implements special version of template for a given set of types
+
+                ______________________________
+                partial specialization:
+                    some params are specialized
+                    CLASS ONLY
+
+                ______________________________
+                full speicalization:
+                    all params/args are specialized
+                    class AND function okay
+
+                example:
+                    generic:
+                        template <typename T>
+                        T max(T a, T b){
+                            return a > b ? a : b;
+                        }
+                    specialized:
+                        template <>
+                        bool max<bool>(bool a, bool b){
+                            return a || b;
+                        }
+        ______________________________
+        alias
+        template <typename T>
+        using alias = std::somelongname<T,fixedtypes>;
+
+        now can use
+            alias<int>(args)
+        to mean
+            std::somelongname<int,fixedtypes>(args)
+
+
+        ______________________________
+        template vs macro
+            #define max(a,b) ((a) < (b) ? (b) : (a))
+
+                        macro           template
+            inline      always          sometimes
+            errors      maybe           no              *1
+            typesafe    no              yes
+            portable    yes             maybe?          *2
+            code bloat  no              maybe           *3
+            build time  shorter         longer?         *4
+            debugging   easier          harder?         *5
+            recursive   dunno           maybe?          *6
+            rebuild     no?             yes?            *7
+            black box   yes             no?             *8
+
+
+
+            1. macro can have errors when macro is expanded
+                example:
+                    max(0, std::rand() - 100)
+
+                    will be expanded as
+
+                    0 < (std::rand() - 100) ? (std::rand() - 100) : a
+
+                    which may be negative (std::rand() called twice)
+            2. "some compilers have poor template support"
+                poor instructions for template errors (difficult debugging)
+            3. new version for every type = more code generated
+            4. templates "expose their implementation"
+                "use in larger systems can lead to longer build times"
+            5. compiler replaces templates, debugger may have difficulty
+                figuring out where the error occurred in the code
+            6. templates of templates not supported by all compilers
+            7. "templates in headers, requires complete rebuild when changes are made"
+            8. code in header, can't contain solely in a single library
+
+
+
+                            
 
 
 
