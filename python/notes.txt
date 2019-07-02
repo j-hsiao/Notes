@@ -177,25 +177,53 @@ ______________________________
     decorator: take a func
         return a new func
 
-    example1:
-        def bye(func):
-            def f(*args, **kwargs):
-                return func(*args, **kwargs) + ', bye.'
-
-        @bye
-        def somefunc(name):
-            return 'hello {}'.format(name)
-
-    example2: decorator just needs to be a function, can be the return of a function call
-        def appender(text):
-            def dec(func):
-                def decorated(*args, **kwargs):
-                    return ', '.join([func(*args, **kwargs), text])
-
-        @appender('bye')
-        def somefunc(name):
-            return 'hello {}'.format(name)
-        
     functools.wraps
         adds the original function's docstrings to the wrapped function
 
+    class can have a decorator as a method
+    but decorator can't be called directly
+    ie:
+        class name(super):
+            def decorator(func):
+                def decorated(self, *args, **kwargs):
+                    do stuff
+                return decorated
+                
+            @decorator
+            def func(self, stuff):
+                do stuff
+
+
+    examples:
+        ____________________
+        example1:
+            def bye(func):
+                @wraps(func)
+                def f(*args, **kwargs):
+                    return func(*args, **kwargs) + ', bye.'
+                return f
+
+            @bye
+            def somefunc(name):
+                return 'hello {}'.format(name)
+
+        ____________________
+        example2: decorator just needs to be a function, can be the return of a function call
+            def appender(text):
+                def dec(func):
+                    def decorated(*args, **kwargs):
+                        return ', '.join([func(*args, **kwargs), text])
+
+            @appender('bye')
+            def somefunc(name):
+                return 'hello {}'.format(name)
+            
+        ____________________
+        example 3: conditional decorator
+            def conditional_decorate(decorator, boo):
+                return lambda func : decorator(func) if boo else func
+
+            @conditional_decorator(bye, True)
+            def somefunc(arg):
+                return arg
+            
