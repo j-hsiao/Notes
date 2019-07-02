@@ -78,6 +78,7 @@ ______________________________
       e   : forward 1 word, cursor at end
       [N]gg: go to Nth line, if N omitted, go to first line
       [N]G : same as above,  if N omitted, go to last line
+      gi  : jump to last position where insert mode was exited and enter insert mode
       %   : jump to matching character (brace, parantheses, bracket, etc)
       `.  : last edit
       H   : move cursor to top
@@ -89,12 +90,28 @@ ______________________________
       C-f : move page down
       C-y : scroll up one line
       C-e : scroll down one line
+
+      C-O : older jump position
+      C-I : newer jump position
+            (these two require +jumplist feature or something)
       ______________________________
       #1.2.1.1.1::marks
         mx  : set mark to key x, x = a-z, or A-Z (global)
         `x  : go to exact mark position
         'x  : go to line with the mark
         :marks: see current marks
+
+        special marks:
+            .: last edit
+            []: first/last line of last yanked/edited/pasted selection
+            <>: first/last line of last visual selection
+            ' : before last jump
+            " : last position before file was closed
+            ^ : last position where insert mode was stopped (used by gi)
+            . : last change
+
+
+
     ______________________________
     #1.2.1.2::editing
       i   : enter insert mode (before current character)
