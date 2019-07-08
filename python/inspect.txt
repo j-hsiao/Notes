@@ -1,0 +1,43 @@
+inspect: "live objects"
+
+contents
+------------------------------
+-1- types and members
+-2- retrieving source code
+-3- classes/functions
+-4- interpreter stack
+
+
+
+-----------------------------
+-4- interpreter stack
+    "frame record": 6-tuple of 
+        frame object
+        filename
+        line#
+        funcname
+        context lines
+        line index
+
+    functions:
+        ------------------------------
+        getframeinfo(frame, [context])
+            extract info about frame or traceback
+            returns: "frame record"[1:]
+        ------------------------------
+        getouterframes(frame, [context])
+            list of frame records for frame and outer ones
+            from frame to outtermost
+        ------------------------------
+        getinnerframes(traceback, [context])
+            list of frame records down to where the exception was raised
+        ------------------------------
+        currentframe()
+            return None if stack frame support does not exist, otherwise
+            current frame
+        ------------------------------
+        stack([context])
+            list of frame records from cur to outermost
+        ------------------------------
+        trace([context])
+            list of frame records from cur to exception point

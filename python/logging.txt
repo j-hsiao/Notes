@@ -1,0 +1,195 @@
+https://docs.python.org/2/library/logging.html
+
+logging module
+contents
+-1- overview
+-2- loggers
+-3- handlers
+    -3.1- methods
+    -3.2- default handlers
+-4- formatters
+-5- filters
+-6- LogRecords
+-7- LoggerAdapters
+-8- thread safety
+
+
+______________________________
+-1- overview
+    logging api allows multiple things to log
+    in similar fashion for easier to parse logs
+
+    loggers     : interface to log
+    handlers    : log to certain destinations
+    filters     : filter log outputs
+    formatters  : layout
+
+______________________________
+-2- loggers
+    loggers with same name are unique
+    ie multiple calls give same one
+
+    should be instantiated with logging.getLogger
+    eg:
+        logging.getLogger(__name__)
+
+    the logger name should be a .-delimited string
+    indicating a hierarchy
+
+    attributes:
+        ------------------------------
+        propagate:
+            True to ALSO pass to ancestor loggers' handlers (ignores ancestor filters)
+    methods:
+        ------------------------------
+        setLevel(lvl):
+            set level to log, less severe levels will be ignored
+            default NOTSET
+            other levels:
+                CRITICAL 50
+                ERROR    40
+                WARNING  30
+                INFO     20
+                DEBUG    10
+                NOTSET    0 (all msg to be processed by higher up or self if no parent)
+        ------------------------------
+        isEnabledFor(lvl):
+            True if messages will be handled by this logger
+            checks logging.disable(lvl) and then getEffectiveLevel()
+        ------------------------------
+        getEffectiveLevel():
+            get level for messages
+            if > 0 or first non-zero parent if 0
+        ------------------------------
+        getChild(suffix)
+            return child logger by joining self name with suffix
+        ------------------------------
+        debug(msg, *args, **kwargs)
+        info(...)
+        warning(...)
+        error(...)
+        critical(...)
+        log(lvl, ...)
+
+            msg.format(*args, **kwargs) with corresponding level
+            special kwargs:
+                exc_info (check sys.exc_info()), add exception information
+                extra: dict to update __dict__ of LogRecord
+                        (don't clash with Formatter keys)
+
+            for log, the lvl is provided as an arg
+        ------------------------------
+        exception(msg, *args, **kwargs)
+            same as above, except exc_info is True
+        ------------------------------
+        addFilter(filter)
+        removeFilter(filter)
+            add/remove filter
+        ------------------------------
+        filter(record)
+            True if pass all filters
+        ------------------------------
+        addHandler(handler)
+        removeHandler(handler)
+            add/remove handler
+        ------------------------------
+        findCaller()
+            find source file/line number, returns fname, linenumber, function as 3-element tuple
+        ------------------------------
+        handle(record)
+            handle a record (eg unpickled from a socket or otherwise created)
+        ------------------------------
+        makeRecord(name, lvl, fn, lno, msg,args,exc_info,func = None, extra = None)
+            override to make custom LogRecords
+______________________________
+-3- handlers
+    an abstract base class (ABC)
+
+    ______________________________
+    -3.1- methods:
+        ------------------------------
+        __init__(lvl):
+            set lvl and create lock
+            set filters
+        ------------------------------
+        createLock():
+            ...
+        acquire()
+            get lock
+        release()
+            release lock
+        setLevel(lvl)
+            (ignore records with a lower level than lvl)
+        setFormatter(fmt):
+            ...
+        addFilter(filter)
+            ...
+        removeFilter(filter)
+            ...
+        ------------------------------
+        filter(record)
+            true if pass filters
+        ------------------------------
+        flush()
+        close()
+            (close does not flush...)
+        ------------------------------
+        handle(record)
+            run through filters and stuff, emit
+            get lock whatever
+        ------------------------------
+        handleError(record)
+            handle error in emit call
+        ------------------------------
+        format(record)
+            format a record
+        ------------------------------
+        emit(record)
+            emit a record
+        ------------------------------
+    ______________________________
+    -3.2- default handlers
+        ------------------------------
+        StreamHandler(fobj = None)
+            (sys.stderr is default)
+            log to fobjs(write and flush)
+
+            methods:
+                emit(record)
+                flush()
+                close()
+                    (does not flush)
+        ------------------------------
+        FileHandler(fname, mode = 'a', encoding = None, delay = False)
+            methods:
+                emit(record):
+                    write to file
+                close()
+                    close file
+        ------------------------------
+        NullHandler()
+            /dev/null
+        ------------------------------
+        WatchedFileHandler(fname, [mode[, encoding[, delay]]])
+            unix/linux
+            if file changed since last emit
+                (file renamed etc)
+                reopen with original name
+        ------------------------------
+        RotatingFileHandler(fname, mode = 'a', maxBytes = 0, backupCount = 0, encoding = None, delay = 0)
+            rollover at predetermined sizes
+            overwrite, keeping total of backupCount files max
+        ------------------------------
+        TimedRotatingFileHandler(fname, when='h', interval = 1, backupCount = 0, encoding = None, delay = False, utc = False)
+            rotate by time instead of size
+
+            when:
+                S           seconds
+                M           minutes
+                H           hours
+                D           days
+                W0-W6       weekday, 0=monday
+                midnight    at midnight
+        ------------------------------
+        SocketHandler(host, port)
+        https://docs.python.org/2/library/logging.handlers.html#module-logging.handlers
