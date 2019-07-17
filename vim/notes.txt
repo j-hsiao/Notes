@@ -60,10 +60,12 @@ ______________________________
       _   : move to first non-white-space character on line
       -   : move to first non-white character in line above
       +   : move to first non-white character on line below
-      fx  : goto x
-      Fx  : goto x (backwards)
-      tx  : gobefore x
-      Tx  : goafter x
+      f[x]: goto x
+      F[x]: goto x (backwards)
+      t[x]: gobefore x
+      T[x]: goafter x
+      ;   : repeat the last t/f/T/F command
+      ,   : repeat the last t/f/T/F in opposite direction
       backspace : move back one char (wraps, unlike h)
       spacebar  : move forward one char (wraps unlike l)
       h   : left
