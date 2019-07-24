@@ -1,0 +1,427 @@
+https://www.linux.com/learn/vim-101-beginners-guide-vim
+NOTE: cygwin vi uses .virc not .vimrc
+
+# reorganized now that I have some more experience
+
+###############################
+# contents:
+###############################
+-1- normal mode
+    -1.1- movement
+    -1.2- viewports, tabs
+    -1.3- changing modes
+    -1.4- editing
+    -1.5- searching
+    -1.6- file manipulation
+    -1.7- other
+-2- insert mode
+-3- visual mode
+-4- command line (:)
+    -4.1- search and replace
+    -4.2- files
+    -4.3- views, tabs
+    -4.4- settings
+    -4.5- other
+-5- config files
+-6- other
+    -6.1- indentation
+    -6.2- registers
+    -6.3- marks
+    -6.4- macros
+    -6.5- jump list
+
+
+##############################
+-1- normal mode
+##############################
+    general rules:
+        prefix commands with a number to repeat that many times
+
+    ------------------------------
+    -1.1- movement
+    ------------------------------
+    [N]_        : first non-whitespace character on line, or (N - 1)th line below current line (N=1 means this line)
+    [N]-        : first non-whitespace character on Nth line above
+    [N]+        : first non-whitespace character on Nth line below 
+    f[x]        : move to first occurence of character x to the right of (and not including) position in current line
+    F[x]        : move to first occurence of character x to the left of (and not including) position in current line
+    t[x]        : same as f, except 1 character short
+    T[x]        : same as F, except 1 character short
+        note: so repeated f[x] will jump to each next x
+              but repeated t[x] will  only go to first x
+    ;           : repeat f/F/t/T command in same direction 
+                    (except t and T will jump to next character rather than be stuck on first occurence)
+    ,           : same as ; except perform in the reverse direction
+    backspace   : back one character (wraps on line beginning)
+    space       : forward one character (wraps on line ends)
+    hjkl        : move 1 character left / down / up / right
+    0           : column 0 of line
+    $           : end of line
+    w           : next [beginning of a word]
+    b           : previous [beginning of a word]
+    e           : next [end of a word]
+    HML         : move to top / middle / bottom of screen
+    C-f/C-d/C-e : scroll down full screen / half screen / 1 line
+    C-b/C-u/C-y : scroll up full screen / half screen / 1 line
+    m[a-zA-Z]   : set mark
+    '[a-zA-Z]   : pop mark (first non-whitespace character of the line)
+    `[a-zA-Z]   : pop mark (exact spot)
+    zz          : move current line and cursor to middle
+    zt          : move current line and cursor to top
+    zb          : move current line and cursor to top
+    zh          : move N chars left
+    zH          : move N halfscreens left
+    zl          : move N chars right
+    zL          : move N halfscreens right
+    ze          : move cur pos to right of viewport
+    zs          : move cur pos to left of viewport
+
+        ------------------------------
+        -1.1.1- jumps
+        ------------------------------
+        {}          : jump to previous/next blank line
+        ()          : jump to beginning/end of N sentences
+        []          : jump to "sections" whatever that means...
+        [N]gg       : go to line N, default to line 0
+        [N]G        : go to line N, default to last line
+        `.          : jump to last edited position
+        %           : jump to matching {}, [], ()
+
+        C-o         : jump to older position in jumplist
+        C-i         : jump to more recent position in jumplist
+
+    ------------------------------
+    -1.2- viewports, tabs, folds
+    ------------------------------
+        viewport
+            C-w     : initiate viewport command
+                hjkl    : move to viewport in corresponding direction
+                HJKL    : move current viewport to farthest in that direction
+                C-w     : cycle viewports
+                r       : cycle forward
+                R       : cycle backwards
+                c / q   : close current viewport
+                o       : make current the only viewport
+                s       : split horizontal
+                v       : split vertical
+                >       : wider
+                <       : thinner
+                +       : taller
+                -       : shorter
+                =       : equalize viewport sizes
+                _       : set height (50 C-w _ = 50 lines high)
+                |       : set width (50 C-w | = 50 chars wide)
+        tab
+            [N]gt       : go to Nth tab (1 = first), default: next
+            gT          : go to previous tab
+
+        folds
+            zf[N]jk     : fold N lines below/above
+            zo          : open 1 level of folds at cursor
+            zO          : open all folds at cursor
+            zc          : close 1 level of folds at cursor
+            zC          : close all folds at cursor
+            zr          : open all folds by one level (filewide)
+            zR          : open all folds completely (filewide)
+            zm          : close 1 level of folds (filewide)
+            zM          : close all foldes completely (filewide)
+            zd          : delete 1 level of folds at cursor
+            zD          : delete all folds at cursor
+            zE          : delete all folds completely (filewide)
+            zj          : jump to next fold
+            zk          : jump to previous fold
+
+    ------------------------------
+    -1.3- changing modes
+    ------------------------------
+    gi          : enter insert mode where it was last exited
+    i           : enter insert mode (on cursor)
+    I           : enter insert mode (beginning of line)
+    a           : enter insert mode (after cursor)
+    A           : enter insert mode (end of line)
+    v           : visual mode
+    V           : visual mode (entire lines)
+    C-v         : visual mode (column version)
+    :           : enter commandline mode
+
+
+    ------------------------------
+    -1.4- editing
+    ------------------------------
+    r           : replace 1 character
+    R           : enter replace insert mode
+    x           : delete 1 character
+    o           : add new line after cursor and insert mode
+    O           : add new line above cursor and insert mode
+    J           : join current and next line
+    u           : undo (or change directions depening on settings)
+    C-r         : redo (or continue in current undo direction depending on settings)
+    d           : begin a deletion operation
+      d         : current line
+      w         : next [beginning of word]
+      b         : previous [beginning of word]
+      e         : next [end of word]
+      0         : beginning of line
+      $         : to end of line
+      gg        : delete to beginning of file
+      G         : delete to end of file
+      k         : delete cur line and above
+      j         : delete cur line and below
+    p           : paste after cursor
+    P           : paste on cursor
+    y           : yank (copy)
+    C-d/C-t     : 
+
+    ------------------------------
+    -1.5- searching
+    ------------------------------
+    /       : search for pattern forward
+    ?       : search for pattern before
+    n       : next result
+    N       : previous result
+
+    ------------------------------
+    -1.6- file manipulation
+    ------------------------------
+    ZZ      : close and save buffer
+
+    ------------------------------
+    -1.7- other
+    ------------------------------
+    C-z     : suspend vim, back to terminal
+    K       : look up word under cursor as a "keyword" in keywordprg (default man)
+    .       : repeat
+    C-g     : cur file, nlines
+    g C-g   : cur pos in file (line, column, byte, word, etc)
+
+    "[a-z]  : register (see -6.2-)
+    q[a-z]  : macro (see macro section -6.4-)
+    @[a-z]  : run macro (see macro section -6.4-)
+    
+
+
+
+##############################
+-2- insert mode
+##############################
+    C-i     : tab after cursor
+    C-d     : shift left
+    C-t     : shift right
+    C-p     : complete based on previous words
+    C-u     : delete current line
+    C-w     : delete to previous beginning of word or begin of edit, whichever is first
+    C-n     : complete based on next words
+        (C-p C-n to scroll through list)
+        continue typing to select
+
+    C-r [a-z]    : insert from register (interpreted)
+    C-r C-r [a-z]: insert from register (as is) 
+    C-v     : literal keystroke value
+
+    ------------------------------
+    -2.1- change mode
+    ------------------------------
+    C-o     : normal mode for 1 command
+    esc     : normal mode
+    C-[     : normal mode (less pinky strain? maybe?)
+
+
+##############################
+-3- visual mode
+##############################
+    select region and perform operations
+    entering visual mode sets a mark
+    and then text is selected to the cursor location
+    based on the type of visual mode
+
+    commands that can be repeated or work on a region
+    will generally work on the selected region in visual mode
+
+    v       : char
+    V       : line
+    C-v     : column
+
+    folds:
+        zf  : fold selected lines
+
+
+
+##############################
+-4- command line (:)
+##############################
+    ------------------------------
+    -4.1- search and replace
+    ------------------------------
+    :[%]s/pat/replace/opt
+
+    like sed
+    % to perform on entire file
+    otherwise, only on current line
+    or enter command during visual mode to perform on selected lines
+
+    regex:
+        . * \ [ ^ $         are meta characters
+        + ? | & { ( ) }     need escaping to use their meanings
+    esapes:
+        \t          tab
+        \s          whitespace
+        \n          new line
+        \r          carriage return
+        \zs, \ze    zonestart/end, only replace the area in zone
+
+    replace:
+        \r      : newline
+        \n      : null byte
+        \0      : entire pattern
+        \1...   : back references
+
+    opts:
+        g   : globally (all occurrences in line)
+        c   : ask for confirmation
+        i   : case insensitive
+        I   : case sensitive
+
+    ------------------------------
+    -4.2- files
+    ------------------------------
+        :w [filename]       write to filename if given else original file
+        :e [filename]       edit filename
+        :b buff/name        switch to buffer
+        :ls                 list buffers
+        :bd                 close buffer
+        :q                  close viewport
+        :qa                 close all viewports
+        :qa!                force close all viewports
+
+    ------------------------------
+    -4.3- views, tabs
+    ------------------------------
+        :split [filename]   : open filename in a split
+        :vsplit [filename]  : open filename in vertical split
+        :tabnew [fn]        : new tab with filename
+        :tabe   [fn]        : same as above (tabe = tabedit)
+        :tabf   [fn]        : same as above but use PATH?
+        :tabs   [fn]        : list tabs
+        :tabc               : close tab
+
+    ------------------------------
+    -4.4- settings
+    ------------------------------
+        booleans can generally be negated by prefixing with no
+        ex: 
+            :set expandtab
+            :set noexpandtab
+        :set
+            bo/belloff      : when not to ring the bell
+                                all
+
+            tabstop         : width of a tab
+            softtabstop     : width inserted when pressing tab
+            autoindent      : match indent of previous line
+            shiftwidth      :
+            expandtab       : use spaces
+            nohl            : stop highlighting
+            paste
+            smartindent     : 
+            cindent         : 
+            wrap            : wrap long lines
+            ignorecase      : ignore case when searching
+            smartcase       : ignore case, except when caps exist
+
+
+
+    ------------------------------
+    -4.5- other
+    ------------------------------
+        :ab alias value     : whenever type alias, it becomes value
+        :una alias          : delete alias
+
+        C-f                 : open commandline buffer to edit as vim buffer
+        |                   : pipe, basically not useful for me
+        :mks[ession]        : save current session to reload later
+        :Ex[plore]          : open file explorer (current window)
+        :Lex[plore]         : open on left
+        :Rex[plore]         : return to/from explorer, wasn't working when I tested it
+        :syntax             : on/off
+                              sync
+                                    minlines=N
+                                    maxlines=N
+                                    fromstart
+                                    [ccomment]
+        :source             : source a vimrc file
+        :sh                 : open a shell (separate from original shell used to open vim)
+        :!                  : run shell command using text as input, replace selected region with output
+                            example: 
+                                :!sort      -> replace text with sorted text
+
+        :w ! cmd            : write selection to command and display output
+        :r ! cmd            : insert output from cmd
+        :h                  : help
+        :norm[al] cmd       : run a normal-mode command
+                                may specify @[a-z] to indicate a macro
+        :g[lobal]/pat/cmd   : run command globally on lines matching pat
+        :vb, :visualbell    : no beeping, flash screen instead
+
+
+
+
+
+
+##############################
+-5- config files
+##############################
+
+##############################
+-6- other
+##############################
+    ------------------------------
+    -6.1- indentation
+    ------------------------------
+        keys:
+            in normal mode: >> or <<
+            in insert mode: C-t or C-d
+            in visual line: > or < (to shift a block of highlighted lines)
+
+        variables:
+            tabstop     : size of tab
+            softtabstop : size of blank space created when pressing tab (combo of space and tab to achieve it)
+                          ( (softtabstop // tabstop) tabs followed by (softtabstop % tabstop) spaces
+            expandtab   : don't use tab characters
+            shiftwidth  : shift amount when using C-d, C-t, >>, <<, etc
+            autoindent  : indent new lines to match previous line
+
+    ------------------------------
+    -6.2- registers
+    ------------------------------
+    ------------------------------
+    -6.3- marks
+    ------------------------------
+        m[a-zA-Z]       set mark
+        `[a-zA-Z]       go to mark (exact)
+        '[a-zA-Z]       go to first non-whitespace character on same line
+        :marks          list marks
+        ______________________________
+        special marks
+            .       : last edit
+            []      : beginning/end of yanked/pasted selection
+            <>      : first/last line of visual selection
+            '       : before last jump
+            "       : last position before file was closed
+            ^       : last positon insert mode (same as gi except don't enter insert mode)
+
+
+
+
+
+    ------------------------------
+    -6.4- macros
+    ------------------------------
+    ------------------------------
+    -6.5- jump list
+    ------------------------------
+        commands:
+            :jumps          show jump list
+            :clearjumps     clear jump list
+
+        see -1.1.1-
+
