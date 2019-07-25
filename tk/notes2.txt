@@ -1317,9 +1317,10 @@ widget.bind(key, callback, **kw)
       send_event: 0 = "normal", 1 = "synthetic"
       keysym    : textual string for keyboard
       keysm_num : an int
+      num       : mouse button
       type      : type field from event
-      x_root    : relative to virtual root window
-      y_root    : relative to virtual root window
+      x_root    : relative to virtual root window (to screen not root?)
+      y_root    : relative to virtual root window (to screen not root?)
       
 
   key:
