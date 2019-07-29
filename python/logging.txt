@@ -8,10 +8,12 @@ contents
     -3.1- methods
     -3.2- default handlers
 -4- formatters
+    -4.1- format strings
 -5- filters
 -6- LogRecords
 -7- LoggerAdapters
 -8- thread safety
+-9- module-level functions
 
 
 ______________________________
@@ -23,6 +25,12 @@ ______________________________
     handlers    : log to certain destinations
     filters     : filter log outputs
     formatters  : layout
+
+
+    message->logger->logger filters->handlers-> handler filters -> emitted and parent handlers if propagate
+             |    logging call    |  |     handler             |
+
+
 
 ______________________________
 -2- loggers
@@ -36,10 +44,18 @@ ______________________________
     the logger name should be a .-delimited string
     indicating a hierarchy
 
+    (or just use parLogger.getChild('childname'))
+
+
     attributes:
         ------------------------------
         propagate:
             True to ALSO pass to ancestor loggers' handlers (ignores ancestor filters)
+            (ie: if logger prints, then ancestor might also print
+                probably useful if ancestor logs to different places
+                ex: maybe there's a master logger that logs to a file
+                but you want to log output to stdout for user to see
+                then parent uses FileHandler and child uses StreamHandler)
     methods:
         ------------------------------
         setLevel(lvl):
@@ -192,4 +208,197 @@ ______________________________
                 midnight    at midnight
         ------------------------------
         SocketHandler(host, port)
-        https://docs.python.org/2/library/logging.handlers.html#module-logging.handlers
+        ------------------------------
+        DatagramHandler(host, port)
+        ------------------------------
+        SysLogHandler(address = ('localhost', SYSLOG_UDP_PORT), facility = user, socktype = dgram)
+        ------------------------------
+        NTEventLogHandler
+        ------------------------------
+        SMTPHandler
+        ------------------------------
+        BufferingHandler(capacity)
+            buffer data until overflow, shouldFlush
+        ------------------------------
+        MemoryHandler(capacity, flushLevel, target = None)
+            buffer til full, then flush to target
+        ------------------------------
+        HTTPHandler(host, url, method)
+            send to webserver
+
+______________________________
+-4- formatters
+    logging.Formatter(format, time_format)
+        NOTE:
+            time_format is NOT 100% compatible with datetime.strftime
+            (missing %f for example)
+            but not exactly only limited to time.strftime
+            (time.strftime has no %F which stands for %Y-%m-%d, but %F works in this time format)
+
+        going to have to experiment
+
+        if want %H:%M:%S.%f, then must do like this:
+            time_format:    '%H:%M:%S'
+            format:     '%(asctime)s.%(msecs)d'
+
+            
+
+
+    ------------------------------
+    -4.1-format strings:
+        format with kwargs from a LogRecord (see logrecord)
+        can use % or {}
+        ie: '{message:>10s}'
+
+	NOTE:
+	    .format is like this:
+            '{id:format}'
+            where if id is omitted, just iterates through args for .format
+            if id is an int, then use that index
+            if id is a string, then use that as key for dict/kwargs
+
+	format_spec ::=  [[fill]align][sign][#][0][width][,][.precision][type]
+	fill        ::=  <any character>
+	align       ::=  "<" | ">" | "=" | "^"
+	sign        ::=  "+" | "-" | " "
+	width       ::=  integer
+	precision   ::=  integer
+	type        ::=  "b" | "c" | "d" | "e" | "E" | "f" | "F" | "g" | "G" | "n" | "o" | "s" | "x" | "X" | "%"
+
+        note... i think it might not be possible to use the {} notation...
+            anyways the % notation is like this i think:
+
+            %(identifier)format
+
+
+            example:
+                %(asctime)s
+
+    methods:
+        format(record): format a record
+        formatTimte(record, datefmt = None): format a record using specific date format
+        formatException(exc_info): format exception data
+
+______________________________
+-5- filters
+    Filter(name)
+        filtering logic with hierarchy is as such:
+            self._hierarchy = name.split('.')
+            if record.name.split('.')[:len(self._hierarchy)] == self._hierarchy:
+                allow it to be filtered
+        eg:
+            name = 'a.b'
+            ok:
+                a.b, a.b.c, a.b.d, a.b.c.d
+            not ok:
+                a.c, c.a, b.a, a.bb
+    methods:
+        filter(record) 
+            (allowed to mutate the record)
+            return true/false if filtered or not
+
+______________________________
+-6- LogRecords
+    LogRecord(name, level, pathname, lineno, msg, args, exc_info, func)
+        name: original logger
+        level: loglevel
+        pathname: sourcefile
+        lineno: line in sourcefile
+        msg: message
+        args: args for formatting msg
+        exc_info: exception info or None
+        func: name of func containing the original call
+
+    getMessage()
+        return formatted msg
+
+    attributes: (available for formatters)
+        name                code        description
+        args
+        asctime             s           formatted time
+        created             f           unix timestamp
+        exc_info
+        filename            s           filename of pathname
+        funcName            s           name of func that called log
+        levelname           s           name for loglevel
+        levelno             s           ?? should this be d?
+        lineno              d           line in source file
+        module              s           module portion of file name
+        msecs               d           milliseconds for time
+        message             s           the message
+        msg                             msg % args
+        name                s           name of original logger
+        pathname            s           full path of source file
+        process             s           pid of proc
+        processName         s           name of proc
+        relativeCreated     d           time relative to when logging was loaded into sys.modules
+        thread              d           thread id
+        threadName          s           name of thread
+
+
+        
+______________________________
+-7- LoggerAdapters
+    basically wrap a logger with some default kwargs
+    that are added whenever log is called
+
+    LoggerAdapter(baselogger, defaultKwargs)
+
+
+______________________________
+-8- thread safety
+    is threadsafe, except when in signal handlers
+
+
+______________________________
+-9- module-level functions
+    getLogger(name = 'root')
+
+    getLoggerClass()
+
+    debug(msg, *args, **kwargs)
+    info
+    warning
+    error
+    critical
+    exception
+    log(lvl, msg, *args, **kwargs)
+        call root logger with corresponding value
+
+        NOTE: if not already configured, these methods
+        will call basicConfig first
+
+    disable(lvl):
+        disable all loglevels <= lvl
+
+    addLevelName(lvl, name)
+        name a loglevel
+
+    getLevelName(lvl)
+        curlvls = {lvl : name...}
+        return curlvls.get(lvl, 'Level {}'.format(lvl))
+
+    makeLogRecord(attrdict)
+
+    basicConfig(**kwargs)
+        configure root if not already configured
+        
+        kwargs:
+            filename
+            filemode
+            format
+            datefmt
+            level
+            stream
+
+    shutdown()
+        flush buffers etc
+        no more calls should be made
+
+    setLoggerClass(klass)
+        set default logger class
+        returned from getLogger(name)
+
+    captureWarnings(doCapture):
+        if True, catch warnings and log them
+        otherwise, don't
