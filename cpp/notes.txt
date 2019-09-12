@@ -26,6 +26,7 @@ contents
     =4.5= unions
 =5= other
     =5.1= templates
+    =5.2=declarations helpful rules:
 =7= reference
     =7.1= <cstdint>
     =7.2= <limits>
@@ -1303,16 +1304,17 @@ ______________________________
             7. "templates in headers, requires complete rebuild when changes are made"
             8. code in header, can't contain solely in a single library
 
+    ------------------------------
+    =5.2=
+	http://cseweb.ucsd.edu/~ricko/rt_lt.rule.html
 
+        basically, from the name, go right, until hit ) and then go left until hit (
+        then go up one level
+        example:
+            typedef const unsigned char * const ((*mytype)[5][2])
 
-                            
-
-
-
-
-
-
-
+            this would be a:
+                pointer to array of 5 arrays of 2 const pointers to const unsigned char 
 
 ------------------------------
 =7= reference
