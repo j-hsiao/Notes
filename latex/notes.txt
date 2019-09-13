@@ -1,0 +1,45 @@
+install: 
+miktex
+
+##############################
+contents
+-1- general
+-2- syntax
+-3- packages
+-4- commandline compilation etc
+
+------------------------------
+-1- general
+	focused on "documents", so paragraphs etc
+	whitespace is ignored like in C code
+	adjacent lines will be combined into a single pararaph
+	first line of each paragraph is indented
+
+------------------------------
+-2- syntax
+	new lines
+		use trailing \\ or an empty line for newline
+	documents
+		\documentclass[options]{args}
+			header for a latex document
+			options:
+				Npt	font size
+			args:
+				article
+	namespace
+		\begin{args}
+		\end{args}
+			args: a "namespace"?
+			ex:
+				document
+	math
+		$in-line math$
+		$$separated math$$
+		^{} superscript
+			$2x^3$
+		_{} subscript
+			$x_0$
+------------------------------
+-3- packages
+------------------------------
+-4- pdflatex
