@@ -1,0 +1,46 @@
+textwrap: functions for wrapping text to a certain width
+
+##############################
+functions
+##############################
+wrap(text, width = 70):
+    text: text to process
+    width: width to wrap to
+
+    returns list of lines (no newlines)
+
+
+fill(text, width = 70):
+    '\n'.join(wrap(text, width...))
+
+
+dedent(text):
+    remove common leading whitespace
+    ie:
+        textwrap.dedent('''\
+            hello world!
+            this is another line
+                this one is indented
+            but not this one''')
+
+##############################
+class
+##############################
+TextWrapper
+    init:
+        kwargs same as attrs
+
+    attrs:
+        width:                  width to wrap to
+        expand_tabs:            call expandtabs before wrapping
+                                example:
+                                    wrap('\thello'.expandtabs())
+        replace_whitespace:     replace whitespace with spaces
+        drop_whitespace:        drop whitespace at beginning and end
+                                of lines after wrap
+        initial_indent          prepend to 1st line of wrapped output
+        subsequent_indent       prepend to lines[1:]
+        fix_sentence_endings:   just leave as False, makes 2 spaces
+                                after sentences
+        break_long_words        break words if longer than width
+        break_on_hyphens        

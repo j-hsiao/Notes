@@ -53,14 +53,16 @@ ______________________________
         which stream the option applies to
         if absent, matches all streams
 
-
-useful global options:
-    -codecs  : list codecs
+queries:
+    -pix_fmts: list pixel formats
+    -formats : list valid formats
+    -codecs  : list valid codecs
     -encoders: list encoders
     -decoders: list decoders
-    -pix_fmts: pixel formats
     -colors  : color names
-    -sources : autodetect sources
+    -sources : list autodetected sources
+
+useful global options:
     -y       : overwrite output without asking
     -n       : no overwrite: exit instead
     -sinks   : autodetect sinks
@@ -110,13 +112,11 @@ V options:
         # of frames for output
     -r[stream] fps
         framerate (hertz, fraction, abbreviation)
-    -s[stream] size
-        [width]x[height]
     -video_size size
-        same as above, above is deprecated?
+        [width]x[height]
     -vcodec
         video codec, alias for -codec:v
-    -pix_fmt[stream]
+    -pixel_format[stream]
         pixel formats
 
 ______________________________
@@ -128,3 +128,6 @@ webcam:
     ffmpeg -v error
 
     ffprobe -v error -show_entries stream=width,height -of csv=s=x:p=0 -i input
+
+ffplay:
+    -window_title title

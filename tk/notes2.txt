@@ -350,6 +350,12 @@ ______________________________
         selected
     cmd  : optional command to run if flags matches
 
+  configure(): 
+    if given a property string, return data on that property
+    no args: return everything in a dict
+
+  cget('value'):
+    like configure('value')[-1] ??? 
 
   state(flags): for ttk widgets
     flags: list of flag names to set or unset, see state
@@ -1311,9 +1317,10 @@ widget.bind(key, callback, **kw)
       send_event: 0 = "normal", 1 = "synthetic"
       keysym    : textual string for keyboard
       keysm_num : an int
+      num       : mouse button
       type      : type field from event
-      x_root    : relative to virtual root window
-      y_root    : relative to virtual root window
+      x_root    : relative to virtual root window (to screen not root?)
+      y_root    : relative to virtual root window (to screen not root?)
       
 
   key:

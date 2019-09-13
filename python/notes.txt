@@ -2,6 +2,9 @@ ______________________________
 contents:
 =1= modules
 =2= context manager
+=3= closure
+=4= memoryview
+=5= decorator
 
 interpreter:
 ~/.inputrc
@@ -67,3 +70,160 @@ should have __enter__() and __exit__(exceptionType, exceptionValue, traceback)
     __exit__(exceptionType, exceptionValue, traceback):
         all None if no exception
         return a Truthy value to indicate exception was handled and should not be raised
+------------------------------
+=3= closure
+------------------------------
+closures:
+    define functions within a function
+    and call the outer function to get the inner function
+    the inner function has access to variables
+    from within the outer function
+    (but anything else cannot access them directly anyways)
+
+uses:
+    make things more "private" within python
+    speed
+        speed increases are cited as:
+            no "bound method" creation
+            closure locals access is faster than self
+            no dict access (have to hash keys etc)
+
+        testing results:
+
+        using simple class with an accessor method times are:
+        (repeat 100, number 100)
+        class implementation
+                class                       closure
+
+            __init__(self, value):      __init__(self, value):
+                self._x = value             self.x = self.closure(value)
+            def x(self):                def closure(self, value):
+                return self._x              return lambda : value
+
+
+        ______________________________
+        python2
+                                class               closure
+        loading                 0.0004201           0.0004189
+        instantiation           1.5974e-05          3.7909e-05
+        calls                   7.8678e-06          6.9141e-06
+
+
+        analysis:
+            (load is just a 1-time thing across all objects so it is ignored)
+            instantiation:      -2.2e-05
+            calls:              +0.95e-6
+
+            break-even:         ~23.15 accesses??
+
+        conclusion:
+            if object accesses self < 23 (very short-lived), using normal class with self is faster
+            if object accesses self > 23 (long-lived), wrapping internals in closures is faster
+
+        ______________________________
+        python3
+                                class               closure
+        loading                 0.0004818           0.0004904
+        instantiation           2.1878e-05          4.5595e-05
+        calls                   1.0176e-05          8.9500e-06
+
+        analysis:
+            (load is just a 1-time thing across all objects so it is ignored)
+            instantiation:      -2.37e-05
+            calls:              +1.06e-06
+
+            break-even:         ~22.35 accesses
+        conclusion:
+            same conclusion as above
+    NOTES:
+        loading: creation of the class (importing a file)
+        instantiation: creating an instance of the class
+        calls: calling functions/accessing members of the class
+
+summary, closure compared to object classes:
+                    python2                     python3
+    memory:         closure uses more           closure uses less
+    loading:        closure is slower           closure is faster
+    instantiation   closure is slower           closure is slower
+    calls           closure is faster           closure is faster
+
+    if object is instantiated and then tossed without much use,
+    use object class, otherwise wrapping class internals
+    in closures is faster
+
+    memory use is about the same, but if a large number of objects are being created,
+    python3 closures are more memory efficient, but python2, closures are less memory efficient
+
+
+______________________________
+=4= memoryview
+    memoryview: view of memory without copies
+                much more efficient
+                bytes-like
+                has some issues between python2/3
+
+                                                    python2             python3
+    b''.join()                                      X                   O
+    memoryview(nparray)                             O                   O
+    np.frombuffer                                   X                   O
+    np.fromstring                                   X                   X
+    memoryview(b'hi')[0]                            b'h'                104
+    memoryview(b'hi') == b'hi'                      O                   O
+    memoryview(b'hi') == bytearray(b'hi')           O                   O
+
+______________________________
+=5= decorator
+
+    decorator: take a func
+        return a new func
+
+    functools.wraps
+        adds the original function's docstrings to the wrapped function
+
+    class can have a decorator as a method
+    but decorator can't be called directly
+    ie:
+        class name(super):
+            def decorator(func):
+                def decorated(self, *args, **kwargs):
+                    do stuff
+                return decorated
+                
+            @decorator
+            def func(self, stuff):
+                do stuff
+
+
+    examples:
+        ____________________
+        example1:
+            def bye(func):
+                @wraps(func)
+                def f(*args, **kwargs):
+                    return func(*args, **kwargs) + ', bye.'
+                return f
+
+            @bye
+            def somefunc(name):
+                return 'hello {}'.format(name)
+
+        ____________________
+        example2: decorator just needs to be a function, can be the return of a function call
+            def appender(text):
+                def dec(func):
+                    def decorated(*args, **kwargs):
+                        return ', '.join([func(*args, **kwargs), text])
+
+            @appender('bye')
+            def somefunc(name):
+                return 'hello {}'.format(name)
+            
+        ____________________
+        example 3: conditional decorator
+            def conditional_decorate(decorator, boo):
+                return lambda func : decorator(func) if boo else func
+
+            @conditional_decorator(bye, True)
+            def somefunc(arg):
+                return arg
+            
