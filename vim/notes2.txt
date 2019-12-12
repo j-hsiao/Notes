@@ -179,6 +179,10 @@ NOTE: cygwin vi uses .virc not .vimrc
     ?       : search for pattern before
     n       : next result
     N       : previous result
+    *       : search forward for word under cursor
+    #       : search backwards for word under cursor
+    g*       : search forward for word under cursor (but not whole word)
+    g#       : search backwards for word under cursor (but not whole word)
 
     ------------------------------
     -1.6- file manipulation
