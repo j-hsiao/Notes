@@ -118,6 +118,9 @@ V options:
         video codec, alias for -codec:v
     -pixel_format[stream]
         pixel formats
+    -aspect aspectratio
+        a float (1.333)
+	a ratio (4:3) (w:h)
 
 ______________________________
 ::other
