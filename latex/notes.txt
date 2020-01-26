@@ -19,6 +19,7 @@ contents
 -2- syntax
 	new lines
 		use trailing \\ or an empty line for newline
+		use double newline for new paragraph
 	documents
 		\documentclass[options]{args}
 			header for a latex document
@@ -32,14 +33,52 @@ contents
 			args: a "namespace"?
 			ex:
 				document
+				titlepage
+				center
 	math
 		$in-line math$
-		$$separated math$$
+		$$separated math (own line)$$
 		^{} superscript
 			$2x^3$
 		_{} subscript
 			$x_0$
+		\pi
+		\alpha
+		sin{asdf}
+		log_base{thing}
+		\sqrt{root}{val}
+		\frac{num}{denom}
+	display
+		\displaystyle{stuff}	display larger
+
+	format
+		\section{section name}
+		\subsection{subsection name}
+		\MakeUpppercase				caps
+		\slshape				italics
+
+	vars
+		\thepage				page number
+
+
 ------------------------------
 -3- packages
+	\usepackage[args]{pkg}
+	ex:
+		\usepackage[margin=1in]{geometry}		margins
+		\usepackage{amsfonts, amsmath, amssymb}		
+		\usepackage[none]{hyphenat}			hyphenated words
+		\usepackage{fancyhdr}				fancy title/headers/footer
+			\pagestyle{fancy}
+			\fancyhead{}
+			\fancyfoot{}
+			\fancyhead[L]{\MakeUppercase{title}}	title on left
+			\fancyhead[R]{stuffs}			title on right
+			\fancyfoot[C]{\thepage}			footer center
+			\renewcommand{\headrulewidth}{0pt}
+			\renewcommand{\footrulewidth}{0pt}
+
+
+
 ------------------------------
 -4- pdflatex
