@@ -98,8 +98,9 @@ NOTE: cygwin vi uses .virc not .vimrc
                 hjkl    : move to viewport in corresponding direction
                 HJKL    : move current viewport to farthest in that direction
                 C-w     : cycle viewports
-                r       : cycle forward
-                R       : cycle backwards
+                r       : rotate windows (win1 becomes win2 etc)
+                R       : rotate windows (reverse of r)
+                x       : swap with next window
                 c / q   : close current viewport
                 o       : make current the only viewport
                 s       : split horizontal

@@ -6,12 +6,16 @@ notation notes:
 contents:
 -0- tutorial
 	-0.1- essentials
+	-0.2- generator expressions
 -1- syntax
 	-1.1- variables
 	-1.2- if
 -2- functions
 	-2.1- set
 	-2.2- set_property
+	-2.3- install
+	-2.4- add_library 
+	-2.5- add_executable
 -3- cmake variables
 -4- commandline
 
@@ -128,6 +132,13 @@ contents:
 
 			cpack -G ZIP -C Debug
 			make package
+
+		if mixing shared/static libraries, static libraries will need to be built with POSITION_INDEPENDENT_CODE ON
+			
+
+
+
+
 			
 				
 
@@ -136,6 +147,67 @@ contents:
 
 
 
+	______________________________
+	-0.2- generator expressions
+		syntax:
+			$<...>
+
+			______________________________
+			boolean expressions:
+				become 0 or 1
+
+				$<BOOL:string>
+					0 if string:
+						""
+						case insensitive 0, FALSE, OFF, N, NO, IGNORE, NOTFOUND
+						*-NOTFOUND
+				$<AND:conditions,condition,...>
+				$<OR:condition,condition,...>
+				$<NOT:conditions>
+
+				$<STREQUAL:s1,s2>
+				$<EQUAL:v1,v2>
+				$<IN_LIST:str,list>
+				$<VERSION_LESS:v1,v2>
+				$<VERSION_GREATER:v1,v2>
+				$<VERSION_EQUAL:v1,v2>
+				$<VERSION_LESS_EQUAL:v1,v2>
+				$<VERSION_GREATER_EQUAL:v1,v2>
+				$<TARGET_EXISTS:target>
+				$<PLATFORM_ID:id1,id2,...> (see CMAKE_SYSTEM_NAME)
+
+			______________________________
+			strings
+				escapes:
+					$<ANGLE-R>:   a '>'
+					$<COMMA>:     a ','
+					$<SEMICOLON>: a ';'
+
+				conditional:
+					$<condition:truestr>
+					$<IF:condition,truestr,falsestr>
+
+				transforms:
+					$<JOIN:list,string>
+					$<REMOVE_DUPLICATES:list>
+					$<LOWER_CASE:str>
+					$<UPPER_CASE:str>
+
+				outputs
+					$<TARGET_NAME_IF_EXISTS:tgt>
+					$<LINK_ONLY:...>
+					$<TARGET_FILE:tgt>
+					$<TARGET_PROPERTY:tgt,prop>
+					$<TARGET_OBJECTS:objlib>
+				
+
+
+
+
+		LINK_LIBRARIES
+		INCLUDE_DIRECTORIES
+		COMPILE_DEFINITIONS
+		
 
 ------------------------------
 -1- syntax
@@ -185,7 +257,7 @@ cmake_minimum_required (VERSION <version>)
 			set environment variable
 
 	______________________________
-	set_property
+	-2.2- set_property
 		set a named property
 		set(specifier [APPEND] [APPEND_STRING] PROPERTY <name> [value1 ...])
 			specifier:
@@ -198,6 +270,7 @@ cmake_minimum_required (VERSION <version>)
 				CACHE [<entry> ...]
 
 			name: name of property
+				POSITION_INDEPENDENT_CODE
 
 		related shorthand for specifiers:
 			set_directory_properties(PROPERTIES <prop> <val> [<prop> <val>...])
@@ -210,6 +283,51 @@ cmake_minimum_required (VERSION <version>)
 
 		APPEND_STRING
 			concatenates current value with value (a longer string)
+	______________________________
+	-2.3- install
+		install(TARGETS <target> ... )
+		install({FILES | PROGRAMS} <file> ... DESTINATION <dir> ...)
+			(files or non-target programs)
+		install(DIRECTORY <dir>... DESTINATION <dir> ...)
+			(if no dir for DIRECTORY, just makes the destination)
+		install(SCRIPT <file>... )
+		install(CODE <code> ...)
+		install(EXPORT <export-name> DESTINATION <dir> ...)
+
+
+		general options
+			DESTINATION 
+				dst
+				relative paths are relative to CMAKE_INSTALL_PREFIX
+			PERMISSIONS
+				<OWNER | GROUP | WORLD>_<READ | WRITE | EXECUTE>
+				SETUID
+				SETGID
+			CONFIGURATIONS
+				configuration to apply
+			COMPONENT
+				a component name (runtime, development ... ??)
+			EXCLUDE_FROM_ALL
+			RENAME
+			OPTIONAL
+
+		DIRECTORY options
+			FILES_MATCHING PATTERN "*.h"
+			EXCLUDE
+
+
+
+
+
+	______________________________
+	-2.4- add_library
+		adds a library target
+		if STATIC or SHARED is omitted, will be controlled by
+			BUILD_SHARED_LIBS
+	______________________________
+	-2.5- add_executable
+		adds an executable target
+
 
 
 
@@ -243,7 +361,19 @@ PROJECT_SOURCE_DIR
 
 CMAKE_REQUIRED_LIBRARIES
 
+BUILD_SHARED_LIBS
 
+CMAKE_INSTALL_PREFIX
+
+
+______________________________
+-3.1-platform
+	UNIX
+	WIN32
+	APPLE
+	MINGW
+	MSYS
+	CYGWIN
 
 
 ------------------------------
