@@ -349,21 +349,24 @@ cmake_minimum_required (VERSION <version>)
 generally begin with "CMAKE_"
 use set function to set the values
 
-CMAKE_CXX_STANDARD : c++ standard (11 for c++11)
-CMAKE_CXX_STANDARD_REQUIRED: bool, on or off
-CMAKE_CXX_FLAGS "-std=c++11 ${CMAKE_CXX_FLAGS}"
+______________________________
+  -3.1- CMAKE_* variables
 
-
-CMAKE_BINARY_DIR
+    CMAKE_BUILD_TYPE: < Release | RelWithDebInfo | Debug >
+    CMAKE_CXX_STANDARD : c++ standard (11 for c++11)
+    CMAKE_CXX_STANDARD_REQUIRED: bool, on or off
+    CMAKE_CXX_FLAGS "-std=c++11 ${CMAKE_CXX_FLAGS}"
+    CMAKE_BINARY_DIR
+    CMAKE_REQUIRED_LIBRARIES
+    CMAKE_INSTALL_PREFIX
 
 PROJECT_BINARY_DIR
 PROJECT_SOURCE_DIR
 
-CMAKE_REQUIRED_LIBRARIES
 
 BUILD_SHARED_LIBS
+BUILD_TESTING
 
-CMAKE_INSTALL_PREFIX
 
 
 ______________________________

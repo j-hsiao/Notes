@@ -309,6 +309,8 @@ NOTE: cygwin vi uses .virc not .vimrc
         :tabs   [fn]        : list tabs
         :tabc               : close tab
 
+        see -1.2- for more controls
+
     ------------------------------
     -4.4- settings
     ------------------------------
