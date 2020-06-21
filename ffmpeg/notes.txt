@@ -122,6 +122,9 @@ V options:
         a float (1.333)
 	a ratio (4:3) (w:h)
 
+    input:
+        -framerate input framerate when framerate unavailable like image sequence
+
 ______________________________
 ::other
 webcam:

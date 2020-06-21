@@ -1508,9 +1508,25 @@ ______________________________
     weight: 'bold', 'normal'
     slant: 'roman', 'italic'
     underline: t/f
-    overstriek: t/f
+    overstrike: t/f
+    name: name for this font (tk.nametofont uses this name)
   font.families():
     all available fonts
+
+  font.nametofont(general name):
+    get a named font
+
+  methods:
+    metrics([key]): key value, if ommitted, dict
+    configure()/config()
+      family
+      size
+      weight
+      slant
+      underline
+      overstrike
+      
+
 ##############################
 ::images
 ##############################

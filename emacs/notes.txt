@@ -1,3 +1,116 @@
+contents:
+  -0- general
+  -1- cursor movement
+  -2- windows/frames
+  -3- editing commands
+  -4- macros
+  -5- registers
+  -6- marks
+  -7- miscellaneous
+    -7;1- coding systems
+    -7;2- buffers
+    -7;3- search
+    -7;4- help
+
+
+------------------------------
+-0- general
+  C-<key> = ctrl + key
+  M-<key> = meta (esc) + key, alto works too 
+  *NOTE: C-[ also works as meta key
+
+  C-u [digits]  numeric argument for command
+  C-g           cancel
+  C-x C-f [fn]  open a filename fn
+  C-x C-s       save file
+------------------------------
+-1- cursor movement
+  command       description
+  C-p           previous line
+  C-n           next line
+  C-f           forward 1 char
+  C-b           back 1 char
+  C-e           end of line
+  C-a           beginning of line
+
+  M-f           forward 1 word
+  M-b           back 1 word
+  M-a           beginning of sentence
+  M-e           end of sentence
+  M-<           to beginning
+  M->           to eof
+
+------------------------------
+-2- windows/frames
+  command       description
+  C-v           scroll down       numeric argument: scroll x lines
+  M-v           scroll up         numeric argument: scroll x lines
+  C-l           move line with cursor to middle, top, bottom in cycle 
+
+  C-M-v         scroll other window
+
+  C-x 0         kill this window
+  C-x 1         kill other window
+  C-x 2         split horz
+  C-x 3         split vert
+
+  C-x 5         frame commands
+    0           kill this frame
+    1           keep this frame
+    2           new frame
+
+
+
+  C-x o         move to other window
+
+------------------------------
+-3- editing commands
+  command       description
+  C-k           yank the rest of this line, after the cursor
+  M-k           yank rest of sentence, after cursor
+  C-x C-l       lowercase region
+  C-x C-l       uppercase region
+
+  C-d           delete char
+  M-d           kill next word
+  M-backspace   kill previous word
+  C-/           undo
+
+  C-w           cut (kill)
+  M-w           copy 
+  C-y           paste (yank)
+
+------------------------------
+-4- macros
+------------------------------
+-5- registers
+------------------------------
+-6- marks
+  C-space           set mark
+------------------------------
+-7- miscellaneous
+
+  ______________________________
+  -7;1- coding systems
+    C-x <ret> p         set input/output coding schemes (dos, unix)
+                        allows use of cygwin bash when M-x shell
+    C-x <ret> f         set saving coding scheme (dos, unix)
+  ______________________________
+  -7;2- buffers
+    C-x C-b             list buffers
+    C-x b name          switch to buffer
+
+    C-x s               interactive which files to save? (iterate through changed buffers)
+  ______________________________
+  -7;3- search
+    C-s                 search for text (forward)
+    C-r                 search for text (reverse)
+    M-%                 text to replace search query
+  ______________________________
+  -7;4- help
+    C-h c [char seq]    brief help (ie which command is bound to the seq)
+    C-h k [char seq]    more help in new window
+
 movement:
 C-
   a: beginning
@@ -11,16 +124,12 @@ scroll:
 C-v: scroll down
 M-v: scroll up
 
-
-
 window:
 
 C-x 3: split vert
 C-x 2: split horz
-
-
-
-
+C-x 1: only window
+C-x 0: delete this window
 
 emacs runtime options:
   --reverse-video
