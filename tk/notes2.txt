@@ -500,6 +500,12 @@ ______________________________
 
     insert(pos, value)
       insert value at position
+
+    get()
+      get text
+
+    icursor(index)
+      move cursor 
     
     
 ______________________________    
@@ -1525,6 +1531,8 @@ ______________________________
       slant
       underline
       overstrike
+    measure(text)
+      return width of text
       
 
 ##############################
