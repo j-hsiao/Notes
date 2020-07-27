@@ -334,6 +334,8 @@ NOTE: cygwin vi uses .virc not .vimrc
             wrap            : wrap long lines
             ignorecase      : ignore case when searching
             smartcase       : ignore case, except when caps exist
+            cursorline/cul  : underline current line
+            cursorcolumn/cuc: highlight current column (maybe help with checking alignment)
 
 
 
