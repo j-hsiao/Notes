@@ -1,19 +1,21 @@
 ##############################
 contents
 ##############################
-1::drives and devices
-2::variable manipulations
-3::file manipulations
-4::regexp
-5::stream manipulation
-  5.1::sed
-  5.2::grep
-6::inputs
-7::redirection
-8::completion
+-1-drives and devices
+-2-variable manipulations
+-3-file manipulations
+-4-regexp
+-5-stream manipulation
+  -5.1-sed
+  -5.2-grep
+-6-inputs
+-7-redirection
+-8-completion
+-9-ps1
+-10- tput
 
 ##############################
-1::drives and devices
+-1- drives and devices
 ##############################
 lsblk: list block devices
 blkid: list blkid (UUID, partition types etc
@@ -50,7 +52,7 @@ umount
 
 
 ##############################
-2::variables manipulation
+-2-variables manipulation
 ##############################
 variables truncation:
   ${varname:startpos:runlength}
@@ -131,14 +133,14 @@ var as bool
 
 
 ##############################
-3::file manipulation
+-3-file manipulation
 ##############################
 shuf->shuffle lines in a file (ex training list)
 
 
 
 ##############################
-4::regexp
+-4-regexp
 ##############################
 ------------------------------
 basic
@@ -224,10 +226,10 @@ escapes:
 
 
 ##############################
-5::stream manipulation
+-5-stream manipulation
 ##############################
   ##############################
-  5.1::sed notes
+  -5.1-sed notes
   ##############################
   ------------------------------
   options:
@@ -354,10 +356,10 @@ escapes:
       execute_commands(pattern_space)
 
   ##############################
-  5.2::grep
+  -5.2-grep
   ##############################
     --color=auto
-    see 4::regexp
+    see -4-regexp
     -A[n] print n lines after matches
     -B[n] print n lines before matches
 
@@ -377,7 +379,7 @@ escapes:
 
 
 ##############################
-6::inputs
+-6-inputs
 ##############################
   read
     -u(fd) read from filedescriptor instead
@@ -425,7 +427,7 @@ escapes:
     CMD1 | CMD2
     redirects cmd1 stdout to cmd2 stdin
 ##############################
-7::redirection
+-7-redirection
 ##############################
   command orig>new <inputsource
     notes:
@@ -448,7 +450,7 @@ escapes:
         thus both stdout and stderr go to foo.txt
 
 ##############################
-8::completion
+-8-completion
 ##############################
     code into ~/.bash_completion
     use command name to determine completion for arguments
@@ -545,3 +547,86 @@ escapes:
             do stuff
         }
         complete -o filenames -o nospace -o bashdefault -F compfunc cd
+
+------------------------------
+-9- ps1
+------------------------------
+escapes:
+  \a          bell
+  \d          date (weekday, month, date)
+  \D{format}  date format (strftime)
+  \e          escape (033)
+  \h          hostename to first .
+  \H          host name
+  \j          current number of jobs
+  \l          shell device name
+  \n          new line
+  \r          carriage return
+  \s          name of shell
+  \t          time HH:MM:SS (24hr)
+  \T          \t, (12hr)
+  \@          HH:MM (12hr)
+  \A          HH:MM 24hr
+  \u          username
+  \v          bash version
+  \w          working directory
+  \W          basename of working dir
+  \!          history number for this command
+  \#          command number of command
+  \$          # if uid 0 (root) else $
+  \nnn        octal character code
+  \\          backslash
+  \[          begin non-printing characters
+  \]          end non-printing characters
+  \e[stuff    code for formating color, bold, underline, etc
+    \033[stuff
+              stuff:
+                [code];[code]...m
+
+    (use echo -e to check colors)
+    note: \[ and \] should be used around the color code stuff
+
+format codes:
+  \e codes
+    0         full reset
+
+    1         bold
+    2         dim
+    4         underlined
+    5         blink
+    7         reverse (foreground/background)
+    8         hidden (passwords)
+
+   2X         reset corresponding value 1-8
+
+color codes:
+  XY          X: foreground/background, light/dark
+                              dark      light
+              foreground      3         9
+              background      4         10
+
+
+              Y: color
+              0   black
+              1   red
+              2   green
+              3   yellow
+              4   blue
+              5   magenta
+              6   cyan
+              7   white
+              9   default
+
+  38;5;X      88/256 color for foreground, X = 1-256 (no leading 0)
+  48;5;X      88/256 color for background, X = 1-256 (no leading 0)
+------------------------------
+-10- tput
+------------------------------
+ncurses tool for interacting with terminal
+
+tput <command>
+
+  longname      print long name of terminal
+  lines         number of lines
+  cols          number of cols
+  colors        number of colors

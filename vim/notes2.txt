@@ -336,6 +336,15 @@ NOTE: cygwin vi uses .virc not .vimrc
             smartcase       : ignore case, except when caps exist
             cursorline/cul  : underline current line
             cursorcolumn/cuc: highlight current column (maybe help with checking alignment)
+            wildmenu wmnu   : wild menu (filename completion) (list files in status line)
+            wildmode wim    : wild completion mode:comma delimited list
+                              full        : first full completion
+                              longest     : longest common string
+                              longest:full: longest and start wildmenu
+                              list        : list available matches
+                              list:full   : list matches and go to next match
+                              list:longest: list matches and go to longest common
+                              (C-n C-p for next/prev match or tab to cycle)
 
 
 
