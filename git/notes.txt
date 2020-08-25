@@ -206,3 +206,4 @@ git config [--global | --local] alias.<aliascommand> "command and args"
 
 example:
   git config --local alias.graph "log --all --decorate --oneline --graph"
+  git config --local --unset alias.graph

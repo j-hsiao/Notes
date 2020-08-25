@@ -141,8 +141,15 @@ commandline or from IDE like msvs
     puts the things onto the corresponding media
 
     <MediaTemplate/>
-    template for media
-    they are mutually exclusive
+    template for media mutually exclusive from <Media>
+
+      CompressionLevel          high low medium mszip(this is default) none 
+      DiskPrompt                disk name
+      EmbedCab                  embed cab into msi (yes/no)
+
+
+
+
 
 
 
@@ -421,16 +428,34 @@ example:
     change Version for Product tag
   Major upgrade: change everything
 
+  https://docs.microsoft.com/en-us/windows/win32/msi/changing-the-product-code?redirectedfrom=MSDN 
+
   product GUID must change when:
     expect coexistence between different versions
     change .msi file name
-    change any Component GUID
-    remove a component
-    change in features
+    change GUID of any existing Component
+    removing components/features (includes renaming/moving to other location)
+    (no changing feature tree hierarchy, if remove parent, all children must be removed too)
+
+  so okay:
+    add new component
+    add new feature (without shared components)
+
+    add/remove/modify files, registry keys, shortcuts of unshared components
+
 
   note: keep track of product GUIDs
 
   UpgradeCode: same version (1.xxx, 2.xxx)
+
+  experimentation notes:
+    1. if product Id remains the same, you cannot just run another msi installer
+      (it says already installed)
+      if Product Id='*', then you can directly run msiinstaller and it'll overwrite 
+      any with same upgradecode
+
+
+
 
   ------------------------------
   -8.1- upgrade tag
@@ -471,7 +496,13 @@ example:
       <Custom Action='AlreadyUpdated' After='FindRelatedProducts'>NEWERFOUND</Custom>
     </InstallExecuteSequence>
 
-    <MajorUpgrade
+    alternative mutually exclusive method:
+      <MajorUpgrade
+        AllowDowngrades
+        AllowSameVersionUpgrades
+        Disallow
+        DowngradeErrorMessage (required unless downgrade is allowed)
+      />
 
   ------------------------------
   -8.2- patching
@@ -497,10 +528,25 @@ example:
           Version='1.0.0.0'
           Supersede='yes'
         >
+          <PropertyRef Id='ProductVersion'/>
           <ComponentRef Id='MainExecutable'/>
         </PatchFamily>
       </Patch>
     </Wix...>
+
+    Notes:
+      1 need the PropertyRef to ProductVersion to update the product's version
+
+      2 ComponentRef Id='MainExecutable' would make the MainExecutable component
+        updated by the patch
+
+      3 MediaTemplate not allowed
+
+    to my understanding:
+      have some product P
+      a PatchFamily is a family of patches for particular file / set of files
+      these files are indicated by ComponentRef inside of PatchFamily
+
 
     Classification:
       Hotfix

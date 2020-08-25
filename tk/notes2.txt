@@ -39,6 +39,7 @@ dialogs
 fonts
 images
 styles and themes
+clipboard
 
 
 
@@ -1547,3 +1548,16 @@ ______________________________
 ::styles and themes
 ##############################
 
+
+##############################
+::clipboard
+##############################
+from root or any widget?
+  clipboard_clear(): clear clipboard
+  clipboard_append(): add item to clipboard (copy)
+  clipboard_get(): get copied data
+
+  note: clipboard_append() only appends data
+  does not copy again
+  so must clear if you don't want to append new copied text to
+  old copied text
