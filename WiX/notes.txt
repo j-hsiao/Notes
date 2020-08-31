@@ -13,8 +13,9 @@ commandline or from IDE like msvs
   -1.2- components
     -1.2.1- files
       -1.2.1.1- shortcuts
-    -1.2.2.2- RemoveFolder
-    -1.2.2.3- RegistryValue
+    -1.2.2- RemoveFolder
+    -1.2.3- RegistryValue
+    -1.2.4- Environment
 -2- features
 -3- icons
 -4- conditions
@@ -28,6 +29,16 @@ commandline or from IDE like msvs
   -8.2- patching
   -8.3- fragments
   -8.4- merge modules
+-9- bundles
+  -9.1- elements
+    -9.1.1- BootstrapperApplicationRef
+      -9.1.1.1- payloads
+    -9.1.2- Chain
+      -9.1.2.1- MsiPackage
+      -9.1.2.2- ExePackage 
+      -9.1.2.3- MspPackage
+      -9.1.2.4- MsUPackage
+      -9.1.2.5- PackageGroupRef
 
 
 ------------------------------
@@ -219,12 +230,12 @@ commandline or from IDE like msvs
           Advertise='yes'
         />
     ------------------------------
-    -1.2.2.2- RemoveFolder
+    -1.2.2- RemoveFolder
       when to remove a folder
       <RemoveFolder Id='ProgramMenuDir' On='uninstall/install/both'>
 
     ------------------------------
-    -1.2.2.3- RegistryValue
+    -1.2.3- RegistryValue
       <
         RegistryValue
         Root='HKCU'
@@ -233,6 +244,21 @@ commandline or from IDE like msvs
         Value=''
         KeyPath='yes'
       />
+
+    ------------------------------
+    -1.2.4- Environment
+      <Environment
+        Id='id'
+        Action='create/set/remove'
+        Name='NameOfEnvironmentVar'
+        Part='first/last/all'
+        Permanent='yes/no'      (if no, remove on uninstall)
+        Separator=';'           (default is ;)
+        System='yes/no'         add to system or user only
+        Value='value to set to'
+        />
+
+
 ------------------------------
 -2- features
   INSTALLLEVEL is a value when running installer
@@ -587,3 +613,122 @@ example:
     like heavy-weight fragments
     essentially msi for each module
     and merge the msis together?
+
+------------------------------
+-9- bundles
+------------------------------
+bundles used to install multiple things together
+  multiple components in own msi
+  main product and its dependencies
+  etc
+
+  skeleton:
+    <?xml version="1.0"?>
+    <Wix xmlns="http://schemas.microsoft.com/wix/2006/wi">
+      <Bundle>
+      </Bundle>
+    </Wix>
+
+  ------------------------------
+  -9.1- elements
+    ------------------------------
+    -9.1.1- BootstrapperApplicationRef
+      <BootstrapperApplicationRef
+        Id="WixStandardBootstrapperApplication.RtfLicense"/>
+      <BootstrapperApplication                <- notice no Ref
+        SourceFile="PathToCustomBootStrapper.dll"/>
+
+      builtin bootstrapper Ids:
+        WixStandardBootstrapperApplication.RtfLicense               display license in dialog
+        WixStandardBootstrapperApplication.HyperlinkLicense         link to license
+        WixStandardBootstrapperApplication.HyperlinkSidbarLicense   larger hyperlink, with image
+        WixStandardBootstrapperApplication.RtfLargeLicense          larger dialog, display version
+        WixSTandardBootstrapperApp;l;ication.HyperlinkLargeLicense  larger dialog, display version
+
+      <bal:WixStandardBootstrapperApplication
+        LicenseFile="path to license.rtf"
+        LicenseUrl='url to license'
+        ShowVersion="yes/no"
+        LogoFile='file.png'
+        LogoSideFile='logo.png'
+        />
+      NOTE1:
+        add this:
+          xmlns:bal="http://schemas.microsoft.com/wix/BalExtension"
+        to <Wix> element to use bal:blahblahblah
+      NOTE2:
+        or can supply WixStdbaLicenseUrl or WixStdbaLicenseFile to light through -d
+
+
+      build with candle and light
+      (must add "-ext WixBalExtension" to both)
+
+
+      ------------------------------
+      -9.1.1.1- payloads
+        extra payload files (required by installers? never really explains what exactly these are)
+        <Payload SourceFile="path to file"/>
+        <PayloadGroupRef Id="ResourceGroupoForSomething"/>
+
+        can put this under the corresponding Package (MsiPackage, ExePackage, ...)
+        if those require these extra "external" files
+
+
+        https://stackoverflow.com/questions/26982208/bundle-multiple-support-files-for-wix-burn
+
+
+
+      
+    ------------------------------
+    -9.1.2- Chain
+      a chain of packages
+      use PackageGroupRef if the package definition is in a fragment
+
+      ------------------------------
+      -9.1.2.1- MsiPackage
+        DisplayInternalUI='yes/no'
+        EnableFeatureSelection='yes/no'
+        ForcePerMachine='yes/no'
+
+
+      ------------------------------
+      -9.1.2.2- ExePackage 
+        <ExePackage
+          SourceFile="[sources]\packages\shared\MyPackage.exe"
+          DetectCondition="ExeDetectedVariable"
+          DownloadUrl="http://example.com/?mypackage.exe"
+          InstallCommand="/q /ACTION=Install"
+          RepairCommand="/q ACTION=Repair /hideconsole"
+          UninstallCommand="/q ACTION=Uninstall /hideconsole" 
+          InstallCondition="not installed" />
+        (see -4- conditions)
+
+          DetectCondition='condition'   (see -4-)
+      ------------------------------
+      -9.1.2.3- MspPackage
+      ------------------------------
+      -9.1.2.4- MsUPackage
+
+      ------------------------------
+      -9.1.2.5-
+        general properties:
+          After='id'
+          Cache='yes/no'
+          CacheId='cache id'
+          Compressed='yes/no' (embed or not)
+          Description='desc'
+          DisplayName='name'
+          DownloadUrl='url to download'
+            {0} = package id
+            {1} = payload id
+            {2} = payload file name
+          Id='id'
+          InstallCondition='Condition' (see -4-)
+          InstallSize
+          Name='extracted name'
+          PerMachine='yes/no'   (requires elevated?)
+          Permanent='yes/no'    (can be uninstalled?)
+          SourceFile="path to file"
+          Visible='yes/no'
+          Vital='yes/no'        (stop if fail?')
+
