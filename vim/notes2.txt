@@ -29,6 +29,7 @@ NOTE: cygwin vi uses .virc not .vimrc
     -6.3- marks
     -6.4- macros
     -6.5- jump list
+    -6.6- functions
 
 
 ##############################
@@ -345,6 +346,8 @@ NOTE: cygwin vi uses .virc not .vimrc
                               list:full   : list matches and go to next match
                               list:longest: list matches and go to longest common
                               (C-n C-p for next/prev match or tab to cycle)
+        option? prints option value
+        option! will toggle if boolean type
 
 
 
@@ -443,3 +446,44 @@ NOTE: cygwin vi uses .virc not .vimrc
 
         see -1.1.1-
 
+    ------------------------------
+    -6.6- functions
+    ------------------------------
+    function Functionname(args)
+    endfunction
+
+    function name must be capitalized
+
+    if
+    elseif
+    else
+    endif
+
+    variables:
+      a:  arg of function
+      g:  global
+      l:  local to function
+      b:  current buffer
+
+    let var = val
+    let b:var = buffer-local-value
+    let [v1,v2,v3]=[v1,v2,v3]
+
+    pseudovars:
+      &var      get local OPTION if available else global
+      &l:var    get local value of OPTION
+      &g:var    get global value of OPTION
+      @var      get register value
+      $var      get environmentvar
+
+    {var}rest: var gets evaluated and then the rest
+              example:
+              var = expand
+              {var}tab = expandtab as variable
+
+              does not seem to work with pseudovars
+
+    exists("name"): checks if variable is defined
+
+    call functions with :call
+    use :<C-U>call FuncName(v:count) to pass prefix arg
