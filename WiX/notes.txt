@@ -617,6 +617,15 @@ example:
 ------------------------------
 -9- bundles
 ------------------------------
+NOTE:
+  if signing a bundle, must use
+    wix insignia
+    insignia -ib [exe] -o [bootstrapperexe]
+    *sign the [bootstrapperexe]*
+    insignia -ab [signed bootstrapperexe] [original exe] -o [output name (can be same as [exe])]
+    *sign the output*
+
+
 bundles used to install multiple things together
   multiple components in own msi
   main product and its dependencies
@@ -628,6 +637,13 @@ bundles used to install multiple things together
       <Bundle>
       </Bundle>
     </Wix>
+
+  Bundle:
+    Version='1.2.3.4'
+    UpgradeCode='guid'
+    Manufacturer='company'
+    Name='name to show in programs/features'
+    ParentName='name to show in updates, if given, do not show in programs/features'
 
   ------------------------------
   -9.1- elements

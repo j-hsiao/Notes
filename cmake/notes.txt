@@ -293,6 +293,8 @@ cmake_minimum_required (VERSION <version>)
 		install(SCRIPT <file>... )
 		install(CODE <code> ...)
 		install(EXPORT <export-name> DESTINATION <dir> ...)
+			install XXXXConfig.cmake for find_package??
+			(alternative is to export(blah) for XXXConfig.cmake (except link to things in build dir as opposed to install dir))
 
 
 		general options
