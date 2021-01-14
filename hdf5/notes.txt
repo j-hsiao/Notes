@@ -1,0 +1,459 @@
+hdf5group.org: userguide, referencemanual
+-0- basics
+	-0.1- errors
+	-0.2- propertylists
+	-0.3- general library funcs
+-1- files
+-2- dataspaces
+	-2.1- hyperslabs
+-3- datatypes
+-4- datasets
+	-4.1- extension
+-5- groups
+-6- attributes
+
+------------------------------
+-0- basics
+------------------------------
+concepts:
+	file:						contiguous string of bytes (file, ram, etc)
+	group:					collection of objects (like a directory)
+	dataset:				nd array + metadata/attrs
+	dataspace:			shape of dataset
+	datatype:				dtype of dataset
+	attribute:			named data item
+		mini-dataset
+	property list:	list of params
+		name-value pairs
+		examples:
+			H5P_FILE_CREATE
+			H5P_FILE_ACCESS
+			H5P_DATASET_CREATE
+			H5P_DATASET_XFER
+			H5P_FILE_MOUNT
+
+	link:						the way objects are connected
+
+
+	space: a specification of dimensions ( can be applied to data in file or memory)
+
+HDF5 has unix-directory-like structure
+
+methods are prefixed:
+	H5		general
+	H5A		annotation
+	H5D		dataset
+	H5E		error
+	H5F		file
+	H5G		group
+	H5I		identifier
+	H5L		link
+	H5O		object
+	H5P		property list
+	H5R		reference
+	H5S		dataspace
+	H5T		datatype
+	H5Z		compression
+	H5LT	high level light interface
+
+types:
+	hid_t			object handles
+	hsize_t		dimensions
+	herr_t		return values
+	htri_t		?bool?
+c:
+	#include hdf5.h
+python:
+	import h5py/numpy
+
+
+	------------------------------
+	-0.1- errors
+	------------------------------
+	hid_t stackid = H5EDEFAULT; (current error stack)
+		NOTE:
+			all individual hid_t must be closed separately
+			objects can be opened multiple times, and each hid_t should be closed
+
+	herr_t H5Eprint(stackid, FILE *stream);
+		print current error stack
+
+	herr_t H5Eclear(stackid);
+		clear the stack
+
+	typedef herr_t (*H5E_auto_t)(stackid, void*) 
+	herr_t H5Eset_auto(stackid, H5E_auto_t func, void *clientdata
+		use nullptr to disable auto-printing errors
+
+	herr_t H5Eget_auto(stackid, H5E_auto_t *func, void **client_data);
+		sets func and client_data to the values
+
+	??????????????????????????????
+	anything that returns an hid_t will return -1 on failure
+	herr_t == 0 means success
+	??????????????????????????????
+	------------------------------
+	-0.2- propertylists
+	------------------------------
+		modify operations on objects etc
+		H5Pcreate(property list class)
+
+		H5P_DEFAULT can be used for default property lists
+		classes:
+			H5P_FILE_CREATE
+			H5P_FILE_ACCESS
+			H5P_DATASET_CREATE
+				H5Pset_chunk(prop, rank, dims);
+				H5Pset_deflate(prop, compressionlevel);
+			H5P_DATASET_XFER
+			H5P_FILE_MOUNT
+
+	------------------------------
+	-0.3- general library funcs
+	------------------------------
+	H5check_version
+	H5close
+	H5dont_atexit
+	H5garbage_collect
+	H5get_libversion
+	H5open
+
+
+
+
+	------------------------------
+		-1- files
+	------------------------------
+		hid_t H5Fcreate("name", access, create_plist, access_plist);
+			H5F_ACC_TRUNC			truncate data
+			H5F_ACC_EXCL			create if not exist, fail otherwise
+		hid_t H5Fopen("name", access, access_plist)
+			H5F_ACC_RDONLY		rd only
+			H5F_ACC_RDWR			rd and write
+		herr_t H5Fclose(hid_t)
+		H5Fflush
+		herr_t H5Fmount(loc_id, "/path", child_id, plist_id)		(temporary file-connection)
+		H5Funmount
+		H5Lcreate_external	(create permanent link)
+
+		propertylists:
+			H5P_FILE_CREATE
+				userblock size, datablock, data address params,
+				btree props, etc
+
+				properties: H5Pset/get_XXX
+					driver
+					driver_info
+
+			H5P_FILE_ACCESS
+				data alignment, metadata blocks, cache sizes,
+				garbage collection, parallel io, etc
+				properties: H5Pset/get_XXX
+					fapl_core			in-memory files
+					fapl_direct		direct i/o	 (no fs caching)
+					fapl_family		multi-file (FS does not support >2G)
+					fapl_multi		multi-file
+					fapl_mpio			parallel fs
+					fapl_sec2			unbuffered file
+					fapl_stdio		buffered file
+
+			userblocks:
+				header in file ignored by hdf5
+				minimum size is 512
+				must be a power of 2
+
+
+
+
+	------------------------------
+		-2- dataspaces
+	------------------------------
+		hid_t H5Screate(H5S_SCALAR);
+		H5Screate_simple(hsize_t ndim, hsize_t *dims, hsize_t maxdims);
+		H5Sget_simple_extent_dims;
+		H5Sget_simple_extent_ndims
+
+		H5S_UNLIMITED: unlimited dim (for use in maxdims)
+
+		------------------------------
+		-2.1- hyperslabs
+		------------------------------
+	------------------------------
+		-3- datatypes
+	------------------------------
+		hid_t H5Tcopy(hid_t)
+			(dataset (copy its datatype) or an H5T_arch_type etc)
+		hid_t H5Topen(hid_t loc, "name", plist);
+			readonly datatype
+		herr_t H5Tcommit(hid_t loc, "name", dtype, plist, plist, plist);
+		htri_t H5Tcommitted(hid_type)
+		(see also: H5Dget_type, H5Aget_type)
+
+		htri_t H5Tequal
+
+		H5Tclose
+		H5Tcreate(H5T_COMPOUND, sizeof tmp);
+			(H5T_COMPOUND, H5T_OPAQUE, H5T_ENUM only)
+		H5Tinsert(type, "name", HOFFSET(<struct instance>, memb), dtype);
+			member properties:
+				Index
+				Name
+				Datatype
+				Offset
+			HOFFSET(s, m)
+
+		type properties: H5Tget/set
+			order      fields
+			size       ebias
+			precision  norm
+			offset     inpad
+			padd       cset
+			sign       strpad
+
+
+		H5Tget_class
+			H5T_INTEGER
+				hid_t H5Tget_order(type)
+					H5T_ORDER_LE
+					H5T_ORDER_BE
+				hid_t H5Tget_sign(type)
+					H5T_SGN_NONE
+					H5T_SGN_2
+			H5T_FLOAT
+			H5T_CHARACTER
+			H5T_BITFIELD
+			H5T_OPAQUE
+			H5T_ENUMERATION
+			H5T_REFERENCE
+			H5T_ARRAY
+			H5T_VARIABLE_LENGTH
+			H5T_COMPOUND
+		orders
+			H5T_ORDER_LE
+			H5T_ORDER_BE
+
+
+		H5T_<arch>_<base>[endian]
+
+		arch:
+			IEEE(float)   CRAY
+			STD(int/bits) INTEL
+			C             MIPS
+			FORTRAN       ALPHA
+			NATIVE
+			
+		base:
+			F(loat)
+			I(nteger)
+			R(eference)
+			S(char string)
+			U(unsigned)
+		endian
+			BE
+			LE
+
+		predefined:
+			integer
+			float
+			date/time
+			char string
+			bitfield
+			opaque
+		derived
+			use predefined
+			ex:
+				hid_t strtype;
+				herr_t status
+				strtype = H5Tcopy(H5T_C_S1);
+				status = H5Tset_size(strtype, 5);
+
+
+	------------------------------
+		-4- datasets
+	------------------------------
+		H5Dcreate(hid_t fid, "name", datatype, dataspace, linkcreate plist, dataset create plist, dataset access plist)
+		H5Dopen(hid_t fid, "name", dataset access plist);
+
+		H5Dwrite(datasetid, dtype, memspace, filespace, xferplist, buffer);
+		H5Dread(datasetid, dtype, memspace, filespace, xferplist, buffer);
+		H5Dextend(dataset, size)
+		H5Dset_extent
+
+		H5Dget_type
+		H5Dget_space
+
+		properties:
+			creation:
+				H5Pset_chunk(prop, rank, dims)
+				H5Pset_deflate(prop, compressionlevel);
+			dataset:
+				H5Dget_space
+				H5Dget_type
+
+		------------------------------
+		-4.1- extension
+		------------------------------
+			allows dataset to grow in specified dimensions (H5S_UNLIMITED)
+			must enable chunking
+			chunking:
+				hid_t cparms
+				hsize_t chunk_dims[rank]
+				cparms = H5Pcreate
+
+			H5Dextend(dataset, newsize)
+
+	------------------------------
+		-5- groups
+	------------------------------
+		hid_t H5Gcreate(fileid, "absolute name", proplist, create proplist, access proplist)
+		hid_t H5Gcreate(dirid, "relative name", proplist, create proplist, access proplist)
+		hid_t H5Gopen(fileid, "dirname", proplist)
+		H5Gclose
+
+		TODO: read up on this
+
+	------------------------------
+		-6- attributes
+	------------------------------
+		hid_t H5Acreate(hid_t, "name", dtype, space, proplist, proplist);
+		herr_t H5Awrite(hid_t, dtype, buff);
+		hid_t H5Aopen_by_name(fid, objname, "attr name", proplist, proplist);
+		herr_t H5Aread(hid_t, dtype, buff);
+		herr_t H5Aclose(hid_t)
+		H5A_open_by_idx(fid, datasetname, idx_type, iter_order, ?, proplist, proplist);
+		H5Aiterate
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+------------------------------
+-1.2- datasets
+------------------------------
+	datatypes:
+
+		examples:
+			cross-platform:
+				H5T_STD_I32LE
+				H5T_STD_U16BE
+				H5T_IEEE_F32BE
+				H5T_IEEE_F64LE
+				H5T_C_S1
+			platform-specific:
+				H5T_NATIVE_INT
+				H5T_NATIVE_FLOAT
+				H5T_NATIVE_CHAR
+				H5T_NATIVE_DOUBLE
+				H5T_NATIVE_LDOUBLE
+
+	dataspaces: simple (Nd array or complex), fixed or unchanging
+
+	property lists:
+		data creation
+		link creation
+		dataset access
+	steps:
+		get location identifier
+		define dataset
+			datatype
+			dataspace
+			property list(s)
+		create
+		close handles
+		close dataset
+
+	reading steps:
+		get dataset id
+		make datatypes/dataspaces for memory/file
+		transfer
+		process data
+		close datasets spaces, etc
+
+	------------------------------
+	Basic Interface:
+	------------------------------
+		make space:
+			code:
+				hid_t space = H5Screate_simple(rank, dims, maxdims);
+				herr_t status = H5Sclose(space);
+			NOTES:
+				maxdims: NULL
+				dims: hsize_t ptr
+		make dataset:
+			code:
+				hid_t datasetid = H5Dcreate(fid, "/path", DTYPE, space, H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
+				status = H5Dclose(datasetid);
+		read/write dataset:
+			code:
+				status = H5Dread(datasetid, dtype, memshape, fileshape, xfer_prp, buf);
+				status = H5Dwrite(datasetid, dtype, fileshape, memshape, xfer_prp, buf);
+			NOTES:
+				dtype: type of buf (type in file was specified when dataset was created)
+
+			partial access:
+				hyperslabs:
+					start: starting coordinates
+					block: dimensions of blocksize (defaults to all 1s)
+					stride: stride for each coordinate (defaults to all 1s)
+					count: number of blocks
+
+				code:
+					dataspace = H5Dget_space(dataset); //datasetid?
+					rank = H5Sget_simple_extent_ndims(dataspace);
+					H5Sget_simple_extent_dims(dataspace, dims_out, NULL);
+
+					H5Sselect_hyperslab(dataspace, op, start, stride, count, block);
+
+					memspace = H5Screate_simple(rank, dims, maxdims);
+					H5Sselect_hyperslab(memspace, op, start, stride, count, block);
+				NOTES:
+					op: H5S_SELECT_SET, 
+
+					H5Screate_simple: creates simple in-memory space
+					H5Dget_space: get the space of a dataset that is in a file
+				
+			
+
+	------------------------------
+	HL Interface:
+	------------------------------
+		H5LTmake_dataset(file_id, dset_name, rank, dims, datatype, data);
+		H5LTread_dataset(file_id, dset_name, datatype, data);
+		H5LTget_dataset_info(file_id, dset_name, ptr, NULL, NULL);
+
+		rank: number of dims
+		dims: hsize_t* to dimensions
+		data: pointer to contiguous data
+
+------------------------------
+-1.3- attributes
+------------------------------
+	mini-dataset metadata for actual dataset
+	steps:
+		get object identifier
+		define attribute dataspace
+		create
+		close
+
+	hl example
+		H5LTset_attribute_int(file_id, dset_name, attr_name, data, size);
+		H5LTget_attribute_int(file_id, dset_name, attr_name, data);
+
+
+	
+
