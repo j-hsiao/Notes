@@ -70,7 +70,7 @@ python:
 	------------------------------
 	-0.1- errors
 	------------------------------
-	hid_t stackid = H5EDEFAULT; (current error stack)
+	hid_t stackid = H5E_DEFAULT; (current error stack)
 		NOTE:
 			all individual hid_t must be closed separately
 			objects can be opened multiple times, and each hid_t should be closed
@@ -82,16 +82,22 @@ python:
 		clear the stack
 
 	typedef herr_t (*H5E_auto_t)(stackid, void*) 
-	herr_t H5Eset_auto(stackid, H5E_auto_t func, void *clientdata
+	herr_t H5Eset_auto (macro to below)
+	herr_t H5Eset_auto1(stackid, H5E_auto_t func, void *clientdata
+	herr_t H5Eset_auto2(H5E_auto_t func, void *clientdata
 		use nullptr to disable auto-printing errors
 
-	herr_t H5Eget_auto(stackid, H5E_auto_t *func, void **client_data);
-		sets func and client_data to the values
+	herr_t H5Eget_auto (Macro to below)
+	herr_t H5Eget_auto1(H5E_auto_t *func, void **client_data);
+	herr_t H5Eget_auto2(stackid, H5E_auto_t *func, void **client_data);
+		retrieve current callbacks
 
-	??????????????????????????????
-	anything that returns an hid_t will return -1 on failure
-	herr_t == 0 means success
-	??????????????????????????????
+
+	return values:
+		failure:
+			hid_t < 0
+			herr_t < 0
+
 	------------------------------
 	-0.2- propertylists
 	------------------------------
@@ -178,6 +184,27 @@ python:
 		------------------------------
 		-2.1- hyperslabs
 		------------------------------
+			
+			herr_t H5Sselect_hyperslab(
+				hid_t space, H5S_seloper_t op,
+				hsize_t *start hsize_t *stride, hsize_t *count, hsize_t *block)
+
+				op:
+					H5S_SELECT_SET	(set value)
+					H5S_SELECT_OR		(union)
+					H5S_SELECT_AND	(intersection)
+					H5S_SELECT_XOR	(disjoint)
+					H5S_SELECT_NOTA	(disjoint and new)
+					H5S_SELECT_NOTB	(disjoint and old)
+				start:
+					offset
+				count:
+					number of blocks
+				stride:
+					stride of hyperslab
+				block:
+					block size
+
 	------------------------------
 		-3- datatypes
 	------------------------------
@@ -209,6 +236,9 @@ python:
 			offset     inpad
 			padd       cset
 			sign       strpad
+
+		NOTES:
+			strpad(hid_t, H5T_STR_[NULLTERM | NULLPAD | SPACEPAD])
 
 
 		H5Tget_class
@@ -300,7 +330,7 @@ python:
 				hsize_t chunk_dims[rank]
 				cparms = H5Pcreate
 
-			H5Dextend(dataset, newsize)
+			H5Dset_extent(dataset, newsize)
 
 	------------------------------
 		-5- groups

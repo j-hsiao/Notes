@@ -5,6 +5,7 @@ notation notes:
 
 contents:
 -0- tutorial
+	-0.0- useful tips
 	-0.1- essentials
 	-0.2- generator expressions
 -1- syntax
@@ -23,6 +24,10 @@ contents:
 ------------------------------
 -0- tutorial
 ------------------------------
+	-0.0- useful tips
+		cmake -L: list cache variables that would be shown in gui (check current settings)
+		cmake -E: use cmake platform-independent functions like copy, move etc
+
 	-0.1- essentials
 		cmake version
 			cmake_minimum_required(VERSION 3.10)
