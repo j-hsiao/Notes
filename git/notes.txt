@@ -196,7 +196,7 @@ other
   git log: history of the path to HEAD
 
   git log --all --decorate --oneline --graph
-    (a d o g)
+    (adog)
 
 ------------------------------
 -5- alias

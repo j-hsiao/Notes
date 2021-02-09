@@ -30,6 +30,8 @@ NOTE: cygwin vi uses .virc not .vimrc
     -6.4- macros
     -6.5- jump list
     -6.6- functions
+        -6.6.1- variables
+
 
 
 ##############################
@@ -452,38 +454,62 @@ NOTE: cygwin vi uses .virc not .vimrc
     function Functionname(args)
     endfunction
 
-    function name must be capitalized
+    FUNCTION NAME MUST BE CAPITALIZED
 
     if
     elseif
     else
     endif
 
-    variables:
-      a:  arg of function
-      g:  global
-      l:  local to function
-      b:  current buffer
+        ------------------------------
+        -6.6.1- variables
+          a:  arg of function
+          g:  global
+          l:  local to function
+          b:  current buffer
 
-    let var = val
-    let b:var = buffer-local-value
-    let [v1,v2,v3]=[v1,v2,v3]
+        let var = val
+        let b:var = buffer-local-value
+        let [v1,v2,v3]=[v1,v2,v3]
 
-    pseudovars:
-      &var      get local OPTION if available else global
-      &l:var    get local value of OPTION
-      &g:var    get global value of OPTION
-      @var      get register value
-      $var      get environmentvar
+        pseudovars:
+          &var      get local OPTION if available else global
+          &l:var    get local value of OPTION
+          &g:var    get global value of OPTION
+          @var      get register value
+          $var      get environmentvar
 
-    {var}rest: var gets evaluated and then the rest
-              example:
-              var = expand
-              {var}tab = expandtab as variable
+        {var}rest: var gets evaluated and then the rest
+                  example:
+                  var = expand
+                  {var}tab = expandtab as variable
 
-              does not seem to work with pseudovars
+                  does not seem to work with pseudovars
 
     exists("name"): checks if variable is defined
 
     call functions with :call
-    use :<C-U>call FuncName(v:count) to pass prefix arg
+    use :<C-U>call FuncName(v:count) to pass prefix to function
+        example:
+            nnoremap <my><remapping> :<C-U>call MyFunctionName(v:count)
+            v:count: prefix, default 0
+            v:count1: prefix, default 1
+
+        in strings, use \<escape seq> to represent the character
+        example: append "hello world" to the end of the line
+            execute "normal Ahello world\<esc>"
+
+            use . to concatenate strings
+
+        execute: run a string as a command
+            example: add ${arg} spaces
+                execute "normal " . arg . "a \<esc>"
+
+
+        variable coercion:
+            like integer promotion but applied to strings too
+            int + float->float
+
+            str + num -> num (even if str is a float str)
+
+            str . num -> str

@@ -19,7 +19,7 @@ contents:
 	-2.5- add_executable
 -3- cmake variables
 -4- commandline
-
+-5- ctest
 
 ------------------------------
 -0- tutorial
@@ -406,3 +406,21 @@ command line options
 
 	--prefix <prefix>
 		used with --install, the installation dir
+
+------------------------------
+-5- ctest
+------------------------------
+ctest: run tests from add_test
+	include(CTest) (after project)
+		BUILD_TESTING becomes an option
+
+		add_test(NAME <test name> COMMAND <test command or a target>)
+			register test
+
+		run tests:
+			make && make test
+
+		run individual test:
+			ctest -R <regexp matching test names>
+		list tests
+			ctest -N 
