@@ -1,0 +1,145 @@
+-0- vocab
+	-0.1- verbs
+	-0.2- nouns
+	-0.3- adjectives
+	-0.4- particles
+	-0.5- time
+-1- verbs
+	-1.1-conjugation
+##############################
+
+-0- vocab
+	-0.1- verbs
+		aru		there are
+		asobu		play/hang out
+		hanasu		talk
+		iku		come
+		iru		there are
+		kaeru		return home/hometown/homecountry etc
+		kau		buy
+		kuru		come
+		miru		see
+		modoru		return to something
+		neru		sleep
+		nomu		drink
+		suru
+		taberu		eat
+		tatakau		physical fight
+		toru		take (picture)
+		yaru
+	-0.2- nouns
+		ie		house
+		hasami		scissors
+		kami		paper / hair / god
+		te		hand
+		shigoto		work
+		nihon		japan
+		nihongo		japanese
+		daigaku		university
+	-0.3- adjectives
+	-0.4- particles
+		kara/made	from x to b
+				x kara b made
+		de	at/in/to
+			(location of action)
+			ex:
+				restaurant de pizza wo tabemashita
+				sleep
+			tool
+				
+		ga	like
+		ni	at/in/to
+			(exist)
+			sumu (live)
+			tomaru (stay)
+			taizaisuru (stay)
+			iru	(exist, animate objects (animal))
+			aru	(exist, inanimate (plant, object))
+
+			destination
+			nihon ni iku
+				(iku, kuru, kaeru, modoru, kaesu)
+
+		wa	subject marker
+		wo	receive action
+		yo
+		to	<noun> to <noun>	(noun and noun)
+			<noun> to		(with noun (accompanied))
+	-0.5- time
+		ima		now
+		sakuya		last night (formal)
+		knou no yoru	(yesterday's night)
+
+
+-1- verbs
+	gen:
+		all end with u
+		
+	-1.1-conjugation
+		iru/eru
+			------------------------------
+				not		did not		have to
+			ru->	nai		nakatta		nakya
+
+			taberu	tabenai		tabenakatta	tabenakya
+			miru	minai		minakatta	minakya
+
+			------------------------------
+													 ??????		?????
+				(formal)	not (formal)	did not (formal)	want to		did (formal)	did (informal)
+			ru->	masu		masen		masendeshita		tai		mashita		ta
+			taberu	tabemasu	tabemasen	tabemasendeshita	tabetai		tabemashita	tabeta
+			miru	mimasu		mimasen		mimasendeshita		mitai		mimashita	mita
+			iru	imasu		imasen		imasendeshita		itai????	imashita	ita
+			------------------------------
+				order (crude)
+			u->	o
+			taberu	tabero
+			------------------------------
+				request
+			ru->	te
+			taberu	tabete
+			------------------------------
+				past
+			ru->	ta
+			neru	neta
+			------------------------------
+				lets (formal)
+			ru->	you
+			miru	miyou
+			taberu	tabeyou
+		other
+			------------------------------
+				not / did not / have to
+			u->a +	nai / nakatta / nakya
+
+			iku	ikanai / ikanakatta / ikanakya
+			hanasu	hanasanai / hanasanakatta / hanasanakya
+			------------------------------
+													 ??????		????????
+				(formal)	not (formal)	did not (formal)	want to		did(formal)	did (informal)
+			u->i +	masu		masen		masendeshita		tai		mashita		ta
+
+			iku	ikimasu		ikimasen	ikimasendeshita		ikitai		ikimashita	ikita
+			kau	kaimasu		kaimasen	kaimasendeshita		kaitai		kaimashita	kaita
+			------------------------------
+				order (crude)
+			u->	e
+
+			shinu	shine
+			iku	ike
+			------------------------------
+				request
+			Xu->	tte
+
+			shinu	shitte
+			iku	itte
+			------------------------------
+				lets (informal)		lets XXX
+			u->	o			ou (pronounce as oo)
+			asobu	asobo
+			iku	ikou
+		irregular
+
+			kuru
+				kimasendeshita
