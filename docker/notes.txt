@@ -1,204 +1,261 @@
 contents:
 -1- intro
 -2- commands
--3- containers
--4- services
--5- swarms
-
+	-2.0- info
+	-2.1- container
+	-2.2- run
+	-2.3- base containers
+	-2.4- repo
+	-2.5- load balancing
+-3- images/dockerfile
+-4- containers
+-5- services
+-6- swarms
+-7- nvidia-docker
+-8- ui
 
 
 
 ______________________________
 -1- intro
-  install:
-    sudo apt-get install docker-ce
+	install:
+		sudo apt-get install docker-ce
 
-  daemon:
-    manages docker objects, networks, volumes
-    listents to docker api requests
-  client:
-    interact with daemon
-  registry:
-    like a github, except docker
-  objects:
-    image:
-      read-only template
-      consists of:
-        code
-        libraries
-        environment vars
-        config files
-    containers:
-      runnable instance of an image
+	daemon:
+		manages docker objects, networks, volumes
+		listents to docker api requests
+	client:
+		interact with daemon
+	registry:
+		like a github, except docker
+	objects:
+		image:
+			read-only template
+			consists of:
+				code
+				libraries
+				environment vars
+				config files
+		containers:
+			runnable instance of an image
 
-  namespaces:
-    separate containers
-      pid
-      net
-      ipc
-      mnt
-      uts
-  control groups (cgroups):
-    limits application to particular resources
-    example: control ram per container
-  union file system:
-    light weight filesystem
-  container format:
-    combo of namespace, cgroups, ufs
-    
+	namespaces:
+		separate containers
+			pid
+			net
+			ipc
+			mnt
+			uts
+	control groups (cgroups):
+		limits application to particular resources
+		example: control ram per container
+	union file system:
+		light weight filesystem
+	container format:
+		combo of namespace, cgroups, ufs
+		
 
 ______________________________
 -2- commands
-  docker --version
-    return version of docker
-  docker container cmd
-    cmd:
-      attach
-        attach local stdo, stde, stdi to container
-      commit
-        create new image from container's changes
-      cp
-        copy files/folders b/w container and local fs
-      create
-      diff
-        diff file/directory changes
-      exec
-        run a command in container
-      export
-        export fs as tar archive
-      inspect
-        display detailed info
-      kill
-      ls
-      pause
-      port
-        list port mappings
-      prune
-        remove stopped containers
-      rename
-      restart
-      rm
-      run
-        run a command in new container
-      start
-      stats
-      stop
-      top
-      unpause
-      update
-  docker info;docker version
-    more info
-  docker node
-    ls: list nodes
-  docker pull
-  docker push
-  docker run [opts] image [cmd] [args...]
-    opts:
-      -d
-        detach container from terminal (run in bg)
-      -p hostport:dockerport
-        map host port to docker port
-        ie:
-          -p 4000:80
-            localhost:4000 -> docker:80
-    cmd, args:
-      a command to run after container is started
-    ex:
-      docker run -i -t ubuntu /bin/bash
-        pulls ubuntu if not already
-        creates container if not already
-          (docker container create)
-        allocate filesystem
-        create network interface
-        start container, execute /bin/bash, attach to terminal
-  docker ps
-    ps, except for docker containers instead of processes
-  docker swarm
-    init
-      make this node a swarm manager
-    join
-      join a swarm
-    leave --force
-      leave the swarm
-  docker stack
-    deploy [opt] appname
-      -c config file
-    rm appname
-  docker service
-    ls: list running services
-    ps: list tasks (containers) that make the service
 
-  docker image ls
-    list docker images
-______________________________
--4- images
-  build from dockerfiles
-  dockerfiles
-    environment setup
-      port mappings
-      files to include
-      disk drives
+	docker <command> --help
 
-    commands:
-      FROM parentimage:tag
-      WORKDIR somedir
-      COPY source, dest
-      RUN commands to run and install stuffs
-      EXPOSE port
-      ENV envVarName value
-      CMD ["cmd", "arg", "arg..."]
+	-2.0- info
+		get docker information:
+			docker --version
+			docker info
+			docker version
+	------------------------------
+	-2.1- container
+		docker container cmd
+			cmd:
+				attach
+					attach local stdo, stde, stdi to container
+				commit
+					create new image from container's changes
+				cp
+					copy files/folders b/w container and local fs
+				create
+				diff
+					diff file/directory changes
+				exec
+					run a command in container
+				export
+					export fs as tar archive
+				inspect
+					display detailed info
+				kill
+				ls
+				pause
+				port
+					list port mappings
+				prune
+					remove stopped containers
+				rename
+				restart
+				rm
+				run
+					run a command in new container
+				start
+				stats
+				stop
+				top
+				unpause
+				update
+	------------------------------
+	-2.2- run
+		docker run [opts] image [cmd] [args...]
+		opts:
+			-d
+				detach container from terminal (run in bg)
+			-p hostport:dockerport
+				map host port to docker port
+				ie:
+					-p 4000:80
+						localhost:4000 -> docker:80
+		cmd, args:
+			a command to run after container is started
+		ex:
+			docker run -i -t ubuntu /bin/bash
+				pulls ubuntu if not already
+				creates container if not already
+					(docker container create)
+				allocate filesystem
+				create network interface
+				start container, execute /bin/bash, attach to terminal
+	------------------------------
+	-2.3- base containers
+		docker build
+			-t tagname
 
-  sudo docker build --tag imageName:tagname
-______________________________
--3- containers
-  run from images
-  sudo docker run [opts] image cmd
-  sudo docker container commands
+		docker image ls
+			list docker images
+
+		pre-built base containers:
+			docker pull
+			docker push
+
+	------------------------------
+	-2.4- monitoring
+		docker ps
+			ps, except for docker containers instead of processes
+
+	------------------------------
+	-2.5- load balancing
+		docker node
+			ls: list nodes
+		docker swarm
+			init
+				make this node a swarm manager
+			join
+				join a swarm
+			leave --force
+				leave the swarm
+		docker stack
+			deploy [opt] appname
+				-c config file
+			rm appname
+		docker service
+			ls: list running services
+			ps: list tasks (containers) that make the service
 
 ______________________________
--4- services
-  service: multiple containers running same code
-    scaling = more containers
-  docker-compose.yml
-  a yaml file (like json, but use indentation and : etc
-  format
-    services:
-      serviceName
-        image: name:tag_for_image
-        deploy:
-          replicas: # of containers to run of image
-          resources:
-            limits:
-              #limit cpu to 10% of all cores
-              cpus: "0.1"
-              #limit ram to 50M
-              memory: 50M
-          restart_policy:
-            condition: on-failure
-        ports:
-          #map localhost:4000 to docker:80
-          - "4000:80"
-        networks:
-          - webnet
-  networks:
-    #define networks using default settings (load-balanced overlay network)
-    webnet:
+-3- images/dockerfile
+	build from dockerfiles
+	dockerfiles
+		environment setup
+			port mappings
+			files to include
+			disk drives
 
-  docker swarm init: make node a swarm manager
-  docker stack deploy -c docker-compose.yml [name of app]
-  docker stack rm appname
-  docker swarm leave --force
+		commands:
+			FROM parentimage:tag
+			WORKDIR somedir
+			COPY source, dest
+			RUN commands to run and install stuffs
+			EXPOSE port
+				only documents what ports are "meant" to be exposed"
+				must use -p argument when running image
+			ENV envVarName value
+			CMD ["cmd", "arg", "arg..."]
+
+	sudo docker build --tag imageName:tagname
 ______________________________
--5- swarms
-  multiple machines running the same service
-  manager:
-    sudo docker swarm init
-    sudo docker swarm join-token -q (manager|worker)
-      list manager or worker join tokens
+-4- containers
+	run from images
+	sudo docker run [opts] image cmd
+	sudo docker container commands
 
-  workers:
-    sudo docker swarm join --token <token> host:port
-      typically, port should be left out to use default
-  sudo docker stack deploy -c config file [appname]
+______________________________
+-5- services
+	service: multiple containers running same code
+		scaling = more containers
+	docker-compose.yml
+	a yaml file (like json, but use indentation and : etc
+	format
+		services:
+			serviceName
+				image: name:tag_for_image
+				deploy:
+					replicas: # of containers to run of image
+					resources:
+						limits:
+							#limit cpu to 10% of all cores
+							cpus: "0.1"
+							#limit ram to 50M
+							memory: 50M
+					restart_policy:
+						condition: on-failure
+				ports:
+					#map localhost:4000 to docker:80
+					- "4000:80"
+				networks:
+					- webnet
+	networks:
+		#define networks using default settings (load-balanced overlay network)
+		webnet:
 
-  sudo docker service rm appname
+	docker swarm init: make node a swarm manager
+	docker stack deploy -c docker-compose.yml [name of app]
+	docker stack rm appname
+	docker swarm leave --force
+______________________________
+-6- swarms
+	multiple machines running the same service
+	manager:
+		sudo docker swarm init
+		sudo docker swarm join-token -q (manager|worker)
+			list manager or worker join tokens
+
+	workers:
+		sudo docker swarm join --token <token> host:port
+			typically, port should be left out to use default
+	sudo docker stack deploy -c config file [appname]
+
+	sudo docker service rm appname
+
+______________________________
+-7- nvidia-docker
+	wrapper around docker to automatically add gpu support
+		nvidia-docker is same as
+		docker --runtime=nvidia
+
+______________________________
+-8- ui
+	ubuntu:
+		sudo apt-get xauth
+		add xauth to docker image:
+			in dockerfile, add lines:
+				RUN apt-get -y install xauth
+				EXPOSE port 8887
+
+		on host:
+			xauth list
+			copy cookie (entire line)
+
+		build docker image:
+			docker build -t <image_tagname> .
+
+		run docker
+			docker run -it --net=host -e DISPLAY -v /tmp/.X11-unix
+			xauth add <cookie>

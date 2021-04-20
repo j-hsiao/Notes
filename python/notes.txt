@@ -5,6 +5,7 @@ contents:
 =3= closure
 =4= memoryview
 =5= decorator
+=6= super
 
 interpreter:
 ~/.inputrc
@@ -227,3 +228,45 @@ ______________________________
             def somefunc(arg):
                 return arg
             
+______________________________
+=6= super
+  super can be used to reach the next class in MRO of self
+  NOTE: super does not necessarily imply inherited class:
+  class a(object):
+    pass
+  class b(object):
+    pass
+  class c(a, b):
+    pass
+
+  MRO = c, a, b, object
+
+  in a, super could be object (if runtime-type is a) or b(if runtime type is c)
+  so if whatever function you are accessing via super takes different args
+  there will be an error
+  ie:
+    a.__init__(self, arg1, arg2):
+      super(a, self).__init__() # might or might not be object.__init__
+    b.__init__(self, arg1):
+      pass
+
+    if isinstance(self, c), then the super call in a WILL error out
+
+  that's why:
+    when using super:
+      all functions must have same signature:
+      (generally take only kwargs, kwargs should be mutually exclusive)
+
+  super is only helpful in diamond problem
+    in this example, if both a and b call object.__init__
+    then c calls a.__init__ and b.__init__ directly,
+    object.__init__ is called twice
+    note: object.__init__ does nothing so in this case not important
+    but if object was some other class, then it's significant
+
+  using super will only call each __init__ once
+    but a class cannot assume which class's __init__ is being called
+
+  side remark:
+    this is why MixIns generally inherit from object only
+      no diamond problem, (object doesn't really count)
