@@ -295,7 +295,13 @@ NOTE: cygwin vi uses .virc not .vimrc
         :w [filename]       write to filename if given else original file
         :e [filename]       edit filename
         :b buff/name        switch to buffer
-        :ls                 list buffers
+        :bn[ext]            next buffer
+        :bp[revious]        previous buffer
+        :bN[ext]            previous buffer (Next is capitalized)
+        :b#                 go to "alternate" buffer (usually the last-edited buffer)
+        :ls                 list buffers:
+                              %: current buffer
+                              #: alternate buffer
         :bd                 close buffer
         :q                  close viewport
         :qa                 close all viewports
