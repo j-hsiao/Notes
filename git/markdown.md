@@ -23,12 +23,17 @@ The only exception is a new header.
 Syntax for a link is `[shown text](link)`
 
 links can be urls or relative paths to the current md file:
-./something-in-same-dir-as-this-file or
-../something-in-parent-dir
+* ./something-in-same-dir-as-this-file or
+* ../something-in-parent-dir
+* http://someurl.com
+* #name-of-header-with-spaces-replaced-with-dash
 
-[google](http://google.com)
 
-![backup text description](image url ? path?)
+[google](https://google.com)
+
+![backup text description](https://google.com/favicon.ico)
+
+[link to header](#text-style)
 
 http://plain_text_links_are_auto_linked
 
