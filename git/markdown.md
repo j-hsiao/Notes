@@ -1,12 +1,12 @@
 # Headers are prefixed with a \#.
 ## Subheaders are prefixed with more \#\# (max of 6 \#s).
 
-## Escaping
+# Escaping
 Any markdown characters can be escaped with a `\`.
 Code (wrapping text in \`) will never be formatted and so any
 markdown characters in backticks don't need to be escaped.
 
-## Text Style
+# Text Style
 **`**bold**`**
 
 *`*italics*`*
@@ -19,7 +19,7 @@ Newlines must be separated by an extra blank line.
 Otherwise they will be concatenated into a single line (with space).
 The only exception is a new header.
 
-## links/images:
+# links/images:
 Syntax for a link is `[shown text](link)`
 
 links can be urls or relative paths to the current md file:
@@ -37,11 +37,11 @@ links can be urls or relative paths to the current md file:
 
 http://plain_text_links_are_auto_linked
 
-## quotes:
+# Quotes:
 > prefix lines with a "> " to make it quote
 
 
-## lists:
+# Lists:
 1. use N. item for numbered items, N is a number
 * use * or - for bullets
 
@@ -51,7 +51,7 @@ will require 3 spaces but 14. will require 4.
 
 note that the space after the `N. ` or `- ` or `* ` is required.
 
-## code:
+# Code:
 use single backticks for in-line code
 use triple backticks for multi-line code (like python strs except backticks)
 add the language after the opening triple backticks for syntax highlighting
@@ -67,13 +67,25 @@ for text in 'hello world'.split():
 	print(text)
 ```
 
-## extras (github specific?)
-### references
+# Tables
+use colons to specify alignment:
+* :-  = left align
+* -:  = right align
+* :-: = centered
+* -   = default \(items left-aligned, header centered)
+header1|header2|header3|header4
+:-|-:|:-:|-
+item1|item2|item3|item4
+
+# Extras (github specific?)
+## References
 use @ and a name to reference to that github user
-### checklists
+## Checklists
 - [x] checked item
 - [ ] unchecked item
   - [x] sub checked item
   - [ ] sub unchecked item
 
 reference issues/pull requests with #, then filter/autocomplete (github only)
+
+#
