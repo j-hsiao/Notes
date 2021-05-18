@@ -54,3 +54,4 @@ ______________________________
 		|      split region vertically (+ region)
 		Q      close other regions
 		X      close current region
+
