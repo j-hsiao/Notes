@@ -1,0 +1,56 @@
+-0- general
+-1- commandline options
+-2- controls
+
+______________________________
+-0- general
+	a "screen" = instance of a screen process (like a vim instance)
+	a "window" = a subsession (like an edited file)
+	a "region" = a region on the monitor (like a vim split)
+	             multiple regions can use the same window
+______________________________
+-1- commandline options
+	-list
+	-S <name>  set a name for the screen to create/reconnect to
+	-r         reconnect to a session
+	-R         reconnect/create if not exist
+	-d         detach any currently connected sessions
+	-D         detach and logout remotely (use this if
+	           sshed into a server and used screen to ensure the
+	           ssh connection knows it's disconnected.
+	-d -m      start a detached screen session
+______________________________
+-2- controls
+	all controls are prefixed with Control-a
+
+	d      detach from screen session
+	D D    detach and logout ??? as in end the ssh session? dunno
+
+	k      kill current window
+	l      redisplay
+	N      show title and number of current window
+	"      list of windows for selection (jk scroll, return to select)
+	w      list of windows
+	'      input window to switch to
+	z      suspend screen
+
+	windows
+		0-9      change current region to selected window number
+		-        clear current region
+		C        clear region (how is this different from -? dunno)
+		C-a      swap with previous window
+		A        name current window
+		c        create a new window with a shell
+		s        send C-s to current window (xoff) = frozen
+		q        send C-q to current window (xon)  = restarted
+		n        next window
+		space    next window
+		backspce prev window
+		p        prev window
+
+	regions:
+		tab    next region
+		S      split region horizontally (+ region)
+		|      split region vertically (+ region)
+		Q      close other regions
+		X      close current region

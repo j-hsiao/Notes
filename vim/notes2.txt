@@ -174,7 +174,6 @@ NOTE: cygwin vi uses .virc not .vimrc
     p           : paste after cursor
     P           : paste on cursor
     y           : yank (copy)
-    C-d/C-t     : 
 
     ------------------------------
     -1.5- searching
@@ -213,8 +212,8 @@ NOTE: cygwin vi uses .virc not .vimrc
 -2- insert mode
 ##############################
     C-i     : tab after cursor
-    C-d     : shift left
-    C-t     : shift right
+    C-d     : shift left (shiftwidth)
+    C-t     : shift right (shiftwidth)
     C-p     : complete based on previous words
     C-u     : delete current line
     C-w     : delete to previous beginning of word or begin of edit, whichever is first
@@ -412,9 +411,16 @@ NOTE: cygwin vi uses .virc not .vimrc
             in visual line: > or < (to shift a block of highlighted lines)
 
         variables:
-            tabstop     : size of tab
-            softtabstop : size of blank space created when pressing tab (combo of space and tab to achieve it)
-                          ( (softtabstop // tabstop) tabs followed by (softtabstop % tabstop) spaces
+            tabstop     : "size" of TAB CHARACTER "\t"
+                          Tab characters take whitespace up to the next
+                          (n * tabstop)th position.
+                          eg: at position 3, tabstop=4, then tab = 1 char size
+            softtabstop : "size" of whitespace added when pressing the TAB KEY
+                          whitespace will be added up to the next
+                          (n * softtabstop)th position.
+                          whitespace will be all tabs with trailing spaces to
+                          reach the softtabstop position. (or all spaces if
+                          expandtabs is set to True)
             expandtab   : don't use tab characters
             shiftwidth  : shift amount when using C-d, C-t, >>, <<, etc
             autoindent  : indent new lines to match previous line
