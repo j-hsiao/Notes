@@ -292,6 +292,7 @@ NOTE: cygwin vi uses .virc not .vimrc
     -4.2- files
     ------------------------------
         :w [filename]       write to filename if given else original file
+        :up[date]           write ONLY if buffer is changed, else ignore
         :e [filename]       edit filename
         :b buff/name        switch to buffer
         :bn[ext]            next buffer
