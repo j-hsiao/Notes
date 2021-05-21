@@ -204,6 +204,8 @@ NOTE: cygwin vi uses .virc not .vimrc
     "[a-z]  : register (see -6.2-)
     q[a-z]  : macro (see macro section -6.4-)
     @[a-z]  : run macro (see macro section -6.4-)
+    C-a     : increment number at cursor, works for hex too
+    C-x     : decrement number at cursor, works for hex too
     
 
 
