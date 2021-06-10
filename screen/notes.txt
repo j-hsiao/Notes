@@ -39,6 +39,12 @@ ______________________________
     D D   detach and logout ??? as in end the ssh session? dunno
     l     redisplay
     z     suspend screen
+    [     Enter copy mode:
+          arrow keys, page up/down, hjkl, etc move
+          space: set mark start/stop
+          q/esc/[: cancel
+    ]     past text copied from copy mode
+
 
   windows
     "           list of windows for selection (jk scroll, return to select)
