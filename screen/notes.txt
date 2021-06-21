@@ -52,9 +52,9 @@ ______________________________
     '           input window to switch to
     0-9         change current region to selected window number
     -           clear current region
-    a           asdf
+    a           send C-a to window
     C           clear region (how is this different from -? dunno)
-    C-a         swap with previous window
+    C-a         swap with previous window (defaults to 2x command char)
     A           name current window
     c           create a new window with a shell
     s           send C-s to current window (xoff) = frozen
@@ -72,3 +72,9 @@ ______________________________
     |           split region vertically (+ region)
     Q           close other regions
     X           close current region
+
+    regions note:
+    vertically split regions are crappily implemented
+    and scrolling one vertically split region
+    will affect another vertically split region if
+    scrolled fast enough...
