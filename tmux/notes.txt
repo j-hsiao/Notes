@@ -1,0 +1,25 @@
+contents:
+-1- general
+-2- windows and regions
+
+
+______________________________
+-1- general
+  tmux                                  start new session
+  tmux ls                               list sessions
+  tmux attach -t <N>                    attach to session N
+  tmux new -s <name>                    create session with name
+  tmux rename-session -t <N> <name>     rename session N to name
+
+  similar to screen with prefix key...
+  C-b is the default prefix key
+
+______________________________
+-2- windows and regions
+  %             split vertically
+  "             move between regions
+  arrows        same as above
+  C-d           close a region
+  c             create a window
+  n/p           next/previous window
+  <number>      go to Nth window
