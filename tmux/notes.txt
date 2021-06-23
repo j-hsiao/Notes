@@ -1,6 +1,7 @@
 contents:
 -1- general
 -2- windows and regions
+-3- config
 
 
 ______________________________
@@ -23,3 +24,8 @@ ______________________________
   c             create a window
   n/p           next/previous window
   <number>      go to Nth window
+______________________________
+-3- config
+  .tmux.conf:
+    unbind C-b		remove C-b binding so terminal can go back
+    set -g prefix C-q	rebind to C-q because unused

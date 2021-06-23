@@ -1,6 +1,7 @@
 -0- general
 -1- commandline options
 -2- controls
+-3- config
 
 ______________________________
 -0- general
@@ -78,3 +79,8 @@ ______________________________
     and scrolling one vertically split region
     will affect another vertically split region if
     scrolled fast enough...
+
+______________________________
+-3- config
+  .screenrc
+    escape ^Qq		rebind C-a to C-q
