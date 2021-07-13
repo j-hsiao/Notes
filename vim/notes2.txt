@@ -388,6 +388,25 @@ NOTE: cygwin vi uses .virc not .vimrc
         :w ! cmd            : write selection to command and display output
         :r ! cmd            : insert output from cmd
         :h                  : help
+                                :h pattern
+                                        C-d: list topics
+                                        tab: scroll above list
+                                C-]:    jump to link (within help message) at cursor
+                                C-t:    back to previous topic
+
+                                mode specific prefixes:
+                                        :       ex command
+                                                normal mode (no prefix)
+                                        v_      visual mode
+                                        i_      insert mode
+                                        c_      ex command mode
+                                        /       search pattern
+                                        '       option
+                                        -       vim argument
+                                NOTE: search query CTRL can be replaced with ^
+                                ex:
+                                  inset mode C-a:
+                                        :h i_CTRL-A
         :norm[al] cmd       : run a normal-mode command
                                 may specify @[a-z] to indicate a macro
         :g[lobal]/pat/cmd   : run command globally on lines matching pat
