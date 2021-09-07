@@ -20,6 +20,7 @@ contents:
 -3- cmake variables
 -4- commandline
 -5- ctest
+-6- mingw
 
 ------------------------------
 -0- tutorial
@@ -115,6 +116,35 @@ contents:
 			function(name <arg> <arg> <arg>)
 				do stuffs
 			endfunction(name)
+			NOTE: DO NOT ADD ..., it DOES NOT mean varargs
+				... will become a variable name so ARGN will exclude
+				the argument in ... position.
+				ie:
+					function(funcname arg1 arg2 ...)
+						message("arg1 is ${arg1}") # this is ARGV0
+						message("arg2 is ${arg2}") # this is ARGV1
+						message("... is ${...}")   # this is ARGV2
+						message("${ARGN} -> ${ARGV3} ${ARGV4}...")
+					endfunction()
+				will require 3 arguments
+
+			ARGV: all arguments
+			${argname}: that argument
+			ARGN: all arguments past named arguments
+			ARGC: number of arguments
+			ARGV#; #:0 to ${ARGC}-1: Xth argument
+				(ARGV0 = 0th, ARGV1 = 1st...)
+
+		macro:
+			same as function except:
+				macro()/endmacro()
+				scope is the caller's scope
+				ARGV# is a "string replacement" in macro instead of variable in function
+				macros do not have the equivalents of:
+					CMAKE_CURRENT_FUNCTION
+					CMAKE_CURRENT_FUNCTION_LIST_DIR
+					CMAKE_CURRENT_FUNCTION_LIST_FILE
+					CMAKE_CURRENT_FUNCTION_LIST_LINE
 
 		platform specifics
 			CheckSymbolExists
@@ -424,3 +454,16 @@ ctest: run tests from add_test
 			ctest -R <regexp matching test names>
 		list tests
 			ctest -N 
+------------------------------
+-6- mingw
+------------------------------
+	export flags to change compiler:
+		CXXFLAGS=-static
+		CC=x86_64-w64-mingw32-gcc
+		CXX=x86_64-w64-mingw32-g++
+
+		CXXFLAGS=-static means don't link shared libraries
+			mingw will by default link to shared versions of libstdc++, libgcc
+			libpthreads etc causing "XXX.dll not found" errors when running
+			anything compiled by MinGW. -static causes static linking so no
+			"not found" errors
