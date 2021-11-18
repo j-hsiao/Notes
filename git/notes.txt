@@ -136,14 +136,24 @@ other
 
   tags:
       creation:
-          git tag -a [tagname] -m 'tag message/description'
+        git tag -a <tagname> -m 'tag message/description'
+        (add -f to change tag commit if already exist)
+      deletion:
+        local:
+          git tag -d <tagname>
+        remote:
+          git push origin :tagname
+          git push origin :refs/tags/tagname
+          git push origin --delete <tagname>
       display:
-          git tag -n
+        git tag
+        git tag -n
       pull tags:
-          git fetch --tags
+        git fetch --tags
       push tags:
-          git push origin [tagname]
-      
+        git push origin --tags
+        git push origin <tagname>
+
 
 ------------------------------
 -3- rebase
@@ -216,33 +226,53 @@ usage method one:
 
 features:
 
-	master     a-b-c          h
-	                 \       / \
-	feature 1         d-e-f-g  feature2 ...
-	                        |
-	                     deleted
-	code:
-		git init
-		git checkout -b feature1
-		...work on feature1...
-		git checkout master
-		git merge --squash feature1
-		git branch -d feature1
-		git checkout -b feature2
-		...work on feature2...
+  master     a-b-c          h
+                   \       / \
+  feature 1         d-e-f-g  feature2 ...
+                          |
+                       deleted
+  code:
+    git init
+    git checkout -b feature1
+    ...work on feature1...
+    git checkout master
+    git merge --squash feature1
+    git branch -d feature1
+    git checkout -b feature2
+    ...work on feature2...
 
 
+dev branch
+  master     a         f
+              \       / \
+  dev          b c d e   g
 
-	master     a         f
-	            \       / \
-	dev          b c d e   g
+  code:
+    git init
+    git checkout -b dev
+    ...work on dev...
+    git checkout master
+    git merge dev --squash??
+    git checkout dev
+    git merge master
+    ...continue working on dev...
 
-	code:
-		git init
-		git checkout -b dev
-		...work on dev...
-		git checkout master
-		git merge dev --squash??
-		git checkout dev
-		git merge master
-		...continue working on dev...
+
+features: useful for cleaner history
+dev: separte from master features/versions
+  ...although...
+  can just git tag instead of have master branch with only versions...
+  (in other words, dev branch is useless?)
+git tags = your "main" branch with only fully functioning versions
+
+overall usage probably like this:
+master: version X.X...
+  squash merge dev branch followed by merge master back into dev to sync the branches
+dev: branch off "feature" branches
+  feature branches get merged (squash? maybe maybe not) into dev
+  delete (or maybe not?) the feature branch
+
+saw a note that seems agreeable:
+  if release are always chronological, master branch is fine
+  if not, (ie 1.0.1 can come after 1.1.0), then tagging may be a better approach
+  or maybe separate release branches per version...
