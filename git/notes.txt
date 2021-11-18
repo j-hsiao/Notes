@@ -6,7 +6,10 @@ contents
 -3- rebase
 -4- history
 -5- alias
--6- usage notes
+-6- miscellaneous
+	-6.1- line endings
+	-6.2- gitignore
+-7- usage notes
 
 
 ------------------------------
@@ -220,7 +223,55 @@ example:
   git config --local --unset alias.graph
 
 ------------------------------
--6- usage notes
+-6- miscellaneous
+------------------------------
+	-6.1- line endings
+		global:
+			git config core.autocrlf
+		per repo:
+			.gitattributes file
+		by file:
+			.git/info/attributes
+
+			pattern attr attr attr...
+			attr:
+				attrname: set the attr
+				-attrname: unset the attr
+				attrname=val: set to value
+				unspecified: not specified... (no matches or not in .gitattributes)
+
+			later lines override pervious lines
+			must be in repo root
+			example:
+				* text=auto
+				*.c text
+				*.h text
+				*.sln text eol=crlf
+				*.sh text eol=lf
+				*.png binary
+				*.jpg binary
+
+	-6.2- gitignore
+		.gitignore file per directory: all users will ignore
+		.git/info/exclude: exclude only for this checked-out repo
+		ignores matched files
+
+		#: comment (can escape with \)
+		trailing spaces can be escaped with \ else ignored
+		! : negates pattern
+		/ at beginning or middle, then it is relative
+		otherwise, matches anything in subdirectories as well
+		end with /: directories only
+		*: anything except /
+		?: any single char ecxept /
+		[a-zA-Z] single char in range
+		**:
+			**/: in all directories
+			/**: everything inside dir (infinite depth)
+			a/**/b: any b under some ancestor a
+
+------------------------------
+-7- usage notes
 ------------------------------
 usage method one:
 
