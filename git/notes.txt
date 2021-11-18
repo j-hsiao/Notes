@@ -6,6 +6,7 @@ contents
 -3- rebase
 -4- history
 -5- alias
+-6- usage notes
 
 
 ------------------------------
@@ -207,3 +208,41 @@ git config [--global | --local] alias.<aliascommand> "command and args"
 example:
   git config --local alias.graph "log --all --decorate --oneline --graph"
   git config --local --unset alias.graph
+
+------------------------------
+-6- usage notes
+------------------------------
+usage method one:
+
+features:
+
+	master     a-b-c          h
+	                 \       / \
+	feature 1         d-e-f-g  feature2 ...
+	                        |
+	                     deleted
+	code:
+		git init
+		git checkout -b feature1
+		...work on feature1...
+		git checkout master
+		git merge --squash feature1
+		git branch -d feature1
+		git checkout -b feature2
+		...work on feature2...
+
+
+
+	master     a         f
+	            \       / \
+	dev          b c d e   g
+
+	code:
+		git init
+		git checkout -b dev
+		...work on dev...
+		git checkout master
+		git merge dev --squash??
+		git checkout dev
+		git merge master
+		...continue working on dev...
