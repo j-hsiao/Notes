@@ -1,0 +1,78 @@
+contents:
+  -1- pyenv
+    -1.1- virtualenv plugin
+  -2- virtualenv
+  -3- venv
+
+------------------------------
+-1- pyenv
+  manage python versions (sys.version_info)
+
+  * installation
+    git clone https://github.com/pyenv/pyenv
+
+    setup environment:
+      PYENV_ROOT=path/to/local/pyenv/repo
+      PATH=path/to/local/pyenv/repo/bin:${PATH}
+
+    python build dependencies
+      ubuntu:
+        sudo apt-get update; sudo apt-get install make build-essential libssl-dev zlib1g-dev \
+        libbz2-dev libreadline-dev libsqlite3-dev wget curl llvm \
+        libncursesw5-dev xz-utils tk-dev libxml2-dev libxmlsec1-dev libffi-dev liblzma-dev
+      centos:
+        yum install gcc zlib-devel bzip2 bzip2-devel readline-devel sqlite sqlite-devel openssl-devel tk-devel libffi-devel xz-devel
+
+  * activation
+      . <(pyenv init -): activate + auto-complete, etc
+      . <(pyenv init --path): activate only
+
+  * uninstall:
+      delete local repo
+      remove env lines
+
+  * list versions:
+    pyenv versions:
+
+  * install version
+    pyenv install x.y.z
+
+  * switch version
+    pyenv shell NAME (from pyenv versions)
+
+  * pyenv installation location:
+    pyenv root
+
+  -1.1- virtualenv plugin
+    use virtualenv as part of pyenv instead of separately
+
+    install plugin:
+      git clone https://github.com/pyenv/pyenv-virtualenv.git $(pyenv root)/plugins/pyenv-virtualenv
+
+    * activate:
+      . <(pyenv-virtualenv init -)
+
+      activate particular environment: (similar to pyenv shell <name>)
+        pyenv activate <name>
+        pyenv deactivate
+
+    * create an environment:
+        pyenv virtualenv <version> <env name>
+        pyenv virtualenv <env name>
+          (uses the currently activated version)
+    * list environments:
+        pyenv virtualenvs
+
+------------------------------
+-2- virtualenv
+
+------------------------------
+-3- venv: python 3.3+
+  python -m venv /path/to/new/environment
+
+  activate the environment by calling its script:
+    . /path/to/env/bin/activate
+    deactivate
+
+  can remove env by just deleting the dir:
+    rm -rf /path/to/env
