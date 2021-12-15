@@ -13,6 +13,7 @@ contents
 -8-completion
 -9-ps1
 -10- tput
+-11- completion
 
 ##############################
 -1- drives and devices
@@ -630,3 +631,113 @@ tput <command>
   lines         number of lines
   cols          number of cols
   colors        number of colors
+
+------------------------------
+-11- completion
+------------------------------
+
+sidenote: IFS=\n ->
+  IFS='
+  '
+  IFS=$'\n'
+  IFS=$(printf '\n\b')
+
+compgen [args] <tocomplete>
+  generate completions:
+complete [args] <command>
+  add completion to command
+
+
+multiple arguments may be given
+order of usage:
+  -W 'wordlist' (split by IFS)
+    "Shell quoting is honored within the string, in order to provide a
+    mechanism for the words to contain shell metacharacters or characters
+    in the value of IFS. Each word is then expanded using brace expansion,
+    tilde expansion, parameter and variable expansion, command substitution,
+    and arithmetic expansion, as described above (see Shell Expansions)."
+    basically, can use variables to avoid IFS clashes
+    a=$(printf 'hello\nworld')
+
+    -W '${a} other words'-> 3 items
+      1: hello
+      world
+      2: other
+      3: words
+  -F <function name>
+  -C <command name??>
+    variables:
+      COMP_LINE: current commandline
+      COMP_POINT: index of cursor relative to beginning
+      COMP_KEY: key used to invoke completion
+      COMP_TYPE: int: type of completion
+        TAB: normal
+        '?': multiple tabs
+        '!': "listing alternatives on partial word completion" ???
+        '@': list completions if word not unmodified
+        '%': menu completion
+    functions also get:
+      COMP_WORDS: array variable with words of command line
+      COMP_CWORD: index into COMP_WORDS (current cursor position)
+
+    $1: name of command
+    $2: word being completed
+    $3: word before $2
+
+    functions:
+      COMPREPLY array contains possible matches
+    commands:
+      print completions, 1 per line to stdout, backslash to escape newline
+
+  -X filter
+    & is replaced with text of word being completed
+    \& for literal
+    leading ! negates pattern
+
+  -P, -S: prefix/suffix added to each item
+
+  -o dirnames
+
+  -o plusdirs
+
+  example:
+
+  function to() {
+    myroot=/cygdrive/c/Users/$USER
+    target="${1}"
+    case "${target}" in
+      research)
+        target="Desktop/research"
+        ;&
+      *)
+        if ! cd "${myroot}/${target}" 2>/dev/null
+        then
+          printf "bad target ${target}"
+        fi
+        ;;
+    esac
+  }
+  function to_() {
+    target=$(tr '[:upper:]' '[:lower:]' <<<"${2}")
+    myroot=/cygdrive/c/Users/$USER
+    readarray -t candidates < <(find "${myroot}" -maxdepth 1 -mindepth 1 -type d -iname "${target}*"  | sed 's/.*\///')
+    candidates+=(research)
+
+    lower=()
+    for x in "${candidates[@]}"
+    do
+      lower+=("$(tr '[:upper:]' '[:lower:]' <<<"${x}")")
+    done
+
+    readarray -t COMPREPLY < <(compgen -W '"${lower[@]}"' "${target}")
+    if [ "${#COMPREPLY[@]}" -eq 1 ]
+    then
+      i=0
+      while [ "${lower[${i}]}" != "${COMPREPLY[0]}" ]
+      do
+        i=$[ i + 1 ]
+      done
+      COMPREPLY[0]="${candidates[${i}]}"
+    fi
+  }
+  complete -F to_ to
