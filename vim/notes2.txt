@@ -118,6 +118,7 @@ NOTE: cygwin vi uses .virc not .vimrc
         tab
             [N]gt       : go to Nth tab (1 = first), default: next
             gT          : go to previous tab
+            (also see -4.3-)
 
         folds
             zf[N]jk     : fold N lines below/above
@@ -216,12 +217,14 @@ NOTE: cygwin vi uses .virc not .vimrc
     C-i     : tab after cursor
     C-d     : shift left (shiftwidth)
     C-t     : shift right (shiftwidth)
-    C-p     : complete based on previous words
     C-u     : delete current line
     C-w     : delete to previous beginning of word or begin of edit, whichever is first
+    C-p     : complete based on previous words
     C-n     : complete based on next words
         (C-p C-n to scroll through list)
-        continue typing to select
+        continue typing once selected (no keystroke for selection)
+        use C-p/C-n off the list of candidates to go back to before
+        completion
 
     C-r [a-z]    : insert from register (interpreted)
     C-r C-r [a-z]: insert from register (as is) 
@@ -312,6 +315,7 @@ NOTE: cygwin vi uses .virc not .vimrc
     ------------------------------
     -4.3- views, tabs
     ------------------------------
+        ... dunno how to change tab name
         :split [filename]   : open filename in a split
         :vsplit [filename]  : open filename in vertical split
         :tabnew [fn]        : new tab with filename
