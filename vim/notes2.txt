@@ -334,16 +334,17 @@ NOTE: cygwin vi uses .virc not .vimrc
             :set expandtab
             :set noexpandtab
         :set
+            acd/autochdir   : change current dir whenever open file,
+                              change buffer/viewport, etc
             bo/belloff      : when not to ring the bell
-                                all
-
+            vb/visualbell   : no beeping, flash screen instead
             tabstop         : width of a tab
             softtabstop     : width inserted when pressing tab
             autoindent      : match indent of previous line
             shiftwidth      :
             expandtab       : use spaces
             nohl            : stop highlighting
-            paste
+            paste           : paste mode: no autoindent, etc
             smartindent     : 
             cindent         : 
             wrap            : wrap long lines
@@ -409,12 +410,19 @@ NOTE: cygwin vi uses .virc not .vimrc
                                         -       vim argument
                                 NOTE: search query CTRL can be replaced with ^
                                 ex:
-                                  inset mode C-a:
+                                  insert mode C-a:
                                         :h i_CTRL-A
+                                        :h i_^a
+                                        (a ^ followed by char, NOT <C-v><C-char>)
         :norm[al] cmd       : run a normal-mode command
                                 may specify @[a-z] to indicate a macro
         :g[lobal]/pat/cmd   : run command globally on lines matching pat
-        :vb, :visualbell    : no beeping, flash screen instead
+        :pwd                : print current working directorj
+        :cd path            : if path is given, change dir to that path
+                              otherwise, print current dir
+                              special values:
+                                  %:h   current file's directory
+                                  -     previous dir
 
 
 
