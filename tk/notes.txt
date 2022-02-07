@@ -1,3 +1,141 @@
+Contents
+  -1- general
+  -2- bindings
+    -2.1- Event Sequences
+    -2.2- Event Objects
+
+______________________________
+-1- general
+
+______________________________
+-2- bindings
+  Bindings bind callbacks to certain event sequences.
+
+  Bindings are bound to "bindtags", basically names.  Widgets have a
+  list of bindtags via widget.bindtags()
+    bindtags() = return a tuple of bind tags
+    bindtags((tag1,...)) = set the bindtags
+
+  Canvas items:
+    Fuse canvas.[tag_bind|gettags|addtag] instead of bind/bindtags.
+    Note that for canvas items there is no way to set multiple tags.
+    To reorder tags, you must remove tags and then add them again.
+
+  When an event is created on a widget, each tag in widget.bindtags is
+  considered.  If there is a binding for the event on that tag, then the
+  corresponding callback will be called.
+  eg. In tkinter, widgets by default have bindtags: ('path', 'class', '.', 'all')
+  This means bindings to the particular instance, the class bindings, then the
+  owning Tk() instance, and finally the 'all' tag.
+
+  tkwidget.bind(): bind to current widget's path
+  tkwidget.bind_class(path, ...): bind to the given path
+  Note that tkwidiget.bind() is basically tkwidget.bind_class(str(tkwidget), ...)
+
+  ______________________________
+  -2.1- Event Sequences
+    '<modifier-...-event>': An event sequence corresponding directly to
+      some keyboard/mouse input.
+    'key': same as '<key>'
+    '<<eventname>>': a virtual event.
+
+    modifiers
+      Control             Mod1, M1, Command
+      Alt                 Mod2, M2, Option
+      Shift               Mod3, M3
+      Lock                Mod4, M4
+      Extended            Mod5, M5
+      Button1, B1         Meta, M
+      Button2, B2         Double
+      Button3, B3         Triple
+      Button4, B4         Quadruple
+      Button5, B5
+    Event type
+      Activate                 FocusOut
+      ButtonPress, Button      Gravity
+      ButtonRelease            KeyPress, Key
+      Circulate                KeyRelease
+      CirculateRequest         Leave
+      Colormap                 Map
+      Configure                MapRequest
+      ConfigureRequest         Motion
+      Create                   MouseWheel
+      Deactivate               Property
+      Destroy                  Reparent
+      Enter                    ResizeRequest
+      Expose                   Unmap
+      FocusIn                  Visibility
+
+    NOTE: MouseWheel is usually only on mac/windows.
+      Use button4(up) and button5(down) otherwise.
+
+  ______________________________
+  -2.2- Event objects
+    Callbacks take a single event as argument.
+    properties:
+      above         : a window
+      borderwidth   : a size (screen dist)
+      button        : "the detail" field??
+      count         : int, ??
+      data          : string, user data
+      delta         : int, scroll amount, +=up, -=down
+      detail        : Notify[Ancestor|DetailNone|Inferior|Nonlinear|
+                             NonlinearVirtual|Pointer|PointerRoot|Virtual]
+      focus         : bool, ??
+      height        : int, screendist
+      keycode       : int
+      keysym        : string, key name
+      mode          : Notify[Normal|Grab|Ungrab|WhileGrabbed]
+      override      : bool
+      place         : Place[OnTop|OnBottom]
+      root          : str, window path
+      rootx         : int, screendist (on screen)
+      rooty         : int, screendist (on screen)
+      sendevent     : bool, 0 = "normal", 1 = "synthetic"
+      serial        : int, nth event
+      state         : int or Visibility[Unobscured|PartiallyObscured|FullyObscured]
+      subwindow     : string (path name) or int (window id)
+      time          : int, timestamp
+      warp          : bool, "whether screen pointer should be warped as well"
+      width         : size, screendist
+      when          : [now|tail|head|mark], used to generate event
+      x             : int, x coord (for widget)
+      y             : int, y coord (for widget)
+
+    tk only properties (not in tcl):
+      keysym_num    : ord(keysym) kind of
+      num           : mouse button
+      type          : type field from event
+      widget        : widget that got the event
+      x_root,y_root : relative to virtual root window (to screen not root?)  is this rootx/rooty?
+
+    Event properties vary by event type:
+      all                 sendevent serial
+      <Configure>         above borderwidth height override width x y
+      <ButtonPress>       button num root rootx rooty state subwindow time warp x y
+      <ButtonRelease>     button num root rootx rooty state subwindow time warp x y
+      <Circulate>         place
+      <Enter>             detail focus root rootx rooty state subwindow time x y
+      <Expose>            count mode x y
+      <FocusIn>           detail mode
+      <FocusOut>          detail mode
+      <Gravity>           x y
+      <KeyPress>          keycode keysym root rootx rooty state subwindow time warp x y
+      <KeyRelease>        keycode keysym root rootx rooty state subwindow time warp x y
+      <Leave>             detail focus mode root rootx rooty state subwindow time x y
+      <Map>               override
+      <Motion>            root rootx rooty state subwindow time warp x y
+      <MouseWheel>        delta
+      <Property>          time
+      <Reparent>          override x y
+      <<Virtual events>>  data
+      <Visibility>        state
+
+
+
+
+
+
 sources:
 https://tkdocs.com/tutorial/tree.html
 

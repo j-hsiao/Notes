@@ -1,10 +1,11 @@
 contents
-::general
-::stream selelction
-::other
+  -1- general
+  -2- stream selelction
+  -3- other
+  -4- filters
 
 ______________________________
-::general
+-1-general
 
 ffmpeg [global options] [[input options] -i input] {[output options] -o output}
 
@@ -19,7 +20,7 @@ all options are reset at each file
 copying: use -codec copy: only perform mux/demux, no decode/encode
 
 ______________________________
-::stream selection
+-2-stream selection
     -vn/ -an / -sn / -dn
     skips video, audio, subtitle, data streams
 
@@ -35,7 +36,7 @@ ______________________________
             -map 1:a -c:a copy
                 selects audio stream from file 1 and copies it
 ______________________________
-::options
+-3-options
     numerical options:
         all numerical options can accept a suffix of the units
         ie :
@@ -120,13 +121,31 @@ V options:
         pixel formats
     -aspect aspectratio
         a float (1.333)
-	a ratio (4:3) (w:h)
+        a ratio (4:3) (w:h)
 
     input:
         -framerate input framerate when framerate unavailable like image sequence
 
+
+Video Segmentation:
+        output format: segment
+        useful:
+
+        segment format:
+                segment_atclocktime             0/1 start at the specified interval
+                strftime                        output name is a strftime format string
+                segment_time                    the duration of segment
+                segment_clocktime_offset        offset from 00 
+                                                (every segment_time timeunit starting at segment_clocktime_offset)
+                reset_timestamps                0/1 reset start time of each segment to 0
+        encoder:
+                -g, -keyint_min -> frames (seconds * fps)
+                this should divide the segment interval for more accurate
+                video segments.
+
+
 ______________________________
-::other
+-3-other
 webcam:
     ffmpeg -f v4l2 -input_format h264 -video_size [width]x[height] -framerate fps -i /dev/video[x] [typical output stuffs]
     ffmpeg -f v4l2 -list_formats all -i /dev/video[x]
@@ -137,3 +156,18 @@ webcam:
 
 ffplay:
     -window_title title
+
+______________________________
+-4- filters
+  -vf               simple filter: 1 input, 1 output
+  -filter_complex   complex filter: multiple inputs/outputs
+
+  filterchain: separated by ',' 1in, 1out chained together
+  filtergraph: multiple filter chains interconnected, separated by ';'
+  filter: a single filter
+    [in1][in2]...filter_class_name@idnickname=arguments[out1][out2]...
+    arguments:
+      explicit values: argname1=val1:argname2=val2:...
+      implicit values: val1:val2:val3...
+        (1 to 1 mapping with declared arguments of the filter (read docs for order))
+      implicit values must come before explicit.
