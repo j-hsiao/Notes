@@ -1,11 +1,37 @@
 Contents
   -1- general
+    -1.1- Widgets
+    -1.2- Grid
   -2- bindings
     -2.1- Event Sequences
     -2.2- Event Objects
+  -3- Canvas
+  -4- Scrolling
 
 ______________________________
 -1- general
+  ______________________________
+  -1.1- Widgets
+    Widgets are tk classes.  They take a parent and kwargs.
+    kwargs are usually also able to be passed after creation via
+    widget.configure().  widget.cget('property') retrieves property
+    value.
+  ______________________________
+  -1.2- Grid
+    grid splits widgets up into a grid of space.
+    grid(row=, col=, columnspan=, rowspan=, sticky=)
+      Put current widget into parent's grid.
+      sticky: a string of flags: nsew for north/south/east/west
+      row/col are 0-indexed so 0,0 is topleft
+      negative values might work? but idk...
+      row/columnspan let widget take up multiple rows/columns in parent
+      gridspace
+
+    grid_rowconfigure(idx, props)
+    grid_columnconfigure(idx, props)
+      Configure the row/col of the widget.
+      Generally, will use the "weight" property which affects
+      allocation of space
 
 ______________________________
 -2- bindings
@@ -69,6 +95,63 @@ ______________________________
     NOTE: MouseWheel is usually only on mac/windows.
       Use button4(up) and button5(down) otherwise.
 
+    Keypress names:
+      a-zA-Z0-9
+      space
+      grave               `
+      asciitilde          ~
+      exclam              !
+      at                  @
+      numbersign          #
+      dollar              $
+      percent             %
+      asciicircum         ^
+      ampersand           &
+      asterisk            *
+      paren[left|right]   ()
+      minus               -
+      underscore          _
+      equal               =
+      plus                +
+      bracket[left|right] []
+      brace[left|right]   {}
+      backslash           \
+      bar                 |
+      semicolon           ;
+      colon               :
+      apostrophe          '
+      quotedbl            "
+      comma               ,
+      less                <
+      period              .
+      greater             >
+      slash               /
+      question            ?
+
+      F1-12
+      Escape
+      BackSpace
+      Return
+      Insert
+      Home
+      Prior
+      Delete
+      End
+      Next
+      Tab
+      [Caps|Scroll|Num]_Lock
+      Pause
+      [Super|Alt|Shift|Control]_[L|R]
+      Menu
+
+    OBSERVATION:
+      printable = all lowercase?
+      non-printable = capitalized?
+      exceptions:
+        Tab
+        Return
+
+
   ______________________________
   -2.2- Event objects
     Callbacks take a single event as argument.
@@ -81,7 +164,7 @@ ______________________________
       delta         : int, scroll amount, +=up, -=down
       detail        : Notify[Ancestor|DetailNone|Inferior|Nonlinear|
                              NonlinearVirtual|Pointer|PointerRoot|Virtual]
-      focus         : bool, ??
+      focus         : bool, if window has focus
       height        : int, screendist
       keycode       : int
       keysym        : string, key name
@@ -91,9 +174,24 @@ ______________________________
       root          : str, window path
       rootx         : int, screendist (on screen)
       rooty         : int, screendist (on screen)
-      sendevent     : bool, 0 = "normal", 1 = "synthetic"
+      sendevent     : bool, 0 = "normal", 1 = "synthetic" ???
       serial        : int, nth event
       state         : int or Visibility[Unobscured|PartiallyObscured|FullyObscured]
+                      state int values (looking at tkinter/__init__.py Event.__repr__)
+                        bit meaning
+                        0   Shift
+                        1   Caps_Lock
+                        2   Control
+                        3   Mod1
+                        4   Mod2
+                        5   Mod3
+                        6   Mod4
+                        7   Mod5
+                        8   B1
+                        9   B2
+                        10  B3
+                        11  B4
+                        12  B5
       subwindow     : string (path name) or int (window id)
       time          : int, timestamp
       warp          : bool, "whether screen pointer should be warped as well"
@@ -102,10 +200,54 @@ ______________________________
       x             : int, x coord (for widget)
       y             : int, y coord (for widget)
 
+    Note: some tcl properties are not available as an tk.Event property
+      like subwindow
+
     tk only properties (not in tcl):
       keysym_num    : ord(keysym) kind of
       num           : mouse button
       type          : type field from event
+
+                      KeyPress = '2'
+                      Key = KeyPress,
+                      KeyRelease = '3'
+                      ButtonPress = '4'
+                      Button = ButtonPress,
+                      ButtonRelease = '5'
+                      Motion = '6'
+                      Enter = '7'
+                      Leave = '8'
+                      FocusIn = '9'
+                      FocusOut = '10'
+                      Keymap = '11'           # undocumented
+                      Expose = '12'
+                      GraphicsExpose = '13'   # undocumented
+                      NoExpose = '14'         # undocumented
+                      Visibility = '15'
+                      Create = '16'
+                      Destroy = '17'
+                      Unmap = '18'
+                      Map = '19'
+                      MapRequest = '20'
+                      Reparent = '21'
+                      Configure = '22'
+                      ConfigureRequest = '23'
+                      Gravity = '24'
+                      ResizeRequest = '25'
+                      Circulate = '26'
+                      CirculateRequest = '27'
+                      Property = '28'
+                      SelectionClear = '29'   # undocumented
+                      SelectionRequest = '30' # undocumented
+                      Selection = '31'        # undocumented
+                      Colormap = '32'
+                      ClientMessage = '33'    # undocumented
+                      Mapping = '34'          # undocumented
+                      VirtualEvent = '35',    # undocumented
+                      Activate = '36',
+                      Deactivate = '37',
+                      MouseWheel = '38',
+
       widget        : widget that got the event
       x_root,y_root : relative to virtual root window (to screen not root?)  is this rootx/rooty?
 
@@ -130,6 +272,26 @@ ______________________________
       <Reparent>          override x y
       <<Virtual events>>  data
       <Visibility>        state
+______________________________
+-3- Canvas
+  tk.Canvas: window = put widget and allow scrolling
+  draw/manage shapes with callbacks on shapes
+
+  things to note:
+    if Button-1 causes cursor to leave item:
+      if callback calls canvas.coords:
+        Leave is not fired until something else happens
+      But if, for example, canvas.move:
+        Leave is fired right after with state=0 (as if no button was pressed)
+
+______________________________
+-4- Scrolling
+  tk.Scrollbar
+    orient='horizontal'|'vertical'
+    command=widget.[x|y]view
+
+  widget.configure([x|y]scrollcommand=scrollbar.set)
+
 
 
 
