@@ -1,21 +1,229 @@
 Contents
-  -1- general
-    -1.1- Widgets
-    -1.2- Grid
-  -2- bindings
-    -2.1- Event Sequences
-    -2.2- Event Objects
-  -3- Canvas
-  -4- Scrolling
+-1- general
+  -1.0- Terms
+  -1.1- Widgets
+    -1.1.1- Callbacks
+    -1.1.2- Validation
+  -1.2- Grid
+  -1.3- Variables
+  -1.4- Colors
+-2- Bindings
+  -2.1- Event Sequences
+    -2.1.1- Modifiers
+    -2.1.2- Event type
+  -2.2- Event Objects
+  -2.3- Generation
+  -2.4- Other Notes
+-3- Canvas
+-4- Scrolling
 
 ______________________________
 -1- general
+  tk is a wrapper over tcl.
+  tcl can be accessed directly via widget.tk.call which invokes
+  tcl commands.  (Everything is a string, user must handle type conversions)
+
+  ______________________________
+  -1.0- Terms
+    active: mouse is over the item/interacting with item
+      (if click+drag away from item, it is still active until released)
+
   ______________________________
   -1.1- Widgets
     Widgets are tk classes.  They take a parent and kwargs.
     kwargs are usually also able to be passed after creation via
     widget.configure().  widget.cget('property') retrieves property
     value.
+
+    attributes:
+      master: first argument to __init__
+
+    useful methods:
+      configure(...):
+        no args: return dict of all configs
+        kwargs/dict: set configuration values
+      cget(config)
+        get value for config
+      nametowidget(name)
+        convert name (str) to a widget
+
+    configs:
+      state:
+        State generally has 'normal', 'disabled' and maybe others depending
+        on widget.
+
+      General configure() options:
+        cursor:
+          X_cursor
+          arrow
+          based_arrow_down
+          based_arrow_up
+          boat
+          bogosity
+          bottom_left_corner
+          bottom_right_corner
+          bottom_side
+          bottom_tee
+          box_spiral
+          center_ptr
+          circle
+          clock
+          coffee_mug
+          cross
+          cross_reverse
+          crosshair
+          diamond_cross
+          dot
+          dotbox
+          double_arrow
+          draft_large
+          draft_small
+          draped_box
+          exchange
+          fleur
+          gobbler
+          gumby
+          hand1
+          hand2
+          heart
+          icon
+          iron_cross
+          left_ptr
+          left_side
+          left_tee
+          leftbutton
+          ll_angle
+          lr_angle
+          man
+          middlebutton
+          mouse
+          none
+          pencil
+          pirate
+          plus
+          question_arrow
+          right_ptr
+          right_side
+          right_tee
+          rightbutton
+          rtl_logo
+          sailboat
+          sb_down_arrow
+          sb_h_double_arrow
+          sb_left_arrow
+          sb_right_arrow
+          sb_up_arrow
+          sb_v_double_arrow
+          shuttle
+          sizing
+          spider
+          spraycan
+          star
+          target
+          tcross
+          top_left_arrow
+          top_left_corner
+          top_right_corner
+          top_side
+          top_tee
+          trek
+          ul_angle
+          umbrella
+          ur_angle
+          watch
+          xterm
+    ______________________________
+    -1.1.1- Callbacks
+      callbacks in tk are "scripts"
+      In general, it would be a commandname followed by arguments like
+        'commandname arg1 arg2 ...'.  In some cases, a tuple can be
+        used as well.
+      Existence of a command can be checked with info command (TCL only):
+        widget.tk.call('info', 'command', 'nameofcommand')->
+          ('nameofcommand',) #it exists
+          '' # does not exist
+
+      base commands (widget.tk):
+        createcommand(name, f):
+          This maps a function f to name where f is a python function
+          and name is a tcl name.
+        deletecommand(name):
+          This deletes the mapping between name and f.
+      related (widget) commands:
+        register(func, subst, needcleanup=1):
+          func: the func to register
+          subst: a conversion function for args: tuple->tuple
+          needcleanup: call deletecommand if widget deleted.
+
+          Return name of Wrapped func(*(args if subst is None else subst(*args)))
+
+        bind(seq, function, add=None):
+          seq: event sequence
+          function: function to bind
+          add: add or overwrite
+
+          Calls register with needcleanup=1, subst=widget._substitute etc
+            _substitute takes list of "all" bind % substitutions and merges
+            into an Event object.
+
+        bind_class(tag, seq, func, add=None):
+          same as widget.bind but use tag
+          registered with needcleanup=0 so the bound class is intact
+          even if this widget is destroyed
+
+      ex 1: validation
+        def validate(proposed_string):
+          dostuff
+
+        method 1: register
+          r = tk.Tk()
+          e = tk.Entry(r, validate='key')
+          e.configure(validatecommand=(e.register(validate), '%P'))
+
+        method 2: base calls
+          r = tk.Tk()
+          r.tk.createcommand('validateTCLname', validate)
+          e = tk.Entry(r, validate='key', validatecommand=('validateTCLname', '%P'))
+          OR
+          e = tk.Entry(r, validate='key', validatecommand='validateTCLname %P')
+
+        On validation, myvalidatefunction(%P) will be called.
+        In this case, because validation has special handling for %P
+        and %W, the %P and %W will be converted to the corresponding
+        values and then passed to the function (all as strings)
+
+      ex 2: binding
+        def raw(root, widget, keysym):
+          e = Event()
+          e.widget = root.nametowidget(widget)
+          e.keysym = keysym
+          callbackfunc(e)
+        def callbackfunc(e):
+          dostuff(e)
+        r = tk.Tk()
+
+        method 1: bind
+          r.bind_class('all', '<KeyPress>', callbackfunc)
+
+        method 2: direct calls
+          r.tk.createcommand('mycallback', raw)
+          r.tk.call(('bind', 'all', '<KeyPress>', 'mycallback %W %K'))
+
+    ______________________________
+    -1.1.2- Validation
+      validate=[none|focus|focusin|focusout|key|all]
+      validatecommand=(widget.register(func), <code args>...)
+        %d: action type:  1: insert, 0: delete, -1: focus, forced, validation
+        %i: idx of char to be inserted/deleted, else -1
+        %P: pending value
+        %s: current value
+        %S: text to be inserted/deleted
+        %v: type of validation currently set (validate property)
+        %V: type of validation that triggered cb (validate property)
+        %W: widget
+
+      invalidcommand=func
+
   ______________________________
   -1.2- Grid
     grid splits widgets up into a grid of space.
@@ -29,12 +237,39 @@ ______________________________
 
     grid_rowconfigure(idx, props)
     grid_columnconfigure(idx, props)
-      Configure the row/col of the widget.
-      Generally, will use the "weight" property which affects
-      allocation of space
+      properties:
+        weight: weighting for space distribution of this row/col on
+          resizing
+        minsize: minimum pixel value of this row/col
+
+
+  ______________________________
+  -1.3- Variables
+    IntVar, StringVar, BooleanVar, DoubleVar
+    methods:
+      set(val)
+      get()
+      name = trace('r|w|u', func)
+      trace_vdelete('r|w|u', name)
+      trace_vinfo()
+
+    Some tk widgets can take a variable as an config argument
+    (variable, textvariable, listvariable, etc).  The variable will be
+    auto-updated with the widget's contents.
+    Callback take 3 arguments: callback(varname, ??, modestr)
+
+  ______________________________
+  -1.4- Colors
+    #rrggbb (hex values, 0-255)
+    name    (string name of color like 'black')
+
+    winfo_rgb(color)
+      Return the R,G,B color tuple. Values are 0-65535
+
+
 
 ______________________________
--2- bindings
+-2- Bindings
   Bindings bind callbacks to certain event sequences.
 
   Bindings are bound to "bindtags", basically names.  Widgets have a
@@ -65,7 +300,8 @@ ______________________________
     'key': same as '<key>'
     '<<eventname>>': a virtual event.
 
-    modifiers
+    ______________________________
+    -2.1.1- Modifiers
       Control             Mod1, M1, Command
       Alt                 Mod2, M2, Option
       Shift               Mod3, M3
@@ -76,7 +312,8 @@ ______________________________
       Button3, B3         Triple
       Button4, B4         Quadruple
       Button5, B5
-    Event type
+    ______________________________
+    -2.1.2- Event type
       Activate                 FocusOut
       ButtonPress, Button      Gravity
       ButtonRelease            KeyPress, Key
@@ -144,6 +381,11 @@ ______________________________
       [Super|Alt|Shift|Control]_[L|R]
       Menu
 
+      Up
+      Left
+      Down
+      Right
+
     OBSERVATION:
       printable = all lowercase?
       non-printable = capitalized?
@@ -156,27 +398,31 @@ ______________________________
   -2.2- Event objects
     Callbacks take a single event as argument.
     properties:
-      above         : a window
-      borderwidth   : a size (screen dist)
-      button        : "the detail" field??
-      count         : int, ??
-      data          : string, user data
-      delta         : int, scroll amount, +=up, -=down
-      detail        : Notify[Ancestor|DetailNone|Inferior|Nonlinear|
+      above       %a: a window
+      borderwidth %B: a size (screen dist)
+      button      %b: mouse button number -> num
+      char        %A: a char??
+      count       %c: int, ??
+      data        %d: string, user data
+      delta       %D: int, scroll amount, +=up, -=down
+      detail      %d: Notify[Ancestor|DetailNone|Inferior|Nonlinear|
                              NonlinearVirtual|Pointer|PointerRoot|Virtual]
-      focus         : bool, if window has focus
-      height        : int, screendist
-      keycode       : int
-      keysym        : string, key name
-      mode          : Notify[Normal|Grab|Ungrab|WhileGrabbed]
-      override      : bool
-      place         : Place[OnTop|OnBottom]
-      root          : str, window path
-      rootx         : int, screendist (on screen)
-      rooty         : int, screendist (on screen)
-      sendevent     : bool, 0 = "normal", 1 = "synthetic" ???
-      serial        : int, nth event
-      state         : int or Visibility[Unobscured|PartiallyObscured|FullyObscured]
+      focus       %f: bool, if window has focus
+      height      %h: int, screendist
+      keycode     %k: int
+      keysym      %K: string, key name
+      keysym_num  %N: ord(keysym) kind of
+      mode        %m: Notify[Normal|Grab|Ungrab|WhileGrabbed]
+      override    %o: bool
+      place       %p: Place[OnTop|OnBottom]
+      root        %R: str, window path
+      rootx       %X: int, screendist (on screen) -> x_root
+      rooty       %Y: int, screendist (on screen) -> y_root
+                      NOTE:
+                        rootx and rooty  when event_generate will become x/y instead of rootx/rooty
+      sendevent   %E: bool, 0 = "normal", 1 = "synthetic" ???
+      serial      %#: int, nth event
+      state       %s: int or Visibility[Unobscured|PartiallyObscured|FullyObscured]
                       state int values (looking at tkinter/__init__.py Event.__repr__)
                         bit meaning
                         0   Shift
@@ -192,22 +438,10 @@ ______________________________
                         10  B3
                         11  B4
                         12  B5
-      subwindow     : string (path name) or int (window id)
-      time          : int, timestamp
-      warp          : bool, "whether screen pointer should be warped as well"
-      width         : size, screendist
-      when          : [now|tail|head|mark], used to generate event
-      x             : int, x coord (for widget)
-      y             : int, y coord (for widget)
-
-    Note: some tcl properties are not available as an tk.Event property
-      like subwindow
-
-    tk only properties (not in tcl):
-      keysym_num    : ord(keysym) kind of
-      num           : mouse button
-      type          : type field from event
-
+                        17  Alt
+      subwindow   %S: string (path name) or int (window id)
+      time        %t: int, timestamp
+      type        %T: type field from event
                       KeyPress = '2'
                       Key = KeyPress,
                       KeyRelease = '3'
@@ -247,9 +481,25 @@ ______________________________
                       Activate = '36',
                       Deactivate = '37',
                       MouseWheel = '38',
+      warp          : event_generate argument: bool, "whether screen pointer should be warped as well"
+                      this allows you to move the mouse
+      widget      %W: widget name
+      width       %w: size, screendist
+      when          : event_generate argument: [now|tail|head|mark]
+                      now: handle before return
+                      tail: put at end of queue
+                      head: beginning of queue
+                      mark: at beginning of queue but after any other
+                        when=mark events.
+      x           %x: int, x coord (for widget)
+      y           %y: int, y coord (for widget)
 
+    Note: some tcl properties are not available as a tk.Event property
+      like subwindow.  If these are necessary, then you'd probably need to
+      manually register and bind the callback.
+
+    tk only properties (not in tcl):
       widget        : widget that got the event
-      x_root,y_root : relative to virtual root window (to screen not root?)  is this rootx/rooty?
 
     Event properties vary by event type:
       all                 sendevent serial
@@ -272,10 +522,84 @@ ______________________________
       <Reparent>          override x y
       <<Virtual events>>  data
       <Visibility>        state
+
+  ______________________________
+  -2.3- Generation
+    Events can be generated via widget.event_generate()
+    Generated events act just like normal events.
+    Arg is a sequence (-2.1- Event Sequences) and any properties as
+    keyword arguments (-2.2- Event Objects).  The state property seems to be
+    automatically set based on seq.  eg. event_generate('<B1-Motion>')
+    has state == 256
+
+    The state flag values can be calculated by binding and generating events
+    to see what the state value is.
+
+    This can be used to create virtual events as well
+    (event_generate is threadsafe)
+
+    NOTE 1
+      event_generate uses 'now' as when by default which causes "immediate"
+      processing (within event_generate()) of the generated event.  'now' blocks
+      until all handlers for that event have completed.  (This can cause deadlock
+      depending on what callbacks do)  'head', 'tail', and 'mark'? can prevent
+      this since they ?just add events to a queue? and then exit immediately
+      without further processing.
+    NOTE 2
+      Regarding Motion events, generation at 'tail' causes all motion events
+      to be merged into 1... (the last motion event)
+      'head' causes them to remain separate though...
+    NOTE 3
+      Regarding Shift and Lock modifiers, generated events if lowercase
+      key press will be converted to the appropriate value.
+      eg: event_generate('<Shift-b>') will be queued as '<Shift-B>'
+        Binding to '<Shift-b>' will not see this event since it'll be
+        seen as '<Shift-B>'
+  ______________________________
+  -2.4- Other Notes
+    Enter/Leave:
+      Leave is always called on previous widget before enter is
+      called on the next widget.  If any mouse buttons are held, then
+      enter will never be called on another widget until buttons are
+      released (button is held so the original widget still has focus
+      even if <Leave> is fired because dragged mouse out of widget)
+
+    Breaking:
+      Return 'break' to stop the callback chain
+      (see _bind() implementation for details (cmd=...)
+
+    Names:
+      bound function names are generated by register()
+      which tries to use repr(id(func)) + func.__name__
+
 ______________________________
 -3- Canvas
   tk.Canvas: window = put widget and allow scrolling
   draw/manage shapes with callbacks on shapes
+
+  Items: Items are drawn on the canvas
+    options:
+      prefixed with [|active|disabled]:
+        dash            dash outline
+        fill            fill color
+        outline         outline color
+        outlinestipple  outline stipple
+        stipple         fill stipple
+        width           width of outline
+      dashoffset        stipple offset for outlinestipple
+      offset            stipple offset for stipple
+      state             [normal|disabled|hidden]
+                        disabled = displayed but effectively nonexistent
+                        ie if A is over B but A is disabled, then when
+                        the cursor is over A, callbacks see the cursor
+                        as over B instead.
+      tags              like bindtags() for widgets except is canvas item
+
+  binding:
+    Bindings for canvas items are done via Canvas.tag_bind.
+    Canvas items bindings are always handled before bindings on the
+    canvas itself.
+
 
   things to note:
     if Button-1 causes cursor to leave item:
@@ -283,6 +607,7 @@ ______________________________
         Leave is not fired until something else happens
       But if, for example, canvas.move:
         Leave is fired right after with state=0 (as if no button was pressed)
+
 
 ______________________________
 -4- Scrolling
