@@ -355,6 +355,17 @@ ______________________________
     bindtags() = return a tuple of bind tags
     bindtags((tag1,...)) = set the bindtags
 
+  The bind callback can be a str or a function (no tuples allowed).
+  If str, then all other arguments are completely ignored (add,
+  needcleanup, etc).  As a result, adding to an event sequence rather
+  than overwriting it can only work with functions as is.  In tcl, to
+  add to an event sequence, the script should be prepended with a '+'
+  so if func is a str, it should be prepended with a '+' before passing
+  it to bind() to add rather than overwrite.
+
+  If callback is a function, then the corresponding registered id is
+  returned.  If it is a str, the returnvalue is None.
+
   Canvas items:
     Fuse canvas.[tag_bind|gettags|addtag] instead of bind/bindtags.
     Note that for canvas items there is no way to set multiple tags.
@@ -659,6 +670,11 @@ ______________________________
       <Control-Shift-O> will fire when no capslock, but fails if
       caps lock
 
+    bind(add=True/False):
+      tk _bind completely ignores add when the bind function is a str.
+      h/-2-
+
+
 ______________________________
 -3- Canvas
   tk.Canvas: window = put widget and allow scrolling
@@ -687,13 +703,22 @@ ______________________________
     Canvas items bindings are always handled before bindings on the
     canvas itself.
 
-
   things to note:
     if Button-1 causes cursor to leave item:
       if callback calls canvas.coords:
         Leave is not fired until something else happens
       But if, for example, canvas.move:
         Leave is fired right after with state=0 (as if no button was pressed)
+
+  Canvas callbacks are called AFTER item callbacks, no exceptions.
+  Reordering canvas bindtags does not affect this.
+
+  Canvas methods generally have a widget and item version:
+    widget        item
+    bind          tag_bind
+    focus_set     focus           * NOTE: only text can be focused, other items cannot take focus
+
+
 ______________________________
 -4- Menus
   Menus are top-level widgets (can't be gridded)
