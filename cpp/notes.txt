@@ -40,7 +40,11 @@ contents
     actually generally a tool-chain
         consisting of a compiler and linker
 
-    
+    c++ does name-mangling when compiling allowing overloading.
+    You can use c++filt to de-mangle the names to see what the
+    fully qualified name was.
+
+
 ------------------------------
 =2= basics
     // comment

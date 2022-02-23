@@ -34,6 +34,38 @@ ______________________________
     active: mouse is over the item/interacting with item
       (if click+drag away from item, it is still active until released)
 
+    stipple: use something like pointilism to display.  Kind of like
+      alpha but not quite.
+      always available:
+        error
+        gray75
+        gray50
+        gray25
+        gray12
+        hourglass
+        info
+        questhead
+        question
+        warning
+      Macintosh only
+        document
+        stationery
+        edition
+        application
+        accessory
+        folder
+        pfolder
+        trash
+        floppy
+        ramdisk
+        cdrom
+        preferences
+        querydoc
+        stop
+        note
+        caution
+
+
   ______________________________
   -1.1- Widgets
     Widgets are tk classes.  They take a parent and kwargs.
@@ -702,13 +734,8 @@ ______________________________
     Bindings for canvas items are done via Canvas.tag_bind.
     Canvas items bindings are always handled before bindings on the
     canvas itself.
-
-  things to note:
-    if Button-1 causes cursor to leave item:
-      if callback calls canvas.coords:
-        Leave is not fired until something else happens
-      But if, for example, canvas.move:
-        Leave is fired right after with state=0 (as if no button was pressed)
+    When a binding returns 'break', only the item-bound callbacks are broken.
+    The widget bindings still fire.
 
   Canvas callbacks are called AFTER item callbacks, no exceptions.
   Reordering canvas bindtags does not affect this.
@@ -717,6 +744,29 @@ ______________________________
     widget        item
     bind          tag_bind
     focus_set     focus           * NOTE: only text can be focused, other items cannot take focus
+
+  other notes:
+    oval items in canvas cannot have a stipple
+    they can, however, have an outline stipple.
+    width is centered on the outline so if you want a
+    circle of diameter D, you can do x,y,x,y, width=D
+    it's approximately correct. Then you can stipple by using outlinestipple
+    (THIS ONLY WORKS ON LINUX, windows pukes)
+
+    Enter/Leave issues:
+      if B1-Motion causes cursor to leave item:
+        if callback calls canvas.coords:
+          Leave is not fired until something else happens
+        But if, for example, canvas.move:
+          Leave is fired right after with state=0 (as if no button was pressed)
+
+      Enter/Leave caused by change in fill all say state=0, weirdness
+      enter/leave, state is unreliable, better to just
+      bind something (or empty script) to all B1-Motion events etc.
+
+
+
+
 
 
 ______________________________
@@ -758,7 +808,7 @@ ______________________________
                         command (unavailable to windows)
       tearoff           cause torn-off copy of (sub)menus
       menubar           a menu bar...
-    common arguments:
+    common item properties:
       label/bitmap/image        the displayed text/image
       accelerator               shortcut key combo desc, only displayed
                                 if not menubar top-level item
@@ -1655,7 +1705,7 @@ ______________________________
 adding items:
     call a function, returns a value
     item can be modified by
-    
+
     canvas.create_line(x0,y0,x1,y1)
     canvas.create_rectangle
     canvas.create_oval
