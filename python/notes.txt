@@ -1,11 +1,13 @@
 ______________________________
 contents:
-=1= modules
-=2= context manager
-=3= closure
-=4= memoryview
-=5= decorator
-=6= super
+-1- modules
+-2- context manager
+-3- closure
+-4- memoryview
+-5- decorator
+-6- super
+-7- style
+-8- zipfile
 
 interpreter:
 ~/.inputrc
@@ -18,7 +20,7 @@ blah
 
 
 ------------------------------
-=1= modules
+-1- modules
 ------------------------------
 modules contain __init__.py
 imports can be relative
@@ -60,7 +62,7 @@ instead run:
 python -m mymod.foo
 
 ------------------------------
-=2= context manager
+-2- context manager
 ------------------------------
 used in with statement
 should have __enter__() and __exit__(exceptionType, exceptionValue, traceback)
@@ -72,7 +74,7 @@ should have __enter__() and __exit__(exceptionType, exceptionValue, traceback)
         all None if no exception
         return a Truthy value to indicate exception was handled and should not be raised
 ------------------------------
-=3= closure
+-3- closure
 ------------------------------
 closures:
     define functions within a function
@@ -157,7 +159,7 @@ summary, closure compared to object classes:
 
 
 ______________________________
-=4= memoryview
+-4- memoryview
     memoryview: view of memory without copies
                 much more efficient
                 bytes-like
@@ -173,7 +175,7 @@ ______________________________
     memoryview(b'hi') == bytearray(b'hi')           O                   O
 
 ______________________________
-=5= decorator
+-5- decorator
 
     decorator: take a func
         return a new func
@@ -229,7 +231,7 @@ ______________________________
                 return arg
             
 ______________________________
-=6= super
+-6- super
   super can be used to reach the next class in MRO of self
   NOTE: super does not necessarily imply inherited class:
   class a(object):
@@ -270,3 +272,102 @@ ______________________________
   side remark:
     this is why MixIns generally inherit from object only
       no diamond problem, (object doesn't really count)
+
+______________________________
+-7- style
+  multiline for:
+    for a in (
+        some super duper wuper kuper fuper long long long
+        long long long long expression):
+
+        do_some_stuff
+
+    for a in (
+            some super duper wuper kuper fuper long long long
+            long long long long expression):
+        do_some_stuff
+
+    for a in (
+        some super duper wuper kuper fuper long long long
+        long long long long expression
+    ):
+        do_some_stuff
+
+    for a in (
+        some super duper wuper kuper fuper long long long
+        long long long long expression
+        ):
+        do_some_stuff
+
+    Convention seems to be a, but I think b is actually more readable
+    to me.
+    Argument for A was something like indentation.  de-indent not block, weird
+
+
+______________________________
+-8- zipfile
+  python zipfile module handles zip files.
+  Generally, use zipfile.ZipFile or zipfile.ZipInfo
+  NOTE:
+    ZipFile is a contextmanager
+
+  ZipFiles:
+    open a file:
+      zipfile.ZipFile('name/of/zip/file.zip', 'w', ...)
+      zipfile.ZipFile('name/of/zip/file.zip', 'r', ...)
+        compression=[ ZIP_STORED | ZIP_DEFLATED | ZIP_BZIP2 | ZIP_LZMA ]
+          lzma, bz2, or zlib modules must be available for the corresponding
+          compression method.
+        compresslevel
+          0-9 for DEFLATED
+          1-9 for BZIP2
+          otherwise ignored.
+        allowZip64: allow large files.
+
+    add a file to the zip:
+      ZipFile.write('actual/file/on/harddisk', 'name/of/file/in/archive', compress_type=None, compress_level=None)
+      ZipFile.writestr('name/of/file/in/archive', 'data', compress_type=None, compress_level=None)
+
+      NOTE:
+        directories are just empty "files" whose archive name ends with os.sep
+
+      python3:
+        ZipFile.open('file/in/archive', 'w', pwd=None, force_zip64=False)
+          force_zip64 must be True if the data will exceed 2GiB.  If the size
+          is unknown but possibility exists, use True.
+          NOTE:
+            If 'file/in/archive' already exists, then it ADDS a NEW file with
+            the same name (duplicated name).  It DOES NOT edit the already
+            existing file.
+
+    traverse contents:
+      ZipFile.namelist()
+      ZipFile.infolist()
+
+      Zipfiles do not actually have "directories" so everything will be
+      returned in the list regardless of "directory" or not, and not
+      necessarily in directory traversal order.
+
+    read a file:
+      with ZipFile.open('file/in/archive', 'r') as f:
+        ...
+      data = ZipFile.read('file/in/archive', pwd=None)
+
+    passwords:
+      ZipFile.setpassword(pwd)
+      password for READING.
+
+    close the file:
+      ZipFile.close()
+
+  ZipInfo:
+    generally received from ZipFile.infolist()
+    attributes:
+      filename: name
+      date_time: datetime tuple
+      compress_type: type of compression
+      comment: ...
+      compress_size: compressed size
+      file_size: uncompressed size
+
+      others...

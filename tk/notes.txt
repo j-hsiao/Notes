@@ -13,6 +13,7 @@ Contents
   -1.6- helpers
     -1.6.1- filedialog
     -1.6.2- messagebox
+  -1.7- clipboard
 -2- Bindings
   -2.1- Event Sequences
     -2.1.1- Modifiers
@@ -20,9 +21,21 @@ Contents
   -2.2- Event Objects
   -2.3- Generation
   -2.4- Other Notes
--3- Canvas
--4- Menus
-
+-3- Widgets
+  -3.1- Button
+  -3.2- Canvas
+  -3.3- Checkbutton
+  -3.4- Entry
+  -3.5- Frame
+  -3.6- Label
+  -3.7- Listbox
+  -3.8- Menu
+  -3.9- Menubutton
+  -3.10- Radiobutton
+  -3.11- Scale
+  -3.12- Scrollbar
+  -3.13- Spinbox
+  -3.14- Text
 ______________________________
 -1- general
   tk is a wrapper over tcl.
@@ -377,6 +390,16 @@ ______________________________
         showwarning
 
 
+  ______________________________
+  -1.7- clipboard
+    clipboard_get()
+      type: same as below
+    clipboard_append()
+      type: STRING | FILE_NAME?? | UTF8_STRING??
+      format: STRING: 8-bit ascii characters
+              ATOM: 4 bytes??
+              anything else: string of 32-bit ints??
+    clipboard_clear()
 
 ______________________________
 -2- Bindings
@@ -706,68 +729,64 @@ ______________________________
       tk _bind completely ignores add when the bind function is a str.
       h/-2-
 
-
 ______________________________
--3- Canvas
-  tk.Canvas: window = put widget and allow scrolling
-  draw/manage shapes with callbacks on shapes
+-3- Widgets
+  ______________________________
+  -3.2- Canvas
+    tk.Canvas: window = put widget and allow scrolling
+    draw/manage shapes with callbacks on shapes
 
-  Items: Items are drawn on the canvas
-    options:
-      prefixed with [|active|disabled]:
-        dash            dash outline
-        fill            fill color
-        outline         outline color
-        outlinestipple  outline stipple
-        stipple         fill stipple
-        width           width of outline
-      dashoffset        stipple offset for outlinestipple
-      offset            stipple offset for stipple
-      state             [normal|disabled|hidden]
-                        disabled = displayed but effectively nonexistent
-                        ie if A is over B but A is disabled, then when
-                        the cursor is over A, callbacks see the cursor
-                        as over B instead.
-      tags              like bindtags() for widgets except is canvas item
+    Items: Items are drawn on the canvas
+      options:
+        prefixed with [|active|disabled]:
+          dash            dash outline
+          fill            fill color
+          outline         outline color
+          outlinestipple  outline stipple
+          stipple         fill stipple
+          width           width of outline
+        dashoffset        stipple offset for outlinestipple
+        offset            stipple offset for stipple
+        state             [normal|disabled|hidden]
+                          disabled = displayed but effectively nonexistent
+                          ie if A is over B but A is disabled, then when
+                          the cursor is over A, callbacks see the cursor
+                          as over B instead.
+        tags              like bindtags() for widgets except is canvas item
 
-  binding:
-    Bindings for canvas items are done via Canvas.tag_bind.
-    Canvas items bindings are always handled before bindings on the
-    canvas itself.
-    When a binding returns 'break', only the item-bound callbacks are broken.
-    The widget bindings still fire.
+    binding:
+      Bindings for canvas items are done via Canvas.tag_bind.
+      Canvas items bindings are always handled before bindings on the
+      canvas itself.
+      When a binding returns 'break', only the item-bound callbacks are broken.
+      The widget bindings still fire.
 
-  Canvas callbacks are called AFTER item callbacks, no exceptions.
-  Reordering canvas bindtags does not affect this.
+    Canvas callbacks are called AFTER item callbacks, no exceptions.
+    Reordering canvas bindtags does not affect this.
 
-  Canvas methods generally have a widget and item version:
-    widget        item
-    bind          tag_bind
-    focus_set     focus           * NOTE: only text can be focused, other items cannot take focus
+    Canvas methods generally have a widget and item version:
+      widget        item
+      bind          tag_bind
+      focus_set     focus           * NOTE: only text can be focused, other items cannot take focus
 
-  other notes:
-    oval items in canvas cannot have a stipple
-    they can, however, have an outline stipple.
-    width is centered on the outline so if you want a
-    circle of diameter D, you can do x,y,x,y, width=D
-    it's approximately correct. Then you can stipple by using outlinestipple
-    (THIS ONLY WORKS ON LINUX, windows pukes)
+    other notes:
+      oval items in canvas cannot have a stipple
+      they can, however, have an outline stipple.
+      width is centered on the outline so if you want a
+      circle of diameter D, you can do x,y,x,y, width=D
+      it's approximately correct. Then you can stipple by using outlinestipple
+      (THIS ONLY WORKS ON LINUX, windows pukes)
 
-    Enter/Leave issues:
-      if B1-Motion causes cursor to leave item:
-        if callback calls canvas.coords:
-          Leave is not fired until something else happens
-        But if, for example, canvas.move:
-          Leave is fired right after with state=0 (as if no button was pressed)
+      Enter/Leave issues:
+        if B1-Motion causes cursor to leave item:
+          if callback calls canvas.coords:
+            Leave is not fired until something else happens
+          But if, for example, canvas.move:
+            Leave is fired right after with state=0 (as if no button was pressed)
 
-      Enter/Leave caused by change in fill all say state=0, weirdness
-      enter/leave, state is unreliable, better to just
-      bind something (or empty script) to all B1-Motion events etc.
-
-
-
-
-
+        Enter/Leave caused by change in fill all say state=0, weirdness
+        enter/leave, state is unreliable, better to just
+        bind something (or empty script) to all B1-Motion events etc.
 
 ______________________________
 -4- Menus

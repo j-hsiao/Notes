@@ -1,0 +1,92 @@
+contents
+-1- tar
+-2- zip
+-3- 7z
+
+various tools exist to group files together
+
+______________________________
+-1- tar
+  options:
+    -A: Add contents of tar files to specified tar file (like python extend)
+    -r: append files to end of an archive
+    -x: extract
+    --delete: delete file
+    -c: create
+    -f: tar filename
+    -v: verbose
+    -z: use gunzip
+    -t: list contents
+    -u: update (only add newer files)
+    -v: verbose
+    -C: effective output directory
+
+  compression:
+    -j: bz2
+    -z: gunzip
+
+
+______________________________
+-2- zip
+  creation: zip
+    -d: delete entries, * wildcard okay, but should be escaped
+    -e: encrypt (password via terminal prompt)
+    -i: pattern of files to add, non-matches are ignored
+    -r: recursive
+    -u: update files with newer timestamps, ignore older
+    -Z: compression method: [ store | deflate | bzip2 ]
+    -[0-9]: compression level
+    -x: exclude from extraction
+    -d: output directory
+
+    examples:
+      zip my.zip -r . -i '*.c'
+        recursively add files in cwd, but only if matches '*.c'
+
+  extraction: unzip
+    -l: list contents
+    -u: update: extract only if newer
+    -P: password (if archive is encrypted and -P not given, then it'll prompt)
+______________________________
+-3- 7z
+  command: 7z [function] [options] <archive> <args...>
+    functions:
+      a add
+      d delete
+      e extract (all files -> dest dir)
+      l list
+      t test
+      u update
+      x extract full paths (keep paths)
+
+    options:
+      -ai
+      -ax
+      -i
+        wildcard patterns for Archives to Include/eXclude (-ai/ax) or files (-i)
+      -m<key>=<val> compression method params, depends on -t
+      -mhe=[on|off] encrypt header (cannot see contents of archive without password)
+      -p{Password} if {Password} is omitted, then it will prompt
+      -t[type], [ 7z | zip | gzip | bzip2 | tar ]
+      -si: read stdin
+      -so: write stdout
+      -o: output directory
+
+      recursivity is automatic, "don't use -r, does not do what you think"
+
+      -m keys/values for type:
+        zip/gzip:
+          x=[0|1|3|5|7|9]: compression level
+          m=[Deflate | Copy | Deflate64 | BZip2 | LZMA | PPMd] compression method
+          em=[ZipCrypto | AES128 | AES192 | AES 256] encryption method
+          mt=[on|off|N]: multithread
+        bzip
+          x: compression level: 0,1,3,5,7,9
+          mt=[on|off|N]: multithread
+        7z
+          x=[0|1|3|5|7|9]: compression level
+          hc=[on|off]: header compression
+          he=[on|off]: header encryption
+          mt=[on|off|N]: multithread
+          N=[LZMA|LZMA2|PPMd|BZip2|Deflate|Delta|BCJ|BCJ2|Copy]: priority=method.
+            0=Copy -> copy is done first if available

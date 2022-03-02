@@ -1,0 +1,12 @@
+man thing
+man <section> thing
+
+(if want printf(7), then man 7 printf)
+
+
+-N[Return]: display line numbers
+&thing will filter for thing (displays as &/thing)
+
+[num]g: go to line [num]
+g: [num] taken as 0 (to beginning)
+G: to end
