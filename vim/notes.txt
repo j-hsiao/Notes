@@ -373,6 +373,12 @@ contents
         fo                    format options
                               ro: automatically continue comments after \r or o
 
+    setl[ocal]: set only for current window (if has locality) otherwise all
+      scratch buffers (not saved etc)
+        buftype=nofile
+        bufhidden=hide
+        noswapfile
+
   ------------------------------
   -4.6- other
   ------------------------------

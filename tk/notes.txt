@@ -754,6 +754,14 @@ ______________________________
                           as over B instead.
         tags              like bindtags() for widgets except is canvas item
 
+    tagOrId can usually be given as an expression:
+      &&(and), ||(or), ^(xor), !(not).
+      eg. a&&b = tag a and b
+    (NOTE: these expressions only work with tags, NOT IDS)
+
+    For commands that act on single items at a time, only the first item
+    matched will be affected (?in display list?)
+
     binding:
       Bindings for canvas items are done via Canvas.tag_bind.
       Canvas items bindings are always handled before bindings on the

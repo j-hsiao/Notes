@@ -93,6 +93,9 @@ ______________________________
             choices :   collection of choices to choose from for values
             required:   argument is required to have
 
+    set_defaults(k=v,...):
+      set default values for arguments (useful with subparserse setting a function to run)
+
     parse_args(args = sys.argv[1:])
         parse the argument
         will cause exit on failure to parse
@@ -111,3 +114,5 @@ ______________________________
             dest                store subcommand under this name, default None (don't store)
             help                help msg for subparser group
             metavar             present available sub-commands in help
+    subparser:
+      choices: list of tuples (subcommand, parser)
