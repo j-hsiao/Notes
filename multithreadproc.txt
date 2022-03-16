@@ -1,0 +1,65 @@
+multiprocessing/multithreading general notes
+
+
+Contents
+  -1- locks
+  -2- conditions
+  -3- semaphores
+
+
+______________________________
+-1- locks
+  Locks are used to serialize code.
+  Usually to serialize access to some resource.
+  ie:
+    lock.acquire()
+    do stuff
+    lock.release()
+
+______________________________
+-2- conditions
+  Conditions are useful to atomically check
+  a condition and have a lock.
+
+  condition.acquire()
+  condition.wait()
+  dostuff
+  condition.release()
+
+  example use case:
+  popping an item from queue.
+  signal = queue is not empty.
+
+  lock 1 failure:
+    wait for queue non-empty
+                                <- some other process/thread grabs the
+                                <- lock first and takes the item.
+    lock.acquire()
+    do stuff                    <- but now it's empty!
+    lock.release()
+
+  lock 2 failure:
+    lock.acquire()
+    wait for non-empty queue    <- Except to add to queue, requires lock
+                                <- now can never get non-empty because
+                                <- the lock is held
+    do stuff
+    lock.release()
+
+
+  considerations:
+    notify() with/without lock
+
+
+______________________________
+-3- semaphores
+  limited resources but doesn't matter which one you get.
+  example:
+    library has 5 copies of a book
+    so semaphore with 5 as initial value.
+
+    semaphore.acquire()
+    take a book
+    ...
+    return a book
+    semaphore.release()

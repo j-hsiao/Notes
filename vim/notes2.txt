@@ -37,62 +37,6 @@ NOTE: cygwin vi uses .virc not .vimrc
 ##############################
 -1- normal mode
 ##############################
-    general rules:
-        prefix commands with a number to repeat that many times
-
-    ------------------------------
-    -1.1- movement
-    ------------------------------
-    [N]_        : first non-whitespace character on line, or (N - 1)th line below current line (N=1 means this line)
-    [N]-        : first non-whitespace character on Nth line above
-    [N]+        : first non-whitespace character on Nth line below 
-    f[x]        : move to first occurence of character x to the right of (and not including) position in current line
-    F[x]        : move to first occurence of character x to the left of (and not including) position in current line
-    t[x]        : same as f, except 1 character short
-    T[x]        : same as F, except 1 character short
-        note: so repeated f[x] will jump to each next x
-              but repeated t[x] will  only go to first x
-    ;           : repeat f/F/t/T command in same direction 
-                    (except t and T will jump to next character rather than be stuck on first occurence)
-    ,           : same as ; except perform in the reverse direction
-    backspace   : back one character (wraps on line beginning)
-    space       : forward one character (wraps on line ends)
-    hjkl        : move 1 character left / down / up / right
-    0           : column 0 of line
-    $           : end of line
-    w           : next [beginning of a word]
-    b           : previous [beginning of a word]
-    e           : next [end of a word]
-    HML         : move to top / middle / bottom of screen
-    C-f/C-d/C-e : scroll down full screen / half screen / 1 line
-    C-b/C-u/C-y : scroll up full screen / half screen / 1 line
-    m[a-zA-Z]   : set mark
-    '[a-zA-Z]   : pop mark (first non-whitespace character of the line)
-    `[a-zA-Z]   : pop mark (exact spot)
-    zz          : move current line and cursor to middle
-    zt          : move current line and cursor to top
-    zb          : move current line and cursor to top
-    zh          : move N chars left
-    zH          : move N halfscreens left
-    zl          : move N chars right
-    zL          : move N halfscreens right
-    ze          : move cur pos to right of viewport
-    zs          : move cur pos to left of viewport
-
-        ------------------------------
-        -1.1.1- jumps
-        ------------------------------
-        {}          : jump to previous/next blank line
-        ()          : jump to beginning/end of N sentences
-        []          : jump to "sections" whatever that means...
-        [N]gg       : go to line N, default to line 0
-        [N]G        : go to line N, default to last line
-        `.          : jump to last edited position
-        %           : jump to matching {}, [], ()
-
-        C-o         : jump to older position in jumplist
-        C-i         : jump to more recent position in jumplist
-
     ------------------------------
     -1.2- viewports, tabs, folds
     ------------------------------
@@ -140,10 +84,6 @@ NOTE: cygwin vi uses .virc not .vimrc
     -1.3- changing modes
     ------------------------------
     gi          : enter insert mode where it was last exited
-    i           : enter insert mode (on cursor)
-    I           : enter insert mode (beginning of line)
-    a           : enter insert mode (after cursor)
-    A           : enter insert mode (end of line)
     v           : visual mode
     V           : visual mode (entire lines)
     C-v         : visual mode (column version)
@@ -153,25 +93,10 @@ NOTE: cygwin vi uses .virc not .vimrc
     ------------------------------
     -1.4- editing
     ------------------------------
-    r           : replace 1 character
-    R           : enter replace insert mode
     x           : delete 1 character
-    o           : add new line after cursor and insert mode
-    O           : add new line above cursor and insert mode
     J           : join current and next line
     u           : undo (or change directions depening on settings)
     C-r         : redo (or continue in current undo direction depending on settings)
-    d           : begin a deletion operation
-      d         : current line
-      w         : next [beginning of word]
-      b         : previous [beginning of word]
-      e         : next [end of word]
-      0         : beginning of line
-      $         : to end of line
-      gg        : delete to beginning of file
-      G         : delete to end of file
-      k         : delete cur line and above
-      j         : delete cur line and below
     p           : paste after cursor
     P           : paste on cursor
     y           : yank (copy)
@@ -330,9 +255,11 @@ NOTE: cygwin vi uses .virc not .vimrc
     -4.4- settings
     ------------------------------
         booleans can generally be negated by prefixing with no
+        Toggled by ending with !
         ex: 
             :set expandtab
             :set noexpandtab
+            :set expandtab!
         :set
             acd/autochdir   : change current dir whenever open file,
                               change buffer/viewport, etc
@@ -346,6 +273,8 @@ NOTE: cygwin vi uses .virc not .vimrc
             nohl            : stop highlighting
             paste           : paste mode: no autoindent, etc
             smartindent     : 
+            lcs(listchars)  : :h 'lcs'
+            list            : display listchars
             cindent         : 
             wrap            : wrap long lines
             ignorecase      : ignore case when searching

@@ -49,98 +49,10 @@ ______________________________
 #1.2::modes
   ______________________________
   #1.2.1::command
-    keys = commands like movement,deletion etc
-    default mode
-    prefix a number to execute multiple times
-    NOTE: for j and k, entering a number too large does nothing
-    (on 2nd line, enter 20k does not move up at all)
-                                    a                   b           
-    ______________________________
-    #1.2.1.1::movement
-      _   : move to first non-white-space character on line
-      -   : move to first non-white character in line above
-      +   : move to first non-white character on line below
-      f[x]: goto x
-      F[x]: goto x (backwards)
-      t[x]: gobefore x
-      T[x]: goafter x
-      ;   : repeat the last t/f/T/F command
-      ,   : repeat the last t/f/T/F in opposite direction
-      backspace : move back one char (wraps, unlike h)
-      spacebar  : move forward one char (wraps unlike l)
-      h   : left
-      j   : move down
-      k   : up
-      l   : right
-      |   : move to column, (prefix with a number, default is 0 (beginning))
-      0   : beginning of line (zero not O)
-      $   : end of line
-      w   : forward 1 word, cursor at beginning
-      b   : backward 1 word, cursor at beginning
-      e   : forward 1 word, cursor at end
-      [N]gg: go to Nth line, if N omitted, go to first line
-      [N]G : same as above,  if N omitted, go to last line
-      gi  : jump to last position where insert mode was exited and enter insert mode
-      %   : jump to matching character (brace, parantheses, bracket, etc)
-      `.  : last edit
-      H   : move cursor to top
-      M   : move cursor to middle
-      L   : move cursor to bottom
-      C-d : move half page down
-      C-u : move half page up
-      C-b : move page up
-      C-f : move page down
-      C-y : scroll up one line
-      C-e : scroll down one line
-
-      C-O : older jump position
-      C-I : newer jump position
-            (these two require +jumplist feature or something)
-      ______________________________
-      #1.2.1.1.1::marks
-        mx  : set mark to key x, x = a-z, or A-Z (global)
-        `x  : go to exact mark position
-        'x  : go to line with the mark
-        :marks: see current marks
-
-        special marks:
-            .: last edit
-            []: first/last line of last yanked/edited/pasted selection
-            <>: first/last line of last visual selection
-            ' : before last jump
-            " : last position before file was closed
-            ^ : last position where insert mode was stopped (used by gi)
-            . : last change
-
-
-
     ______________________________
     #1.2.1.2::editing
-      i   : enter insert mode (before current character)
-      I   : move to beginning of line and enter insert mode
-      a   : enter insert mode (after current character)
-      A   : enter insert mode at end of line
-      o   : new line below and insert mode
-      O   : new line above and insert mode
-      r   : replace one character
-      R   : replace (insert) mode
       x   : delete character
       u   : undo, repeat = change undo direction
-      C-r : continue undo
-            NOTE: :set cpoptions=*u* where * = anything
-            changes behavior of undo (for vim anyways)
-            with: u = toggle undo direction, C-r = continue in that direction
-            without u: u = undo, C-r = redo
-      d   : start deletion operation
-        dd  : delete line
-        dw  : delete word
-        d0  : delete cursor to line start
-        d$  : delete cursor to end of line
-        dgg : delete to beginning of file
-        dG  : delete to end of file
-        dk  : delete current line and line above
-        dj  : delete current line and line below
-              note: can also just highlight region with v and then d to delete
       p   : paste text AFTER the cursor
       P   : paste text ON the cursor
       v   : highlight text (C-space for emacs)
