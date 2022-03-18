@@ -9,6 +9,8 @@ contents:
   -1.4- jumps
   -1.5- marks and registers
   -1.6- folding
+  -1.7- windows and viewports
+  -1.8- searching
 -2- insert mode
 -3- visual mode
 -4- command mode
@@ -62,6 +64,7 @@ ______________________________
   ______________________________
   -1.1- movement
     hjkl            left, down, up, right 1 char respectively (same column)
+    gj|gk           move down|up a visual line (when linewrapping)
     <space>         forward 1 char (linewraps)
     <backspace>     backward 1 char (linewraps)
     0               beginning of line
@@ -174,13 +177,102 @@ ______________________________
       z<m|M>        close 1/all folds everywhere
     moving to folds
       z<j|k>        JUMP to next|previous fold.
+  ______________________________
+  -1.7- windows and viewports
+    :h ctrl-w
+
+    Window commands are prefixed with C-w
+
+    creating viewports:
+      v         vertical split viewport
+      s         horizontal split viewport
+      f         split and open filename under cursor
+      d         split and jumpt to definition (#define line)
+      i         jump to declaration of identifier (where variable declared)
+      n         new viewport
+
+    closing viewports:
+      q         quit viewport (exit if last window)
+      c         close viewport (but not last window)
+      o         close all but the current one
+
+    resizing viewports:
+      =         equalize viewport sizes
+      |         change viewport width to N, defaults to screen width
+      _         change viewport height to N, defaults to screen height
+      +|-       increase|decrease height by N rows, default to 1
+      >|<       increase|decrease width by N chars, default to 1
+
+    moving viewports:
+      H|J|K|L   move current viewport to far left|bottom|top|right
+      r|R       rotate viewports positions down|up
+      T         move viewport to a new tab
+      x         swap with viewport N, default next... but how to get viewport number?
+
+    moving between viewports:
+      h|j|k|l   move to the viewport to the left|bottom|top|right
+      P         preview window??
+      p         previous viewport
+      C-w|w|W   next/previous viewport
+      t|b       to top|bottom viewport
+
+  ______________________________
+  -1.8- searching
+    /|?         initiate forward|backward regexp search
+                use nN to go to next/previous (in given direction)
+                eg: /waldo<CR> finds the next "waldo".
+    [           show/search/jump
+      i|I       show first|all lines containing word under cursor
+      (|{       to unmatched (|{
+
+      c/c++ related:
+        #       go to previous unmatched #if, #else, #ifdef
+        d|D     show first|all "#define" for word under cursor
+                so #   define does not get matched even though it would work
+    ]
+      )|}       next unmatched )|}
+      c/c++ related:
+        #       next unmatched #endif/#else
+
+
 
 ______________________________
 -2- insert mode
+  C-p|C-n       autocomplete with words before/after cursor
+                use C-p/C-n to scroll through
 ______________________________
 -3- visual mode
 ______________________________
 -4- command mode
+  Command mode runs vim commands/functions.  These can generally be
+  prefixed with a range to run the command on given lines.
+
+
+  line number formats:
+    <N>         line N
+    .           current line
+    $           last line
+    %           all lines
+    't          line containing mark
+    'T          line containing global mark (must be in same file)
+    /pattern/   lines that match regexp (after cursor)
+    ?pattern?   lines that match regexp (before cursor)
+    <spec>+-[N] one of above specifications +- N lines, N=1 if omitted
+
+  A range can be specified by specifying 2 line numbers separated by a
+  ',' or ';'. ',' moves the cursor, ';' does not.
+
+  sidenote:
+    when entering commandmode from visual mode with a selection,
+    the range is shown as '<,'> which means from the < mark to the > mark
+    (-1.5- <> = first/last line of visual selection)
+
+
+
+
+
+
+
   ______________________________
   -4.1- :help
   ______________________________
@@ -191,6 +283,8 @@ ______________________________
   -5.1- variables
   ______________________________
   -5.2- functions
+
+    :<C-u>call Function(v:count)
 ______________________________
 -6- useful topics
   ______________________________
