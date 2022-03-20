@@ -21,6 +21,7 @@ contents:
 -4- commandline
 -5- ctest
 -6- mingw
+-7- making install packages
 
 ------------------------------
 -0- tutorial
@@ -186,6 +187,9 @@ contents:
 	-0.2- generator expressions
 		syntax:
 			$<...>
+			NOTE: if need quotations, quotations should go around
+			"$<...>"
+			using $<BOOL:"string"> seems to cause issues (at least in target_include_directories)
 
 			______________________________
 			boolean expressions:
@@ -467,3 +471,60 @@ ctest: run tests from add_test
 			libpthreads etc causing "XXX.dll not found" errors when running
 			anything compiled by MinGW. -static causes static linking so no
 			"not found" errors
+------------------------------
+-7- making install packages
+------------------------------
+A cmake installation has at least 1 file:
+	packagenameConfig.cmake
+generally, you'd have at least 2:
+	packagenameConfig.cmake
+	packagenameTargets.cmake
+The Config.cmake file will find dependencies etc
+(CMakeFindDependencyMacro's find_dependency instead of a normal find_package)
+packagenameTargets.cmake contains the info about
+the installed package (libs, include dirs, etc)
+
+steps:
+	0. setup:
+		1. anything in INTERFACE must be in export set
+			(INTERFACE or PUBLIC dependencies)
+		2. target_include_directories will complain about absolute paths.
+			add actual dirs via: $<BUILD_INTERFACE:PATH>
+			add include directories after installation (relative to CMAKE_INSTALL_PREFIX)
+			via $<INSTALL_INTERFACE:PATH>
+			NOTE: PATH CANNOT have quotes
+
+	1. add targets to an "export set":
+		install(
+			TARGETS target names ...
+			EXPORT "name of export set"
+			RUNTIME DESTINATION bin
+			...
+		)
+	2. generate the export set file:
+		NOTE: this is used for subdirectory or something and isn't actually necessary?
+		export(
+			EXPORT "name of export set"
+			NAMESPACE "<name of namespace>::"
+			FILE "path of output file")
+	3. install the export file:
+		install(
+			EXPORT "name of export set"
+			FILE "name.cmake"
+			DESTINATION "(relative) dest dir"
+			NAMESPACE "namespace::"
+		)
+	4. make a Config.cmake file
+		include(CMakeFindDependencyMacro)
+		include(the file created via step 3)
+	5. install the config.cmake file
+		install(
+			FILES "${generated Config file}"
+			DESTINATION "probably same dir as export file (step 3)"
+
+helpers:
+	CMakePackageConfigHelpers
+		configure_package_config_file
+
+		write_basic_package_version_file
+
