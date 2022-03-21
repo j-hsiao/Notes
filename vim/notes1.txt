@@ -30,48 +30,7 @@ NOTE: cygwin vi uses .virc not .vimrc
 #1::vim
 ##############################
 #1.1::general
-______________________________
-#1.3::config file
-  /etc/vim/vimrc
-  ~/.vimrc
-  /usr/share/vim/.vimrc
-  ex:
-    " .vimrc - startup file for Vim
-
-      syntax on
-     set viminfo='1000,f1,\"500,:100,/100
-     set mouse=a
-     autocmd FileType html,xml,xsl source ~/.vim/scripts/closetag.vim 
-
-  options/syntax
-    " blahblah       : a comment
-    set value        : set the value
-      NOTE:
-        in general, add "no" in front to toggle off, ie number, nonumber
-      viminfo        : store history length for vim (session info persists between sessions)
-      mouse=a        : enable mouse everywhere
-      scrolloff=n    : keep at least n lines from top and bottom of the screen
-                       within limitations (ie, set n=999 and if less than 999 lines on a screen,
-                       cursor will always be centered)
-      number         : line numbering
-      relativenumber : display relative numbering
-      autoindent     : inherit indent from previous lines
-      expandtab      : tabs->spaces
-      shiftwidth=N   : shift by N (also autoindent)
-      tabstop=N      : width of a TAB character
-      softtabstop=N  : if expandtab, softtabstop = shiftwidth is desired
-                       space to be inserted (tabstop = 8, softtabstop = 20
-                           noexpandtab)=>2 tabs, 4 spaces
-      ignorecase     : ignore case when searching
-      incsearch      : search shows partial matches
-      smartcase      : automatically switch to case sensitive when query has caps
-      wrap           : line wrapping
-
-      title          : set window title (file being edited)
-      hlsearch       : highlight search
-
-    syntax on        : turn on syntax highlighting
-  ______________________________
+  _____________________________
   key mapping
   {cmd} {attr} {lhs} {rhs}
   cmd: prefix/suffix followed by a mapping command

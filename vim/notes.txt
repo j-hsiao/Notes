@@ -22,9 +22,11 @@ contents:
     wmnu
     list and lcs
   -4.3- files/buffers
-  -4.4- searching
+  -4.4- search/replace
   -4.5- windows/tabs
-  -4.6- others
+  -4.6- let
+  -4.7- autocmd
+  -4.8- others
 -5- vim scripts and config files
   -5.1- variables
   -5.2- functions
@@ -60,8 +62,14 @@ ______________________________
 
   ______________________________
   -0.3- regex
+    :h regex
+    terminology:
+      pattern: 1 or more branches joined by \|
+      branch: 1 or more concats joined by \&
+      concat: one or more pieces concatenated together
+      piece: atom[multi] OR a pattern in \(\)
 
-    repeat specifiers for pattern-atoms
+    multis: (with magic)
       *         0 or more greedy
       \+        1 or more greedy
       \=        0 or 1, as many as possible
@@ -71,12 +79,22 @@ ______________________________
                 m defaults to infinite
       \{-n,m}   same as above but as few as possible
 
-    :h pattern-atoms
-    pattern-atoms of interest:
-      groups:
-        \(<pat>\)   store pat as a group, available for back-reference
-                    via \<num>
-      character classes
+    magic atoms
+      ^     beginning of line
+      $     end of line
+      .     any character
+      \<    beginning of word
+      \>    end of word
+      &     the pattern (in replacement area)
+      \z<s|e>     start|end of pattern to be considered for replacement.
+                  Anything outside of these will be matched but not replaced.
+      \<c|C>      ignore|match case
+      \<m|M|v|V>  set|unset (very)magic :h /magic. Determines if escaping
+                  causes literal character or regex meaning
+                  (magic = .->any char, nomagic = \.->any char)
+
+
+    character classes
       invert letter case to invert match
       ie: \s = whitespace, \S = not whitespace
         \s      whitespace
@@ -94,13 +112,13 @@ ______________________________
         \r          <CR>
         \b          <BS>
         \n          end-of-line (search) or null byte (replace)
-        \<          beginning of word
-        \>          end of word
-        \z<s|e>     start|end of replacement pattern.  Anything outside
-                    of these will be matched but not replaced
 
-      [<stuffs>]  any character in <stuffs>
-      [^<stuffs>] any character NOT in <stuffs>
+      groups:
+        \(<pat>\)   store pat as a group, available for back-reference
+                    via \<num>
+        \%(<pat>\)  like above but don't count it as a group
+        [<stuffs>]  any character in <stuffs>
+        [^<stuffs>] any character NOT in <stuffs>
 
         character classes for use in []: ([:<class name>:])
           alnum     graph   upper   backspace
@@ -210,6 +228,7 @@ ______________________________
   -1.5- marks and registers
     Marks are named a-z (local) or A-Z (global) and represent a
     position in the file.
+    :marks to list marks
 
     m       Store the current position to a mark register.
     `       JUMP to mark (exact)
@@ -294,6 +313,7 @@ ______________________________
 
   ______________________________
   -1.8- searching
+    (see also -0.3- regex)
     /|?<pat>    initiate forward|backward regexp search for <pat>
     n|N         go to next/previous search match (retain search direction)
     [           show/search/jump
@@ -394,29 +414,26 @@ ______________________________
 
   ______________________________
   -4.2- :set
+    syntax:
+      :set <option>=value     set option to value
+      :set <option>           set boolean option to True
+      :set no<option>         set boolean option to False
+      :set <option>!          toggle boolean option
+      :set <option>?          echo current option value
+
     ______________________________
     -4.2.1- indentation
-      syntax:
-        :set <option>=value     set option to value
-        :set <option>           set boolean option to True
-        :set no<option>         set boolean option to False
-        :set <option>!          toggle boolean option
-        :set <option>?          echo current option value
+      softtabstop     sts     target destinations of tab key
+      tabstop         ts      size of a tab character
+      shiftwidth      sw      size of indentation
+      autoindent      ai      copy indent of previous line when new line
+      expandtab       et      use spaces instead of tab chars.
 
-      related options:
-        long            short   description
-        ------------------------------
-        softtabstop     sts     target destinations of tab key
-        tabstop         ts      size of a tab character
-        shiftwidth      sw      size of indentation
-        autoindent      ai      copy indent of previous line when new line
-        expandtab       et      use spaces instead of tab chars.
-
-        If applicable, spaces will be converted to tabs once they
-        reach tabstop
+      If applicable, spaces will be converted to tabs once they
+      reach tabstop
     ______________________________
     -4.2.2- visual changes
-      ruler             ru      show cursor position in infoline
+      ruler             ru      show cursor position in statusline
       number            nu      number lines
       relativenumber    rnu     number lines relative to cursor (current
                                 line gets the absolute line number)
@@ -427,16 +444,17 @@ ______________________________
       list                      use lcs to display invisible chars
       cursorcolumn      cuc     highlight cursor column
       cursorline        cul     underline cursor line
+      scrolloff         so      when scrolling, keep N lines from top/bottom
+                                of screen relative to cursor.
 
     ______________________________
     others
-      ------------------------------
       insearch          is      find search matches as you type
+      ignorecase        ic      case-insensitive searching
+      smartcase         scs     case sensitive if have caps
       autochdir         acd     automatically change to viewport's directory
       belloff <when>    bo      don't ring bell when
       paste                     paste mode (turns off autoindent etc)
-      ignorecase        ic      case-insensitive searching
-      smartcase         scs     case sensitive if have caps
       wildmenu          wmnu    tab completion in commandline mode
       wildmode          wim     tab completion method:
                                 up to 4 comma-delimited items of:
@@ -447,6 +465,10 @@ ______________________________
                                 list:full       list and complete to first match
                                 list:longest    list and up to longest common string
                                 C-<n|p> to cycle through options.
+      title                     set window title?
+      titlestring               name of title, statusline syntax
+      statusline        stl     content of status line
+
 
   ______________________________
   -4.3- files/buffers
@@ -464,9 +486,11 @@ ______________________________
     :ls :files :buffers list current buffers
                         % symbol = current buffer
                         # symbol = the alternate buffer
+    :syntax on|off      turn syntax highlighting on or off
 
   ______________________________
-  -4.4- searching
+  -4.4- search/replace
+    (see also -0.3- regex)
     :s/text/replacement/[gciI]  run search/substitution
                                 g: all matches per line
                                 c: confirm
@@ -484,7 +508,17 @@ ______________________________
     :tabo               make this the only tab (close all others)
 
   ______________________________
-  -4.6- others
+  -4.6- let
+    :h :let
+    let varname = expr
+    let @<reg> = "register value"
+    (Note that these are literal text, so <Esc> will be 5 characters.
+    Use C-v to use Esc in a macro.)
+  ______________________________
+  -4.7- autocmd
+
+  ______________________________
+  -4.8- others
     C-d         list potential completions.  Use tab to scroll.
     ______________________________
     abbreviations
@@ -510,11 +544,15 @@ ______________________________
       :cd               change current working dir
                         %:h     current file's directory
                         -       previous dir
-
-
+      :jumps        show jumplist
+      :clearjumps   clear jumplist
 
 ______________________________
 -5- vim scripts and config files
+  Vim scripts are basically lines of command-mode commands and the
+  default path is ~/.vimrc.  It can be specified with the -u argument.
+  Comments begin with "
+
   ______________________________
   -5.1- variables
   ______________________________
@@ -525,12 +563,6 @@ ______________________________
     :<C-u>call Function(v:count)
     <CR>: carriage return = return key
     <BS>: backspace = backspace key
-
-  ______________________________
-  -5.3- notable commands
-    -5.3.1- let
-      let var = ...
-      let @<reg> = "register value"
 ______________________________
 -6- useful topics
   ______________________________
@@ -587,41 +619,6 @@ ______________________________
 #   -6.1- macros
 #   -6.2- registers
 #   -6.3- remapping keys
-#   ------------------------------
-#   -4.4- sed substitution
-#   ------------------------------
-#     s/pattern/replace/opt
-# 
-#       pattern: regex
-#         . * \ [ ^ $ are meta characters
-#         + ? | & {()} must be escaped to use meanings
-# 
-#         escapes:
-#           \<                word start
-#           \>                word end
-#           \zs               match start NOT THE SAME AS  \(
-#           \ze               match stop
-#           \t                tab
-#           \s                whitespace
-#           \n                newline
-#           \r                carriage return
-#           \c / \C           ignore / match case (appear anywhere, applies to all)
-# 
-#       replace:
-#         metachars:
-#           &                 the match
-# 
-#         escapes:
-#           \r                newline
-#           \n                null byte
-#           \0                entire pattern
-#           \1...             back references
-# 
-#       opts:
-#         g                   globally (all within a line, not just first occurrence)
-#         c                   confirm
-#         i                   case insensitive
-#         I                   case sensitive
 #   ------------------------------
 #   -4.5- set
 #   ------------------------------
