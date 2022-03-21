@@ -26,17 +26,18 @@ contents:
   -4.5- windows/tabs
   -4.6- let
   -4.7- autocmd
+  -4.8- map
   -4.8- others
 -5- vim scripts and config files
   -5.1- variables
   -5.2- functions
--6- useful topics
-  -6.1- macros
-  -6.2- registers
-  -6.3- remapping/binding keys
-  -6.4- viewports and tabs
-  -6.5- file manipulation
-  -6.6- indentation
+
+quick topics:
+  registers, macros             -1.5-
+  remapping/binding keys        -4.8-
+  viewports/tabs                -1.7-
+  file manipulation             -1.3-, -4.3-
+  indentation                   -4.2.1-
 
 Vim is a modal editor.  In general, vim has normal, insert, visual,
 and command modes each with their own functionalities.
@@ -516,6 +517,154 @@ ______________________________
     Use C-v to use Esc in a macro.)
   ______________________________
   -4.7- autocmd
+    Run commands on events like open file or file type etc.
+    Commands are added in order.  They are always added regardless
+    of whether they're already defined.  Use groups to manage.
+
+    au[tocmd] <group> <events> <pattern>                list commands
+    au[tocmd] <group> <events> <pattern> <command>      add command
+    au[tocmd]! <group> <events> <pattern> <command>     clear commands and add command
+    au[tocmd]! <group> <events> <pattern>               clear commands
+    do[autocmd] [group] <event> [fname]                 run the commands on fname (default current fname)
+
+    augroup <group>     add an autocmd group
+      autocmd
+
+    group: group of autocommands for easier management
+      (sourcing .vimrc would add twice so clear and set so only
+      ever has 1 copy). Groups are case-sensitive
+
+    events: comma-delimited list of events and case is ignored
+      pre = before event, post = after
+      *                 all events
+      reading
+        bufnewfile              new file
+        bufread[pre|post]       existing file
+        filterread[pre|post]    temp file with filter output
+        fileread[pre|post]      read with :read command
+      writing
+        bufwrite[pre|post]      write whole buffer to file
+        filewrite[pre|post]     write part of buffer to a file??
+        fileappend[pre|post]    append to a file
+      Buffers
+        buf<add|create>     add a buffer to bufferlist
+        bufnew              new buffer
+        bufdelete           b4 deleting a buffer
+        buffile[pre|post]   changing buffer filename
+        buf[enter|leave]    move to different buffer
+        bufwin[enter|leave] after buffer is displayed/removed from window
+        bufunload           unload buffer
+        bufhidden           hide buffer
+    pattern: comma-delimited filename pattern matching
+      ex:
+        *.c,*.cpp:      run command for c/cpp files
+      if /: match against short (as you typed) and full paths
+      else: only basename
+        * matches multiple dirs:
+        */doc/*.txt = any .txt in a directory called doc
+
+      *: any sequence
+      ?: any single char
+      \?: literal ?
+      \,: literal ,
+      ,: pattern delimiter
+      [ch]      normal regex meaning
+      [^ch]     normal regex meaning
+
+      paths always use /
+
+    ex:
+      augroup mygroup
+        " delete mygroup in case it was already defined so only 1 copy of commands
+        au! mygroup
+        au mygroup BufEnter * echo hello
+      augroup END
+
+  ______________________________
+  -4.8- map
+    commands:
+    [mode][no][re]map
+    re = recursive map (use other mappings)
+    nore = no recursive map (don't need to worry if other mappings
+      would affect what the mapping does)
+
+    mode:
+      n         normal
+      i         insert
+      c         command
+      v         visual and select
+      s         select mode (replacement mode)
+      x         visual only
+      o         operator-pending
+      l         Insert + Command-line + Lang-Arg (lowercase L)
+    syntax:
+      :h index                  see default mappings
+      :[mode]map                list mappings
+      :[prefix]map lhs rhs      map rhs to lhs where rhs is a
+                                key-sequence
+      :unmap lhs                unmap a sequence
+
+      map can also take special arguments:
+        <buffer>        current buffer only
+        <nowait>        don't wait for more characters to be typed
+        <silent>        don't echo to command line
+        <special>       ??
+        <script>        ??
+        <expr>          evaluate rhs to get the rhs to use for mapping
+        <unique>        fail if already exists
+
+    key sequences:
+      a         the key as is
+      <C-...>   hold Control + some key
+      <S-...>   shift + some key
+      <M-...>   alt/meta + some key
+      <D-...>   command + some key (mac only)
+      <Nul>     zero
+      <BS>      backspace
+      <Tab>     tab
+      <NL>      line feed
+      <FF>      formfeed
+      <Esc>     escape
+      <CR>      return
+      <Space>   space
+      <lt>      less-than (because < is used for <C-key>)
+      <Bslash>  \
+      <Bar>     |
+      <Del>     delete
+      <Up>      arrow keys
+      <Down>    "
+      <Left>    "
+      <Right>   "
+      <S-key>   shift+key
+      <F[1-12]> function keys
+      <Help>    help key??
+      <Undo>    undo key??
+      <Home>    home
+      <End>     end
+      <PageUp>          pageup
+      <PageDown>        pagedown
+      <kHome>           keypad
+      <kEnd>            keypad
+      <kPageUp>         keypad
+      <kPageDown>       keypad
+      <kPlus>           keypad
+      <kMinus>          keypad
+      <kMultiply>       keypad
+      <kDivide>         keypad
+      <kEnter>          keypad
+      <kPoint>          keypad decimal
+      <k[0-9]>          keypad
+
+
+
+
+    helpers:
+      C-v key           insert key literally
+      C-k key key       special keys?? (i_Ctrl-k shift-space)
+
+
+
+
 
   ______________________________
   -4.8- others
@@ -563,6 +712,13 @@ ______________________________
     :<C-u>call Function(v:count)
     <CR>: carriage return = return key
     <BS>: backspace = backspace key
+  ______________________________
+  -5.3- builtin functions
+    winwidth(0)     current window width
+    winheight(0)    current window height
+    repeat("str", count)    return repeated string
+
+
 ______________________________
 -6- useful topics
   ______________________________
