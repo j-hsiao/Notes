@@ -24,13 +24,12 @@ contents:
   -4.3- files/buffers
   -4.4- search/replace
   -4.5- windows/tabs
-  -4.6- let
-  -4.7- autocmd
-  -4.8- map
+  -4.6- autocmd
+  -4.7- map
   -4.8- others
 -5- vim scripts and config files
   -5.1- variables
-  -5.2- functions
+  -5.2- user defined functions
 
 quick topics:
   registers, macros             -1.5-
@@ -249,6 +248,9 @@ ______________________________
       q         begin/end recording a macro
       @<reg>    Run the text stored in register as a macro
 
+    Macros can be set via commandmode with let (-5.1-)
+
+
   ______________________________
   -1.6- folding
     Folds temporarily hide sections of the current file and may contain
@@ -422,6 +424,9 @@ ______________________________
       :set <option>!          toggle boolean option
       :set <option>?          echo current option value
 
+    Use setlocal for a buffer-local version
+    (not all variables can be buffer local though)
+
     ______________________________
     -4.2.1- indentation
       softtabstop     sts     target destinations of tab key
@@ -438,7 +443,6 @@ ______________________________
       number            nu      number lines
       relativenumber    rnu     number lines relative to cursor (current
                                 line gets the absolute line number)
-      hlsearch          hls     highlight search matches
       visualbell        vb      flash instead of beep
       wrap                      wrap long lines
       listchars         lcs     list chars for displaying invisible chars
@@ -447,12 +451,22 @@ ______________________________
       cursorline        cul     underline cursor line
       scrolloff         so      when scrolling, keep N lines from top/bottom
                                 of screen relative to cursor.
+    ______________________________
+    scratch files:  this will not be saved to files and will not prevent
+                    closing when modified
+      buftype=nofile
+      bufhidden=hide
+      noswapfile
 
     ______________________________
-    others
+    searching
+      hlsearch          hls     highlight search matches
       insearch          is      find search matches as you type
       ignorecase        ic      case-insensitive searching
       smartcase         scs     case sensitive if have caps
+
+    ______________________________
+    others
       autochdir         acd     automatically change to viewport's directory
       belloff <when>    bo      don't ring bell when
       paste                     paste mode (turns off autoindent etc)
@@ -469,6 +483,7 @@ ______________________________
       title                     set window title?
       titlestring               name of title, statusline syntax
       statusline        stl     content of status line
+      formatoptions     fo      some options like continue comments on next line.
 
 
   ______________________________
@@ -509,14 +524,7 @@ ______________________________
     :tabo               make this the only tab (close all others)
 
   ______________________________
-  -4.6- let
-    :h :let
-    let varname = expr
-    let @<reg> = "register value"
-    (Note that these are literal text, so <Esc> will be 5 characters.
-    Use C-v to use Esc in a macro.)
-  ______________________________
-  -4.7- autocmd
+  -4.6- autocmd
     Run commands on events like open file or file type etc.
     Commands are added in order.  They are always added regardless
     of whether they're already defined.  Use groups to manage.
@@ -581,7 +589,15 @@ ______________________________
       augroup END
 
   ______________________________
-  -4.8- map
+  -4.7- map
+
+    :h :key-notation
+    no notes on casing for <C-key> notation
+
+    :<C-u>call Function(v:count)
+    <CR>: carriage return = return key
+    <BS>: backspace = backspace key
+
     commands:
     [mode][no][re]map
     re = recursive map (use other mappings)
@@ -597,6 +613,7 @@ ______________________________
       x         visual only
       o         operator-pending
       l         Insert + Command-line + Lang-Arg (lowercase L)
+      !         suffix, Insert and Command-line mode
     syntax:
       :h index                  see default mappings
       :[mode]map                list mappings
@@ -655,16 +672,38 @@ ______________________________
       <kPoint>          keypad decimal
       <k[0-9]>          keypad
 
-
-
-
     helpers:
       C-v key           insert key literally
       C-k key key       special keys?? (i_Ctrl-k shift-space)
 
 
+    NOTE:
+      C-/ and C-_ are treated as the same (C-v C-/ inserts ^_)
+      if you want to use C-/, you need to bind to <C-_>
 
+    free keys:
+      (:h index, search for "not used")
+      normal mode:
+        \
+        C-\ <NOT a-z>
+        C-_             (this can also be activated via C-/)
+        C-K
+        C-@
 
+      insert mode:
+        C-\ <NOT a-z>
+        C-B
+        C-F
+
+      Command mode
+        C-\ <NOT a-z>
+        C-@
+        C-G
+        C-O
+        C-T
+
+      in general <C-Bslash> seems to be safe to use as as an opener
+      as long as the second key is not a-z
 
   ______________________________
   -4.8- others
@@ -704,19 +743,90 @@ ______________________________
 
   ______________________________
   -5.1- variables
-  ______________________________
-  -5.2- functions
-    :h :key-notation
-    no notes on casing for <C-key> notation
+    ______________________________
+    -5.1.1- types
+      number
+      float
+      string
+      list
+      dictionary
+      funcref
+      special
+      job
+      channel
 
-    :<C-u>call Function(v:count)
-    <CR>: carriage return = return key
-    <BS>: backspace = backspace key
+
+    special variables namespaces:
+      a:    function argument
+      g:    global variable
+      l:    local to function
+      b:    buffer-local
+
+    pseudovars:
+      &var      get local OPTION if available else global
+      &l:var    get local value of OPTION
+      &g:var    get global value of OPTION
+      @var      get register value
+      $var      get environmentvar
+
+
+    Setting variables:
+      :h :let
+      let varname = expr
+      let @<reg> = "register value"
+
+      let [v1,v2,v3]=[v1,v2,v3]
+
+      (Note that these are literal text, so <Esc> will be 5 characters.
+      Use C-v to use Esc in a macro.)
+
+
+
+    checking vars:
+      exists(varname)
+
+
+    evaluating/using vars
+      {var}stuff evaluates var and uses result as identifier
+
+    operations
+      + sum
+      . concatenate
+      - sub
+      augmented assignment:
+        +=, .=, -=
+
+
+
+
+
+
+  ______________________________
+  -5.2- user defined functions
+    function names MUST be capitalized
+    syntax:
+      function Funcname(args...)
+      endfunction
+
+    :<C-U>call funcname (v:count)
+
+        in strings, use \<escape seq> to represent the character
+        example: append "hello world" to the end of the line
+            execute "normal Ahello world\<esc>"
+
+            use . to concatenate strings
+
   ______________________________
   -5.3- builtin functions
     winwidth(0)     current window width
     winheight(0)    current window height
     repeat("str", count)    return repeated string
+
+
+  ______________________________
+  -... plugins
+    filetype plugin on
+      place file_extension.vim in .vim/after/ftplugin
 
 
 ______________________________
@@ -748,193 +858,8 @@ ______________________________
 
 
 
-# ------------------------------
-# contents
-# ------------------------------
-# -1- normal mode
-#   -1.1- movement
-#     -1.1.1- jumps
-#     -1.1.1.1- marks
-#   -1.2- editing
-#   -1.3- viewports, tabs, folds
-#   -1.4- search/replace
-#   -1.5- file manipulation
-#   -1.6- other
-# -2- insert mode
-#   -2.1- indentation
-# -3- visual mode
-# -4- command mode (:)
-#   -4.1- ranges
-#   -4.2- files
-#   -4.3- viewports & tabs
-#   -4.4- sed substitution
-#   -4.5- set
-#   -4.6- other
-# -5- config files
-# -6- other
-#   -6.1- macros
-#   -6.2- registers
-#   -6.3- remapping keys
-#   ------------------------------
-#   -4.5- set
-#   ------------------------------
-#     set vim settings
-#     :h option-summary
-# 
-#     add no to beginning to turn boolean setting off
-#       useful settings
-#         wic                   wildcard ignore case when opening file
-#         wmnu                  file picking menu
-#         wim                   wildmode
-#         bo                    bell off
-#         expandtab             expand tab to spaces
-#         tabstop               width of tab
-#         softtabstop           width when press tab
-#         shiftwidth            indentation >> << iC-d iC-t
-#         autoindent            match previous line indentation when starting new line
-#         paste                 paste mode (no autoindent etc)
-#         wrap                  wrap long lines
-#         hls                   highlight matches
-#         ignorecase            ignore case when searching
-#         smartcase             adding caps causes case-sensitive searching
-#         incsearch             incremental search (search as you type)
-#         cul                   underline current line
-#         cuc                   highlight current column
-#         vb                    visual bell
-#         so                    scroll offset, keep cursor N away from top/bottom
-#         nu                    line numbers
-#         rnu                   relative line numbers
-#         fo                    format options
-#                               ro: automatically continue comments after \r or o
-# 
-#     setl[ocal]: set only for current window (if has locality) otherwise all
-#       scratch buffers (not saved etc)
-#         buftype=nofile
-#         bufhidden=hide
-#         noswapfile
-# 
-#   ------------------------------
-#   -4.6- other
-#   ------------------------------
-#     :noh                      stop highlighting search matches
-#     :ab alias value           when typing alias, replace it with value
-#     :una alias                unalias
-# 
-#     :ex                       file explorer
-#     :syntax                   syntax highlighting
-#     :source                   source a vimrc
-#     :sh                       open a subshell (similar to C-z to access shell)
-#                               but exit to get back to vim instead of fg
-#     :!                        run command line with text as input
-#                               display result
-#                               (replace text range specified)
-#     :w ! cmd                  write selection to cmd, display output
-#     :r ! cmd                  insert data from cmd
-#     :norm[al]                 run command as if in normal mode
-#                               cursor starts at beginning of line
-#                               ex:
-#                                 :norm ihello world<esc>
-#                                 will insert hello world
-#     :g/pat/cmd                run command on lines matching pat globally
-#     :jumps                    list jumps
-#     :clearjumps               clear jumplist
-# ------------------------------
-# -5- config files
-# ------------------------------
-#   ~/.vimrc
-#   loaded at startup
-#   basically command-line mode without the :
-# 
-#   see also -4.5-
-# 
-#   let @[a-z]=macro: load macro into the register
-#     (protip: record macro normally then paste macro "[key]p into vimrc)
-# 
-#   ftplugin:
-#     filetype plugin on
-# 
-#     put filetype vim files in ~/.vim/after/ftplugin
-#       example:
-#         cpp.vim
-#         text.vim
-#         cmake.vim
-#         ...
-# ------------------------------
-# -6- other
-# ------------------------------
-#   notes:
-#     escape and C-[ are the same (type C-v esc and then C-v C-[ to see)
-# 
-#   ------------------------------
-#   -6.1- macros
-#   ------------------------------
-#     q [a-z]           begin recording macro into register (see -6.2- registers)
-#       q               end recording macro
-# 
-#     @ [a-z]           run the macro
-# 
-#   ------------------------------
-#   -6.2- registers
-#   ------------------------------
-#     "[a-z]            select a register
-#       y               yank to selected register
-#       p / P           paste from selected register
-#   ------------------------------
-#   -6.3- remapping keys
-#   ------------------------------
-#     cmd atr lhs rhs
-# 
-#     cmd:
-#       map           make default map, recursive
-#       remap         same as above?
-#       noremap       no recursive maps, all things literal
-#       unmap         remove map
-#       mapclear      clear all maps
-# 
-#       add appropriate modification (see :h key-mapping) for desired mode
-# 
-#     atr:
-#       <buffer>      mapping only in current buffer
-#       <nowait>      do not wait to see if more characters will be typed
-#       <silent>      don't echo to command line
-#       <special>
-#       <script>
-#       <expr>
-#       <unique>
-# 
-# 
-# 
 # TODO:
 #   :highlight
 #   :match
 #   :lcs
 #   :list
-# 
-# 
-# vimscript:
-#   . concatenate strings
-#   functions:
-#     function Funcname(arg1, arg2,...)
-#       body
-#     endfunction
-# 
-#   strings:
-#     . concatenation
-# 
-#   variables:
-#     :h :let
-#     let varname = expr          set/create the variable
-#     let varname .= expr         append if str-like
-#     let varname += expr         add
-#     let varname -= expr         subtract
-#     let [v1, v2, v3...] = {expr} unpacking
-# 
-#     let <varname> = <expr>
-#     a:<name> function args
-#     &l:<name> local option (for :set)
-#     &<name> global option (for :set, includes local)
-#     @<name> a register (ie "<name>P to paste the register)
-# 
-# 
-# 
-#   execute
