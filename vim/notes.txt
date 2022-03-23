@@ -29,7 +29,9 @@ contents:
   -4.8- others
 -5- vim scripts and config files
   -5.1- variables
-  -5.2- user defined functions
+  -5.2- loops
+  -5.3- operator precedence
+  -5.4- user defined functions
 
 quick topics:
   registers, macros             -1.5-
@@ -741,20 +743,129 @@ ______________________________
   default path is ~/.vimrc.  It can be specified with the -u argument.
   Comments begin with "
 
+  command-line commands are functions are different.
+  functions are usually called with the command-line command :call.
+  Scripts are assumed to be command-line mode so the : is unnecessary.
+
   ______________________________
   -5.1- variables
+    variables are generally created with :let.  Removed with :unlet.
+    (unlet also works with list idxs/dict keys)
+    type(var) -> type of variable
     ______________________________
     -5.1.1- types
+      ______________________________
       number
+        boolean = number: false=0, True=!0
+      ______________________________
       float
+        xxx.yyy
+        or xxx.yyye[exp]
+      ______________________________
       string
+        strings are null-terminated.
+        quotes used is similar to bash:
+          '' = literal, no expansions/escapes
+          "" = allow escapes etc.
+        special characters:
+          \NNN          up to 3-digit octal number
+          \x...         up to 2-digit hex num
+          \uxxxx        4-digit hex numberk
+          \Uxxxxxxxx    up to 8-digit hex number
+          \b            <BS>
+          \e            <Esc>
+          \f            <FF>
+          \n            <NL>
+          \r            <CR>
+          \t            <Tab>
+          \\            <Bslash>
+          \"            literal quote
+          \<key-notation>       some key notation like <C-b>
+      ______________________________
       list
+        creation                :let listvar = [item, item, [item, item],...]
+                                split()
+                                getline()
+        indexing                :let first_item = listvar[0]
+                                :let last_item = listvar[-1]
+                                :let thing = get(listvar, idx, val_if_idx_not_in_list)
+        concatenation           :let total = list1 + list2
+                                :let list1 += list2
+        add/remove              insert, add, extend, remove, filter
+        sublists                :let sublist = listvar[first:last]      (inclusive!)
+                                WARNING
+                                  single-letter followed by : gets converted to
+                                  a "namespace" variable separate the : with
+                                  spaces. (for i in ... listvar[i:i+1] -> NOT a
+                                  slice (i:i) = a variable
+        copying                 copy()
+                                deepcopy()
+        comparing               == -> value
+                                is/isnot -> id
+        unpacking               :let [v1,v2] = listvar
+                                :let [v1, v2; rest] = listvar
+        assignment              :let listvar[idx] = value
+                                :let listvar[start:stop] = [v1,v2,v3...]
+        ordering                sort() reverse() uniq()
+        other functions         call(func, listvar), empty, len, max, min, count, index,
+                                append, join, map
+      ______________________________
       dictionary
+        key-value mappings. keys are always strs (nums will be coerced)
+        creation                {k:v, ...}
+        indexing                mydict["key"]
+                                :let mydict.key = val
+                                :let val = mydict.key
+        iteration               :let list_of_keys = keys(mydict)
+                                :let list_of_values = values(mydict)
+                                :let kv_list = items(mydict)
+        copying                 copy(), deepcopy()
+        add/remove              :unlet
+                                remove(mydict, key)
+                                extend()
+                                filter()
+        dict funcs              function Funcname() dict
+                                  "self = the containing dict
+                                endfunction
+                                :let mydict = {"memberfunc": function("Funcname")}
+                                mydict.memberfunc()
+
+                                :function mydict.newmemberfunc()
+                                  ...
+                                :endfunction
+                                mydict.newmemberfunc()
+        other functions         has_key, empty, len, min/max, count, string, map
+      ______________________________
       funcref
+        let Myvar = function("FuncName")
+        :echo Myvar()
+        :call Myvar()
+        funcvariables must start with a capital
+        function_name = string(Fn)
+        :call(Fn, list_of_args)
+      ______________________________
       special
+      ______________________________
       job
+      ______________________________
       channel
 
+      ______________________________
+      type conversions:
+        implicit:
+          ONLY str/number (ints) are converted.
+          str->number: take the prefix
+                        "hello" -> number, prefix = "" -> 0
+                        "69apples" -> prefix = "69" = 69
+          number->str: take the decimal ascii rep.
+
+          number prefixes: 0x (hex), 0(octal), 0b(binary)
+        explicit:
+          empty("str")
+          str2nr()
+          str2float()
+          printf()
+          float2nr()
 
     special variables namespaces:
       a:    function argument
@@ -780,8 +891,6 @@ ______________________________
       (Note that these are literal text, so <Esc> will be 5 characters.
       Use C-v to use Esc in a macro.)
 
-
-
     checking vars:
       exists(varname)
 
@@ -790,19 +899,43 @@ ______________________________
       {var}stuff evaluates var and uses result as identifier
 
     operations
-      + sum
-      . concatenate
-      - sub
-      augmented assignment:
-        +=, .=, -=
+      + add
+      . str concatenate
+      - subtract
+      ! not
+      augmented assignment allowed: +=, .=, -= ...
 
-
-
-
+    special variables:
 
 
   ______________________________
-  -5.2- user defined functions
+  -5.2- loops
+    for [varexpr] in [expr]
+        ...
+    endfor
+
+    while [bool expr]
+        ...
+    endwhile
+
+  ______________________________
+  -5.3- operator precedence
+    1. literals, &option, @register, func(), va{ri}able_expansion
+    2. list/dict/str indexing/slicing, number is converted to str
+    3. !/-/+ unary
+    4. * / %
+    5. +, -, .
+    6. comparators
+      typical comparators: ==/!=, <=>
+      regex: =~/!~
+      var id: is/isnot
+      comparators can have a postfix: # = match case, ? = ignore case
+    7. &&
+    8. ||
+    9. numexpr ? truexpr : falseexpr
+
+  ______________________________
+  -5.4- user defined functions
     function names MUST be capitalized
     syntax:
       function Funcname(args...)
@@ -817,7 +950,7 @@ ______________________________
             use . to concatenate strings
 
   ______________________________
-  -5.3- builtin functions
+  -5.5- builtin functions
     winwidth(0)     current window width
     winheight(0)    current window height
     repeat("str", count)    return repeated string
