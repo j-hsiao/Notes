@@ -752,6 +752,20 @@ ______________________________
     variables are generally created with :let.  Removed with :unlet.
     (unlet also works with list idxs/dict keys)
     type(var) -> type of variable
+
+    Setting variables:
+      :h :let
+      let varname = expr
+      let @<reg> = "register value"
+
+      let [v1,v2,v3]=[v1,v2,v3]
+
+      (Note that these are literal text, so <Esc> will be 5 characters.
+      Use C-v to use Esc in a macro.)
+
+    checking vars:
+      exists(varname)
+
     ______________________________
     -5.1.1- types
       ______________________________
@@ -760,7 +774,7 @@ ______________________________
       ______________________________
       float
         xxx.yyy
-        or xxx.yyye[exp]
+        or <xxx>.<yyy>e[exp]
       ______________________________
       string
         strings are null-terminated.
@@ -849,6 +863,14 @@ ______________________________
       job
       ______________________________
       channel
+      ______________________________
+      blob
+        like a binary string, list of 0-255 numbers
+        creation:
+          let b = 0z<HEX_CHARS>
+          let b = readfile('filename', 'B')
+          ch_readblob()
+
 
       ______________________________
       type conversions:
@@ -867,33 +889,29 @@ ______________________________
           printf()
           float2nr()
 
-    special variables namespaces:
+    namespaces:
       a:    function argument
-      g:    global variable
-      l:    local to function
       b:    buffer-local
+            has special variable: changedtick
+            counts any changes, monotonic increasing.
+      g:    global variable
+      l:    function-local
+      s:    source'ed script-local
+      t:    tab-local
+      v:    predefined vim var
+            :h v:var
+              v:count       count for last normal mode command
+                            <C-U> removes linerange after a count
+                            caused by : (last = most recent = the one just done)
+              v:count1      same as count but defaults to 1
+              v:prevcount   last-last normal mode count
+      w:    window-local
 
-    pseudovars:
-      &var      get local OPTION if available else global
-      &l:var    get local value of OPTION
-      &g:var    get global value of OPTION
-      @var      get register value
-      $var      get environmentvar
-
-
-    Setting variables:
-      :h :let
-      let varname = expr
-      let @<reg> = "register value"
-
-      let [v1,v2,v3]=[v1,v2,v3]
-
-      (Note that these are literal text, so <Esc> will be 5 characters.
-      Use C-v to use Esc in a macro.)
-
-    checking vars:
-      exists(varname)
-
+      namespaces can be used as dicts
+      ie:
+        for k in keys(l:)
+          ...
+        endfor
 
     evaluating/using vars
       {var}stuff evaluates var and uses result as identifier
@@ -906,7 +924,12 @@ ______________________________
       augmented assignment allowed: +=, .=, -= ...
 
     special variables:
-
+      &var      local OPTION if available else global
+      &l:var    local value of OPTION
+      &g:var    global value of OPTION
+      @var      register value
+      $var      environmentvar
+                can also use getenv(), setenv(), environ()
 
   ______________________________
   -5.2- loops
@@ -920,8 +943,8 @@ ______________________________
 
   ______________________________
   -5.3- operator precedence
-    1. literals, &option, @register, func(), va{ri}able_expansion
-    2. list/dict/str indexing/slicing, number is converted to str
+    1. literals, &option, @register, func(...),  va{ri}able_expansion
+    2. list/dict/str indexing/slicing, number is converted to str, expr->method(...), funcref()
     3. !/-/+ unary
     4. * / %
     5. +, -, .
@@ -936,6 +959,7 @@ ______________________________
 
   ______________________________
   -5.4- user defined functions
+    :h user-functions
     function names MUST be capitalized
     syntax:
       function Funcname(args...)
@@ -949,8 +973,16 @@ ______________________________
 
             use . to concatenate strings
 
+    lambdas:
+      {args... -> expr}
+      arguments do not use the a: namespace
+      closures work.
+
+    use function {funcname} to find the definition.
+
   ______________________________
   -5.5- builtin functions
+    :h functions
     winwidth(0)     current window width
     winheight(0)    current window height
     repeat("str", count)    return repeated string
