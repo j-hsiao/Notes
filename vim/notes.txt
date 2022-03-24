@@ -451,11 +451,14 @@ ______________________________
   ______________________________
   -4.2- :set
     syntax:
-      :set <option>=value     set option to value
-      :set <option>           set boolean option to True
-      :set no<option>         set boolean option to False
-      :set <option>!          toggle boolean option
-      :set <option>?          echo current option value
+      :set <option>=value   set option to value
+      :set <option>         set boolean option to True
+      :set no<option>       set boolean option to False
+      :set <option>!        toggle boolean option
+      :set <option>?        echo current option value
+      :set <option>&        set to default value
+      :set <option>&vi      set to default value for vi
+      :set <option>&vim     set to default value for vim
 
     Use setlocal for a buffer-local version
     (not all variables can be buffer local though)
@@ -484,6 +487,53 @@ ______________________________
       cursorline        cul     underline cursor line
       scrolloff         so      when scrolling, keep N lines from top/bottom
                                 of screen relative to cursor.
+      laststatus        ls      last window will have status line
+                                0: never
+                                1: if at least 2 windows
+                                2: always
+    ______________________________
+    -4.2.3- statusline
+      the bar at the bottom of viewports.
+      Set laststatus=2 to always have the bar.
+      statusline        stl     str:
+        fields:
+          %[-][0][minwid][.maxwid]<item>
+            -       left-justify
+            0       0pad if number
+            item: single-letter code
+              strings
+                f   file (as typed)
+                F   file full path
+                t   file basename
+                P   percentage
+              flags (lowercase = [<val>], caps = ,<val>
+                m   modified? +|-
+                r   RO
+                h   help
+                w   preview
+                y   file type
+              numbers
+                n   buffer number
+                b   char under cursor
+                B   hex char under cursor
+                o   byte number in file
+                O   hex byte number in file
+                l   line number
+                L   total lines
+                c   col number (by char)
+                v   virtual col number
+                V   -{num} (on-screen column)
+                p   percentage through file (lines)
+              others
+                <   truncate if too long
+                =   separate left/right aligned
+                #   highlight group
+                *   set highlight group to User{N}??
+          %!<expr>
+            value of expr
+          %{expr}   cannot contain } since that's the ending delim
+          %(...%)   item-group ( can set align, widths etc of a group
+                    of items)
     ______________________________
     scratch files:  this will not be saved to files and will not prevent
                     closing when modified
@@ -824,6 +874,8 @@ ______________________________
   command-line commands are functions are different.
   functions are usually called with the command-line command :call.
   Scripts are assumed to be command-line mode so the : is unnecessary.
+  long lines can be wrapped by prefixing continuation lines with a
+  backslash
 
   ______________________________
   -5.1- variables
@@ -1076,6 +1128,7 @@ ______________________________
 
     ______________________________
     useful commands:
+      startinsert star  start insert mode after executing this command
       function  fu      list specified function (default all) or
                         /pattern for function names matching pattern.
       return    retu    return an expr

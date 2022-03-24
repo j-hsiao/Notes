@@ -78,7 +78,7 @@ ______________________________
         zip/gzip:
           x=[0|1|3|5|7|9]: compression level
           m=[Deflate | Copy | Deflate64 | BZip2 | LZMA | PPMd] compression method
-          em=[ZipCrypto | AES128 | AES192 | AES 256] encryption method
+          em=[ZipCrypto | AES128 | AES192 | AES256] encryption method
           mt=[on|off|N]: multithread
         bzip
           x: compression level: 0,1,3,5,7,9

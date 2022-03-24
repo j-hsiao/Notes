@@ -1,0 +1,103 @@
+all files are xhtml or css
+
+overall structure:
+  mimetype
+  META-INF/
+    container.xml
+  OEBPS/
+    content.opf
+    toc.ncx
+    other stuff
+
+mimetype file:
+  just contains a single line: application/epub+zip
+container.xml
+  <?xml version="1.0" encoding="UTF-8" ?>
+  <container version="1.0" xmlns="urn:oasis:names:tc:opendocument:xmlns:container">
+    <rootfiles>
+      <rootfile full-path="OEBPS/content.opf" media-type="application/oebps-package+xml"/>
+    </rootfiles>
+  </container>
+
+
+2 files:
+  content.opf
+    xhtml:
+    <?xml version="1.0" encoding="utf-8" ?>
+    <package unique-identifier="matches <identifier> id">
+      <metadata xmlns:dc="http://purl.org/dc/elements/1.1/">
+        <title>title of book</title>
+        <language>en</language>
+        <identifier id="someidtype">val</identifier>
+        +others optional
+      </metadata>
+      <manifest>
+        <item id="filename" href="path to files, relative to this file" media-type="application/xhtml+xml"/>
+        <item id="filename" href="path to files, relative to this file" media-type="image/jpeg"/>
+        <item id="ncx" href="toc.ncx" media-type="application/x-dtbncx+xml"/>
+        <!--all files except: this one, container xml and mimetype file-->
+      </manifest>
+      <spine toc="id-of-the-ncx-in-manifest">
+        (display order)
+        <itemref idref="id of item in manifest"/>
+        ...
+      </spine>
+      <guide> <!--optional-->
+        <reference type="some type" title="name" href="thing in manifest(#tag)"
+      </guide>
+    </package>
+  toc.ncx
+    Navigation Control for XML
+    a table of contents
+    application/x-dtbncx+xml
+	<?xml version="1.0" encoding="UTF-8"?>
+
+	<ncx version="2005-1" xml:lang="en" xmlns="http://www.daisy.org/z3986/2005/ncx/">
+
+	  <head>
+	<!-- The following four metadata items are required for all NCX documents,
+	including those that conform to the relaxed constraints of OPS 2.0 -->
+
+	    <meta name="dtb:uid" content="123456789X"/> <!-- same as in .opf -->
+	    <meta name="dtb:depth" content="1"/> <!-- 1 or higher -->
+	    <meta name="dtb:totalPageCount" content="0"/> <!-- must be 0 -->
+	    <meta name="dtb:maxPageNumber" content="0"/> <!-- must be 0 -->
+	  </head>
+
+	  <docTitle>
+	    <text>Pride and Prejudice</text>
+	  </docTitle>
+
+	  <docAuthor>
+	    <text>Austen, Jane</text>
+	  </docAuthor>
+
+	  <navMap>
+	    <navPoint id="chapter1" playOrder="1">
+	      <navLabel><text>Chapter 1</text></navLabel>
+	      <content src="chapter1.xhtml"/>
+	    </navPoint>
+	    <navPoint id="chapter2" playOrder="2">
+	      <navLabel><text>Chapter 2</text></navLabel>
+	      <content src="chapter2.xhtml"/>
+	    </navPoint>
+	  </navMap>
+
+	</ncx>
+
+
+example chapter:
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.1//EN" "http://www.w3.org/TR/xhtml11/DTD/xhtml11.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en">
+  <head>
+    <meta http-equiv="Content-Type" content="application/xhtml+xml; charset=utf-8" />
+    <title>chapter title</title>
+  </head>
+  <body>
+    stuff to display goes here
+    <img alt="the image" src="04.jpg"/>
+    <p> some text</p>
+    <a href="path to thingy">a link</a>
+  </body>
+</html>
