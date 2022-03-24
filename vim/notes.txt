@@ -19,8 +19,7 @@ contents:
   -4.1- :help
   -4.2- :set
     -4.2.1- indentation
-    wmnu
-    list and lcs
+    -4.2.2- visual changes
   -4.3- files/buffers
   -4.4- search/replace
   -4.5- windows/tabs
@@ -35,7 +34,7 @@ contents:
 
 quick topics:
   registers, macros             -1.5-
-  remapping/binding keys        -4.8-
+  remapping/binding keys        -4.7-
   viewports/tabs                -1.7-
   file manipulation             -1.3-, -4.3-
   indentation                   -4.2.1-
@@ -250,6 +249,34 @@ ______________________________
       q         begin/end recording a macro
       @<reg>    Run the text stored in register as a macro
 
+    use :reg to list register contents
+
+    register types:
+      ""        unnamed: yanked/deleted text (d, c, s, x, y) (if
+                another register was specified, " is still used as well
+                so the text is stored in both "" and whatever was used.
+      0-9       numbered: 0 = yanked, 1-9 = MRU queue of deleted text
+      "-        small delete (deletes < 1 line)
+      a-zA-Z    named
+      : . %     readonly:
+                  .     last-inserted text (always insert, never put)
+                        NOTE: that . pasting this register causes keystrokes
+                        as is rather than pasting each character.  Thus it
+                        cannot be used directly to recover from accidental
+                        i_Ctrl-W.  But you can :let @a=@. and then paste "a.
+                        This will paste characters as is
+                  %     current file name (relative to cwd)
+                  :     most recent command-line
+      #         alternate buffer: name of alternate window
+      =         expression register: read a string expr from commandline
+      * + ~     selection/drop registers (clipboard/copy-paste registers)
+                x11, * and + are different.  Windows, they are the same.
+                ~ = dragndrop text
+      _         blackhole register
+      /         last search pattern register
+
+
+
     Macros can be set via commandmode with let (-5.1-)
 
 
@@ -381,7 +408,8 @@ ______________________________
 
 ______________________________
 -4- command mode
-  Enter command mode with :
+  Enter command mode with :.  This only allows 1 command.  Ex-mode
+  allows multiple consecutive commands.  (press Q in normal mode)
 
   Command mode runs vim commands/functions.  These can generally be
   prefixed with a range to run the command on given lines.
@@ -413,6 +441,9 @@ ______________________________
         v_      visual mode
         c_      command mode
         '       :set option
+        :       command
+      postfixes
+        ()      builtin function
     C-]         jump to link
     C-t         previous topic
 
@@ -592,13 +623,12 @@ ______________________________
 
   ______________________________
   -4.7- map
-
     :h :key-notation
-    no notes on casing for <C-key> notation
+    no notes on casing for <C-key> notation, but generally use caps.
 
-    :<C-u>call Function(v:count)
-    <CR>: carriage return = return key
-    <BS>: backspace = backspace key
+    :<C-U>call Function(v:count)
+    (C-u = remove everything from cursor to beginning of line, which
+    removes the auto-linerange added when <prefix number>:
 
     commands:
     [mode][no][re]map
@@ -718,6 +748,54 @@ ______________________________
       :ab[breviate] lhs         list abbreviation
       :una[bbreviate] lhs       remove abbreviation
 
+    ______________________________
+    visual
+      highlight     hi      define highlighting group (capitalized name)
+                            hi {group} key=arg
+                              attrlist: [bold,underline,undercurl,reverse,inverse,
+                                italic,standout,NONE]
+                              term=attrlist
+                              cterm=attrlist
+                              ctermfg=num
+                              ctermbg=num
+                                16  8   name
+                                0   0   Black
+                                1   4   DarkBlue
+                                2   2   DarkGreen
+                                3   6   DarkCyan
+                                4   1   DarkRed
+                                5   5   DarkMagenta
+                                6   3   Brown, DarkYellow
+                                7   7   LightGray, LightGrey, Gray, Grey
+                                8   0*  DarkGray, DarkGrey
+                                9   4*  Blue, LightBlue
+                                10  2*  Green, LightGreen
+                                11  6*  Cyan, LightCyan
+                                12  1*  Red, LightRed
+                                13  5*  Magenta, LightMagenta
+                                14  3*  Yellow, LightYellow
+                                15  7*  White
+
+                                16 = 't_Co' >= 16
+                                8: 't_Co' < 16
+                                  * = cterm=...bold,...
+
+                              gui=attrlist
+                              font=font
+                                NONE for default
+                              guifg=color
+                              guibg=color
+                              guisp=color
+                                NONE: transparent
+                                bg/background = default bg
+                                fg/foreground = default fg
+
+                                colors:
+                                  capitalized name
+                                  "#rrggbb" (hex)
+      match         mat     define a match pattern
+                            mat {group} /pattern/
+      colorscheme   
     ______________________________
     miscellaneous
       C-f       open command window for editing commands
@@ -889,6 +967,7 @@ ______________________________
           printf()
           float2nr()
 
+    ______________________________
     namespaces:
       a:    function argument
       b:    buffer-local
@@ -905,6 +984,7 @@ ______________________________
                             caused by : (last = most recent = the one just done)
               v:count1      same as count but defaults to 1
               v:prevcount   last-last normal mode count
+              v:val         value of iterating dict/list
       w:    window-local
 
       namespaces can be used as dicts
@@ -913,9 +993,15 @@ ______________________________
           ...
         endfor
 
-    evaluating/using vars
-      {var}stuff evaluates var and uses result as identifier
+    ______________________________
+    :h curly-braces-names
+      place an expr in {}. It will be evaluated
+      and the result will be a variable name.
+        do_{expr that resolves to "something"}() -> do_something()
 
+      (alternative = str concatenation + :execute)
+
+    ______________________________
     operations
       + add
       . str concatenate
@@ -923,6 +1009,7 @@ ______________________________
       ! not
       augmented assignment allowed: +=, .=, -= ...
 
+    ______________________________
     special variables:
       &var      local OPTION if available else global
       &l:var    local value of OPTION
@@ -961,17 +1048,24 @@ ______________________________
   -5.4- user defined functions
     :h user-functions
     function names MUST be capitalized
-    syntax:
-      function Funcname(args...)
+    script-local begin with s: or <SID>
+    ONLY script-local or non-local
+
+    definition syntax:
+      function[!] Funcname(args,...) [abort] [range] [dict]
       endfunction
 
-    :<C-U>call funcname (v:count)
+      use ! to overwrite existing definition
+      abort: auto-abort on error
+      range: will handle range arguments itself, otherwise called on
+             each line
+      dict: must be called through dict funcref. 
+      ... = var args
+            a:1, a:2... = extra args
+            a:0 = num extra args
+            a:000 = list containing extra args
 
-        in strings, use \<escape seq> to represent the character
-        example: append "hello world" to the end of the line
-            execute "normal Ahello world\<esc>"
-
-            use . to concatenate strings
+    max of 20 arguments
 
     lambdas:
       {args... -> expr}
@@ -980,51 +1074,63 @@ ______________________________
 
     use function {funcname} to find the definition.
 
+    ______________________________
+    useful commands:
+      function  fu      list specified function (default all) or
+                        /pattern for function names matching pattern.
+      return    retu    return an expr
+      normal    norm    execute normal-mode commands.
+      execute   exe     execute string as a command (allows building a
+                        command to execute.
+      try               begin try block
+      catch     cat     catch exception pattern (/pat/)
+      finally   fina    always run code
+      endtry    endt    end try/catch
+      throw     th      throw a string as an exception
+
+      call {name}([arguments])  ranges only apply to first function
+      echo      ec      echo an expression with trailing newline
+      echon             echo w/o newline
+      let               creat variable/assignment
+      unlet     unl     remove var name
+      lockvar   lockv   lock variable value until unlocked.  Specify
+                        depth for list/dict
+      unlockvar unlo    opposite of above
+      if
+      else      el
+      elseif    elsei
+      endif     en
+      while     wh
+      endwhile  endw
+      for {} in {}
+      endfor    endfo
+      continue  con
+      break     brea
+
+
   ______________________________
   -5.5- builtin functions
     :h functions
-    winwidth(0)     current window width
-    winheight(0)    current window height
-    repeat("str", count)    return repeated string
-
+    notable functions:
+      winwidth(0)     current window width
+      winheight(0)    current window height
+      repeat("str", count)    return repeated string
+      getbufline(buf, start, [stop])
+      getline(start, [stop])            get text of line
+      line({expr})                      get line number
+                                          .: cursor
+                                          $: last line
+                                          'x: mark or 0 if unset
+                                          w0: first visible line
+                                          w$: last visible line
+                                          v: visual area start
+      getcurpos()                       getpos('.') but add 5th item: curswant
+                                        (the prefered column on vertical move)
+      getpos({expr})                    get position [bufnum, line, col, off]
+      setpos({expr}, {lst})             move cursor('.') or mark ('x) to
+                                        position
 
   ______________________________
   -... plugins
     filetype plugin on
       place file_extension.vim in .vim/after/ftplugin
-
-
-______________________________
--6- useful topics
-  ______________________________
-  -6.1- macros
-  ______________________________
-  -6.2- registers
-  ______________________________
-  -6.3- remapping/binding keys
-
-    list default bindings:
-      :h index
-
-    list mapped keybindings:
-      :map list mappings
-      :im[ap]
-      :vm[ap]
-      :nm[ap]
-      :xm[ap]
-
-  ______________________________
-  -6.4- viewports and tabs
-  ______________________________
-  -6.5- file manipulation
-  ______________________________
-  -6.6- indentation
-
-
-
-
-# TODO:
-#   :highlight
-#   :match
-#   :lcs
-#   :list
