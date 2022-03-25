@@ -67,23 +67,48 @@ function! ToggleAutoclose()
 	endif
 endfunction
 nnoremap <silent> <C-K>) :call ToggleAutoclose()<CR>
-function! EchoRuler(step)
-	let step = a:step
+function! ColRuler()
+	let step = &sts
 	if step == 0
-		let step = 8
+		let step = &ts
 	endif
-	let ncols = winwidth(0)
-	let fmt = '%-' . step . 'd'
-	let colnums = []
-	while ((len(colnums) + 1) * step) < ncols
-		call add(colnums, (len(colnums)*step)+1)
+	let step = max([step, len(col('$') . '')+2])
+	let cursorcolw = wincol()
+	let colb = col('.')
+	let totalwidth = winwidth(0)
+	let leftsize = cursorcolw - 1
+
+	let leftstr = repeat(' ', leftsize)
+
+	let midsize = len(colb . '') + 1
+
+	let rightsize = totalwidth - (cursorcolw + midsize - 1)
+
+	let leftstr = repeat('L', leftsize)
+	let rightcol = (colb - (colb % step)) + step + 1
+	let rightfmt = rightcol - colb - 1
+	let rightnums = []
+	while rightfmt + (len(rightnums)+1) * step <= rightsize
+		call add(rightnums, rightcol)
+		let rightcol += step
 	endwhile
-	let prefix = 0
-	if &l:nu
-		let prefix = max([len('' . line('$')), 3]) + 1
-	elseif &l:rnu
-		let prefix = 4
+	if len(rightnums)
+		let rightfmt = repeat(' ', rightfmt) . repeat('|%-' . step . 'd', len(rightnums))
+		let rightstr = call('printf', [rightfmt] + rightnums)
+	else
+		let rightstr = ''
 	endif
-	echo call('printf', [repeat(' ', prefix) . repeat(fmt, len(colnums))] + colnums)
+
+	return leftstr . '|' . colb . rightstr
 endfunction
-nnoremap <C-K>r :<C-U>call EchoRuler(v:count)<CR>
+
+function! EchoRuler()
+	"a number every N columns
+	"use statusline because no way to figure out viewport's window column
+	if &stl != '%<%n %f %h%m%r%=%l(%p%%),%c%V %P'
+		let &l:stl = '%<%n %f %h%m%r%=%l(%p%%),%c%V %P'
+	else
+		let &l:stl = '%!ColRuler()'
+	endif
+endfunction
+nnoremap <C-K>r :call EchoRuler()<CR>
