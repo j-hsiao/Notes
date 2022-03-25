@@ -227,53 +227,58 @@ ______________________________
     []      JUMP to a section (see :h [)
 ______________________________
   -1.5- marks and registers
-    Marks are named a-z (local) or A-Z (global) and represent a
-    position in the file.
-    :marks to list marks
+    ______________________________
+    marks
+      Marks are named a-z (local) or A-Z (global) and represent a
+      position in the file.
+        m       Store the current position to a mark register.
+        `       JUMP to mark (exact)
+        '       JUMP to mark (first non-whitespace char of same line)
 
-    m       Store the current position to a mark register.
-    `       JUMP to mark (exact)
-    '       JUMP to mark (first non-whitespace char of same line)
+      use :marks to list marks
+      mark names begin with a ', eg :call col("'^")
+      ______________________________
+      special marks:
+        .     last edit
+        []    first/last line of last yanked/edited/pasted selection
+        <>    first/last line of visual selection
+        '     before last jump
+        "     last position before file was closed
+        ^     last position where insert mode was stopped (used by gi)
+    ______________________________
+    registers
+      Registers/macros have same naming convention as marks.  They
+      can be used for yank/put, or as a key sequence for a macro.
+        "         select a register (for yank/delete/paste)
+        q         begin/end recording a macro
+        @<reg>    Run the text stored in register as a macro
 
-    special marks:
-      .     last edit
-      []    first/last line of last yanked/edited/pasted selection
-      <>    first/last line of visual selection
-      '     before last jump
-      "     last position before file was closed
-      ^     last position where insert mode was stopped (used by gi)
-
-    Registers/macros have same naming convention as marks.  They
-    can be used for yank/put, or as a key sequence for a macro.
-      "         select a register (for yank/delete/paste)
-      q         begin/end recording a macro
-      @<reg>    Run the text stored in register as a macro
-
-    use :reg to list register contents
-
-    register types:
-      ""        unnamed: yanked/deleted text (d, c, s, x, y) (if
-                another register was specified, " is still used as well
-                so the text is stored in both "" and whatever was used.
-      0-9       numbered: 0 = yanked, 1-9 = MRU queue of deleted text
-      "-        small delete (deletes < 1 line)
-      a-zA-Z    named
-      : . %     readonly:
-                  .     last-inserted text (always insert, never put)
-                        NOTE: that . pasting this register causes keystrokes
-                        as is rather than pasting each character.  Thus it
-                        cannot be used directly to recover from accidental
-                        i_Ctrl-W.  But you can :let @a=@. and then paste "a.
-                        This will paste characters as is
-                  %     current file name (relative to cwd)
-                  :     most recent command-line
-      #         alternate buffer: name of alternate window
-      =         expression register: read a string expr from commandline
-      * + ~     selection/drop registers (clipboard/copy-paste registers)
-                x11, * and + are different.  Windows, they are the same.
-                ~ = dragndrop text
-      _         blackhole register
-      /         last search pattern register
+      use :reg to list register contents
+      Register names begin with a ", eg "a
+      ______________________________
+      register types:
+        ""        unnamed: yanked/deleted text (d, c, s, x, y) (if
+                  another register was specified, " is still used as well
+                  so the text is stored in both "" and whatever was used.
+        0-9       numbered: 0 = yanked, 1-9 = MRU queue of deleted text
+        "-        small delete (deletes < 1 line)
+        a-zA-Z    named
+        : . %     readonly:
+                    .     last-inserted text (always insert, never put)
+                          NOTE: that . pasting this register causes keystrokes
+                          as is rather than pasting each character.  Thus it
+                          cannot be used directly to recover from accidental
+                          i_Ctrl-W.  But you can :let @a=@. and then paste "a.
+                          This will paste characters as is
+                    %     current file name (relative to cwd)
+                    :     most recent command-line
+        #         alternate buffer: name of alternate window
+        =         expression register: read a string expr from commandline
+        * + ~     selection/drop registers (clipboard/copy-paste registers)
+                  x11, * and + are different.  Windows, they are the same.
+                  ~ = dragndrop text
+        _         blackhole register
+        /         last search pattern register
 
 
 
@@ -397,19 +402,35 @@ ______________________________
 
   From normal mode:
     v{motion}   set mark
-    V{motion}   set mark(whole linne)
-    C-v{motion} set mark(rectangle)
+    V{motion}   set mark(whole line)
+    <C-V>{motion} set mark(rectangle)
 
-  in general, commands for normal mode will be prefixed with the
-  selected range.
-  eg:
-    select text -> r.   change all chars in selection to .
-    select text -> d    delete all selected text.
-
+  In visual mode:
+    ______________________________
+    motion
+      o     Move to other end of selection
+      O     Same as o except in visual-block mode.
+            In visual block mode, move to other corner of same line
+    ______________________________
+    editiing
+      ~     swap case
+      d|x   delete
+      X     delete all lines
+      D     delete all lines, in block-mode, only delete block->eol
+      y     yank
+      c|s   delete selection and insert-mode (insert text on all lines)
+      C     delete selected lines and insert (in block mode, to end of line)
+      S|R   delete entire selected lines and insert (insert text only on first)
+      <|>   shift left|right
+      u|U   make lower|upper case
+      p|P   replace selection with register contents
 ______________________________
 -4- command mode
   Enter command mode with :.  This only allows 1 command.  Ex-mode
   allows multiple consecutive commands.  (press Q in normal mode)
+
+  Pressing <C-f> will open a buffer for editing command lines.
+  Pressing <C-d> will list potential completions.  Use tab to scroll.
 
   Command mode runs vim commands/functions.  These can generally be
   prefixed with a range to run the command on given lines.
@@ -432,7 +453,6 @@ ______________________________
     when entering commandmode from visual mode with a selection,
     the range is shown as '<,'> which means from the < mark to the > mark
     (-1.5- <> = first/last line of visual selection)
-
   ______________________________
   -4.1- :help
     :h <thing>
@@ -446,8 +466,6 @@ ______________________________
         ()      builtin function
     C-]         jump to link
     C-t         previous topic
-
-
   ______________________________
   -4.2- :set
     syntax:
@@ -462,7 +480,6 @@ ______________________________
 
     Use setlocal for a buffer-local version
     (not all variables can be buffer local though)
-
     ______________________________
     -4.2.1- indentation
       softtabstop     sts     target destinations of tab key
@@ -540,14 +557,12 @@ ______________________________
       buftype=nofile
       bufhidden=hide
       noswapfile
-
     ______________________________
     searching
       hlsearch          hls     highlight search matches
       insearch          is      find search matches as you type
       ignorecase        ic      case-insensitive searching
       smartcase         scs     case sensitive if have caps
-
     ______________________________
     others
       autochdir         acd     automatically change to viewport's directory
@@ -567,26 +582,25 @@ ______________________________
       titlestring               name of title, statusline syntax
       statusline        stl     content of status line
       formatoptions     fo      some options like continue comments on next line.
-
-
   ______________________________
   -4.3- files/buffers
-    :w <filename>       write to file
-    :up[date]           write to file (if changed)
-    :q                  quit current viewport
-    :x                  save and quit
-    :qa                 quit all tabs/windows
-    :e <filename>       edit a file
-    :o <filename>       open filename
-    :b <bufname>        change to buffer
-    :b<n|N>             go to next/previous buffer in list
-    :b#                 go to alternate buffer(last-edited buffer)
-    :bd <bufname>       close the buffer
-    :ls :files :buffers list current buffers
-                        % symbol = current buffer
-                        # symbol = the alternate buffer
-    :syntax on|off      turn syntax highlighting on or off
-
+    write       w       write to file
+    update      up      write to file if modified
+    quit        q       close viewport
+    close       c       close viewport if NOT last
+    xit         x       save (if modified) and quit
+    qall        qa      quit all tabs/windows
+    xall        xa      save all (if modified) and quit
+    edit        e       edit a file (reload)
+    next        n       edit multiple files (wildcard matching okay)
+    buffer<N>   b<N>    change to buffer N.  N can be:
+                          A number: (buffer number from :ls)
+                          n: the next buffer
+                          N|p: the previuos buffer
+                          #: the alternate buffer
+                          %: current buffer
+    bdelete<N>  bd<N>   close the buffer.  N is as above.
+    buffers     ls      list current buffers.
   ______________________________
   -4.4- search/replace
     (see also -0.3- regex)
@@ -597,7 +611,6 @@ ______________________________
                                 I: case sensitive
   ______________________________
   -4.5- windows/tabs
-
     :split <filename>   split view horizontally opens file fn,
                         or current file if fn is absent
     :vsplit <filename>  split vertically, as above
@@ -605,7 +618,6 @@ ______________________________
     :tabs               list tabs and viewports
     :tabc               close tab
     :tabo               make this the only tab (close all others)
-
   ______________________________
   -4.6- autocmd
     Run commands on events like open file or file type etc.
@@ -647,13 +659,6 @@ ______________________________
         bufunload           unload buffer
         bufhidden           hide buffer
     pattern: comma-delimited filename pattern matching
-      ex:
-        *.c,*.cpp:      run command for c/cpp files
-      if /: match against short (as you typed) and full paths
-      else: only basename
-        * matches multiple dirs:
-        */doc/*.txt = any .txt in a directory called doc
-
       *: any sequence
       ?: any single char
       \?: literal ?
@@ -662,7 +667,12 @@ ______________________________
       [ch]      normal regex meaning
       [^ch]     normal regex meaning
 
-      paths always use /
+      Paths always use / as path separator.  If the pattern deos not
+      have any path separators(/), only the basename is matched.
+      Otherwise, check both relative and absolute.
+      ex:
+        *.c,*.cpp:      run command for c/cpp files
+        */doc/*.cpp     all cpp files under a doc dir
 
     ex:
       augroup mygroup
@@ -789,7 +799,6 @@ ______________________________
 
   ______________________________
   -4.8- others
-    C-d         list potential completions.  Use tab to scroll.
     ______________________________
     abbreviations
       Abbreviations will be expanded to rhs when typed.
@@ -848,22 +857,17 @@ ______________________________
       colorscheme   
     ______________________________
     miscellaneous
-      C-f       open command window for editing commands
-      :noh      stop search highlighting
-      :Ex       open file explorer
-      :sy[ntax] <on|off>  turn syntax highlighting on/off
-      :source   run a vimscript file
-      :sh       open a new shell.  Exit to go back to vim
-      ! <cmd>   run a shell command.
-      :w ! cmd  write range to stdin of shell cmd
-      :r ! cmd  read stdout of shell cmd and insert into buffer
-      :norm[al] <keyseq>        run keyseq as if in normal mode
-      :g/pat/cmd        run cmd globally on lines matching pat
-      :cd               change current working dir
-                        %:h     current file's directory
-                        -       previous dir
-      :jumps        show jumplist
-      :clearjumps   clear jumplist
+      nohlsearch    noh     stop search highlighting
+      Explore       Ex      open file explorer
+      syntax on|off         turn syntax highlighting on|off
+      source        so      run a vimscript
+      shell         sh      start a shell
+      normal        norm    run a keysequence string in normal mode
+      cd                    change current working dir
+                            %:h     current file's directory
+                            -       previous dir
+      jumps        ju       show jumplist
+      g/pat/cmd             run cmd globally on lines matching pat
 
 ______________________________
 -5- vim scripts and config files
