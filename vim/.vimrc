@@ -36,8 +36,9 @@ augroup Myft
 	autocmd Myft bufnewfile,bufread *.txt setlocal sw=2 sts=4 ts=4
 augroup END
 
-"auto-add and close ([{
 function! IgnoreIfSame(key)
+	"handle the case where cursor is on closing key
+	"If on a closing key, move 1 over.  Otherwise add the closing key.
 	let [curline, ccol] = [getline("."), col("'^")]
 	let llen = len(curline)
 	if ccol > llen || curline[ccol-1] != a:key
@@ -53,8 +54,10 @@ function! IgnoreIfSame(key)
 	endif
 endfunction
 function! ToggleAutoclose()
+	"Toggle whether ([{ should be auto-closed.
+	"When typing one of these keys, the corresponding
+	"close character will be automatically added
 	if len(maparg(')', 'i'))
-		echo 'found!'
 		for oc in split('() [] {}')
 			execute 'iunmap ' . oc[0]
 			execute 'iunmap ' . oc[1]
@@ -67,48 +70,76 @@ function! ToggleAutoclose()
 	endif
 endfunction
 nnoremap <silent> <C-K>) :call ToggleAutoclose()<CR>
-function! ColRuler()
-	let step = &sts
-	if step == 0
-		let step = &ts
-	endif
-	let step = max([step, len(col('$') . '')+2])
-	let cursorcolw = wincol()
-	let colb = col('.')
-	let totalwidth = winwidth(0)
-	let leftsize = cursorcolw - 1
-
-	let leftstr = repeat(' ', leftsize)
-
-	let midsize = len(colb . '') + 1
-
-	let rightsize = totalwidth - (cursorcolw + midsize - 1)
-
-	let leftstr = repeat('L', leftsize)
-	let rightcol = (colb - (colb % step)) + step + 1
-	let rightfmt = rightcol - colb - 1
-	let rightnums = []
-	while rightfmt + (len(rightnums)+1) * step <= rightsize
-		call add(rightnums, rightcol)
-		let rightcol += step
+function! RulerSTL(...)
+	"Return a string suitable for use as the status line
+	"that shows the columns similar to nu.
+	let delim = a:0 ? a:1 : '^'
+	let step = &sts ? &sts : &sw ? &sw : &ts
+	let midlen = len(col('$') . '^ ')
+	while step < midlen
+		step *= 2
 	endwhile
-	if len(rightnums)
-		let rightfmt = repeat(' ', rightfmt) . repeat('|%-' . step . 'd', len(rightnums))
-		let rightstr = call('printf', [rightfmt] + rightnums)
-	else
-		let rightstr = ''
+	let cwinpos = wincol()
+	let cbufpos = col('.')
+	let maxlen = winwidth(0)
+	let mystl = []
+	let mystl = repeat([' '], maxlen)
+	let lcbegin = cbufpos - cwinpos
+	let remainder = lcbegin % step
+	if remainder < 0
+		let remainder += step
 	endif
 
-	return leftstr . '|' . colb . rightstr
+	let idx = -remainder
+	let lcbegin -= remainder
+	let lcbegin += 1
+	if idx < 0
+		if lcbegin > 0
+			let digits = split(delim . lcbegin, '\zs')
+			let shown = len(digits) + idx
+			if shown > 0
+				let mystl[:idx + len(digits)-1] = digits[-shown:]
+			endif
+		endif
+		let lcbegin += step
+		let idx += step
+	endif
+	while idx < maxlen
+		let digits = split(delim . lcbegin, '\zs')
+		let space = min([maxlen - idx, len(digits)])-1
+		let mystl[idx:idx+space] = digits[:space]
+		let lcbegin += step
+		let idx += step
+	endwhile
+	let digits = split(delim . cbufpos, '\zs')
+	let idx = cwinpos - 1
+	if maxlen - idx < len(digits)
+		let [lidx, ridx] = [idx-len(digits), idx+1]
+		let mystl[lidx+1:idx-1] = digits[1:]
+		let mystl[idx] = delim
+	else
+		let [lidx, ridx] = [idx-1, idx+len(digits)]
+		let mystl[idx:ridx-1] = digits
+	endif
+	while lidx >= 0 && mystl[lidx] != ' '
+		let mystl[lidx] = ' '
+		let lidx -= 1
+	endwhile
+	while ridx < maxlen && mystl[ridx] != ' '
+		let mystl[ridx] = ' '
+		let ridx += 1
+	endwhile
+	return join(mystl, '')
 endfunction
 
-function! EchoRuler()
-	"a number every N columns
-	"use statusline because no way to figure out viewport's window column
-	if &stl != '%<%n %f %h%m%r%=%l(%p%%),%c%V %P'
-		let &l:stl = '%<%n %f %h%m%r%=%l(%p%%),%c%V %P'
+function! ColRuler()
+	"Toggle using RulerSTL() for stl
+	"The original stl line is saved as w:ColRuler_origstl
+	if !exists('w:ColRuler_origstl') || &stl != '%!RulerSTL()'
+		let w:ColRuler_origstl = &stl
+		let &l:stl = '%!RulerSTL()'
 	else
-		let &l:stl = '%!ColRuler()'
+		let &l:stl = w:ColRuler_origstl
 	endif
 endfunction
-nnoremap <C-K>r :call EchoRuler()<CR>
+nnoremap <silent> <C-K>r :call ColRuler()<CR>
