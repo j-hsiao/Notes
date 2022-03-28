@@ -1,3 +1,21 @@
+"summary of keybindings
+"<C-K>  do something
+"?      ask[?] bindings
+"c      toggle [c]olumn ruler stl
+"n      toggle [n]umbering
+"r      toggle [r]elative numbering
+"l      toggle [l]ist
+"b      scratch [b]uffer
+")      toggle auto-close mappings (pair ([{ with closing )]})
+"<Tab>  toggle expandtab
+"n      toggle nu
+"r      toggle rnu
+"
+"<C-K><C-K>  set an option to numeric value
+">       [shift]width
+"<Tab>   [tab]stop
+"<S-Tab> [s]oft [tab]stop
+
 syntax on
 filetype plugin on
 "file ui
@@ -6,7 +24,10 @@ set wmnu wim=list:longest,list:full wic
 set ls=2 stl=%<%n\ %f\ %h%m%r%=%l(%p%%),%c%V\ %P
 "listchars
 set listchars=eol:$,tab:.\ ,trail:.
-nnoremap <C-K><C-L> :setlocal list! list?<CR>
+nnoremap <C-K>l :setlocal list! list?<CR>
+"row numbering
+nnoremap <C-K>n :setlocal number! number?<CR>
+nnoremap <C-K>r :setlocal relativenumber! relativenumber?<CR>
 "cancel search highlights
 nnoremap <silent> <Esc><Esc> :nohl<CR>
 "shiftwidth
@@ -17,11 +38,10 @@ nnoremap <silent> <C-K><C-K><S-Tab> :<C-U>execute "setlocal sts" . (v:count == 0
 nnoremap <silent> <C-K><C-K><Tab> :<C-U>execute "setlocal ts" . (v:count == 0 ? "&" : "=" . v:count)<CR>
 "expandtab
 nnoremap <silent> <C-K><Tab> :setlocal expandtab! expandtab?<CR>
-"relativenumber
-nnoremap <silent> <C-K>r :setlocal relativenumber! relativenumber?<CR>
 "scratch buffer
 nnoremap <C-K>b :enew<CR>:setlocal buftype=nofile bufhidden=hide noswapfile<CR>
 "basic options
+nnoremap <C-K>? :nnoremap <lt>C-K><CR>
 set nowrap autoindent number ruler
 set ignorecase smartcase hlsearch
 set hidden belloff=all scrolloff=0 list
@@ -53,6 +73,17 @@ function! IgnoreIfSame(key)
 		startinsert
 	endif
 endfunction
+function! CompleteIfWS(keypair)
+	let curline = getline('.')
+	let curbyte = col("'^") - 1
+	if curbyte >= len(curline) || curline[curbyte] =~ '\s'
+		execute 'norm! a' . a:keypair
+	else
+		execute 'norm! ' . (curbyte == 0 ? 'i' : 'a') . a:keypair[0]
+		call cursor(line('.'), curbyte + 2)
+	endif
+	startinsert
+endfunction
 function! ToggleAutoclose()
 	"Toggle whether ([{ should be auto-closed.
 	"When typing one of these keys, the corresponding
@@ -64,27 +95,37 @@ function! ToggleAutoclose()
 		endfor
 	else
 		for oc in split('() [] {}')
-			execute 'inoremap ' . oc[0] . ' ' . oc . '<Esc>i'
+			execute 'inoremap ' . oc[0] . ' ' . '<Esc>:call CompleteIfWS("' . oc . '")<CR>'
 			execute 'inoremap ' . oc[1] . ' ' . '<Esc>:call IgnoreIfSame("' . oc[1] . '")<CR>'
 		endfor
 	endif
 endfunction
 nnoremap <silent> <C-K>) :call ToggleAutoclose()<CR>
 function! RulerSTL(...)
-	"Return a string suitable for use as the status line
-	"that shows the columns similar to nu.
-	let delim = a:0 ? a:1 : '^'
+	"Return a string suitable for use as the status line that shows
+	"the columns similar to nu.  Numbering starts at 1 and numbers
+	"each sts or sw or ts, whichever is non-zero first.  If the max
+	"column + indicator + space is larger than the interval, double
+	"the interval until the column numbering can fit.
+	"Optional arguments: delimiter per column, delimiter for curcol.
+	let delim = a:0 ? a:1 : '|'
+	let cdelim = a:0 > 1 ? a:2 : '^'
 	let step = &sts ? &sts : &sw ? &sw : &ts
-	let midlen = len(col('$') . '^ ')
+	let maxlen = winwidth(0)
+	let midlen = len(max([col('$'), maxlen]) . '^ ')
 	while step < midlen
-		step *= 2
+		let step += step
 	endwhile
-	let cwinpos = wincol()
-	let cbufpos = col('.')
+	let cwinvpos = wincol()
+	let cbufvpos = virtcol('.')
+	let curchar = getline('.')[col('.')-1]
+	if curchar == "\t" && &list
+		let cbufvpos -= &ts - 1
+	endif
 	let maxlen = winwidth(0)
 	let mystl = []
 	let mystl = repeat([' '], maxlen)
-	let lcbegin = cbufpos - cwinpos
+	let lcbegin = cbufvpos - cwinvpos
 	let remainder = lcbegin % step
 	if remainder < 0
 		let remainder += step
@@ -111,12 +152,12 @@ function! RulerSTL(...)
 		let lcbegin += step
 		let idx += step
 	endwhile
-	let digits = split(delim . cbufpos, '\zs')
-	let idx = cwinpos - 1
+	let digits = split(cdelim . cbufvpos, '\zs')
+	let idx = cwinvpos - 1
 	if maxlen - idx < len(digits)
 		let [lidx, ridx] = [idx-len(digits), idx+1]
 		let mystl[lidx+1:idx-1] = digits[1:]
-		let mystl[idx] = delim
+		let mystl[idx] = cdelim
 	else
 		let [lidx, ridx] = [idx-1, idx+len(digits)]
 		let mystl[idx:ridx-1] = digits
@@ -131,7 +172,7 @@ function! RulerSTL(...)
 	endwhile
 	return join(mystl, '')
 endfunction
-
+unlet! w:ColRuler_origstl
 function! ColRuler()
 	"Toggle using RulerSTL() for stl
 	"The original stl line is saved as w:ColRuler_origstl
@@ -142,4 +183,4 @@ function! ColRuler()
 		let &l:stl = w:ColRuler_origstl
 	endif
 endfunction
-nnoremap <silent> <C-K>r :call ColRuler()<CR>
+nnoremap <silent> <C-K>c :call ColRuler()<CR>

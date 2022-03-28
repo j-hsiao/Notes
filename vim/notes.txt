@@ -28,6 +28,11 @@ contents:
   -4.8- others
 -5- vim scripts and config files
   -5.1- variables
+    -5.1.1- types
+    -5.1.2- namespaces
+    -5.1.3- curly-braces-names
+    -5.1.4- operations
+    -5.1.5- special variables:
   -5.2- loops
   -5.3- operator precedence
   -5.4- user defined functions
@@ -1024,7 +1029,7 @@ ______________________________
           float2nr()
 
     ______________________________
-    namespaces:
+    -5.1.2- namespaces
       a:    function argument
       b:    buffer-local
             has special variable: changedtick
@@ -1050,7 +1055,8 @@ ______________________________
         endfor
 
     ______________________________
-    :h curly-braces-names
+    -5.1.3- curly-braces-names
+      :h curly-braces-names
       place an expr in {}. It will be evaluated
       and the result will be a variable name.
         do_{expr that resolves to "something"}() -> do_something()
@@ -1058,15 +1064,22 @@ ______________________________
       (alternative = str concatenation + :execute)
 
     ______________________________
-    operations
-      + add
-      . str concatenate
-      - subtract
-      ! not
-      augmented assignment allowed: +=, .=, -= ...
+    -5.1.4- operations
+      =  assignment
+      +  add
+      .  str concatenate
+      -  subtract
+      !  not
+      == != < <= > >= usual comparison
+      =~ !~  regexp matching (left (!not) matches right regexp expression?)
+      ==?   ignore case strcmp
+      ==#   match case strcmp
+      is isnot  compare identity
+      += .= -=
+      NOTE: *= and /= are NOT valid
 
     ______________________________
-    special variables:
+    -5.1.5- special variables:
       &var      local OPTION if available else global
       &l:var    local value of OPTION
       &g:var    global value of OPTION
