@@ -10,6 +10,7 @@
 "<Tab>  toggle expandtab
 "n      toggle nu
 "r      toggle rnu
+"p      toggle paste
 "
 "<C-K><C-K>  set an option to numeric value
 ">       [shift]width
@@ -25,6 +26,8 @@ set ls=2 stl=%<%n\ %f\ %h%m%r%=%l(%p%%),%c%V\ %P
 "listchars
 set listchars=eol:$,tab:.\ ,trail:.
 nnoremap <C-K>l :setlocal list! list?<CR>
+"toggle paste
+nnoremap <C-K>p :setlocal paste! paste?<CR>
 "row numbering
 nnoremap <C-K>n :setlocal number! number?<CR>
 nnoremap <C-K>r :setlocal relativenumber! relativenumber?<CR>

@@ -813,6 +813,11 @@ ______________________________
       :una[bbreviate] lhs       remove abbreviation
 
     ______________________________
+    redirection
+      :redi[r] => <var> redirect output to variable
+      :redi[r] END      stop redirection
+
+    ______________________________
     visual
       highlight     hi      define highlighting group (capitalized name)
                             hi {group} key=arg
