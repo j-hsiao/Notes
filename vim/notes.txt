@@ -25,7 +25,8 @@ contents:
   -4.5- windows/tabs
   -4.6- autocmd
   -4.7- map
-  -4.8- others
+  -4.8- custom commands
+  -4.9- others
 -5- vim scripts and config files
   -5.1- variables
     -5.1.1- types
@@ -36,6 +37,8 @@ contents:
   -5.2- loops
   -5.3- operator precedence
   -5.4- user defined functions
+  -5.5- builtin functions
+  -5.6- plugins
 
 quick topics:
   registers, macros             -1.5-
@@ -435,7 +438,8 @@ ______________________________
   allows multiple consecutive commands.  (press Q in normal mode)
 
   Pressing <C-f> will open a buffer for editing command lines.
-  Pressing <C-d> will list potential completions.  Use tab to scroll.
+  Pressing <C-d> will list potential completions.  Works like file
+  autocomplete with wmenu etc (use tab)
 
   Command mode runs vim commands/functions.  These can generally be
   prefixed with a range to run the command on given lines.
@@ -803,7 +807,47 @@ ______________________________
       as long as the second key is not a-z
 
   ______________________________
-  -4.8- others
+  -4.8- custom commands
+    :command [attrs] <name> <commandline>
+      <name> MUST be capitalized.  :X, :Next, :Print are taken.
+      <commandline> is a command-line expr
+      attrs:
+        -nargs=X:
+          N: exactly N arguments
+          *: any
+          ?: >= 0
+          +: >= 1
+        -complete=X
+          completion group, (:h :command-completion)
+            eg: file
+          custom,<func>
+          customlist,<func>
+            use func as custom completion command
+            func: (ArgLead, CmdLine, CursorPos)
+            return a list of candidates (customlist)
+            or a newline delimited string (custom)
+      escapes:
+        syntax:
+          <escape>
+        values:
+          <lt>      a literal <
+          <line1>   starting line range
+          <line2>   eding line range
+          <count>   supplied count
+          <bang>    a ! if ! was in command or nothing otherwise
+          <reg>     register attr
+          <args>    command arguments
+        prefixes:
+          q-        give the value as a quoted string
+          f-        splits args at space/tabs, quote each token
+                    and then ,-join result
+                    ex:
+                      :command -nargs=* Mycmd call Myfunc(<f-args>)
+
+
+
+  ______________________________
+  -4.9- others
     ______________________________
     abbreviations
       Abbreviations will be expanded to rhs when typed.
@@ -1122,7 +1166,27 @@ ______________________________
   -5.4- user defined functions
     :h user-functions
     function names MUST be capitalized
-    script-local begin with s: or <SID>
+    script-local begin with s:
+    Use <SID> to generate the current script's id.  This can allow
+      the function to be called from outside the script if the value is known.
+      (like using an RNG to generate a unique name)
+      ie:
+        function s:Myfunc()
+        endfunction
+        function <SID>Myfunc()
+        endfunction
+        nnoremap blah :call s:Myfunc()          This fails because s:Myfunc() is local
+                                                to the script but the mapping is activated
+                                                outside the script by the user.
+        nnoremap blah :call <SID>Myfunc()       This succeeds because <SID>Myfunc() is just a
+                                                unique name to a global function.  ie. If you knew
+                                                what the <SID> was, you could just :call <SID>Myfunc()
+                                                as normal.
+    <Plug> "is a special code never produced by a keyboard" ??
+      Use this on the function name (usually <Plug>ScriptnameFunctionname(...))
+      to make some unique?? name??
+
+
     ONLY script-local or non-local
 
     definition syntax:
@@ -1204,8 +1268,25 @@ ______________________________
       getpos({expr})                    get position [bufnum, line, col, off]
       setpos({expr}, {lst})             move cursor('.') or mark ('x) to
                                         position
+      cursor(line, col)                 set the cursor position.
+                                        0 = stay in the current line/col
+      hasmapto(rhs)                     check if any mappings to rhs exist
 
   ______________________________
-  -... plugins
-    filetype plugin on
-      place file_extension.vim in .vim/after/ftplugin
+  -5.6- plugins
+    ftplugin
+      to find filetypes:
+        :e $VIMRUNTIME/filetype.vim
+        search for the filetype to find casing etc
+        (the setf argument)
+
+      turn on filetype detection:
+        filetype plugin on
+      customize filetype settings:
+        ~/.vim/after/ftplugin/<filetype>.vim
+
+      NOTE: these should ONLY affect local buffer.
+        for options:
+          :setlocal ...
+        for mappings:
+          :[invc...][nore]map <buffer> ...

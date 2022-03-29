@@ -50,14 +50,18 @@ set ignorecase smartcase hlsearch
 set hidden belloff=all scrolloff=0 list
 set formatoptions+=roj
 
-augroup Myft
-	autocmd! Myft
-	autocmd Myft bufnewfile,bufread *.py setlocal sts=4 sw=4 expandtab
-	autocmd Myft bufnewfile,bufread *.c,*.h,*.cpp,*.hpp setlocal sts=2 sw=2 noexpandtab
-	autocmd Myft bufnewfile,bufread *.cmake,CMakeLists.txt setlocal ts=4 sts=0 sw=4
-	autocmd Myft bufnewfile,bufread *.sh setlocal ts=4 sts=0 sw=4 noexpandtab
-	autocmd Myft bufnewfile,bufread *.txt setlocal sw=2 sts=4 ts=4
-augroup END
+"Note: one maybe large benefit of ftplugin over autocmd is that
+"the ftplugin has its own file-type identification that can be
+"updated if vim is updated.  With autocmd, you must update them
+"yourself.
+" augroup Myft
+" 	autocmd! Myft
+" 	autocmd Myft bufnewfile,bufread *.py setlocal sts=4 sw=4 expandtab
+" 	autocmd Myft bufnewfile,bufread *.c,*.h,*.cpp,*.hpp setlocal sts=2 sw=2 noexpandtab
+" 	autocmd Myft bufnewfile,bufread *.cmake,CMakeLists.txt,*.cmake.in setlocal ts=4 sts=0 sw=4
+" 	autocmd Myft bufnewfile,bufread *.sh setlocal ts=4 sts=0 sw=4 noexpandtab
+" 	autocmd Myft bufnewfile,bufread *.txt setlocal sw=2 sts=4 ts=4
+" augroup END
 
 function! IgnoreIfSame(key)
 	"handle the case where cursor is on closing key
@@ -72,7 +76,7 @@ function! IgnoreIfSame(key)
 	if ccol > llen
 		startinsert!
 	else
-		call cursor(line('.'),ccol)
+		call cursor(0,ccol)
 		startinsert
 	endif
 endfunction
@@ -83,7 +87,7 @@ function! CompleteIfWS(keypair)
 		execute 'norm! a' . a:keypair
 	else
 		execute 'norm! ' . (curbyte == 0 ? 'i' : 'a') . a:keypair[0]
-		call cursor(line('.'), curbyte + 2)
+		call cursor(0, curbyte + 2)
 	endif
 	startinsert
 endfunction
@@ -121,9 +125,24 @@ function! RulerSTL(...)
 	endwhile
 	let cwinvpos = wincol()
 	let cbufvpos = virtcol('.')
-	let curchar = getline('.')[col('.')-1]
+	let curcol = col('.')
+	let curchar = getline('.')[curcol-1]
+	"For tabs, the virtual column is the last column of the tab
+	"rather than the beginning.  However, if list is set, then
+	"the cursor is placed on the beginning of the tab rather than
+	"the last column of the tab.  Correct the issue.
 	if curchar == "\t" && &list
-		let cbufvpos -= &ts - 1
+		" could be <space><Tab>
+		" to get the tab start, need the end of the previous char
+		" can't just take tab and subtract ts-1 because that would
+		" give the space's col, not tab's col
+		if curcol > 1
+			call cursor(0, curcol-1)
+			let cbufvpos = virtcol('.') + 1
+			call cursor(0, curcol)
+		else
+			let cbufvpos -= &ts - 1
+		endif
 	endif
 	let maxlen = winwidth(0)
 	let mystl = []
@@ -148,13 +167,12 @@ function! RulerSTL(...)
 		let lcbegin += step
 		let idx += step
 	endif
-	while idx < maxlen
+	for idx in range(idx, maxlen-1, step)
 		let digits = split(delim . lcbegin, '\zs')
 		let space = min([maxlen - idx, len(digits)])-1
 		let mystl[idx:idx+space] = digits[:space]
 		let lcbegin += step
-		let idx += step
-	endwhile
+	endfor
 	let digits = split(cdelim . cbufvpos, '\zs')
 	let idx = cwinvpos - 1
 	if maxlen - idx < len(digits)
