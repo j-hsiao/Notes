@@ -16,6 +16,13 @@ ______________________________
     extension module:   a shared lib (.so, .pyd, ...)
     package:            a dir of modules
 
+  others:
+    wheel format:
+      1. setuptools, not distutils
+      2. pip install wheel
+      (or pip install build and then python -m build)
+
+      This creates a wheel(built) and a tar.gz/zip (source) dist files.
 
 ______________________________
 -1- setup.py
@@ -160,4 +167,3 @@ ______________________________
 -4- setuptools (enhanced distutils)
   from setuptools import setup
   from setuptools.config import read_configuration
-
