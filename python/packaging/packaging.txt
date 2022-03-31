@@ -34,12 +34,17 @@ ______________________________
       kwargs:
         py_modules=[...]
           list of python modules (module notation, not file)
+          These are the names that you would use when importing it
+          post-install.  The default is to search in the same dir
+          as the setup.py.  The search dirs can be modified with the
+          package_dir argument below.  There is NO need to add the 
+          the __init__.py modules.  __main__.py WILL require adding
+          explicitly here (unless you use packages instead)
         packages=[...]
-          list of python packages (dirs).  Process any pure-python
-          modules found within.  All packages must be listed.  (sub
-          packages included) (can also specify '' with '' in package_dir
-          to add all files under ''(no __init__.py))
-        package_dir={...}
+          Similar to py_modules, but list the packages instead.  Any .py
+          files IMMEDIATELY under these packages will be added.  NO SUB
+          PACKAGES WILL BE PROCESSED.  These must be listed separately.
+        package_dir={'install_package_name': 'source_directory'}
           package: dirname, an empty package = the "root" package,
           prefixed to all packages.
         ext_modules: [distutils.core.Extension(...),...]
@@ -69,6 +74,10 @@ ______________________________
           recompile if any of these change.
         requires=[''...]
           'name[<!=>version,...]
+          NOTE:
+            for setuptools' setup(), install_requires may be preferred.
+            when built with install_requires, pip will actually install
+            these requirements when installing the wheel
         provides=['',...]
           python module/package
           'pkg' or 'pkg (major.minor)'
@@ -76,14 +85,14 @@ ______________________________
           same format as provides
         scripts=['',...]
           list of python scripts to install
-        package_dir=''
-          prefix to package_data
         package_data={'pkgname':'glob'}
           list of package data files
         data_files=[('installdir', ['fnames'...])...]
           extra files to install as is
 
         name=''
+          This is the name for pip install/uninstall, but not necessarily
+          import.
         version=''
         author=''
         author_email='

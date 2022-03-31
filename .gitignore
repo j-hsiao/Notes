@@ -1,12 +1,9 @@
 *~
 *.so
 *.exe
-*.c
 *.pyd
 *.pyc
-*.html
 python-c/cythontest/build
 build
 *.swp
 *.prof
-*.h
