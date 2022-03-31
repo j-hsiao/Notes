@@ -193,6 +193,17 @@ function! RulerSTL(...)
 	endwhile
 	return join(mystl, '')
 endfunction
+
+function! CpOrigSTL()
+	if ! exists('w:ColRuler_origstl') && &stl == '%!RulerSTL()'
+		let w:ColRuler_origstl = getwinvar(winnr('#'), 'ColRuler_origstl')
+	endif
+endfunction
+augroup CpOrigstlOnSplit
+ 	au! CpOrigstlOnSplit
+	au WinEnter * call CpOrigSTL()
+augroup END
+
 unlet! w:ColRuler_origstl
 function! ColRuler()
 	"Toggle using RulerSTL() for stl
