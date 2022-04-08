@@ -8,6 +8,7 @@ contents:
 -6- super
 -7- style
 -8- zipfile
+-9- python3 differences
 
 interpreter:
 ~/.inputrc
@@ -371,3 +372,12 @@ ______________________________
       file_size: uncompressed size
 
       others...
+______________________________
+-9- python3 differeces
+  python2                       python3
+    str: text and binary        bytes: binary only
+    unicode: explicit text      str: text only
+
+    imports:
+      relative imports are      implicit relative imports are not
+      implicit                  done.

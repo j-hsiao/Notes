@@ -1,8 +1,8 @@
 python extension modules:
 options:
-  raw c/c++
   ctypes
   cython
+  raw c/c++
 
 http://cython.readthedocs.io/en/latest/src/quickstart/index.html
 http://cython.readthedocs.io/en/latest/src/tutorial/cython_tutorial.html
@@ -76,6 +76,7 @@ https://docs.python.org/2/distutils/index.html
 -3- cython v3.0.0
   -3.1- compiling
     -3.1.1- setup.py
+    -3.1.1.1- cythonize
   -3.2- writing cython
     -3.2.1- definitions/declarations
     -3.2.2- c++
@@ -1623,8 +1624,7 @@ __main__ would import the module and run functions.
 
     ------------------------------
     -3.1.1- setup.py
-      "like a makefile"
-
+      see packaging notes
       in setup.py:
         from setuptools import setup
         from Cython.Build import cythonize
@@ -1644,7 +1644,22 @@ __main__ would import the module and run functions.
           other C libraries or special build setup.
           ie setup(ext_modules=cythonize("helloworld.pyx")) is enough for
           the setup.py
+      ______________________________
+      -3.1.1.1- cythonize
+        cythonize(
+                module_list, exclude=None, nthreads=0,
+                aliases=None, quiet=False, force=False,
+                language=None, exclude_failures=False, **options)
 
+        Cythonize takes a module_list to compile into extensions and
+        returns a list of distutils Extension objects.
+          module_list: list of files to process.  glob patterns are allowed.
+          exclude: same as module_list except don't process these
+          nthreads: threads for processing
+          aliases: ??
+          ...
+          compiler_directives:
+            use which python?
   ------------------------------
   -3.2- writing cython
 

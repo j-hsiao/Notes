@@ -1,5 +1,6 @@
 # Headers are prefixed with a \#.
 ## Subheaders are prefixed with more \#\# (max of 6 \#s).
+(NOTE: space after the \# is required)
 
 # Escaping
 Any markdown characters can be escaped with a `\`.
