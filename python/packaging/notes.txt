@@ -6,6 +6,7 @@
 -3- manifest
 -4- extending distutils
 -5- setuptools (enhanced distutils)
+-6- namespace packages
 
 ______________________________
 -0- general
@@ -77,7 +78,11 @@ ______________________________
           NOTE:
             for setuptools' setup(), install_requires may be preferred.
             when built with install_requires, pip will actually install
-            these requirements when installing the wheel
+            these requirements when installing the wheel.  Note:
+            using python setup.py install doesn't check python version
+            and will result in trying to install incompatible versions.
+            Using pip install . actually does those checks.  If using
+            install_requires, then using pip is preferred.
         provides=['',...]
           python module/package
           'pkg' or 'pkg (major.minor)'
@@ -173,6 +178,53 @@ ______________________________
   setup(cmdclass={'command': cls...},...)
 
 ______________________________
--4- setuptools (enhanced distutils)
+-5- setuptools (enhanced distutils)
   from setuptools import setup
   from setuptools.config import read_configuration
+______________________________
+-6- namespace packages
+  see also pep420 (for python3.3+)
+
+  in namespace:
+    __init__.py:
+      from pkgutil import extend_path
+      __path__ = extend_path(__path__, __name__)
+
+  recommended to have structure:
+    setup.py
+    root_package_or_namespace
+      subpackages
+      ...
+  (pip install -e seems to require this structure)
+
+  sidenotes:
+    if python2, then namespace packages require that __init__.py
+    which imports from pkgutil. However, because pip installs
+    it all into the same dir, the __init__.py can clash.  The result
+    is uninstalling one of the packages removes the __init__.py
+    that makes the namespace into a namespace package.  As a result
+    all the other things cannot be used anymore.
+    eg:
+      dir1
+        namespace
+          __init__.py
+          pkg1
+            __init__.py
+            f1.py
+      dir2
+        namespace
+          __init__.py
+          pkg2
+            __init__.py
+            f2.py
+
+      when installing as wheel, namespace will be installed as the
+      same directory., dir1/namespace/__init__.py clashes with
+      dir2/namespace/__init__.py.  As a result, if install dir1 and dir2
+      and then uninstall any of them, namespace/__init__.py will be removed.
+      As a result, the one that is still installed can no longer be used.
+
+    Because of this, for python < 3.3 namespace packages, I'd probably recommend
+    doing python setup.py install (uses egg, so each dist gets own dir).
+    This allows them all to be independently installed.
+    for python>=3.3, using pip is fine thanks to implicit namespace packages
