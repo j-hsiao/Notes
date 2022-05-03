@@ -770,46 +770,32 @@ ______________________________
     {a{1..3},b{2..3}} -> a1 a2 a3 b2 b3
 ______________________________
 -13- configuration files
-  login shell: login from somewhere else
+  LOGIN shell: login from somewhere else
     /etc/profile
     first of:
       ~/.bash_profile
       ~/.bash_login
       ~/.profile
-  interactive shell: takes user input
+
+  else if NON-LOGIN interactive shell: takes user input
     reads the .bashrc
 
-  generally speaking:
-    login to desktop = login, non-interactive
-    open a terminal = interactive
-      the terminal inherits environment of the desktop, which is
-      not bash
-    ssh into machine: (login, interactive)
+  ONLY 1 file is sourced.
+  the login files generally should set up the environment.
+  interactive (.bashrc) should set up interaction:
+    color
+    aliases
+  Because only 1 is sourced, login shells do not automatically
+  source .bashrc even if they are also interactive.  This is why
+  .profile/.bash_profile by default usually source .bashrc.
 
-
-  .profile: (can be) used by all shells?
-    set environment stuff in here (Bash will prefer .bash_profile over
-    .profile) also sourced when logging into ubuntu desktop?  This also
-    seems to be sourced when logging into desktop.  (opening a terminal
-    then inherits the environment created from the .profile, even though
-    it wasn't sourced on opening the terminal.  "graphical SHELL?"
-
-  .bashrc:
-     interactive stuff used here.  Sourced when opening a new terminal
-     or sshing.
-     examples:
-	alias rm='rm -i'
-	alias grep='grep --color=auto'
-	export PS1=...
-	etc
-
-  .bash_profile
-    same role as .profile, except Bash will prefer to use this instead.
-    If it exists, maybe just source .profile?
-
-
-
-
-
-
-
+  summary:
+    in .bashrc: check if interactive, return otherwise:
+      [ -z "${PS1}" ] && return
+        or
+      [[ "$-" = *i* ]] || return
+    in .profile, set your environment vars and add:
+      if [ "$BASH" ] && [ -f ~/.bashrc ]; then . ~/.bashrc; fi
+    In .bash_profile you can just source .profile, add any
+      bash-unique settings or whatever.  Otherwise, you could also
+      just delete this since .profile will be used in that case.
