@@ -10,6 +10,7 @@ contents
 	-6.1- line endings
 	-6.2- gitignore
 -7- usage notes
+-8- authorization
 
 
 ------------------------------
@@ -327,3 +328,15 @@ saw a note that seems agreeable:
   if release are always chronological, master branch is fine
   if not, (ie 1.0.1 can come after 1.1.0), then tagging may be a better approach
   or maybe separate release branches per version...
+------------------------------
+-8- authorization
+------------------------------
+git and bitbucket do not allow username/password anymore:
+  bitbucket:
+    OAuth2: see bboauth.py for bitbucket oauth method.
+    app password:
+      go to personal settings, app passwords
+      create an app password (only shown 1 time, select permissions, etc)
+      when using app password, use the username, NOT EMAIL
+      username is under general->account settings
+  git: create a token and use that as password instead
