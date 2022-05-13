@@ -32,7 +32,7 @@ nnoremap <C-K>p :setlocal paste! paste?<CR>
 nnoremap <C-K>n :setlocal number! number?<CR>
 nnoremap <C-K>r :setlocal relativenumber! relativenumber?<CR>
 "cancel search highlights
-nnoremap <silent> <Esc><Esc> :nohl<CR>
+nnoremap <silent> <C-[><C-[> :nohl<CR>
 "shiftwidth
 nnoremap <silent> <C-K><C-K>> :<C-U>execute "setlocal sw" . (v:count == 0 ? "&" : "=" . v:count)<CR>
 "softtabstop

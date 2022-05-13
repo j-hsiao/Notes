@@ -1,5 +1,6 @@
 contents:
 -0- general
+  -0.0- gotchas
   -0.1- starting vim
   -0.2- terminology
   -0.3- regex
@@ -52,6 +53,11 @@ and command modes each with their own functionalities.
 
 ______________________________
 -0- general
+  ______________________________
+  -0.0- gotchas
+    Bizarre behavior when nnoremap <Esc><Esc>.  This causes <Esc>C-w to
+    undo everything or at least a large amount.
+
   ______________________________
   -0.1- starting vim
     vim/vi can be started by vim <file1> <file2>...
