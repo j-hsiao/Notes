@@ -11,6 +11,7 @@ contents
 	-6.2- gitignore
 -7- usage notes
 -8- authorization
+-9- config
 
 
 ------------------------------
@@ -241,8 +242,8 @@ example:
 				attrname=val: set to value
 				unspecified: not specified... (no matches or not in .gitattributes)
 
-			later lines override pervious lines
-			must be in repo root
+			later lines override previous lines
+			must be in repo root (but newer versions maybe not?)
 			example:
 				* text=auto
 				*.c text
@@ -340,3 +341,41 @@ git and bitbucket do not allow username/password anymore:
       when using app password, use the username, NOT EMAIL
       username is under general->account settings
   git: create a token and use that as password instead
+
+------------------------------
+-9- config
+------------------------------
+general usage:
+git config [--system | --global | --local] [-e | [--unset] <name> [value] | --list ]
+  system: all repos for all users
+  global: all repos for (current user only) (${HOME}/.gitconfig)
+  local: current repo only
+
+  use the settings from the most specific scope
+
+  -e: edit the config file
+  --unset: remove the variable
+  --list: list all variables in the config file for corresponding scope
+  <name>: print the current value
+  <name> <value>: set the current value
+
+  list all possible config keys:
+    git help [--config|-c]
+
+  useful settings:
+    core.attributesFile
+      path to global gitattributes file
+    core.autocrlf:
+      auto conversion between crlf and lf on windows (always lf on unix)
+    core.safecrlf:
+      checks that conversion between crlf/lf is reversible (if file has both
+      then not reversible)
+    credential.helper
+      name is "credential-<name>"
+      git config value is just <name>
+      list all helpers installed:
+        git help -a | grep credential-
+      builtin helpers:
+        cache: cache for short period of time
+        store: store forever
+        manager-core: opensource builtin to git for windows
