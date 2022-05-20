@@ -2,6 +2,7 @@ contents:
 -1- ssh
   -1.1- config
   -1.2- encryption/keys
+  -1.3- forwarding
 -2- scp
 
 ______________________________
@@ -27,3 +28,19 @@ ______________________________
             put the rsa.pub file in the target host
             ~/.ssh/authorized_keys
             when sshing use the rsa file to the -i argument
+    ______________________________
+    -1.3- forwarding
+      ssh can perform port forwarding via ssh tunneling
+      adds ssh security to the connection... (at least for
+      the segment between the 2 machines)
+
+      Forward from client to ssh host
+        ssh -L [<localhost>]:<localport>:<remotehost>:<remoteport>
+          bind a socket to <localhost>:<localport> which forwards data
+          to <remotehost>:<remoteport>
+
+      Forward from ssh host to client
+        ssh -R [remotehost]:<remoteport>:<localhost>:<localport>
+          ssh to the remote machine, and create a socket bound to
+            <remotehost>:<remoteport> which forward traffic to
+            <localhost>:<localport>
