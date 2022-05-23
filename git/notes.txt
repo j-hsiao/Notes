@@ -3,6 +3,7 @@ contents
 ------------------------------
 -1- spec
 -2- basics
+  -2.1- reference syntax
 -3- rebase
 -4- history
 -5- alias
@@ -14,6 +15,7 @@ contents
 -9- config
 -10- stash
 -11- clean
+-12- show
 
 
 ------------------------------
@@ -161,7 +163,27 @@ other
         git push origin --tags
         git push origin <tagname>
 
-
+  ------------------------------
+  -2.1- reference syntax
+  ------------------------------
+    <sha1>    the sha1 (eg. from git log) or unique leading substring
+    <refname> [refs/][heads/|tags/|remotes/]<branch>
+    <refname>[@{date|index}|^]
+              date:
+                blank: pick HEAD
+                yesterday
+                N month N weeks N days N hour N second ago
+                YYYY-mm-dd HH:MM:SS
+              index:
+                indexth prior reference
+                if refname is empty, use current branch
+                If negative, indicate prior checked-out commit
+              ^n
+                n defaults to 1 if absent.
+                Take the nth parent (merges, have multiple parents)
+              ~n
+                n defaults to 1 if absent
+                go back n generations, choosing the 1st parent
 ------------------------------
 -3- rebase
 ------------------------------
@@ -413,3 +435,11 @@ git config [--system | --global | --local] [-e | [--unset] <name> [value] | --li
   -n|--dry-run: just list what would be removed
   -x: include files that were .gitignored
   -X: ONLY include files that were .gitignored
+------------------------------
+-12- show
+  shows objects
+  show:
+    tag: tag message and obj
+    trees: names
+    blobs(files): contents
+      branch/commit:filepath
