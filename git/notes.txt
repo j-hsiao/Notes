@@ -7,11 +7,13 @@ contents
 -4- history
 -5- alias
 -6- miscellaneous
-	-6.1- line endings
-	-6.2- gitignore
+  -6.1- line endings
+  -6.2- gitignore
 -7- usage notes
 -8- authorization
 -9- config
+-10- stash
+-11- clean
 
 
 ------------------------------
@@ -379,3 +381,35 @@ git config [--system | --global | --local] [-e | [--unset] <name> [value] | --li
         cache: cache for short period of time
         store: store forever
         manager-core: opensource builtin to git for windows
+------------------------------
+-10- stash
+  git stash [push]
+    temporary save changes but no commits
+    useful options (requires push to be present, otherwise no args allowed (except -p)):
+      -u  include untracked files
+      -a  all
+      -m  message
+  git stash list:
+    show current stashes
+  git stash show:
+    show changes
+  git pop
+    pop a stash state and apply it
+  git stash apply
+    apply changes
+  git stash branch <branchname>
+    makes a branch identical to state when git stash was created
+  git stash clear
+    remove all stash entries
+  git stash create
+    create a stash entry
+------------------------------
+-11- clean
+  git clean
+    removes any untracked files (like build products etc)
+  -d: also check untracked directories
+  -f: force (like rm -f)
+  -i: interactive (like rm -i)
+  -n|--dry-run: just list what would be removed
+  -x: include files that were .gitignored
+  -X: ONLY include files that were .gitignored

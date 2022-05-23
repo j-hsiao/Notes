@@ -366,6 +366,10 @@ ______________________________
         asksaveasfilename
         askdirectory
 
+      NOTE:
+        These methods generally give empty string on cancel instead of
+        None.
+
     ______________________________
     -1.6.2- messagebox
       display a message, simple response buttons
