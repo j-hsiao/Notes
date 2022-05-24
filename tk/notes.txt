@@ -425,6 +425,40 @@ ______________________________
   If callback is a function, then the corresponding registered id is
   returned.  If it is a str, the returnvalue is None.
 
+  NOTE:
+    more specifically:
+      tcl binds a script to a bindtag and event sequence specifier.
+      the script is a string, and if prefixed with + will be appended
+      to any existing scripts.
+      tkinter wraps any bindings by:
+        1. wrap a function in a CallWrapper.  CallWrapper combines a
+          function with a substitute function and widget.  The substitute
+          function takes args and converts them.  (default is widget._substitute
+          which takes the default %<char> args and converts to particular
+          types)
+        2. Register the resulting CallWrapper under id(wrapper)+func.__name__
+          by using tk.createcommand(name, func) (delete by tk.deletecommand(name))
+        3. Bind a script using the registered function in step 2:
+          'if {"[2235275164928callback %# %b %f %h %k %s %t %w %x %y %A %E %K %N %W %T %X %Y %D]" == "break"} break\n\n
+           if {"[2235301124864callback %# %b %f %h %k %s %t %w %x %y %A %E %K %N %W %T %X %Y %D]" == "break"} break\n'
+
+      In otherwords, for more control (not sure if parsing the extra 
+      arguments may also reduce performance by any significant amount)
+        method 1: use register and the callwrapper mechanism:
+          def substitute(raw '%char' return values as strs):
+            return (converted, arguments,...)
+          def somecallback(args, that, match, substitute):
+            ...
+          funcid = widget.register(somecallback, substitute, needcleanup=0/1)
+            (needcleanup will add to widget._tclCommands, contents of which will be
+            tk.deletecommand()ed on __del__)
+          widget.bind('{funcid} %<char> ...'), add the %<char> values you are interested in
+        method 2:
+          use tk.createcommand directly:
+          def func(someargs):
+            ...
+          tk.createcommand(name, func)
+          widget.bind(seq, '{name} %char %char ...')
   Canvas items:
     Fuse canvas.[tag_bind|gettags|addtag] instead of bind/bindtags.
     Note that for canvas items there is no way to set multiple tags.
