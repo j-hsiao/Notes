@@ -587,21 +587,24 @@ ______________________________
       above       %a: a window
       borderwidth %B: a size (screen dist)
       button      %b: mouse button number -> num
-      char        %A: a char??
+      char        %A: printable ascii character
       count       %c: int, ??
-      data        %d: string, user data
-      delta       %D: int, scroll amount, +=up, -=down
+      data        %d: string, user data (virtual events)
+      delta       %D: int, scroll amount, +=up, -=down (MouseWheel event on windows)
       detail      %d: Notify[Ancestor|DetailNone|Inferior|Nonlinear|
                              NonlinearVirtual|Pointer|PointerRoot|Virtual]
       focus       %f: bool, if window has focus
       height      %h: int, screendist
-      keycode     %k: int
-      keysym      %K: string, key name
-      keysym_num  %N: ord(keysym) kind of
+      keycode     %k: int (the actual keyboard key identifier)
+      keysym      %K: string, key name (as would be used for bind)
+      keysym_num  %N: int representing the (virtual)key that was pressed
+                      eg.
+                        <Shift-m>, keycode = 77, and keysym_num = 77, chr(77) = 'M')
+                        <m>, keycode = 77, keysym_num = 109, chr(109) = 'm')
       mode        %m: Notify[Normal|Grab|Ungrab|WhileGrabbed]
       override    %o: bool
       place       %p: Place[OnTop|OnBottom]
-      root        %R: str, window path
+      root        %R: str, window path??
       rootx       %X: int, screendist (on screen) -> x_root
       rooty       %Y: int, screendist (on screen) -> y_root
                       NOTE:
@@ -627,7 +630,7 @@ ______________________________
                         17  Alt
       subwindow   %S: string (path name) or int (window id)
       time        %t: int, timestamp
-      type        %T: type field from event
+      type        %T: type field from event: (tk.EventType(strint) for py3)
                       KeyPress = '2'
                       Key = KeyPress,
                       KeyRelease = '3'

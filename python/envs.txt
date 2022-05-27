@@ -36,6 +36,8 @@ contents:
 
   * install version
     pyenv install x.y.z
+      --list
+        list available versions to install
 
   * switch version
     pyenv shell NAME (from pyenv versions)
