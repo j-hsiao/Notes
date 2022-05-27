@@ -11,15 +11,20 @@ ______________________________
     ssh -l user domain
     ______________________________
     -1.1- config
-        config files:
+        config file paths
             /etc/ssh/ssh_config
             ~/.ssh/config
-        Host name
-            HostName ip/domain
-            User defaultUser
-            IdentityFile path/to/file
-            Port <port number>
-            other options
+        syntax:
+          sequence of key value[s] pairs
+          # comment
+          " a single argument with spaces"
+
+          HOST name_on_commandline(may be a nickname or whatever)
+          	HostName ip/domain/other host name
+          	User defaultUser
+          	IdentityFile path/to/file
+          	Port <port number>
+          	other options
     _______________________________
     -1.2- encryption/keys
         ssh-keygen -t type -b bits -f file -C comment -n ""
