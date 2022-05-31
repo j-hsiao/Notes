@@ -3,12 +3,20 @@ contents:
   -1.1- config
   -1.2- encryption/keys
   -1.3- forwarding
+  -1.4- keys
 -2- scp
 
 ______________________________
 -1- ssh
     ssh user@domain
     ssh -l user domain
+
+    ssh configuration/setting files are generally in ~/.ssh
+    ~/.ssh should have permissions 700
+    public keys: 644
+    private keys: 600
+    authorized_keys: 600
+
     ______________________________
     -1.1- config
         config file paths
@@ -25,14 +33,18 @@ ______________________________
           	IdentityFile path/to/file
           	Port <port number>
           	other options
+          	IDENTITIESONLY yes (only send specified file, don't try default id_type)
     _______________________________
     -1.2- encryption/keys
         ssh-keygen -t type -b bits -f file -C comment -n ""
+        ed25519 is more secure on the private key
         rsa:
             generates an rsa and rsa.pub file
             put the rsa.pub file in the target host
             ~/.ssh/authorized_keys
             when sshing use the rsa file to the -i argument
+
+        The public key should be appended to remote server's authorized_keys.
     ______________________________
     -1.3- forwarding
       ssh can perform port forwarding via ssh tunneling
@@ -49,3 +61,23 @@ ______________________________
           ssh to the remote machine, and create a socket bound to
             <remotehost>:<remoteport> which forward traffic to
             <localhost>:<localport>
+    _______________________________
+    -1.4- keys
+      create a key:
+        ssh-keygen -t [rsa|ed25519] -C "comment"
+
+      this creates a private and .pub file
+      put .pub on the remote[s] that you want to ssh to.
+      private should be kept on your personally-used machines
+
+      change password:
+        ssh-keygen -p -f path2existingfile
+
+_______________________________
+-2- scp
+  scp source files ... destination
+    format:
+      filepath (localhost)
+      [user@]host:hostpath_can_use_~
+    other notes:
+      -P instead of -p for port

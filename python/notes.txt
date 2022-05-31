@@ -14,6 +14,8 @@ interpreter:
 ~/.inputrc
 
 
+pip install -e = install as links to the source code
+  (can edit source code and import without having to reinstall)
 
 Tkinter
 blah

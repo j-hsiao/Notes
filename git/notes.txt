@@ -10,6 +10,7 @@ contents
 -6- miscellaneous
   -6.1- line endings
   -6.2- gitignore
+  -6.3- ssh
 -7- usage notes
 -8- authorization
 -9- config
@@ -295,6 +296,20 @@ example:
 			**/: in all directories
 			/**: everything inside dir (infinite depth)
 			a/**/b: any b under some ancestor a
+  ------------------------------
+  -6.3- ssh
+  ------------------------------
+  See remotehost/ssh/notes.txt for key generation, git prefers ed25519 type?
+  put .pub file contents onto git account
+  edit ${HOME}/.ssh/config
+    HOST host-to-use-on-command-line
+    	HOSTNAME actual-host-name-eg-github.com
+    	USER git
+    	IDENTITYFILE path/to/private/key
+    	IDENTITIESONLY yes
+  git clone host-to-use-on-command-line:<git-user>/<reponame>.git
+  (uses ~/.ssh/config to choose private key)
+
 
 ------------------------------
 -7- usage notes

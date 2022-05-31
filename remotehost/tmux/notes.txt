@@ -15,10 +15,16 @@ ______________________________
   similar to screen with prefix key...
   C-b is the default prefix key
 
+  basic controls (prefix is implicit)
+    d   detach
+    [   copy mode (use this for scrolling too, q to exit)
+
+
 ______________________________
 -2- windows and regions
   %             split vertically
-  "             move between regions
+  "             split horizontally
+  x             kill current region
   arrows        same as above
   C-d           close a region
   c             create a window
