@@ -17,6 +17,7 @@ contents
 -10- stash
 -11- clean
 -12- show
+-13- remote
 
 
 ------------------------------
@@ -458,3 +459,8 @@ git config [--system | --global | --local] [-e | [--unset] <name> [value] | --li
     trees: names
     blobs(files): contents
       branch/commit:filepath
+------------------------------
+-13- remote
+  show remotes
+  git remote set-url --push: add a separate push remote
+    (no command to separately set a pull url)
