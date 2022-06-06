@@ -29,8 +29,21 @@ ______________________________
 -1- setup.py
   ______________________________
   -1.1- writing setup.py
-    import distuit
+    NOTE: windows python2.7 testing, seems everything MUST be below
+      the setup.py directory.  It seems to copy everything into a
+      temp dir and then do the install.  As a result, using a ..
+      path causes the dir to not be found.  os.getcwd() is also the
+      temp dir so no way to get the original dir.
+      __init__.py is always added if it exists and any py file is
+      added within the same dir.  (MANIFEST.in exclude command
+      does not exclude the __init__.py from being added)
+
+
+    import distutil
     from distutils.core import setup
+      or
+    from setuptools import setup
+
     setup(...)
       kwargs:
         py_modules=[...]

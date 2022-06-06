@@ -488,9 +488,10 @@ ______________________________
 
     ______________________________
     -2.1.1- Modifiers
-      Control             Mod1, M1, Command
-      Alt                 Mod2, M2, Option
-      Shift               Mod3, M3
+      key/button          bindseq   state (%s substitution)
+      Control             Mod1, M1, Command(num lock)
+      Alt                 Mod2, M2, Option(alt)
+      Shift               Mod3, M3, (scroll lock)
       Lock                Mod4, M4
       Extended            Mod5, M5
       Button1, B1         Meta, M
