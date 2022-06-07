@@ -11,7 +11,7 @@ ______________________________
     multiple regions can use the same window
 ______________________________
 -1- commandline options
-  -list
+  -list|-ls     list sessions
   -S <name>     set a name for the screen to create/reconnect to
   -r            reconnect to a session
   -R            reconnect/create if not exist
