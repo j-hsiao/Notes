@@ -1,0 +1,225 @@
+https://mmcv.readthedocs.io/en/latest/understand_mmcv/config.html
+contents
+-1- configs
+  -1.1- general features
+    -1.1.1- replacements
+    -1.1.2- inheritance
+    -1.1.3- private variables
+    -1.1.4- custom imports
+  -1.2- working with configs
+    -1.2.1- creation
+    -1.2.2- modification
+    -1.2.3- objects from configs
+-2- registries
+  -2.1- build_func
+  -2.2- scopes and parents
+-3- runner
+  -3.1- hooks
+  -3.2- methods
+
+
+
+______________________________
+-1- configs
+  from mmcv import Config
+
+  Config file formats:
+    python file
+    json file
+    yaml file
+
+  Each dict is a scope.  Keys can be referred to by dict notation or
+  object notation (like an easydict)
+
+  Usually just use a python file.  In this case, the config is
+  the python module's __dict__ attribute, and all dicts are recursively
+  substituted to ConfigDicts.
+  Python config files are copied and imported as a module from a
+    tempfile (importlib.import_module).  This means that they are normal
+    python modules but __file__ will be unusable.
+
+  ______________________________
+  -1.1- general features
+    ______________________________
+    -1.1.1- replacements
+      mmcv replaces sequences with corresponding values:
+        {{ fileDirname }}               osp.dirname
+        {{ fileBasename }}              osp.basename
+        {{ fileBasenameNoExtension }}   osp.splitext()[0]
+        {{ fileExtname }}               osp.splitext()[1]
+        {{ _base_.key.path.to.var }}    a value from a base config
+
+      Regarding file* replacements, because the files are copied,
+      __file__ will give you the copied location instead of the
+      original location.  Also note that replacements should generally
+      be on right hand side of an assignment, otherwise a syntax error
+      may occur (mmcv Config uses ast.parse to check syntax, {{}}
+      syntax works because {} is a set() literal.
+    ______________________________
+    -1.1.2- inheritance
+      _base_ = 'relative path to config file'
+      _base_ = ['relative path to cfg1', 'relative path to cfg2', ...]
+        NOTE: config files in _base_ list MUST BE MUTUALLY EXCLUSIVE
+
+      Merges the config with base configs.
+      Merging happens on subdicts (so not exactly the same as just importing)
+
+      Add a _delete_=True key-value pair to any scope to clear out parent
+      config values from that scope.
+    ______________________________
+    -1.1.3- private variables
+      Any keys beginning with __ (double underscore) are ignored in the
+      final Config dict.
+
+    ______________________________
+    -1.1.4- custom imports
+      in global scope:
+        custom_imports = dict(
+          imports=[modules...],
+          allow_failed_imports=False)
+      During loading, the listed modules will be imported.  These
+      modules usually define some class or function that is added to
+      some registry somewhere.  This allows those classes to be used
+      later in the script via build_from_cfg or Registry.build
+
+  ______________________________
+  -1.2- working with configs
+    ______________________________
+    -1.2.1- creation
+      Config.fromfile
+      Config.fromstring
+        sidenotes:
+          the config file is copied into a temp file to perform substitutions
+          (though those are only convenience)
+
+    ______________________________
+    -1.2.2- modification
+      Config.merge_from_dict(options, allow_list_keys=True)
+      options:
+        dict with "full" key paths:
+        as a dict:
+          dict(a=dict(b=5))
+        as options argument:
+          {'a.b': 5}
+      NOTE:
+        effectively same as collections.ChainMap (python3)
+    ______________________________
+    -1.2.3- objects from configs
+      from mmcv.utils import build_cfg
+      build_from_cfg(config, registry, default_args={})
+      Registry.build(config, default_args={})
+      Config should have a type='classname in registry'.
+      The rest are the __init__ arguments.
+______________________________
+-2- registries
+  Registry(name, build_func, parent, scope)
+    provides register_module to decorate classes or functions(v1.5.1+)
+    to add to a registry.  By default, the key is the __name__ of the
+    registered class/function.
+  ______________________________
+  -2.1- build_func
+    The function to use to instantiate registered classes or call
+    registered functions.
+    predefined build_funcs:
+      mmcv.utils.build_from_cfg:
+        standard build_func
+      mmcv.cnn.build_model_from_cfg
+        if cfg is a list, then create a torch.nn.Sequential
+        (layers?)
+    This function is called by Registry.build
+  ______________________________
+  -2.2- scopes and parents
+    registries have a "scope" which is the top-most level module in
+    which the registry is defined.  (if registry is defined in a.b.c.d,
+    then the "scope" is 'a').  When specifying a registered class/func,
+    the scope can be used to get items from a parent/sibling registry.
+
+    Scope rules (by experimentation):
+      At most, 1 root parent Registry.
+      The parent Registry's children should have no children.
+      Parent and children registries should NOT be in the same scope
+        (parent will overshadow child registry in same scope)
+______________________________
+-3- runner
+  runners run the training.
+  args:
+    model,
+    batch_processor=None,
+    optimizer=None,
+    work_dir=None,
+    logger=None,
+    meta=None,
+    max_iters=None,
+    max_epochs=None
+
+  2 default runners:
+    mmcv.runner.EpochBasedRunner:
+      run(data_loaders, workflow, max_epochs=None, **kwargs):
+        workflow:[('mode', count),...]
+          mode in {'train', 'val'}, count is an int
+          workflow indicates what happens in each epoch
+          eg.
+            workflow = [('train', 5), ('val', 2)]
+            epochs 0-4 are training, 5-6 = val
+            if max_epochs = 3, then only does 3 training epochs
+        data_loaders should have 1 to 1 correspondence with workflow
+
+    mmcv.runner.IterBasedRunner
+      run(data_loaders, workflow, max_iters=None, **kwargs):
+
+  ______________________________
+  -3.1- hooks
+    hooks must subclass mmcv.runner.Hook.  Hooks have corresponding
+    methods to the hook names below:
+      general
+        before_run
+        after_run
+      training:
+        before_train_iter
+        after_train_iter
+      eval:
+        before_val_iter
+        after_val_iter
+      EpochBasedRunner
+        before_train_epoch
+        after_train_epoch
+        before_val_epoch
+        after_val_epoch
+      IterBasedRunner
+        before_epoch
+        after_epoch
+    extra methods for selectively running hook (returns bool)
+      every_n_epochs(runner, n)
+      every_n_inner_iters(runner, n)
+      every_n_iters(runner, n)
+      end_of_epoch(runner)
+      is_last_epoch(runner)
+      is_last_iter(runner)
+
+    add hooks:
+      register_hook(hoo, priority)
+      register_hook_from_cfg(cfg)
+        hooks are added with a priority:
+          (int from 0 to 100, 0 = high, 100=low)
+          priorities determine order of hook execution
+        default priorities:
+          HIGHEST         0
+          VERY_HIGH       10
+          HIGH            30
+          ABOVE_NORMAL    40
+          NORMAL          50
+          BELOW_NORMAL    60
+          LOW             70
+          VERY_LOW        90
+          LOWEST          100
+
+
+
+
+
+
+
+  ______________________________
+  -3.2- methods
+    resume
+    save_checkpoint

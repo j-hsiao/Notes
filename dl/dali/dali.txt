@@ -1,0 +1,264 @@
+-1- general
+  -1.1- cpu/gpu
+  -1.2- types
+-2- pipelines
+  -2.1- pipeline_def
+  -2.2- Pipeline class
+  -2.3- pipeline outputs
+-3- operations
+-4- pytorch
+
+______________________________
+-1- general
+  installation
+    pip install --extra-index-url https://developer.download.nvidia.com/compute/redist
+      --upgrade nvidia-dali-cuda[100|110]
+
+  ______________________________
+  -1.1- cpu/gpu
+    during construction of the pipeline, data is represented by a Node
+      Node.gpu(): queue a transfer from cpu to gpu
+      Node.as_cpu(): queue a transfer from gpu to cpu
+    GPU->CPU is NOT allowed WITHIN a pipeline
+      (in pipeline you work with nodes which only has gpu()
+      outside of pipeline (ie when you get the pipeline results), then you can call as_cpu()
+      if Tensor[List]GPU to transfer to cpu
+  ______________________________
+  -1.2- types
+    Pipelines return a tuple of tensorlists.
+
+    TensorLists:
+      shared:
+        __getitem__: returns a dali Tensor type
+        as_tensor()                     same as as_array except as a TensorCPU
+        as_reshaped_tensor(shape)       reshape to a TensorCPU
+        data_ptr()                      get pointer obj
+        copy_to_external()              copy to external object
+        layout()                        only for images?
+
+      TensorListGPU
+        as_cpu()                        transfer to a TensorListCPU
+        at(index)                       deprecated for [] notation
+      TensorListCPU
+        as_array()                      returns it as a np array (must be dense)
+        at(index)                       returns the tensor at index as np array
+
+    Tensors:
+      shared:
+        copy_to_external(...)           copy to external pointer
+        data_ptr()                      this data's pointer
+        dtype()                         string (can pass to np.dtype())
+        layout()                        string ('HWCDF' etc)
+                                        (except, always empty in practice?)
+        shape()                         tuple of ints
+        squeeze()                       like torch squeeze except inplace
+                                        returns bool: did shape change?
+      TensorGPU
+        as_cpu()                        transfer to cpu
+      TensorCPU
+
+______________________________
+-2- pipelines
+  Pipelines are a set of steps that are performed to preprocess data
+    from nvidia.dali.pipeline import Pipeline
+
+  ______________________________
+  -2.1- pipeline_def
+    pipeline_def is a decorator that decorates a python function consisting
+    of nvidia.dali.fn calls
+
+    The decorated function takes additional kwargs
+    See the nvidia.dali.pipeline.Pipeline class
+    use Pipeline.current() to get the current pipeline when in the body
+    of a decorated pipeline. Kwargs are not allowed in decorated
+    pipeline functions.
+    ex:
+      @pipeline_def(batch_size=32, num_threads=3)
+      def my_pipe():
+          data = fn.external_source(source=my_generator)
+          return data
+      pipe = my_pipe(batch_size=1, num_threads=1, device_id=0)
+      pipe.build()
+      pipe.run()
+
+  ______________________________
+  -2.2- Pipeline class
+    This class provides an api for building the pipeline graph.
+    use set_outputs to set the output values
+    arguments:
+      batch_size                        size of a batch
+      num_threads                       number of cpu threads to use
+      device_id                         gpu to use, None = CPU only
+      seed                              random seed to use
+      exec_pipelined                    execute cpu and gpu concurrently
+      prefetch_queue_depth              prefetch queue (1 = no prefetch:
+                                        depth=1 => enough space for current
+                                        sample only.)
+      exec_async                        The docs for this argument seem like
+                                        crap. What it really means is whether
+                                        the pipeline can be executed async.
+                                        Regardless of the value for this arg,
+                                        run() will work as expected: run pipeline
+                                        and return outputs. outputs() is only
+                                        needed if you use schedule_run() so none
+                                        of that should ever even be mentioned here.
+                                        It's super misleading. Regardless of
+                                        exec_async, if you use schedule_run,
+                                        you will need to use [share_]outputs()
+                                        anyways.
+      bytes_per_sample                  hint on tensor memory size
+      set_affinity                      cpu on closest cpu to gpu
+      max_streams                       ignored for now
+      default_cuda_stream_priority      priority
+      enable_memory_stats               log stats
+      py_num_workers                    number of workers for external_source
+      py_start_method                   spawn or fork, how to start workers?
+
+    Notes:
+      exec_async=True, exec_pipelined=False
+        -> can run, but will hang
+      exec_async=False, exec_pieplined=True
+        -> cannot run: error "not supported"
+
+      required values:
+        batch_size
+        num_threads
+        device_id (None = cpu only)
+
+      The pipeline is run using:
+        run(): run and returns the outputs of the pipeline
+
+        schedule_run(): start running the pipeline
+        outputs() / share_outputs(): get the outputs
+        release_outputs()
+
+        The code for outputs() calls _outputs() which says
+        that _outputs is equivalent to:
+          release_outputs()
+          share_outputs()
+        But, isn't the order reversed? or maybe the
+        order doesn't matter as long as the pipeline isn't advanced?
+        docs for release_outputs() say that it's used to mark buffers
+        as "free" for the next iteration (buffers were used or copied etc)
+        but how do you get those buffers to copy if you haven't called
+        share_outputs()?
+
+
+    dali ExternalSource items (python functions) should be called
+    using the pipe as context:
+    It seems like creating the pipeline is similar to tensorflow
+    where each op returns some kind of thingy that represents
+    the data that would have been produced.
+
+      pipe = dali.Pipeline(batch_size=N, num_threads=3, device_id=0)
+      with pipe:
+          src = dali.ops.ExternalSource(my_source, num_outputs=2)
+          a, b = src()
+          pipe.set_outputs(a, b)
+
+    ExternalSources are run by python workers controlled by
+    py_num_workers argument.
+    The py_start_method can be:
+        'spawn': source is pickled and run in separate process
+        'fork' : source is run in forked process (must be
+                 "no cuda contexts" at time of fork or ?deadlock?)
+
+    pipeline:
+      Node ---operator--- Node ---operator--- Node
+
+      Node = TensorList[CPU|GPU] = [Tensor[CPU|GPU]]
+
+      Tensors have a layout:
+        'HWCFD' corresponding to: height, width, channels, frame, depth
+
+    other types (nvidia.dali.types):
+      Constant
+      DALIDataType
+      DALIInterpType
+      DALIImageType
+      SampleInfo
+      PipelineAPIType
+
+    in otherwords:
+
+    def pipelinedef(func, **pipekwargs):
+        def ret(*args, **kwargs):
+            cp = pipekwargs.copy()
+            cp.update(kwargs)
+            pipe = Pipeline(**cp)      < These lines are how you would
+            with pipe:                 < make a pipeline using the
+                func(*args)            < Pipeline class (replace func
+            return pipe                  with the func's body)
+        return ret
+
+
+  ______________________________
+  -2.3- pipeline outputs
+    pipelines output TensorList (list of tensors)
+    if TensorList.is_dense_tensor():
+      asnumpy = TensorList.as_tensor()
+    else:
+      not compatible with numpy
+    TensorList.at(i) for ith tensor
+
+______________________________
+-3- operations
+  https://docs.nvidia.com/deeplearning/dali/user-guide/docs/supported_ops.html
+
+  NOTE:
+    This doesn't ever seem to be mentioned in the docs for operations, but it
+    seems all operations takes 'device' and 'device_id' kwargs which should be
+    one of the 'supported backends' strs for each operation (generally 'gpu',
+    'cpu', or 'mixed'), and a device_id = None (for cpu), -1 (for auto), or
+    some int >= 0
+
+  operations are located in:
+    nvidia.dali.fn
+    nvidia.dali.fn.decoders
+    nvidia.dali.fn.experimental
+    nvidia.dali.fn.random
+    nvidia.dali.fn.readers
+    nvidia.dali.fn.reductions
+    nvidia.dali.fn.segmentation
+    nvidia.dali.fn.transforms
+    nvidia.dali.plugin.pytorch.fn
+
+    nvidia.dali.math
+
+  DataNode also supports standard operations like
+    +/- (positive/negative)
+    +, -, //, //, *,
+    <=>
+    &|^
+  at least one arg must be a DataNode
+
+______________________________
+-4- pytorch
+  pytorch plugin:
+    nvidia.dali.plugin.pytorch.DALIClassificationIterator
+    nvidia.dali.plugin.pytorch.DALIGenericIterator
+      pipelines                 list of pipelines to use
+      output_map                list of str to use as keys for outputs
+      size                      number of samples in shard for wrapped pipeline
+      reader_name               name of reader to query for dataset size info
+      auto_reset                reset iterator after reaching end
+      dynamic_shape             can output change shape?
+      last_batch_policy         nvidia.dali.plugin.base_iterator.LastBatchPolicy()
+      last_batch_padded
+      prepare_first_batch       buffer first batch right after creation?
+
+    nvidia.dali.plugin.pytorch.feed_ndarray(
+      dali_tensor, arr, cuda_stream=None):
+
+      convert tensor to torch array
+
+    iterators return tensors that are OWNED BY DALI
+    copy them before getting the next tensors from iterator
+    or the original ones will be invalidated
+
+    nvidia.dali.plugin.pytorch.LastBatchPolicy:
+    how to handle last batch's roll-around
+
+    On each iteration, a list is returned (per pipeline in pipelines)
+
+  tensor(list)(G|C)PU to pytorch tensors

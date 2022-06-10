@@ -1,0 +1,764 @@
+overview of mmdetection, summarized tutorials/docs
+
+-1- overview
+  -1.1- training procedure
+    -1.1.1- scattering
+  -1.2- distributed notes
+-2- configs
+  -2.1- Config class
+  -2.2- mmdet configs
+    -2.2.1- base config types
+      -2.2.1.1- dataset
+      -2.2.1.2- model
+      -2.2.1.3- schedule
+      -2.2.1.4- default_runtime
+-3- datasets
+  -3.1- DataContainer
+  -3.2- batch collation
+  -3.3- pipeline
+-4- models
+-5- runtime
+-6- losses
+-7- runner
+
+______________________________
+-1- overview
+  mmdet breaks training up into "layers" that are strung together through configs
+  every "layer" is registered in some kind of registry
+
+  configs are dicts that specify the "layer" to create and the args for its
+  constructor.
+  eg:
+
+    dict(type='someclass', arg1=val1, arg2=val2)
+    
+  will essentially become:
+
+    someregistry['someclass'](arg1=val1, arg2=val2)
+
+  notable registries:
+    mmdet.datasets:
+      DATASETS
+      PIPELINES
+    mmdet.models:
+      BACKBONES
+      NECKS
+      ROI_EXTRACTORS
+      SHARED_HEADS
+      HEADS
+      LOSSES
+      DETECTORS
+    mmcv.runner.optimizer:
+      OPTIMIZER_BUILDERS
+      OPTIMIZERS
+
+  ______________________________
+  -1.1- training procedure:
+    configs are basically scripts for training
+    1. load the config (mmcv.Config.fromfile):
+      merge cfg_options: see mmcv.Config.merge_from_dict
+        (adds values to the dict, keys can be . notation)
+        example:
+          config.py:
+            a = 1
+            b = 2
+            c = dict(type='noob')
+          __main__:
+            from mmcv import Config
+            cfg = Config.fromfile('config.py')
+            cfg.merge_from_dict({'c.subtype': 'old'})
+          result:
+            cfg == dict(a = 1, b = 2, c = dict(type='noob', subtype='old'))
+      custom_imports are loaded if exist:
+        custom_imports = dict(
+          imports=['item1', 'mod.item2', ...],
+          allow_failed_imports=False)
+      set the seed (all processes have the same seed)
+    2. build_model
+      build model from cfg.model
+      (cfg.model = a constructor dict, you'll need to look at the specific
+      model's constructor to know what arguments are required)
+    3. build_dataset(s)
+      build cfg.data.train as a dataset
+      if exist, build cfg.data.val as a dataset.
+        (replaces val's pipeline with train's pipeline
+    4. run training (performed by mmcv.runner)
+
+      iterate on workflow phases:
+        iterate on corresponding dataset:
+        (dataset will cause collation into subbatches of size
+        samples-per-gpu)
+
+      the model is wrapped in a:
+        MMDistributedDataParallel or MMDataParallel
+
+      each iteration (whether train or val) is performed by
+      runner.run_iter(batch, train_mode, **kwargs):
+        batch: an item yielded from the DataLoader
+          (collated into list of samples-per-gpu-sized minibatches)
+          (see -3.1- DataContainer)
+        calls model.train_step or model.val_step (generally
+        wrapped by a MMDataParallel or MMDistributedDataParallel
+
+        runner.run_iter(batch, trainmode, **kwargs):
+          outputs = self.model.{trainmode}_step(
+            batch, self.optimizer, **kwargs)
+
+      MM(Distributed)DataParallel.train_step:
+        if self.device_ids:
+          inputs, kwargs = self.scatter(inputs, kwargs, self.device_ids)
+          if len(self.device_ids) == 1:
+            self.module.train_step(*inputs[0], **kwargs[0])
+          else:
+            parallel_apply(copies, inputs, kwargs)
+            gather()
+        else:
+          don't scatter, just apply trainstep
+
+      ______________________________
+      -1.1.1- scattering
+	From printing inputs, it seems like it's basically:
+	  dict(key=[subbatch1, subbatch2,...]) -> (dict(key=subbatch1), dict(key=subbatch2)) essentially
+        NOTE: scatter here is NOT the tensor.scatter or scatter_ with signature:
+          scatter(input, dim, index, src)
+
+        mmcv.parallel.scatter_gather.scatter_kwargs is used for scattering:
+
+        returns tuple of scattered input/kwargs extended to matching lengths with empty tuples/dicts respectively
+
+        seems there's an assumption that len(target_gpus) == num subbatches which should match
+        since len(target_gpus) == 1, then batchsize of dataloader is samples_per_gpu
+        and if > 1, then it's len(target_gpus) * samples_per_gpu => there are len(target_gpus) subbatches
+        of size samples_per_gpu
+
+        algorithm:
+        def mmcv.parallel._functions.scatter(input, target_gpus, streams):
+          """scatter on (nested) list of torch.Tensor."""
+
+          if input is a list:
+            return [scatter(item, [some_gpu], [corresponding stream] for thing in input] # a recursive call
+          else:
+            # is a torch.Tensor
+            out = input.contiguous()
+            if to gpu:
+              output.cuda(target_gpus[0])
+            else:
+              return output.unsqueeze(0) #match same shape as those scattered to gpu??
+              !! BUT it does NOT match the above
+              HOWEVER it does "match" torch.nn.parallel._functions.Scatter.apply's output (except not a tuple)
+            return output
+
+        mmcv.parallel.scatter_gather.scatter(inputs, target_gpus, dim=0)
+          def scatter_map(obj):
+            if obj is a torch tensor
+              if target_gpus != [-1]:
+                torch.nn.parallel._functions.Scatter.apply(target_gpus, None, dim, obj)
+                (distribute obj across target_gpus)
+                return tuple of tensors on each given gpu
+                because len(target_gpus) == 1, then this is basically:
+                tuple([obj.cuda(target_gpus[0])])
+              else:
+                (CPU mode...?)
+                mmcv.parallel._functions.Scatter.forward(target_gpus, obj)
+                  get first device id of obj
+                  if on cpu and want gpu:
+                    get streams per device
+                  call mmcv.parallel._functions.scatter(obj, target_gpus, streams)
+
+                  synchronize()
+                  return tuple(outputs)
+            elif is a DataContainer:
+              if obj.cpu_only:
+                return obj.data
+              else:
+                Scatter.forward(target_gpus, obj) -> obj.data.cuda(target_gpus[0])
+            elif non-empty tuple:
+              return list(zip(*(scatter_map(_) for _ in obj))) ??? what is this for??
+            elif non-empty list:
+              return list(map(list, zip(*map(scatter_map, obj)))) ??? what is this for??
+            elif non-empty dict:
+              out = list(map(type(obj), zip(*map(scatter_map, obj.items())))) ???
+            else:
+              return [obj] * len(target_gpus)
+
+      notes
+        in practice:
+          initial input to scatter is:
+            inputs: (dict(k=DataContainer([[i1, ... iN]]), ...), optimizer)
+            kwargs: {}
+            target_gpus = [G]
+            dim = 0
+            samples_per_gpu = N
+          distributed so len(target_gpus) == 1
+          dataloader's batchsize is samples_per_gpu = only 1 subbatch
+
+          scatter_map(dict)->
+            scattered = [scatter_map(item) for item in obj.items()]
+            scatter_map(tuple)->
+              (key, DataContainer([[b1,...bN]]))
+              (key, DataContainer([tensor(N,C,H,W)])
+              (key, Tensor)
+              scattered = [scatter_map(key), scatter_map(value)]
+              scatter_map(key)->
+                [key] * G
+              scatter_map(value):
+                scatter_map(DataContainer)->
+                  [[b1,...bN]]
+                  [tensor(N, C, H, W)]
+                scatter_map(Tensor)->
+                  (Tensor (split by target_gpus),) (GPU)
+                  Tensor.unsqueeze(0) (CPU)
+                    NOTE: This is only "correct" len(target_gpus) == 1
+                    which is enforced because DataParallel with num_gpus
+                    > 1 raises error saying to use MMDistributedDataParallel
+                    instead.
+              list(zip(*scattered))->
+                [(key, subbatch1), (key(subbatch2)...)]
+                [(key, Tensor)]
+            list(map(type(obj), zip(*scattered)))->
+              [dict((key1, subbatch1), (key2, subbatch1)...),
+               (dict((key1, subbatch2), (key2, subbatch2)...),...)]
+            only 1 subbatch because dataloader's batchsize = N
+            if the value is a Tensor, not a DataContainer, then the result
+            would be
+
+
+
+  ______________________________
+  -1.2- distributed notes
+    I cannot find anywhere in the code where multiple processes
+    are created, so my conclusion is:
+      multiple processes for each gpu are started by the user
+      (mmdetection/tools/dist_train.py)
+      This means the pipeline is constructed per process and as
+      a result, the preprocessing is always performed even if that
+      process isn't going to use the results?
+
+______________________________
+-2- configs
+  ______________________________
+  -2.1- Config class
+    mmdet uses mmcv's Config class: https://mmcv.readthedocs.io/en/latest/utils.html#config.
+      A Config file is basically a python module loaded as an mmcv Config.
+      mmcv Configs are like a merge of collections.ChainMap with easydict.
+      The globals of the module are used as the Config's keys/values
+    Within a config, strings can be used with a particular pattern:
+      {{ VARNAME }} to be replaced with a predefined value, similar to
+      python's __file__ and functions similarly to str.format(VARNAME=value)
+      Note that the file gets copied to some temp location for processing
+      so these python values like __file__ and __name__ will not work.
+      NOTE: the spaces aren't actually required?
+
+      Supported VARNAMEs are:
+        fileDirname             current file's dirname
+        fileBasename            current file's basename (__name__)
+        fileBasenameNoExtension os.path.splitext(fileBasename)[0]
+        fileExtname             os.path.splitext(fileBasename)[1]
+      example:
+        cfg.py:
+          a = 1
+          b = '2'
+          c = '{{ fileDirname }}/{{ fileBasenameNoExtension }}, {{ fileExtname }}'
+          d = '{{ fileBasename }}'
+          e=', '.join((__file__, __name__))
+        >>> mmcv.Config.fromfile('./config_a.py')
+        Config (path: /test/dum.py):
+        {'a': 1, 'b': '2', 'c': '/test/dum, .py', 'd': 'dum.py',
+         'e': '/tmp/tmp_zb9cha_/tmpvkvnwz5g.py, tmpvkvnwz5g'}
+
+    Inheritance is performed by adding a line:
+
+      _base_ = parent
+
+    where parent can be:
+      'path/to/configfile.py':    relative path to a config file
+      ['path1', 'path2']:         list of relative paths to config files
+                                  In this case, the configs should be mutually
+                                  exclusive.
+
+    changes in the derived config will override the parent config values.
+    parent config values can be removed/ignored by adding:
+
+    _delete_=True
+
+    anywhere within a dict-like scope (includes global scope)
+    any scope with a _delete_=True will have all keys in that scope
+    from parent configs deleted.
+
+    Any other keys that begin with a single _ are still added to the
+    config.  However, keys beginning with double _ will be ignored.
+
+    Each config can add a custom_imports property:
+
+    custom_imports = dict(
+      imports=['module.mod'],
+      allow_failed_imports=False)
+
+    to import that module. This can be used to import any custom modules
+    so that they get registered before using them to build models, load data, etc
+
+    Generally configs contain dicts that can be used with
+    mmcv.utils.build_from_config in conjunction with a mmcv.utils.Registry.
+    Each constructor dict must contain at least a 'type' key that indicates
+    the name of the class that is registered with the registry.
+    eg:
+      something.py
+        arg1=1
+        arg2=2
+        constructor_args = dict(type='someclass', a=1, b=2, c=3)
+      __main__:
+        from mmcv.utils import Config
+        from somewhere import SOME_REGISTRY
+        cfg = Config.fromfile('something.py')
+        default_args = dict(a='a', d=4)
+        build_from_cfg(cfg, SOME_REGISTRY, default_args) #FAIL: cfg must be a dict
+        build_from_cfg(cfg.constructor_args, SOME_REGISTRY, default_args)
+          is equivalent to:
+        kwargs = default_args.copy() if default_args else {}
+        kwargs.update(cfg.constructor_args)
+        del kwargs['type']
+        SOME_REGISTRY.get(cfg.constructor_args.type)(**kwargs)
+
+      build_from_cfg summary:
+        cfg overrides default_args
+        cfg cannot be a mmcv.utils.Config
+        cfg must have a 'type' key
+
+  ______________________________
+  -2.2- mmdet configs
+    https://github.com/open-mmlab/mmdetection/blob/master/docs/tutorials/config.md
+
+    The config directory contains directories for each model/dataset combo.
+    Each directory should have at most 1 primitive config and any others
+    should inherit from that primitive config.
+
+    Some configs have intermediate values for non-dict items such as datasets
+    with train/test pipelines. If these values are modified, then they
+    still need to be passed to the final expected dict. 
+    
+    NOTE: docs say that but it doesn't make much logical sense
+    to do it that way... just modify the final dict. intermediate variables
+    are just extra unnecessary things to remember. They're not dicts anyways
+    so there's no kind of auto-inheritance, and they need to be fully
+    specified again anyways.
+    ie:
+    why do:
+      train_pipeline = [
+        stuff,
+        stuff,
+        morestuff
+      ]
+      data(
+        train=dict(pipeline=train_pipeline)
+    when you can just:
+      data(
+        train = [
+          stuff,
+          stuff,
+          more stuff
+        ])
+
+
+    In mmdetection, configs have 3 levels of inheritance:
+
+      1: base configs (under config/_base_)
+      2: primitives: (combine various base configs)
+      3: modified configs: (inherit from primitives)
+
+      names have the following format:
+        {model}_[model setting]_{backbone}_{neck}_[norm setting]_[misc]_[gpu x batch_per_gpu]_{schedule}_{dataset}
+      where {} = required and [] = optional
+    ______________________________
+    -2.2.1- base config types
+      data
+      model
+      schedule
+      default_runtime
+      ______________________________
+      -2.2.1.1- dataset
+        The various datasets are specified within a data attribute of
+        the config and can include train, test, and val.
+        It should have the following form:
+
+        data = dict(
+          samples_per_gpu=N,    (batchsize per gpu->dataloader)
+          workers_per_gpu=N,    (pre-fetch threads per gpu->dataloader)
+          train=dict(train dataset) (passed to build_dataset)
+          test=dict(test dataset)   (passed to build_dataset)
+          val=dict(val dataset)     (passed to build_dataset)
+
+        where each dataset has the following form:
+          dict(
+            type=str, name of DatasetClass, like CocoDataset
+
+            other fields required by that dataset type
+            (see mmdet/datasets)
+            
+            pipeline=[
+              dict(type='pipeline element', other args),
+              dict(type='pipeline element', other args),
+              ...
+              ex:
+              dict(type='LoadImageFromFile'),
+              dict(type='Resize', ...),
+              dict(type='RandomFlip', ...),
+              dict(type='Collect', ...)
+            ]
+          )
+      ______________________________
+      -2.2.1.2- model
+        model = dict(
+          type=name of model
+          (other model-required args (see model's constructor))
+        )
+
+      ______________________________
+      -2.2.1.3- schedule
+        optimizer = dict(type='...', ...)
+        optimizer_config = dict(grad_clip=None)
+        lr_config = dict(
+          policy='step',
+          warmp='linear',
+          warmp_iters=500,
+          warmup_ratio=0.001,
+          step=[16, 22])
+        total_epochs = numepochs
+
+        optimizer will be passed to a mmcv.runner class
+        these will also be passed to the runner.register_training_hooks
+          lr_config
+          optimizer_config
+          checkpoint_config
+          log_config
+          momentum_config
+
+        NOTE:
+        these BLAHBLAH_config values in the cfg are badly named. These
+        are actually hooks. (see mmcv.runner.hooks)
+        ie: optimizer_config has NOTHING to do with optimizer
+
+      ______________________________
+      -2.2.1.4- default_runtime
+        checkpoint_config = dict(interval=1)
+        log_config = dict(
+          interval=50,
+          hooks=[
+            dict(type='TextLoggerHook')
+          ])
+        dist_params = dict(backend='nccl')
+        log_level = 'INFO'
+        load_from = checkpoint-to-load-from or None
+        resume_from = checkpoint-to-resume-from or None
+        workflow = [('train', 1)]
+______________________________
+-3- datasets
+  datasets are derived from torch.utils.data.Dataset
+  (iterable or map)
+
+  mmdetection predefined wrappers for datasets:
+    RepeatDataset
+      repeat the dataset N times
+    ClassBalancedDataset
+      the raw dataset must have get_cat_ids(ids) method
+    ConcatenateDataset:
+      dict(
+        type='ConcatenateDataset',
+        datasets=[list of dataset dicts],
+        separate_eval=True/False)
+
+  datasets are wrapped in a pytorch DataLoader that handles batching etc
+
+  A dataset is a data format and parses information about the database.
+    ex: CocoDataset reads the annotation json file
+
+  Each dataset is given a pipeline that does the actual loading and 
+  preprocesing. For map-like datasets, information about the ith item
+  in the dataset is passed to the pipeline and the output of the pipeline
+  should be a dict which is then passed as input to the model.
+
+  a pipeline is a list of elements that each perform some kind of transform
+  on a a dict.
+
+  basically, it becomes something like:
+
+    dataset = CocoDataset(annotation_file='somefile.json', pipeline=...)
+    item0 = dataset[0]
+    process:
+      CocoDataset->
+        item0 = dict(filename='image0.jpg', bbox=[[1,2,3,4],...], ...)
+        pipeline(item0)->
+          item0_0 = pipeline[0](item0)
+          item0_1 = pipeline[1](item0_0)
+          item0_2 = pipeline[2](item0_1)
+          ...
+
+  most data items are wrapped in a
+  mmcv.parallel.datacontainer.DataContainer object in the default configs
+
+  Datasets output a single sample which is generally a dict. If it is
+  a dict whose values are DataContainer, then it will be converted
+  to a DataContainer([[gpu0's batch], [gpu1's batch]...]) in collation
+  step (samples->batch). If the values are Tensors, then they're simply
+  torch.utils.data.dataloader.default_collate()ed. Note that even though
+  DataContainer supports this kind of multi-gpu handling, MMDataParallel
+  will raise an exception if multiple gpus are used saying to use
+  MMDistributedDataParallel instead. As a result, the values in the
+  Dataset output could be Tensors, str, etc.
+
+  Note that because len(target_gpus) is always 1, any batch provided
+  from the DataLoader is used completely by that gpu. ie different
+  processes should have their own seed. There is no wasted preprocessing
+  like I had originally thought because of the misleading use
+  of scatter.
+
+  ______________________________
+  -3.1- DataContainer
+    def __init__(self,
+                 data,
+                 stack=False,
+                 padding_value=0,
+                 cpu_only=False,
+                 pad_dims=2):
+    see mmcv collate algorithm section for the meaning of these args
+
+    """A container for any type of objects.
+    Typically tensors will be stacked in the collate function and sliced along
+    some dimension in the scatter function. This behavior has some limitations.
+    1. All tensors have to be the same size.
+    2. Types are limited (numpy array or Tensor).
+    We design `DataContainer` and `MMDataParallel` to overcome these
+    limitations. The behavior can be either of the following.
+    - copy to GPU, pad all tensors to the same size and stack them
+    - copy to GPU without stacking
+    - leave the objects as is and pass it to the model
+    - pad_dims specifies the number of last few dimensions to do padding
+    """
+
+    Because deep learning models are generally dumb when it comes to batches
+    (all inputs must be same size, etc) DataContainer tries to bridge
+    the gap between these requirements and batches with special handling for
+    torch tensor types
+    
+    NOTE: There's nothing special about DataContainers, it's just that
+    mmcv also provides a collate_fn to torch.utils.data.DataLoader. The
+    collate_fn is called on a list of items that would have been part
+    of the batch. The default collate function would require the dataset
+    to return ints, ndarrays, lists, etc so giving a collate_fn allows
+    to use other datatypes.
+
+  ______________________________
+  -3.2- batch collation
+    collation is ALWAYS run in pytorch DataLoader
+    Collation occurs after batch is sampled but before it is passed
+    to the model for training. Collation is the process of converting
+    multiple samples into a single batch for processing. 
+
+    mmcv collation algorithm:
+      given a batch (list of samples):
+        split into subbatches of size samples-per-gpu
+        item = subbatch[0]
+        if isinstance(item, DataContainer):
+          if not item.cpu_only and item.stack:
+            DataContainer.data must be a tensor
+            tensors are assumed to be images of size 1, C, H, W
+            if pad_dims:
+              pad the last <pad_dims> dims. Assert that prior dims match
+              ie:
+                shapes = np.array([sample.size() for sample in subbatch])
+                maxshape = shapes[:,-pad_dims:].max(axis=0)
+                assert np.all(shapes[:,:-pad_dims] == shapes[0, :-pad_dims])
+                finalshape = np.concatenate((shapes[0,:-pad_dims], maxshape), axis=0)
+            else:
+              assume shapes are the same
+              and use default_collate on each subbatch
+          else:
+            return DataContainer(
+              [
+                [item.data for item in batch[batchstart:batchstart + samples_per_gpu]],
+                for batchstart in range(0, len(batch), samples_per_gpu)]
+              batch[0].stack,
+              batch[0].padding_value,
+              batch[0].cpu_only)
+        elif batch item is a Sequence:
+          transpose it:
+            [collate(sample) for sample in zip(*batch)]
+        elif batch item is a mapping:
+          collate per key (assuming all items in batch have same keys)
+        else:
+          torch.utils.data.dataloader.default_collate
+
+    symbolic summary:
+      dc = DataContainer
+      N = samples_per_gpu
+
+      list of dc:
+        if dc1.stack:
+          [dc1, dc2, ...] -> dc(
+            [default_collate([padded?dc1.data, ..., padded?dcN.data]), default_collate(...)])
+        else:
+          [dc1, dc2, ...] -> dc([[dc1.data, ... dcN.data], [dcN+1.data, ... dc2N.data], ...])
+      list of sequence:
+        [collate(sample, N) for sample in zip(*batch)]
+      list of dicts:
+        (This is outer case of mmdet since mmdet datasets return dicts)
+        [dict1, dict2, dict3] -> dict(k=collate([dict1[k], dict2[k], dict3[k]])...)
+      list of anything else:
+        torch.utils.data.dataloader.default_collate(stuff)
+        Tensor->stacked along dim 0
+
+  ______________________________
+  -3.3- pipeline
+    standard expected keys expected by mmdet are:
+      img: an img of shape (HWC)
+      proposals: ??
+      gt_bboxes: list of list of l,t,w,h
+      gt_bboxes_ignore:
+      gt_labels:
+      gt_masks:
+      gt_semantic_seg:
+
+
+    In mmdetection, the pipeline is a list of transformation functions
+    that add/modify keys in a dict and return the resulting dict.
+    mmdet provided functors include:
+      ______________________________
+      mmdet.datasets.pipelines.transforms:
+        Resize          PhotoMetricDistortion
+        RandomFlip      Expand
+        RandomShift     MinIOURandomCrop
+        Pad             Corrupt
+        Normalize       Albu
+        RandomCrop      RandomCenterCropPad
+        SegRescale      CutOut
+
+      ______________________________
+      mmdet.datasets.pipelines.formating:
+        ToTensor: convert keys to pytorch tensors
+
+        ImageToTensor: convert image (HWC) to pytorch tensor (CHW)
+
+        Transpose: transpose a tensor
+
+        ToDataContainer: convert to mmcv.parallel.DataContainer, takes a
+                         fields=(dict(key=key, **DataContainerArgs),...)
+                         (this simply wraps the item in a DataContainer)
+
+        DefaultFormatBundle: perform default formating of standard keys
+
+        Collect: select items to pass through, adds meta_keys as well
+
+        WrapFieldsToLists: return {k: [v] for k, v in orig.items()}
+
+______________________________
+-4- models
+
+  models should derive from mmdet.models.detectors.base.BaseDetector
+  (even if not actually a detector, it's fine)
+
+  properties:
+    with_XXX: does the model have a non-None XXX attr?
+      XXX = :
+        neck: 'neck'
+        shared_head: 'roi_head'
+        bbox: roi_head.with_mask OR bbox_head
+        mask: roi_head.with_mask OR mask_head
+    
+  methods:
+    extract_feat(img): extract features from image
+
+    extract_feats(imgs): extract features from images
+
+    forward_train(imgs, img_metas, **kwargs):
+      run forward + backward on imgs:
+      imgs: list of (usually) (1,C,H,W)-dimensional images
+      img_metas: list of dict with meta info (img_shape, scale_factor,
+        flip, filename, ori_shape, pad_shape, img_norm_cfg, etc)
+
+    async_simple_test(img, img_metas, **kwargs)
+    simple_test(img, img_metas, **kwargs):
+      no documentation
+    aug_test(imgs, img_metas, **kwargs):
+      test function w/ augment
+
+    aforward_test(*, img, img_metas, **kwargs)
+    forward_test(imgs, img_metas, **kwargs)
+      run the corresponding _simple_test or aug_test (for forward_test)
+      on all images
+
+    forward(img, img_metas, return_loss=True, **kwargs):
+      calls forward_train or forward_test with args
+    
+    _parse_losses(losses):
+      losses is a dict of raw output info
+      returns a dict of (losses, log_vars)
+    
+    train_step(data, optimizer):
+      data: output of DataLoader, a dict
+      returns a dict of:
+        loss:
+        log_vars:
+        num_samples: batchsize
+
+    val_step(data, optimizer):
+      same as train_step
+
+______________________________
+-5- Runtime
+  here, "runtime" indicates optimizer, training schedule, workflow, etc
+  (schedule+default_runtime in the configs section)
+
+  optimizer
+    NOTE:
+      the tutorial code seems outdated:
+      from .registry import OPTIMIZERS: there is no OPTIMIZERS
+      in any registry module
+
+    optimizers determine how a model is updated
+    optimizer's cfg can take a 'constructor' field which is the name
+    of the constructor to use.
+    optimizer constructors are called with a model to create the optimizer
+      the model's parameters (model might have some kind of say on
+      what optimizations it needs)
+  hooks
+    "Tricks not implemented by the optimizer should be implemented through
+    optimizer constructor"
+
+    log_config
+    checkpoint_config
+    evaluation
+    lr_config
+    optimizer_config
+    momentum_config
+
+
+    custom hooks:
+      inherit from runner.Hook and register to
+      mmcv.runner.HOOKS
+      custom_hooks = [
+        dict(type='name', vals=vals, priority='NORMAL|HIGHEST')
+      ]
+
+  workflow:
+    list of (phase, epoch)
+    ex:
+        [('train', 1), ('val', 1)]
+
+    NOTE:
+      mmdetection supports at most 2 items in workflow
+      only train and val dataloaders will be added if exist, and
+      len(dataloaders) MUST be equal to len(workflow)
+______________________________
+-6- losses
+  see mmdet.models.losses
+
+  losses are called by the particular model layer and should
+  define some kind of forward() method that calculates the loss
+
+  losses define a forward(pred, target, weight=None, avg_factor=None, reduction_override=None)
+
+  models/modules have a loss() method that should return a
+    dict(loss_.* = value, otherstuff)
+    where only loss_.* keys are back-propagated and otherstuff is just for logging
+______________________________
+-7- runner
+
