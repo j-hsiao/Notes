@@ -1,0 +1,231 @@
+-0- general
+  -0.1- events
+-1- figure
+-2- axes
+-3- canvas
+
+______________________________
+-0- general
+  from matplotlib import pyplot as plt
+  plt.show() shows all figures and
+  waits for them to close
+
+  In matplotlib:
+    canvas = window
+    figure = collection of axes
+    axes = a single plot
+    artist = something that is drawn
+
+  ______________________________
+  -0.1- events
+    callbacks are 'connected' to event types:
+      axes_enter_event
+      axes_leave_event
+      button_press_event
+      button_release_event
+      close_event
+      draw_event
+      figure_enter_event
+      figure_leave_event
+      key_press_event
+      key_release_event
+      motion_notify_event
+      pick_event
+      resize_event
+      scroll_event
+
+    enums:
+      MouseButton
+      back = 8
+      forward = 9
+      left = 1
+      middle = 2
+      right = 3
+
+    event base classes:
+      Event
+        base class
+        attrs: name, canvas, guiEvent
+      LocationEvent:
+        has screen location
+        attrs:
+          x, y: (from bottomleft of canvas)
+          inaxes: the axes the mouse is within
+          xdata, ydata: x,y for within the axes
+    Events
+      KeyEvent(LocationEvent, Event):
+        keyboard press
+        attrs:
+          key: the pressed key
+            'ctrl', 'alt', 'super' prefixes
+            delimited by +
+      MouseEvent(LocationEvent, Event):
+        attrs:
+          button: MouseButton enum, or 'up', 'down' (scrolling)
+          key: key pressed while mouse
+          step: >0 = up, <0 = down
+          dblclick: bool
+      PickEvent(Event):
+        Pick an artist
+        attrs:
+          mouseevent: the MouseEvent that caused PickEvent
+          artist: the picked artist
+          other: other attrs depending on artist type
+      ResizeEvent(Event):
+        attrs:
+          width, height (of the canvas)
+
+______________________________
+-1- figure
+  A figure is a collection of axes (plots) arranged in some way.
+  useful methods:
+    add_subfigure
+    add_subplot(rows, cols, idx)
+               (idxnum) (3-digit num: <rows><cols><idx>)
+    subplots(rows, cols, sharex=False, sharey=False, squeeze=True):
+      sharex/y: [True | False | 'row' | 'col']
+      squeeze: squeeze dimensions out of return array
+        1 subplot -> return subplot as is
+        1d subplot (row or col == 1) -> list of subplots
+        2d subplots-> 2d array of subplots
+    gca()
+      get current axes
+    get_*
+      axes()
+        get list of axes
+      figheight()
+      figwidth()
+    savefig(fnameOrFobj
+    sca(ax):
+      set current axis
+    show()
+      like cv2.imshow(1), just display no wait
+    sup[title|xlabel|ylabel](text, ha, va)
+      add top-level title, xlabel, ylabel
+    text(x, y, txt, fontdict=None):
+      add text
+    waitforbuttonpress(timeout=-1):
+      wait for a button press
+      True if button
+      False if mouse
+      None if timed out
+      <0 = no timeout
+
+______________________________
+-2- axes
+  Axes methods:
+    plot(x, [y, [format]], scalex=True, scaley=True, data=None, **kwargs)
+      x, y: list of x,y coordinates
+        if y not given, then use x as y and index as x
+        or keys for data argument to get the x,y coordinate
+        x,y can also be 2d to plot multiple lines.  (broadcasted)
+      format:
+        '<colorchar><marker><linestyle>'
+        colors:
+          b   blue
+          g   green
+          r   red
+          c   cyan
+          m   magenta
+          y   yellow
+          k   black
+          w   white
+          #rrggbb (if no marker/linestyle)
+        markers:
+          o   a circle
+          .   point
+          ,   pixel
+          v   triangle_down
+          ^   triangle_up
+          <   triangle_left
+          >   triangle:right
+          1   tridown
+          2   triup
+          3   trileft
+          4   triright
+          8   octagon
+          s   square
+          p   pentagon
+          P   plus(filled)
+          *   star
+          h   hexagon
+          +   plus
+          x   x
+          X   x(filled)
+          D   diamond
+          d   thin_diamond
+          |   vline
+          _   hline
+        linestyles:
+          -   solid
+          --  dashed
+          -.  dash-dot
+          :   dotted
+      kwargs:
+        lw, linewidth
+        ls, linestyle
+        marker
+
+    errorbar
+      plot with error bars
+    scatter
+      scatter plot
+    plot_date
+      use floats as dates
+    step
+      step plot
+    loglog
+      log scaling on x and y
+    semilogx
+      log scaling on x
+    semilogy
+      log scaling on y
+    fillbetween
+      fill between horizontal curves
+    fillbetweenx
+      fill between vertical curves
+    bar
+      bar plot (histogram)?
+    barh
+      horizontal bar plot
+    bar_label
+      label a barplot
+    stem
+      stem plot
+    eventplot
+      identical parallel lines at points
+    pie
+      pie chart
+    stackplot
+      stacked area plot??
+    broken_barh
+      horizontal sequence of rectangles
+    vlines(xs, ystart, ystop)
+      vertical lines at each x
+    hlines(ys, xstart, xstop)
+      horizontal lines at each y
+    fill
+      fill polygons
+
+
+
+______________________________
+-3- canvas
+  figure.canvas
+
+  get_width_height(*, physical=False)
+
+  generate events:
+    close_event(guiEvent=None)
+    button_press_event(x, y, button, dblclick=False, guiEvent=None)
+    button_release_event(x, y, button, guiEvent=None)
+    key_press_event(key, guiEvent=None)
+    key_release_event(key, guiEvent=None)
+    leave_notify_event(guiEvent=None)
+    motion_notify_event(x, y, guiEvent=None)
+  mpl_connect(eventname, func)
+    eventname: see -0.1- events
+    func: function that takes a single event object
+    Return a connection id for the function
+  mpl_disconnect(cid):
+    remove callback of the cid
