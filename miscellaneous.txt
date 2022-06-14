@@ -1,0 +1,8 @@
+Cygwin incorrect wrapping
+  In cygwin, if you resize the terminal while in vim, the terminal will
+  not see the window change.  As a result, it will wrap incorrectly.
+  (some posts say vim catches the window-change(WINCH) signal and
+  redraws, but does not propagate it to the terminal)
+  to fix:
+    1. exit vim, resize window again
+    2. kill -WINCH $$

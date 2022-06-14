@@ -95,7 +95,15 @@ ______________________________
         get list of axes
       figheight()
       figwidth()
-    savefig(fnameOrFobj
+    savefig(
+      fname, dpi=['figure'|float], format=None, metadata=None,
+      bbox_inches=None, pad_inches=0.1,
+      facecolor='auto', edgecolor='auto', backend=None,
+      orientation='landscape|portrait',
+      papertype='letter|legal|executive|ledger|a0-10|b0-10'
+      transparent=[True|False],
+      pil_kwargs=dict(extra-PIL.Image.Image.save kwargs)
+      )
     sca(ax):
       set current axis
     show()
