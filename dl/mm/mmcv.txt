@@ -16,6 +16,9 @@ contents
 -3- runner
   -3.1- hooks
   -3.2- methods
+-4- fileio
+-5- data processing
+-6- cnns
 
 
 
@@ -112,6 +115,7 @@ ______________________________
       The rest are the __init__ arguments.
 ______________________________
 -2- registries
+  mmcv.utils.registry.Registry
   Registry(name, build_func, parent, scope)
     provides register_module to decorate classes or functions(v1.5.1+)
     to add to a registry.  By default, the key is the __name__ of the
@@ -130,15 +134,33 @@ ______________________________
   ______________________________
   -2.2- scopes and parents
     registries have a "scope" which is the top-most level module in
-    which the registry is defined.  (if registry is defined in a.b.c.d,
-    then the "scope" is 'a').  When specifying a registered class/func,
-    the scope can be used to get items from a parent/sibling registry.
+    which the registry is defined.  Items in the registry can be
+    retrieved by 'scope.registrationname' or just 'registrationname'.
+    Scope is required if the item is not in the immediate registry.
 
-    Scope rules (by experimentation):
-      At most, 1 root parent Registry.
-      The parent Registry's children should have no children.
-      Parent and children registries should NOT be in the same scope
-        (parent will overshadow child registry in same scope)
+    Scope rules:
+      1. The Registry's scope defaults to __package__.split('.', 1)[0].
+        (Registry.infer_scope)
+      2. The Registry's scope CANNOT contain any '.':
+        (see Registry.split_scope_key). It splits the key on the first
+        '.' It means that if you try to use a scope of 'a.b.c',
+        registering a class D(object), using 'a.b.c.D' results in
+        scope = 'a', classname = 'b.c.D'.  The result is not found.
+      3. The scope.Name notation works from any registry in the same
+        family
+      4. If a Registry has a parent, it should NOT have any children.
+        (see Registry.get)  Children of children are not searched.
+      5. Child Registries should NOT have the same scope as parent.
+        (see Registry.get) If scope matches parent, no children are
+        searched.
+      6. Child Registries cannot share scope: (see Registry._add_children)
+      7. only classes are allowed before v1.5.1.
+        v1.5.1 and after, functions are also allowed
+        (Registry.register_module calls Registry._register_module)
+      8. Raw build_from_... methods do not care about the actual
+        containing registry's build_func attr.  The correct build_func
+        still must be searched separately
+
 ______________________________
 -3- runner
   runners run the training.
@@ -166,10 +188,40 @@ ______________________________
 
     mmcv.runner.IterBasedRunner
       run(data_loaders, workflow, max_iters=None, **kwargs):
+  Runners have attr/properties during training:
+    properties:
+      epoch
+      hooks
+      inner_iter
+      iter
+      max_epochs
+      max_iters
+      model_name
+      rank
+      world_size
+    attrs:
+      _inner_iter: iter within a train/val epoch
+      _iter: total train iters
+      _max_epochs: epoch limit
+      data_batch: the batch of data from iterating data_loader
+      data_loader: the data loader
+      _epoch: the current epoch
+      logger: the logger
+      mode: ['train'|'val']
+      model: the model 
+      optimizer
+      outputs: output of model.[train|val]_step
+      work_dir
+
+    training only:
+      _max_iters
+    val only:
+
 
   ______________________________
   -3.1- hooks
-    hooks must subclass mmcv.runner.Hook.  Hooks have corresponding
+    hooks must subclass mmcv.runner.Hook.  Methods take a single
+    argument: the runner doing the training.  Hooks have corresponding
     methods to the hook names below:
       general
         before_run
@@ -213,13 +265,136 @@ ______________________________
           VERY_LOW        90
           LOWEST          100
 
-
-
-
-
-
-
   ______________________________
   -3.2- methods
+    register_hook(hook, priority)
+    register_hook_from_cfg(cfg)
+    call_hook(hookname)
+    get_hook_info
+    load_checkpoint
     resume
+    register_lr_hook
+    register_momentum_hook
+    register_optimizer_hook
+    register_checkpoint_hook
+    register_logger_hooks
+    register_timer_hook
+    register_custom_hooks
+    register_profiler_hook
+    register_training_hooks
+      calls all the above register various hooks with respective
+      default priorities.  Order is lr, momentum, optimizer, checkpoint,
+      timer, logger, custom.
     save_checkpoint
+    current_lr():
+      list or {str:[]} of LR per param group
+    current_momentum():
+      list of {str:[]} of momentums per param group
+______________________________
+-4- fileio
+  supported formats: json, yaml, pkl
+  data = mmcv.load(fnameOrFobj)
+  mmcv.dump(data, fnameOrFobjOrNone, file_format=fmt)
+
+  list_from_file (list(open(fname)))
+  dict_from_file:
+    space-delimited key-value pairs, multiple values->list
+
+  mmcv.fileio.file_client:
+    different file storage/retrieval interfaces
+      HardDiskBackend
+      HTTPBackend
+
+    backend inteface:
+      get(uri)-> bytes of file content
+      put(bytes), uri)-> write bytes to uri
+
+  mmcv.fileio.file_client.FileClient
+    FileClient.infer(uri=path)-> instantiated backend
+
+______________________________
+-5- data processing
+  mmcv.image.io:
+    imread(
+      fname, flag='color', channel_order='bgr', backend=None,
+      file_client_args=None)
+        flag: str, grayscale | color | unchanged | color_ignore_orientation
+          | grayscale_ignore_orientation
+        channel_order: str, bgr | rgb
+        backend: str, cv2 | pillow | turbojpeg | tifffile | None
+    imwrite(
+      im, fname, params=None, auto_mkdir=None, file_client_args=None)
+        params: list (match opencv imwrite)
+    imfrombytes(...)
+      same as imread, but fname->bytes
+  mmcv.visualization.image
+    imshow(imorpath, winname='', wait_time=0)
+      same as cv2.imshow and cv2.waitKey
+      except if wait_time==0, use wait_time=1 and
+      check if window was closed (maybe old version of opencv-python?)
+      4.5.2 seems to detect window close just fine
+    flowshow(flow, win_name='', wait_time=0):
+      show flow image
+    flow2rgb(flow, color_wheel=None, unknown_thr=1e6):
+      convert a flow array into rgb image.
+      colorwheel = Nx3 array of N rgb colors.
+      values > unknown_thr are ignored
+
+  mmcv.image.colorspace
+    imconvert(im, src, dst):
+      src, dst: (str), bgr, rgb, hsv, etc
+      basically cv2.cvtColor(im, getattr(cv2, f'COLOR_{src.upper()}2{dst.upper()}'))
+
+    [bgr|rgb]2gray(im, keepdim=False)
+    gray2[bgr|rgb](im)
+
+  mmcv.image.geometric
+    imresize(
+      img, size, return_scale=False, interpolation='bilinear',
+      out=None, backend=None):
+        similar to cv2.resize
+        if return_scale, then returns (resized, wscale, hscale)
+        else just resized image
+    imrescale(
+      img, scale, return_scale=False, inerpolation='bilinear',
+      backend=None):
+        resize with aspect ratio considerations
+        scale can be a float [0-1] or a max width/height
+    imrotate(
+      img, angle, center=None,
+      scale=1.0, border_value=0, interpolation='bilinear', auto_bound=False)
+        rotate an image
+        auto_bound = increase output size to contain whole
+          rotated image
+    imflip[_](img, direction='horizontal')
+      direction: str, [ horizontal | vertical | diagonal ]
+      if imflip_, then inplace
+    imcrop(img, bboxes, scale=1.0, pad_fill=None):
+      crop images
+      if bboxes = 2d, then assume list of bboxes to crop
+    impad(
+      img, shape=None, padding=None, pad_val=0, padding_mode='constant')
+        add padding
+______________________________
+-6- cnns
+  layers:
+    layer build functions like mmcv.utils.registry.build_from_cfg, but
+    hard-coded registry.  Some also have default layer types.
+    mmcv.cnn.bricks.build_<type>_layer(cfg, *args, **kwargs):
+      <type>:           default available types:
+        activation      ReLU, LeakyReLU, PReLU, RReLU, ReLU6, ELU, Sigmoid, Tanh, GELU
+        conv            Conv1d, Conv2d, Conv3d, Conv=Conv2d
+        norm            BN=BN2d, BN1d, BN2d, BN3d, SyncBN, GN, LN, IN=IN2d, IN1d, IN2d, IN3d
+        padding         zero, reflect, replicate
+        plugin          GeneralizedAttention, ConvModule, ContextBlock, NonLocal2d, CrissCrossAttention
+          Registered names should be snakecase, classnmae should be 
+          bundles? (mixmultiple other layers into 1)
+        transformer     BaseTransformerLayer, TransformerLayerSequence
+        upsample        nearest, bilinear, deconv, deconv3d, pixel_shuffle, carafe
+    registries are in mmcv.cnn.bricks.registry.
+
+    Inherit from nn.Module and register with appropriate registry
+
+  initialization:
+    from mmcv.cnn import constant_init, xavier_init, normal_init, uniform_init
+      kaiming_init, caffe2_xavier_init, bias_init_with_prob
