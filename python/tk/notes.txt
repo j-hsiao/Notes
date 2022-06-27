@@ -6,6 +6,7 @@ Contents
     -1.1.2- Validation
     -1.1.3- focus
     -1.1.4- scrolling
+    -1.1.5- winfo
   -1.2- Grid
   -1.3- Variables
   -1.4- Colors
@@ -13,7 +14,11 @@ Contents
   -1.6- helpers
     -1.6.1- filedialog
     -1.6.2- messagebox
+    -1.6.3- colorchooser
+    -1.6.4- simpledialog
   -1.7- clipboard
+  -1.8- window manager
+  -1.9- images
 -2- Bindings
   -2.1- Event Sequences
     -2.1.1- Modifiers
@@ -298,23 +303,85 @@ ______________________________
 
       widget.configure([x|y]scrollcommand=scrollbar.set)
 
+    ______________________________
+    -1.1.5- winfo
+      geometry: window shape and position
+        <width>x<height>+<x>+<y>
+      height(): pixel height
+      width(): pixel width
+      pointer[x|xy|y]: returns pointer screen coordinates
+      reqheight(): requested height
+      reqwidth(): requested width
+      screen[height|width]: dimensions of screen
+      toplevel(): name of toplevel widget(combine with nametowidget)
+      root[x|y]: screen coordinates of top-left of widget itself
+      [x|y]:
+        for toplevel: xy of top-left window manager window: the
+          top window bar+outline.  May be farther left than the visual
+          window top-left(on windows 10, it seems to be shifted 8px to
+          the right, ie. x=-8 to put window on left edge of the screen.
+          (seems to match geometry() +x+y coordinates)
+        for widget: xy in parent widget
+
   ______________________________
   -1.2- Grid
-    grid splits widgets up into a grid of space.
-    grid(row=, col=, columnspan=, rowspan=, sticky=)
-      Put current widget into parent's grid.
-      sticky: a string of flags: nsew for north/south/east/west
-      row/col are 0-indexed so 0,0 is topleft
-      negative values might work? but idk...
-      row/columnspan let widget take up multiple rows/columns in parent
-      gridspace
+    grid splits widgets up into a grid of space and places widgets accordingly.
+    Note that widgets can only be gridded into
+
+    grid(**args...):
+    grid_configure(**args...):
+      row: the row
+      column: the column,
+      [row|column]span: width in terms of grid.
+      sticky: string of flags 'nsew' to stick to top,bottom,right,left
+      [i]pad[x|y]: padding i=internal (inside widget, ie make widget
+        bigger, add to its wifno_req[width|height]()),
+        otherwise external (between grid rows/cols)
+        x, y = the direction
+        ipad* must be int
+        pad* can be int(same value for both sides) or pair(left/right, or top/bottom)
+      [in|in_]: 'in' if dict, or in_ because in is a python keyword.
+        Place the widget in to the specified container widget.
+        NOTE: container must be a parent or descended from parent.
+
+    grid_bbox(x1=None,y1=None,x2=None,y2=None):
+      get bounding box (screen coordinates) of grid
+      if x1,y1 given: get bbox of that grid
+      if x2,y2 given, get bbox of slice from x1,y1 to x2,y2
 
     grid_rowconfigure(idx, props)
     grid_columnconfigure(idx, props)
+      idx: a col/row idx or list of idxs, 'all' or widget name
       properties:
         weight: weighting for space distribution of this row/col on
           resizing
         minsize: minimum pixel value of this row/col
+        pad: padding within row/column, ignored if sticky='nsew'?
+          padding added to largest col/row
+        uniform: columns in same uniform group (same uniform value)
+          have space strictly proportional to weight value???
+          (isn't this already the case?)
+
+
+    grid_info():
+      return dict of grid() command arguments
+
+    grid_location(x, y):
+      return grid row/column of x,y widget coordinates.
+      eg. get x,y from mouse event, use grid_location to calc which
+      row/col
+
+    grid_slaves(row=None, column=None):
+      Return widgets in the container.
+      row/column = only return the ones in specified row/col
+    grid_size():
+      return size of grid (largest column/row occupied/configured)
+
+    grid_remove
+    grid_forget
+      remove the widget, for remove, also remember settings
+      so grid() will place it as it was before removal
+
 
 
   ______________________________
@@ -405,6 +472,50 @@ ______________________________
               anything else: string of 32-bit ints??
     clipboard_clear()
 
+  ______________________________
+  -1.8- window manager
+    The window manager manages windows...
+    On Windows 10?, window manager pushes windows a few pixels to the right.
+    tk.Tk().geometry('+0+0') does not place the window at topleft.
+    in tkinter, wm commands don't have the wm prefix:
+      ie: to do wm attributes, just do tk.Tk().attributes(...)
+
+    attributes: set/get various attributes:
+      use no args to find valid attributes (flattened Nx2 array)
+      Options vary by OS
+      options on windows
+        -fullscreen (bool)
+        -topmost (bool)
+        -toolwindow ("toolwindow style window")
+        -disabled (bool)
+        -alpha (0-1)
+        -transparentcolor (index)
+    deiconify()
+    geometry: similar to winfo_geometry, but allows setting geometry
+      <width>x<height>+x+y, can ommit width/height or x/y
+    iconbitmap: specify a bitmap for window icon
+    iconify()
+    maxsize(width, height)
+    minsize(width, height)
+    resizable(dowidth, doheight): allow width/height to be resizeable
+    state(state): normal, iconic, withdrawn, icon, or zoomed(win/macos)
+    title(title): set window title
+
+    overrideredirect: ignore window manager->no top ribbon etc
+  ______________________________
+  -1.9- images
+    use pillow:
+      from PIL import Image, ImageTk
+      images:
+        ImageTk.PhotoImage(
+          Image.open(file path)
+          Image.fromarray(numpy array))
+        ImageTk.BitmapImage(
+          Image.open(file path).convert('1')
+          Image.fromarray(numpy array).convert('1'))
+          ('1' = number 1 not lower L)
+
+
 ______________________________
 -2- Bindings
   Bindings bind callbacks to certain event sequences.
@@ -442,7 +553,7 @@ ______________________________
           'if {"[2235275164928callback %# %b %f %h %k %s %t %w %x %y %A %E %K %N %W %T %X %Y %D]" == "break"} break\n\n
            if {"[2235301124864callback %# %b %f %h %k %s %t %w %x %y %A %E %K %N %W %T %X %Y %D]" == "break"} break\n'
 
-      In otherwords, for more control (not sure if parsing the extra 
+      In otherwords, for more control (not sure if parsing the extra
       arguments may also reduce performance by any significant amount)
         method 1: use register and the callwrapper mechanism:
           def substitute(raw '%char' return values as strs):
@@ -518,6 +629,44 @@ ______________________________
 
     NOTE: MouseWheel is usually only on mac/windows.
       Use button4(up) and button5(down) otherwise.
+
+    Observations about Motion events:
+      Documentation says if several motion events occur in a row,
+      only the last is used for bind matching purposes.  However, it is
+      unclear how this is done.  When using warp, a new Motion event is
+      only generated if the mouse is not already at the coordinate.
+      The event from event_generate and the motion from warp are
+      considered separate things.  The warp happens at time of event
+      generation.  The callbacks happen in queue order.  The merging
+      of Motion events also seems to happen at enqueueing time.
+      (If enqueue at end, check last items to see if merge)
+
+      generate warp <Motion> events from x=y=0 to x=y=10
+      1. final mouse position is always 10 regardles of 'when'
+      2. if when ==
+        'tail': only 1 <Motion> callback is called (and maybe a generated one too)
+        'head': all <Motion> callbacks are called
+        'mark': all <Motion> callbacks are called
+        'now': all <Motion> callbacks are called immediately
+      3. Motion events are only created naturally if the cursor is
+        already within the application window.  (otherwise is <Enter>
+        when first enterring the window from outside)
+
+      As an example, if you are trying to lock mouse position.
+      if tail:
+        the newly generated <Motion> events will be enqueued at tail
+        and may be overwritten by actual mouse movements.  As a result,
+        the generated event will warp, but might not be processed (merged
+        with actual mouse motions).  To ensure processing, must event_generate
+        with head, mark or now.  If event_generate with now, then it may
+        also result in incorrect behavior with sequence of events:
+          <Motion>(bindtag1)
+          event generate when=now!
+          generated<Motion>(bindtag1)
+          generated<Motion>(bindtag2)
+          return from <Motion>(bindtag1)
+          <Motion>(bindtag2)
+
 
     Keypress names:
       a-zA-Z0-9
@@ -838,52 +987,115 @@ ______________________________
         enter/leave, state is unreliable, better to just
         bind something (or empty script) to all B1-Motion events etc.
 
-______________________________
--4- Menus
-  Menus are top-level widgets (can't be gridded)
-  There are 3 menu types:
-  configs:
-    postcommand
-      called before post()
-    selectcolor
-    tearoff
-      bool, add a tearoff entry at 0 (default True)
-    tearoffcommand
-      called just before tearoff 
-    title:
-      torn off window's title
-    type
-      tearoff: a new window that acts as a menu
-      normal : a right-click menu
-      menubar: A menubar on the window
+  ______________________________
+  -3.8- Menu
+    Menus are top-level widgets (can't be gridded).  It also does not
+    take any widgets.  Entries are created by the menu widget itself.
+    Menu entries generally have one of: label, image, bitmap.  This is
+    the description of the menu item. eg. file, edit, help, etc...
+    They can also take an optional accelerator which just describes a
+    keyboard shortcut.  (used as is, but does not do any binding, purely
+    visual).  Use a Menu as the 'menu' value in toplevel config to add
+    a menu bar.  Otherwise, use post() to place the menu somewhere.
 
-    For tearoff and normal, you do menu.post() to make it show
-    for menubar, you do toplevel.config(menu=menu) to "grid" it.
+    <<MenuSelect>> is fired when the active entry changes.
 
-    Menubars have a "tearoff" config value which basically means they have an extra
-    tearoff item added at the top which converts it into a window.
+    entry types:
+      command: like a button widget
+        command
+      separator: a line separator
+      checkbutton:
+        command, onvalue, offvalue, variable, selectcolor
+      radiobutton:
+        command, value, variable, selectcolor
+      cascade: open a submenu
+        menu, command(not on windows)
+        call postcascade to post submenu
+        unpost to close submenu
+      tearoff: like a command entry that causes the menu to become, its
+        own Toplevel. (has window etc) cannot be created via Menu.add
 
+    Entries are refered to via index:
+      'active', 'end', 'last', 'none',
+      @pixelnum, num, labelpattern
 
-  add: add an item
-    types:
-      command           like a button
-      separator         a dividing line (appearance only)
-      checkbutton       toggle option
-                        onvalue, offvalue, variable, selectcolor, command
-      radiobutton       mutually exclusive choices
-                        value, variable, selectcolor, command
-      cascade           create cascading menus
-                        post/unpost (does what??)
-                        command (unavailable to windows)
-      tearoff           cause torn-off copy of (sub)menus
-      menubar           a menu bar...
-    common item properties:
-      label/bitmap/image        the displayed text/image
-      accelerator               shortcut key combo desc, only displayed
-                                if not menubar top-level item
-      indicator                 indicate state (for radio/check only)
+    special menus:
+      windows: System (alt+space)
+      Mac: Application, Window, Help
+      X Windows??:  Help
 
+    clones:
+      whenever posted or set as a menubar, a clone is used (child of
+      original menu)
 
+    menu entry config options:
+      activebackground
+      activeforeground
+      accelerator
+      background
+      bitmap
+      columnbreak: 0/1, start a new column? (ignored on mac)
+      command
+      compound
+      font
+      foreground
+      hidemargin
+      image
+      label
+      state: normal, active, disabled
+      underline: underline a character at given index in 'label' value
+        for quick-key traversal/selection
+      cascade only
+        menu
+      checkbutton only
+        [off|on]value:
+        indicatoron
+        selectcolor
+        selectimage
+        variable
+      radiobutton only
+        indicatoron
+        selectcolor
+        selectimage
+        value(defaults to value for label)
+        variable
+
+      postcommand
+        called before post()
+      selectcolor
+      tearoff
+        bool, add a tearoff entry at 0 (default True)
+      tearoffcommand
+        called just before tearoff
+      title:
+        torn off window's title
+      type
+        tearoff: a new window that acts as a menu
+        normal : a right-click menu
+        menubar: A menubar on the window
+
+    methods:
+      activate(idx): activate specified entry (or 'none')
+      add(type, **options): add an entry
+      delete(*idxs): delete the entries
+      entrycget(idx, option): get entry value
+      entryconfigure(idx, **options): configure entry
+      index(idx): return int index
+      insert(idx, type, ...): add, but specify where
+      invoke(idx): call its command
+      post(x, y, idx=0): Display menu entry at idx at x,y screen-coords
+      postcascade(idx):post the cascade menu, idx should be a cascade
+        entry item
+      type(idx): type of entry at idx
+      unpost(): hide menu (ignored by windows/mac)
+      [x|y]position(idx): basically winfo_[x|y], if menu entries were a
+        widget.
+  ______________________________
+  -3.9- Menubutton
+    stand-alone cascade menu item that is a widget.
+    can also take a variable
+    ex: option menu: when click, open up cascade menu
+      select an item->update the variable
 
 sources:
 https://tkdocs.com/tutorial/tree.html
@@ -935,10 +1147,10 @@ contents
   :2t: ttk.Notebook
   :2u: ttk.Treeview
   :2v:
-  :2w: 
-  :2x: 
-  :2y: 
-  :2z: 
+  :2w:
+  :2x:
+  :2y:
+  :2z:
 
 
 :3: geometry manager
@@ -959,40 +1171,40 @@ contents
   ------------------------------
     from tkinter import *
     from tkinter import ttk
-    
+
     def calculate(*args):
         try:
             value = float(feet.get())
             meters.set((0.3048 * value * 10000.0 + 0.5)/10000.0)
         except ValueError:
             pass
-        
+
     root = Tk()
     root.title("Feet to Meters")
-    
+
     mainframe = ttk.Frame(root, padding="3 3 12 12")
     mainframe.grid(column=0, row=0, sticky=(N, W, E, S))
     mainframe.columnconfigure(0, weight=1)
     mainframe.rowconfigure(0, weight=1)
-    
+
     feet = StringVar()
     meters = StringVar()
-    
+
     feet_entry = ttk.Entry(mainframe, width=7, textvariable=feet)
     feet_entry.grid(column=2, row=1, sticky=(W, E))
-    
+
     ttk.Label(mainframe, textvariable=meters).grid(column=2, row=2, sticky=(W, E))
     ttk.Button(mainframe, text="Calculate", command=calculate).grid(column=3, row=3, sticky=W)
-    
+
     ttk.Label(mainframe, text="feet").grid(column=3, row=1, sticky=W)
     ttk.Label(mainframe, text="is equivalent to").grid(column=1, row=2, sticky=E)
     ttk.Label(mainframe, text="meters").grid(column=3, row=2, sticky=W)
-    
+
     for child in mainframe.winfo_children(): child.grid_configure(padx=5, pady=5)
-    
+
     feet_entry.focus()
     root.bind('<Return>', calculate)
-    
+
     root.mainloop()
 
 root: Tk()
@@ -1008,12 +1220,12 @@ handle on the root window
                       in the grid, anchor to these positions
     background      : name ('red'), hex (#ff340a)
     borderwidth     : border width
-    class           : 
+    class           :
     compound        : str:
                       text, image (only text or image)
                       center, top, left, bottom, right
                           (put text at position on image)
-    cursor          : 
+    cursor          :
     default         : active: default, normal: normal (for appearance, like Button)
     elide           : tag config for tk.Text
     font            : TkDefaultFont
@@ -1030,9 +1242,9 @@ handle on the root window
                       lower bound (ie of ttk.Scale)
     image           : PhotoImage(file = 'path2file.gif') (only gif or ppm or whatever weird thing)
                       otherwise use PIL (pip install pillow
-                          from PIL import ImageTk
+                          from PIL import ImageTk, Image
                           ImageTk.PhotoImage(file = 'path2file')
-                          Image.fromarray(pixels)
+                          ImageTk.PhotoImage(Image.fromarray(nparray))
     justify         : left, center, right
     length          : len (pixels)
     maximum         : (ttk.Progressbar)
@@ -1049,7 +1261,7 @@ handle on the root window
     show            : example: Entry->show a different character (ie type a password)
     state           : for tkinter widgets (not ttk), 'normal', 'disabled'
     style           : themes
-    takefocus       : 
+    takefocus       :
     text            : 'TEXTSTRING'
     textvariable    : StringVar()
     to              : to value
@@ -1068,7 +1280,7 @@ general functions:
     grid(column = M, row = N, sticky = (N, W, E, S...))
         row/column: where to place the item
         sticky    : alignment (north, south, east, west)
-        
+
 
     columnconfigure(X, weight=_, padx = _, pady = _)
     rowconfigure(Y, weight=Y, padx = _, pady = _)
@@ -1078,7 +1290,7 @@ general functions:
     winfo_children()
 
     focus()
-    
+
     configure(*args, **kwargs)
         args: name of a property to describe
         kwargs: set the property
@@ -1106,7 +1318,7 @@ flags:
 bind('key description', callback)
     patterns:
         keydescs separated by white space
-            
+
         1: 'k'
             k = a key
             (any non-space not '<'
@@ -1157,7 +1369,7 @@ bind('key description', callback)
             Unmap               Expose
             Visibility          Focusin
             Tab                 <<ComboboxSelected>> (for comboboxes)
-            
+
         example Double-Button-1
 
     http://www.tcl.tk/man/tcl8.5/TkCmd/bind.htm
@@ -1174,7 +1386,7 @@ NOTE: for each
 just do:
     from tkinter import ttk
     ttk.CLASSNAME().configure().keys() to see fields
-    or 
+    or
     ttk.CLASSNAME().configure()[field] to see explanations
 
 
@@ -1200,14 +1412,14 @@ just do:
     trace(mode, callback)
         mode: 'w', 'r', 'u' (write, read, unset)
         callback: a callback function taking some args
-        
-    
+
+
 
 
 
 :2c: ttk.Frame(parentWindow, padding="3 3 12 12")
     an empty frame (rectangle)
-    
+
 :2d: ttk.Entry(parent, width, textvariable)
     text entrybox
     textvariable: where to store the text input
@@ -1229,7 +1441,7 @@ just do:
         2 callbacks:
             validate: return 0 or 1 (True or False)
             invalidcommand: runs when invalid
-        
+
 
 
 :2e: ttk.Label(parent)
@@ -1238,7 +1450,7 @@ just do:
     a button,
     methods:
     invoke: invoke the callback
-    
+
 :2g: ttk.CheckButton(parent, configs)
     a checkbutton
     methods:
@@ -1282,7 +1494,7 @@ just do:
         .selection_set(start, stop = None)
         .see(index)
 
-    :2k: ttk.Scrollbar    
+    :2k: ttk.Scrollbar
         command:
             pair with a scrollable widget:
                 use targetWidget.yview or targetWidget.xview
@@ -1438,7 +1650,7 @@ just do:
     :2u: ttk.Treeview
         view object and attributes
         scrollable
-        
+
 
 
 
@@ -1448,12 +1660,12 @@ just do:
 :3: gemoetry manager
 ##############################
 :3a: grid
-    
+
     idea: columns and rows (put on graph paper)
     ------------------------------
     widget.grid
         column     :
-        row        : 
+        row        :
         columnspan :
         rowspan    :
         sticky     : any of 'nswe' (any combination, stretch to be stuck to corresponding spot)
@@ -1529,7 +1741,7 @@ just do:
                 PIL.ImageTk.PhotoImage
         compound = l,t,rb, center, none
 
-    
+
     ##############################
     context menus (right click)
         create menu,
@@ -1664,7 +1876,7 @@ messages:
 ##############################
 should create a style and use style
 instead of directly using the font option
-  
+
     ------------------------------
     default fonts
     ------------------------------
@@ -1677,16 +1889,16 @@ instead of directly using the font option
     TkSmallCaptionFont    : smaller form of above
     TkIconFont            : icon captions
     TkTooltipFont         : tooltips
-    
-  
+
+
     from tkinter import font
     font.Font(family = 'fontFamily', size = size, weight = weight)
-  
+
     weight:          'bold', 'normal'
     slant:           'roman', 'italic'
     underline:       bool
     overstrike:      bool
-    
+
     NOTE:
         guaranteed:
             Courier, Times, Helvetica
@@ -1747,26 +1959,26 @@ item options:
     to change options, or set when
     creating it
 
-    acitvedash          : 
-    activefill          : 
-    activestipple       : 
-    activewidth         : 
-    arrow               : 
-    arrowshape          : 
-    capstyle            : 
-    dash                : 
-    dashoffset          : 
-    disableddash        : 
-    disabledfill        : 
-    disabledstipple     : 
-    disabledwidth       : 
+    acitvedash          :
+    activefill          :
+    activestipple       :
+    activewidth         :
+    arrow               :
+    arrowshape          :
+    capstyle            :
+    dash                :
+    dashoffset          :
+    disableddash        :
+    disabledfill        :
+    disabledstipple     :
+    disabledwidth       :
     fill                : color
-    joinstyle           : 
-    offset              : 
-    smooth              : 
-    splinesteps         : 
-    state               : 
-    stipple             : 
+    joinstyle           :
+    offset              :
+    smooth              :
+    splinesteps         :
+    state               :
+    stipple             :
     tags                : tags: extra group ids
     width               : pixel width
 
@@ -1785,10 +1997,10 @@ adding items:
     canvas.create_text
     canvas.create_window
         (other widgets in a frame)
-    
 
 
-        
+
+
 ______________________________
 binding:
     canvas.tag_bind(

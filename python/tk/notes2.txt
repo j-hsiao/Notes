@@ -42,117 +42,6 @@ styles and themes
 clipboard
 
 
-
-
-##############################
-::importing
-##############################
-NOTE:
-    python2:
-        direct imports:
-        Canvas
-        Dialog
-        FileDialog
-        FixTk
-        ScrolledText
-	SimpleDialog
-        Tix
-        Tkconstants
-        Tkdnd
-        Tkinter
-	tkColorChooser
-        tkCommonDialog
-        tkFileDialog
-        tkFont
-        tkMessageBox
-	tkSimpleDialog
-        ttk
-        turtle
-    python3:
-        i think all are in tkinter?
-        and may be named differently
-        ie:
-        from tkinter import FileDialog
-                vs
-        import tkFileDialog
-
-
-##############################
-::basics
-##############################
-widget: something in the window, generally
-        organized within frames
-configuration options: see widget.configure()
-
-##############################
-::creating an application:
-##############################
-1. create a root window
-    root = tk.Tk()
-    '''add stuff to window etc'''
-    root.mainloop()
-
-
-##############################
-::geometry management
-##############################
-geometry managers put widgets into window
-  grid
-  place
-  pack
-  other
-______________________________
-::  grid
-  assign widgets columns and rows to occupy
-  size the rows and columns accordingly to fit everything
-  rows and columns are 0-indexed
-
-  adding widgets:
-    widget.grid(**kwargs):
-      row: row index
-      column: column index
-      rowspan: # of rows to take up
-      columnspan: # of columns to take up
-      sticky: "nsew", default is center, similar to anchor widget configuration
-              opposite values ('ns', 'ew') makes the widget
-              stretch to fill up the cell in the corresponding
-              direction
-      padx: extra padding in x direction
-      pady: extra padding in y direction
-      ipadx: internal padding: give as if widget is fatter
-      ipady: internal padding: give widget extra space as if widget is fatter
-        1 value = both sides, 2 = one per, order is
-          left-right, or top-bottom (placed within the cell)
-  resizing:
-    window = containing "widget"
-      could be root, a Frame, etc
-    window.rowconfigure(**kwargs)
-    window.columnconfigure(**kwargs)
-      weight: ratio to change when window size changes
-      minsize: minimum size for row or column
-      pad: padding, similar to padding widget configuration
-        (between columns/rows)
-        NOTE: this seems to be ignored if widget is
-        gridded with sticky = "nsew"
-  introspection:
-    window.grid_slaves(**kwargs):
-      no kwargs: return all slaves
-      row = N: return slaves in row N
-      column = n: return slaves in column N
-    widget.grid_info():
-      return grid info
-    widget.grid_configure(**kwargs):
-      (like grid() except change settings)
-
-      
-
-
-
-
-
-
-
-
 ##############################
 ::widgets overview
 ##############################
@@ -218,10 +107,10 @@ ______________________________
 ______________________________
 ::  general properties:
   anchor: str: stick to location within allotted space
-    n     ne 
-    s     nw 
-    e     se 
-    w     sw 
+    n     ne
+    s     nw
+    e     se
+    w     sw
     center
 
   background: string: background color
@@ -239,7 +128,7 @@ ______________________________
     image   right
     center  bottom
     top
-            
+
   default: str: default state?
     normal
     active
@@ -256,9 +145,9 @@ ______________________________
 
   foreground: str: foreground color
     see background for value descriptions
-    
+
   height: str
-  width:  
+  width:
     "350c": 350 cm
     "350i": 350 inches
     "350" : 350 pixels or chars (depending on context)
@@ -268,7 +157,7 @@ ______________________________
     left
     right
     center
-    
+
   length: int
     a length
   listvariable:
@@ -296,7 +185,7 @@ ______________________________
     "5"    : 5px all around
     "5 10" : 5 px horizontal, 10 px vertical
     "l t r b": l t r b pixels in corresponding places
-            
+
 
   relief: str
     flat
@@ -339,7 +228,7 @@ ______________________________
   xscrollcommand: Scrollbar.set
   yscrollcommand: Scrollbar.set
     scrolling
-    
+
 ______________________________
 ::  general methods
   instate(flags, [cmd]): for ttk widgets
@@ -351,12 +240,12 @@ ______________________________
         selected
     cmd  : optional command to run if flags matches
 
-  configure(): 
+  configure():
     if given a property string, return data on that property
     no args: return everything in a dict
 
   cget('value'):
-    like configure('value')[-1] ??? 
+    like configure('value')[-1] ???
 
   state(flags): for ttk widgets
     flags: list of flag names to set or unset, see state
@@ -388,8 +277,8 @@ ______________________________
       arg2 = position between 0 and 1
              for the left position in view
              ( so 0.5, the left position is at 50% of the entire widget)
-        
-        
+
+
 
 
 ______________________________
@@ -403,11 +292,11 @@ ______________________________
     cursor          takefocus
     height          width
     padding
-  NOTE: 
+  NOTE:
     tk.Frame has more properties
-    
-    
-   
+
+
+
 ______________________________
 :: Label
   ttk.Label
@@ -423,8 +312,8 @@ ______________________________
     font          underline
     foreground    width
     image         wraplength
-    justify       
-    
+    justify
+
 ______________________________
 :: Button
   ttk.Button
@@ -437,10 +326,10 @@ ______________________________
     cursor       textvariable
     default      underline
     image        width
-    padding      
+    padding
   useful methods:
     invoke: invoke callback
-    
+
 ______________________________
 :: Checkbutton
   ttk.Checkbutton
@@ -460,8 +349,8 @@ ______________________________
     offvalue    variable
     onvalue     width
     padding
-    
-______________________________ 
+
+______________________________
 :: Radiobutton
   ttk.Radiobutton
   tk.Radiobutton
@@ -478,8 +367,8 @@ ______________________________
     padding     variable
     style       width
     takefocus
-    
-______________________________ 
+
+______________________________
 :: Entry
   ttk.Entry
   tk.Entry
@@ -506,10 +395,10 @@ ______________________________
       get text
 
     icursor(index)
-      move cursor 
-    
-    
-______________________________    
+      move cursor
+
+
+______________________________
 :: Combobox
   ttk.Combobox
   NOTE: there is no tk.Combobox
@@ -528,7 +417,7 @@ ______________________________
     invalidcommand     width
     justify            xscrollcommand
     postcommand
-    
+
   note:
     readonly flag can be set requiring
     user to choose from the list
@@ -567,7 +456,7 @@ ______________________________
   methods:
     curselection()
       list of selected indices, may be empty if none selected
-      
+
     delete(first, last = None):
       delete items from first to last inclusive
       first, last: 0-based index, or "end"
@@ -679,7 +568,7 @@ ______________________________
 
     set(value):
       set scale's value
-    
+
 
 ______________________________
 :: Spinbox
@@ -728,7 +617,7 @@ ______________________________
 :: Menu
   tk.Menu
     a menu item
-  should call 
+  should call
     root.option_add('*tearOff', False)
   before using menus otherwise
   menu can be removed
@@ -792,7 +681,7 @@ ______________________________
       (use event.x_root, event.y_root in the callback)
       example:
         window.bind('<2>', lambda event : menu.post(event.x_root, event.y_root))
-    
+
 ______________________________
 :: Toplevel
   tk.Toplevel
@@ -839,7 +728,7 @@ ______________________________
       return width of screen
     winfo_screenheight()
       return height of screen
-      
+
 ______________________________
 :: Separator
   ttk.Separator
@@ -881,7 +770,7 @@ ______________________________
 
     insert(index, object):
       insert object
-    
+
 ______________________________
 :: Notebook
   ttk.Notebook
@@ -892,14 +781,14 @@ ______________________________
       kwargs:
         text: tabname
         state: 'normal', 'disabled', 'hidden'
-        
+
     insert(index, object)
       insert object at index
 
     select(index):
       select the tab
       index is the tab or 0 to n-1
-    
+
     tab(tabid, [option], **kwargs):
       if kwargs:
         set options
@@ -911,7 +800,7 @@ ______________________________
     tabs():
       get all tabs
 
-______________________________    
+______________________________
 :: canvas
   tk.Canvas
     a canvas
@@ -928,7 +817,7 @@ ______________________________
       list of coordinates for item
       if *coordargs not given else change
       coordinates
-      
+
     create_bitmap
 
     create_image
@@ -982,7 +871,7 @@ ______________________________
       raise/lower tag past otag if given
       else by 1 level
 
-      
+
   properties:
     background              insertontime
     bd                      insertwidth
@@ -1054,7 +943,7 @@ ______________________________
     get(start, stop):
       get the text
       start, stop are indices (line.char) or end
-      
+
     image_create(index, image = im)
       add an image at index
 
@@ -1100,10 +989,10 @@ ______________________________
 
     tag_add(name, start, stop):
       tag the text
-      
+
     tag_bind(tagname, event, callback):
       bind a callback to tagname text
-      
+
     tag_cget(tagname)
       return configuration of tag
 
@@ -1143,7 +1032,7 @@ ______________________________
 
     tag_ranges(tagname):
       return ranges for tagname
-      
+
     tag_remove(tagname, start, stop)
 
     window_create(index, window = win)
@@ -1165,7 +1054,7 @@ ______________________________
     2 default marks:
     "insert" where text would be inserted
     "current": under mouse position
-    
+
   peering:
     apparently can share text with other texts
     using a "peer" method, but
@@ -1189,7 +1078,7 @@ ______________________________
       displaycolumns: list of colheaders or numbers
                       or '#all' or (space delimited string)
       show: list of values (or space delimited string)
-            tree, headings, 
+            tree, headings,
       selectmode: extended, browse, none
 
   methods:
@@ -1279,7 +1168,7 @@ ______________________________
     <TreeviewOpen>
     <TreeviewClose>
 
-      
+
 
 
 
@@ -1328,7 +1217,7 @@ widget.bind(key, callback, **kw)
       type      : type field from event
       x_root    : relative to virtual root window (to screen not root?)
       y_root    : relative to virtual root window (to screen not root?)
-      
+
 
   key:
     '[key]':
@@ -1336,7 +1225,7 @@ widget.bind(key, callback, **kw)
     <modifier-modifier-type-detail>
       require at least one of type or detail
       must be separated by whitespace or dashes
-      
+
     modifiers
       Control             Mod1, M1, Command
       Alt                 Mod2, M2, Option
@@ -1369,7 +1258,7 @@ widget.bind(key, callback, **kw)
       MouseWheel:
         use %D substitution??
         + = up, - = down
-      KeyPress, KeyRelease: 
+      KeyPress, KeyRelease:
         keyboard
       ButtonPress, ButtonRelease, Motion:
         mouse
@@ -1391,7 +1280,7 @@ widget.bind(key, callback, **kw)
         when window X property changes
       Colormap:
         colormap for window changed
-      MapRequest, CirculateRequest, 
+      MapRequest, CirculateRequest,
       ResizeRequest, ConfigureRequest, Create
         ignore these
       Gravity/Reparent/Circulate
@@ -1534,7 +1423,7 @@ ______________________________
       overstrike
     measure(text)
       return width of text
-      
+
 
 ##############################
 ::images
