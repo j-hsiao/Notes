@@ -7,6 +7,7 @@
 -4- extending distutils
 -5- setuptools (enhanced distutils)
 -6- namespace packages
+-7- repositories
 
 ______________________________
 -0- general
@@ -198,6 +199,17 @@ ______________________________
 -6- namespace packages
   see also pep420 (for python3.3+)
 
+  For packages inside a namespace, when packaging, it is recommended to
+  use namespace.package as the 'name' field in setup() (pep423).  Also,
+  you should not make namespace packages too deep.  If a namespace
+  package is not a top-level package, every package above it must also
+  be a namespace package.  Otherwise, searching will be stopped by those
+  packages.
+
+  Note that relative imports are also possible between different packages
+  in the same namespace.  This would allow the namespace to change without
+  having to change all the code.
+
   in namespace:
     __init__.py:
       from pkgutil import extend_path
@@ -241,3 +253,40 @@ ______________________________
     doing python setup.py install (uses egg, so each dist gets own dir).
     This allows them all to be independently installed.
     for python>=3.3, using pip is fine thanks to implicit namespace packages
+
+______________________________
+-7- repositories
+  simplest repo:
+    /reporoot
+      /normalized-name-of-package
+        /somewheelfiles.whl
+        /sometarfiles.tar.gz
+      /normalized-name-of-package-2
+        /somewheelfiles.whl
+        /sometarfiles.tar.gz
+  cd reporoot
+  py -m http.server <port>
+    Note that PEP503 says https, but http seems to work fine...
+    also "SHOULD give a hash" but seems unnecessary
+
+  now you can:
+    py -m pip install normalized-name-of-package \
+      --extra-index-url 'http://localhost:<port>'
+
+  ______________________________
+  repo structure notes
+    package directories must be normalized names (PEP503):
+      all lowercase, any run of -_. replaced with single -
+      ie:
+        original name: some----____.._.--..__.-package
+        normalized name: some-package
+    package files:
+      Files within the package directory don't need to use the
+      normalized name.  They can be generated with:
+        py -m pip wheel -w /reporoot/normalized-name
+
+      If the directory does not exist, it will be created.
+
+    If you change a package name (in setup.py), make sure you:
+      update any install_requires of dependent packages.
+      uninstall/delete any alternative names/build products
