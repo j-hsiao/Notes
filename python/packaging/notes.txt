@@ -2,12 +2,14 @@
 -1- setup.py
   -1.1- writing setup.py
   -1.2- using setup.py
+  -1.3- dependencies
 -2- config
 -3- manifest
 -4- extending distutils
 -5- setuptools (enhanced distutils)
 -6- namespace packages
 -7- repositories
+-8- pip
 
 ______________________________
 -0- general
@@ -159,6 +161,41 @@ ______________________________
       upload            upload binary package to PyPI
       check             perform some checks on the package
 
+  ______________________________
+  -1.3- dependencies
+    see also -1.1- install_requires
+      install_requires format is a list of strings:
+        'project-name' (you would pip install <project-name>)
+        'project-name @ uri[@tag][#fragment[&more&fragments...]]' (specify uri)
+          uris:
+            <vcs>+<protocol>:url
+            examples:
+              git+https://[user[:password]@]github.com/j-hsiao/misc.git
+                Note also, password can be an app password.
+                might be good to use in the install_requires or something
+              git+file://C/local/git/repo
+              git+ssh://[git@]github.com/j-hsiao/misc.git
+                for ssh, the git@ is unnecessary if specified
+                in ~/.ssh/config
+                NOTE: if ssh key file has a password,
+                this will faill. pip WILL NOT ask for the ssh key
+                password.
+            file://abs-path-to-dir-with-setup.py
+              NOTE: file:// is ALWAYS (re)installed.
+              vcs will check versions though.
+          tags:
+            @branchname
+            @tagname
+            @hash (full hash is preferred)
+          fragments:
+            #egg=project_name
+              the name to show in pip list/use for dependency
+              checking
+            #subdirectory
+              name of subdirectory relative to repo root
+
+
+
 ______________________________
 -2- config
   setup.cfg
@@ -290,3 +327,11 @@ ______________________________
     If you change a package name (in setup.py), make sure you:
       update any install_requires of dependent packages.
       uninstall/delete any alternative names/build products
+
+______________________________
+-8- pip
+  pip install -e <identifier> installs in editable mode.
+  for vcs (git, etc), it will download and install it 
+  into cwd/src/project or venvpath/src/project
+  This path can be changed with --src.  Otherwise, build in
+  a temp dir and install it normally
