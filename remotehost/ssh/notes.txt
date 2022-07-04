@@ -23,17 +23,76 @@ ______________________________
             /etc/ssh/ssh_config
             ~/.ssh/config
         syntax:
-          sequence of key value[s] pairs
+          sequence of key value[s] pairs separated by whitespace
           # comment
           " a single argument with spaces"
+          Indentation is ignored.
+          Key value pairs apply to the most recent HOST patterns line.
+          For each option, the first match applies.
+          keys are case INSENSTIVE
 
-          HOST name_on_commandline(may be a nickname or whatever)
-          	HostName ip/domain/other host name
-          	User defaultUser
-          	IdentityFile path/to/file
-          	Port <port number>
-          	other options
-          	IDENTITIESONLY yes (only send specified file, don't try default id_type)
+          keys:
+            Host: patterns separated by whitespace (ORed together)
+            HostName: the actual host name to use (ip,
+              www.somewhere.com, etc)
+            IdentitiesOnly: [yes|no] only use the IdentityFile even if
+              ssh agent gives other identities
+            IdentityFile: specify the private key file
+              The file name may use the tilde syntax to refer to a
+              user's home directory or one of the following escape
+              characters:
+                '%d' local user's home directory
+                '%u' local user name
+                '%l' local host name
+                '%h' remote host name
+                '%r' remote user name
+              Multiple files are allowed (tried in order)
+              LocalForward: port forwarding from local machine to remote machine.
+                2 arguments: [<bindaddr>:]port <hostname at remote>:port
+                put ipv6 addresses in [] or use <ipv6addr>/port
+                <bindaddr>: which interface to bind to. localhost = only local can use
+                  empty or * = all interfaces
+              PasswordAuthentication [yes|no]
+              Port: port to connect to at remote
+              RemoteForward: forward remote port to local same format as
+                LocalForward, except order is <remote addr> <local addr>
+                empty means loopback only
+              ServerAliveInterval: secs, send a keepalive message to
+                server asking for a response.
+              TCPKeepAlive: [yes|no] send TCP keepalive messages, will dc if
+                network is down temporarily
+              User: specify the user to ssh as
+
+          patterns:
+            *: 0 or more chars
+            ?: 1 character
+            !: negate the match
+            can have commma delimited for a "pattern-list"
+            (an AND)
+
+          For each option, the earliest match is used.
+          eg.
+            HOST name
+              USER myuser
+            HOST *e
+              USER bad
+              SERVERALIVEINTERVAL 69
+            HOST *
+              IDENTITIESONLY yes
+
+            host:       options:
+            name        USER myuser
+                        SERVERALIVEINTERVAL 69
+                        IDENTITIESONLY yes
+            tame        USER bad
+                        SERVERALIVEINTERVAL 69
+                        IDENTITIESONLY yes
+
+            For name, the USER under HOST name matches first so that
+            value is used.
+
+
+
     _______________________________
     -1.2- encryption/keys
         ssh-keygen -t type -b bits -f file -C comment -n ""
