@@ -1,0 +1,32 @@
+https://github.com/spiside/pdb-tutorial
+pdb: python debugger
+
+-0- general
+-1- commands
+
+______________________________
+-0- general
+  Setting breakpoint:
+    call pdb.set_trace()
+    (can import on same line by using semicolon)
+    import pdb; pdb.set_trace()
+
+  terminology
+    current line: the next line to run (has not run yet)
+
+______________________________
+-1- commands
+  continue: continue to next breakpoint
+  help: list available commands
+    give command as argument for more help
+  list [first[,last]]: 11 lines around current line
+    no args: current line
+    1 arg: centered at first (first can be "." to mean current line)
+    2 args: a range or if last<first, then lastlines after first
+  ll(longlist) python 3.2+ only, show current function/frame
+  step: do current line, stop at 1st occasion (step into)
+  next: continue until next line in current function
+  break: set a breakpoint (argument??)
+  return: continue until end of function
+
+  can also use first letter as shorthand
