@@ -1,6 +1,7 @@
 ##############################
 contents
 ##############################
+-0- general
 -1-drives and devices
 -2-variable manipulations
 -3-file manipulations
@@ -13,11 +14,32 @@ contents
 -8-completion
 -9-ps1
 -10- tput
--11- completion
--12- brace expansion
--13- configuration files
+-11- brace expansion
+-12- configuration files
 
 -tmp- posix specification
+
+##############################
+-0- general
+##############################
+  if command; then <do stuff; and more stuff; ...;> fi
+
+  while command; do <stuff; and morestuff; ...;> done
+
+  for var in <sequence of items by ifs>; do <stuff; and more stuff...;> done
+
+  case <pat> in
+    pat)
+      stuffs
+      ;; (break)
+    pat)
+      stuffs
+      ;& (fall through, only bash 4.0+)
+    *)
+      etc
+  esac
+
+
 
 ##############################
 -1- drives and devices
@@ -36,7 +58,7 @@ blkid: list blkid (UUID, partition types etc
                dump: enable/disable backups (0 is usual (disabled))
                pass: fsck check partition for errors on boot?
                      root device = 1, other = 2(if check) or 0 (don't check)
-                                      
+
            options:
                defaults    : (rw, suid, dev, exec, auto, nouser, async
                sync/async  : how IO to filesystem should be done
@@ -466,8 +488,13 @@ escapes:
 ##############################
 -8-completion
 ##############################
+https://www.gnu.org/software/bash/manual/html_node/Programmable-Completion-Builtins.html
     code into ~/.bash_completion
     use command name to determine completion for arguments
+
+    Note that command name can also be an alias to activate completions
+    for same command under different situations by using an alias instead.
+
     completion priority order:
         1: 
             if empty:
@@ -487,72 +514,109 @@ escapes:
     builtins:
     compgen [option] [word]
         print completions for word
-    complete [-abcdefgjksuv] [-o comp-option] [-DEI] [-A action] [-G globpat]
+    complete [-abcdefgjksuv (these are -A <action> shortcuts] [-o comp-option] [-DEI]
+        [-A action] [-G globpat]
         [ -W wordlist ] [-F function] [-C command] [-X filterpat]
-        [-P prefix] [-S suffix] name [name ...]
-    complete -pr [-DEI] [name...]
+        [-P prefix] [-S suffix] -pr [-DEI] [name...]
 
-    -p: print to reuse as input
-    -r: remove specification for each name
-    -D: default completion
-    -E: empty completion
-    -I: initial non-assignment word or after delim (like ;, |)
-        -DEI is order of precedence
-    -o comp-option:
-        bashdefault: use default when no matches
-        default: use readline's filename when no matches
-        dirnames: use dirname when no matches
-        filenames: specify completions are filenames (so process like filenames), used with -F
-        noquote: don't quote if filenames
-        nosort: don't sort
-        nospace: don't append space to end of the completion
-                 ie: | is the cursor
-                    cmd arg[tab] -> cmd complete|
-                    vs
-                    cmd arg[tab] -> cmd complete |
-        plusdirs: add dir completion
-    -A action
-        alias: alias names
-        arrayvar: array variable names
-        binding: key binding names
-        builtin: names of shell builtin commands
-        command: command names
-        directory: directory names
-        disabled: disabled shell builtins
-        enabled: enabled shell builtins
-        export: exported shell vars
-        file: file names
-        function: shell funcs
-        group: group names
-        helptopic: topics to help
-        hostname: hostname from file specified by HOSTFILE var
-        job: job names
-        keyword: shell keywords
-        running: running jobs
-        service: service names
-        setopt: valid args to set -o
-        shopt: option names accepted by shopt
-        signal: signal names
-        stopped: stopped jobs
-        user: user names
-        variable: shell vars
-    -C: command to execute in subshell, output = completions
-    -F: bash func, args are:
-        cmd word preword
-        ex:
-            python -m asdf[tab]
-            -> $1 = python
-            -> $2 = asdf
-            -> $3 = -m
-        COMP_WORDS: completion words array
-        COMP_CWORD: current word
-        COMPREPLY : the completion candidates
-    -G pat expand for completions
-    -P: prefix prepended to completions
-    -S: suffix to append to completions
-    -W: list of words split by IFS to be used as completion
-    -X: remove matches to pattern
-        prepend with a ! to remove non-matches
+    options:
+        -o <comp-option>
+            bashdefault: use default when no matches
+            default: use readline's filename when no matches
+            dirnames: use dirname when no matches
+            filenames: specify completions are filenames (so process like filenames), used with -F
+            noquote: don't quote if filenames
+            nosort: don't sort
+            nospace: don't append space to end of the completion
+                     ie: | is the cursor
+                        cmd arg[tab] -> cmd complete|
+                        vs
+                        cmd arg[tab] -> cmd complete |
+            plusdirs: add dir completion
+        -p: print to reuse as input
+        -r: remove specification for each name
+        -D: default completion
+        -E: empty completion
+        -I: initial non-assignment word or after delim (like ;, |)
+            -DEI is order of precedence
+        -A action
+            Some actions have short-flags that can be used instead
+
+            alias (-a): alias names
+            arrayvar: array variable names
+            binding: key binding names
+            builtin (-b): names of shell builtin commands
+            command (-c): command names
+            directory(-d): directory names
+            disabled: disabled shell builtins
+            enabled: enabled shell builtins
+            export(-e): exported shell vars
+            file(-f): file names
+            function: shell funcs
+            group(-g): group names
+            helptopic: topics to help
+            hostname: hostname from file specified by HOSTFILE var
+            job(-j): job names
+            keyword(-k): shell keywords
+            running: running jobs
+            service(-s): service names
+            setopt: valid args to set -o
+            shopt: option names accepted by shopt
+            signal: signal names
+            stopped: stopped jobs
+            user(-u): user names
+            variable(-v): shell vars
+        -C: command to execute in subshell, output = completions
+        -F: bash func called as:
+            [func] [cmd] [word] [preword]
+              func: the function that is registered
+              cmd: the name of the command
+              word: the current word
+              preword: the word before current word
+              ex:
+                  python -m asdf[tab]
+                  -> $1 = python
+                  -> $2 = asdf
+                  -> $3 = -m
+            COMP_LINE: current commandline
+            COMP_POINT: index of cursor relative to beginning
+            COMP_KEY: key used to invoke completion
+            COMP_TYPE: int: type of completion
+                TAB: normal
+                '?': multiple tabs
+                '!': "listing alternatives on partial word completion" ???
+                '@': list completions if word not unmodified
+                '%': menu completion
+            functions only:
+                COMP_WORDS: completion words array
+                COMP_CWORD: current word
+                COMPREPLY : the completion candidates
+        -G pat expand for completions
+        -P: prefix prepended to completion results
+        -S: suffix to append to completion results
+        -W 'wordlist' (split by IFS)
+            list of words split by IFS to be used as completion
+            "Shell quoting is honored within the string, in order to provide a
+            mechanism for the words to contain shell metacharacters or characters
+            in the value of IFS. Each word is then expanded using brace expansion,
+            tilde expansion, parameter and variable expansion, command substitution,
+            and arithmetic expansion, as described above (see Shell Expansions)."
+            basically, can use variables to avoid IFS clashes
+
+            a=$(printf 'hello\nworld')
+            -W '"${a}" other words'-> 3 items
+                1: hello
+                world
+                2: other
+                3: words
+            sidenote: IFS=\n ->
+                IFS='
+                '
+                IFS=$'\n'
+                IFS=$(printf '\n\b')
+        -X: remove matches to pattern
+            prepend with a ! to remove non-matches
+            & is substituted with curword (escape with a \ for literal &)
     NOTE:
         pats (-G, -W, -X) should be quoted
 
@@ -561,7 +625,6 @@ escapes:
             do stuff
         }
         complete -o filenames -o nospace -o bashdefault -F compfunc cd
-
 ------------------------------
 -9- ps1
 ------------------------------
@@ -645,117 +708,8 @@ tput <command>
   cols          number of cols
   colors        number of colors
 
-------------------------------
--11- completion
-------------------------------
-
-sidenote: IFS=\n ->
-  IFS='
-  '
-  IFS=$'\n'
-  IFS=$(printf '\n\b')
-
-compgen [args] <tocomplete>
-  generate completions:
-complete [args] <command>
-  add completion to command
-
-
-multiple arguments may be given
-order of usage:
-  -W 'wordlist' (split by IFS)
-    "Shell quoting is honored within the string, in order to provide a
-    mechanism for the words to contain shell metacharacters or characters
-    in the value of IFS. Each word is then expanded using brace expansion,
-    tilde expansion, parameter and variable expansion, command substitution,
-    and arithmetic expansion, as described above (see Shell Expansions)."
-    basically, can use variables to avoid IFS clashes
-    a=$(printf 'hello\nworld')
-
-    -W '${a} other words'-> 3 items
-      1: hello
-      world
-      2: other
-      3: words
-  -F <function name>
-  -C <command name??>
-    variables:
-      COMP_LINE: current commandline
-      COMP_POINT: index of cursor relative to beginning
-      COMP_KEY: key used to invoke completion
-      COMP_TYPE: int: type of completion
-        TAB: normal
-        '?': multiple tabs
-        '!': "listing alternatives on partial word completion" ???
-        '@': list completions if word not unmodified
-        '%': menu completion
-    functions also get:
-      COMP_WORDS: array variable with words of command line
-      COMP_CWORD: index into COMP_WORDS (current cursor position)
-
-    $1: name of command
-    $2: word being completed
-    $3: word before $2
-
-    functions:
-      COMPREPLY array contains possible matches
-    commands:
-      print completions, 1 per line to stdout, backslash to escape newline
-
-  -X filter
-    & is replaced with text of word being completed
-    \& for literal
-    leading ! negates pattern
-
-  -P, -S: prefix/suffix added to each item
-
-  -o dirnames
-
-  -o plusdirs
-
-  example:
-
-  function to() {
-    myroot=/cygdrive/c/Users/$USER
-    target="${1}"
-    case "${target}" in
-      research)
-        target="Desktop/research"
-        ;&
-      *)
-        if ! cd "${myroot}/${target}" 2>/dev/null
-        then
-          printf "bad target ${target}"
-        fi
-        ;;
-    esac
-  }
-  function to_() {
-    target=$(tr '[:upper:]' '[:lower:]' <<<"${2}")
-    myroot=/cygdrive/c/Users/$USER
-    readarray -t candidates < <(find "${myroot}" -maxdepth 1 -mindepth 1 -type d -iname "${target}*"  | sed 's/.*\///')
-    candidates+=(research)
-
-    lower=()
-    for x in "${candidates[@]}"
-    do
-      lower+=("$(tr '[:upper:]' '[:lower:]' <<<"${x}")")
-    done
-
-    readarray -t COMPREPLY < <(compgen -W '"${lower[@]}"' "${target}")
-    if [ "${#COMPREPLY[@]}" -eq 1 ]
-    then
-      i=0
-      while [ "${lower[${i}]}" != "${COMPREPLY[0]}" ]
-      do
-        i=$[ i + 1 ]
-      done
-      COMPREPLY[0]="${candidates[${i}]}"
-    fi
-  }
-  complete -F to_ to
 ______________________________
--12- brace expansion
+-11- brace expansion
   brace expansion generates sequences and is performed FIRST
   before anything else
   {a,b,...}:    repeat expression replacing with each a,b,...
@@ -771,7 +725,7 @@ ______________________________
   nesting is allowed:
     {a{1..3},b{2..3}} -> a1 a2 a3 b2 b3
 ______________________________
--13- configuration files
+-12- configuration files
   LOGIN shell: login from somewhere else
     /etc/profile
     first of:
