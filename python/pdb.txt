@@ -3,6 +3,8 @@ pdb: python debugger
 
 -0- general
 -1- commands
+-2- config
+-3- patch
 
 ______________________________
 -0- general
@@ -14,19 +16,142 @@ ______________________________
   terminology
     current line: the next line to run (has not run yet)
 
+  blank lines repeat the previous line
+  unrecognized commands are treated as python statements
+  (use ! to force python statement)
+
+  pdb can also be run as module
+    py -m pdb -h
+    You can use the -c arg instead of editing the file
+    with an import pdb; pdb.set_trace() (or just use a .pdbrc)
+    running this ways starts in initially stopped state
+
 ______________________________
 -1- commands
-  continue: continue to next breakpoint
-  help: list available commands
-    give command as argument for more help
-  list [first[,last]]: 11 lines around current line
-    no args: current line
-    1 arg: centered at first (first can be "." to mean current line)
-    2 args: a range or if last<first, then lastlines after first
-  ll(longlist) python 3.2+ only, show current function/frame
-  step: do current line, stop at 1st occasion (step into)
-  next: continue until next line in current function
-  break: set a breakpoint (argument??)
-  return: continue until end of function
+  ! (exec)      execute 1-line statement in current frame.
+                ignores pdb commands (ie d = 69 will set variable d to 69
+                instead of the pdb down command with = and 69 as args
+  EOF           ?handles receipt of eof as a command
+  alias         create/show alias
+                args:
+                        [name [command [parameter ...]]]
+                no args:
+                  list all aliases
+                name only:
+                  show current alias
+                with command/params:
+                  create a new alias
+                  command = anything you can type at pdb prompt
+                  (python script, pdb command, etc)
+                  aliases are recursive (used in other aliases)
+  a(rgs)        print arg list
+  b(reak)       set/list breakpoints
+                (use base filename? doesn't need to be fullpath?)
+                [[filename:]line | function [,condition]]
+                no args:
+                  list all breakpoints
+                filename/lineno / function:
+                  set the breakpoint
+                condition:
+                  break if condition
+  bt|w(here)    print stack trace
+  c(ont(inue))  continue to next breakpoint
+  cl(ear)       clear breakpoints
+                breakpoint spec:
+                  number
+                  filename:lineno
+                  unspecified = all breakpoints
+  commands      add commands to auto-run on a breakpoint
+                [bpnumber]: specify the breakpoint to add commands to
+                  (default to last breakpoint set)
+                stop script with a single line 'end'
+                'silent' as a command will not print
+                breakpoint message (don't clog added print statements)
+  condition     set/remove a condition for bp number
+                bpnumber [condition]
+                condition is removed if condition is omitted
+  d(own)        [count] move current frame 1 level down in stack trace
+  debug         recursive debugger stepping through code argument
+                (arbitrary expression/statement as argument)
+  disable       disable breakpoints [bpnum [bpnum ...]]
+  display       [expr] display expr if value changes in current frame
+  enable        enable bpnumber (opposite of disable, same syntax)
+  exit          stop debugging, quit
+  h(elp)        list available commands
+                give command as argument for more help
+  ignore        bpnum [count], ignore breakpoint for N times, default=0
+  interact      start interpreter in current stack
+  j(ump)        lineo   set the next line to execute
+  list          [first[,last]]:
+                no args: current line
+                1 arg: centered at first (first can be "." to mean current line)
+                2 args: a range or if last<first, then lastlines after first
+                repeated calls will continue down the file
+  ll(longlist)  python 3.2+ only, show current function/frame
+  n(ext)        continue until next line in current function
+  p             expr    print the expression
+  pp            expr    pretty-print the expr
+  q(uit)        same as exit
+  r(eturn)      finish current function
+  restart|run   [args...]       restart with new commandline args
+  retval|rv     return value for last return of a function
+  s(tep)        do current line, stop at 1st occasion (step into)
+  source        expr    display source code for given object
+  tbreak        same as break, but removed after first break
+                t(emporary)break
+  u(p)          opposite of down
+  unalias       name    remove the named alias
+  undisplay     [expr]  remove from display list
+                clear all if omitted
+  unt(il)       [lineno]        run until line number or function return
+  whatis        print type
+______________________________
+-2- config
+  .pdbrc: in home dir or cwd
+  it is executed as if it was typed at beginning
+  (kind of like py -i with python modules)
 
-  can also use first letter as shorthand
+______________________________
+-3- patch
+  pdb execRcLines does not allow commands in .pdbrc
+  or anything else that will call cmdloop()
+  because they will read from stdin via readline
+  regarding "commands", it also clears the cmdqueue
+  at end of a "commands" section which means using
+  cmdqueue is also a bust unless you edit that too.
+
+    def do_stopexecrclines_(self, args):
+        return 1
+    # Can be executed earlier than 'setup' if desired
+    def execRcLines(self):
+        if not self.rcLines:
+            return
+        # local copy because of recursion
+        self.rcLines.append('stopexecrclines_')
+        stripped = [l.strip() for l in self.rcLines]
+        newstdin = io.StringIO(
+            '\n'.join([l for l in stripped if l and not l.startswith('#')]))
+        if self.use_rawinput:
+            origstdin = sys.stdin
+            sys.stdin = newstdin
+        else:
+            origstdin = self.stdin
+            self.stdin = newstdin
+        # execute every line only once
+        self.rcLines = []
+        try:
+            self.cmdloop()
+            remain = list(newstdin)
+            if remain:
+                # maintain same behavior as before.
+                # :-1 to exclude the appended stopexecrclines_ if it
+                # remains unprocessed.  This handles the case where
+                # .pdbrc ends with "continue" or some other similar
+                # command.
+                self.rcLines.extend(remain[:-1])
+                return True
+        finally:
+            if self.use_rawinput:
+                sys.stdin = origstdin
+            else:
+                self.stdin = origstdin

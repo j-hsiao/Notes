@@ -1,5 +1,6 @@
 ______________________________
 contents:
+-0- general
 -1- modules
 -2- context manager
 -3- closure
@@ -20,7 +21,13 @@ pip install -e = install as links to the source code
 Tkinter
 blah
 
-
+------------------------------
+-0- general
+------------------------------
+  help(something): display help on that something
+    (docstrings)
+  dir(something): display variables/methods, etc
+  vars(something): display variables (something.__dict__)
 
 ------------------------------
 -1- modules

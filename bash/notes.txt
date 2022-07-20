@@ -2,6 +2,14 @@
 contents
 ##############################
 -0- general
+  -0.1- logic
+  -0.2- variable
+    -0.2.1- strings
+    -0.2.2- numbers
+    -0.2.3- arrays
+  -0.3- functions
+  -0.4- pattern matching
+  -0.5- shopt
 -1-drives and devices
 -2-variable manipulations
 -3-file manipulations
@@ -22,24 +30,292 @@ contents
 ##############################
 -0- general
 ##############################
-  if command; then <do stuff; and more stuff; ...;> fi
+  ------------------------------
+  -0.1- logic
+  ------------------------------
+    if command; then <do stuff; and more stuff; ...;> fi
 
-  while command; do <stuff; and morestuff; ...;> done
+    while command; do <stuff; and morestuff; ...;> done
 
-  for var in <sequence of items by ifs>; do <stuff; and more stuff...;> done
+    for var in <sequence of items by ifs>; do <stuff; and more stuff...;> done
 
-  case <pat> in
-    pat)
-      stuffs
-      ;; (break)
-    pat)
-      stuffs
-      ;& (fall through, only bash 4.0+)
-    *)
-      etc
-  esac
+    case <pat> in
+      pat)
+        stuffs
+        ;; (break)
+      pat)
+        stuffs
+        ;& (fall through, only bash 4.0+)
+      *)
+        etc
+    esac
+    (see -0.4- pattern matching)
+
+  ------------------------------
+  -0.2- variables
+  ------------------------------
+    general note:
+      using * and @ result in all relevant items.
+      However, putting the thing into double quotes,
+      * becomes a single item whereas @ preserves
+      identity of each item
+      eg:
+        a=("this" "contains" "something with a space")
+        >>> printf '%s\n' "${a[@]}"
+        this
+        contains
+        something with a space
+        >>> printf '%s\n' "${a[*]}"
+        this contains something with a space
+
+      if parameter is array-like, operations are usually
+      applied to each item in the array
+
+    creation:
+      declare varname
+      varname=value
+    deletion:
+      unset varname
+    expansions:
+      normal expansion:
+        ${varname}
+      indirect expansion:
+        ${!varContainingVarName}
+          NOTE: only 1 level of indirection is allowed
+          save to tempvariable and reuse for more levels
+          It does not work on arrays
+      existence/emptiness expansions:
+        If : is omitted, check only for existence or not
+        otherwise, check for non-emptiness (undefined = empty)
+
+        ${var:-word}    replace with word if unset or empty
+        ${var:=word}    assign word to var if unset or empty
+        ${var:?words}   print words to stderr and (exit if not interactive)
+        ${var:+word}    replace with word if not (unset or empty)
+
+        if var is array-like, operates on entire concatenated str
+
+      slicing (substring/subarray expansion):
+        ${param:offset[:length]}
+        offset/length are arithmetic expressions and expanded as such
+        negative values are indices from end of var
+        offset >= 0 = number of chars
+        offset < 0 = end position (exclusive)
+          need a space to avoid :- existence/emptiness expansions
+          if using literal negative values
+
+        If param is arraylike, then operate on items instead of chars.
+          Also, negative length is not allowed.
+
+      key/idx/prefix expansions
+        ${!prefix*}
+        ${!prefix@}
+          sequence of varnames that begin with prefix
+
+        ${!arrname[@]}
+        ${!arrname[*]}
+          sequence of keys/indices for the arrays
+
+      length expansion
+        ${#param}       number of characters
+                        number of items if param is an array-like
+                        (eg @, *, arr[@], arr[*]...)
+      deletion expansion
+        see also -0.4- pattern matching
+        ${param#pattern}        delete from beginning (shortest)
+        ${param##pattern}       delete from beginning (longest)
+        ${param%pattern}        delete from end (shortest)
+        ${param%%pattern}       delete from end (longest)
+
+      substitution expansion
+        like regex but pattern matching instead
+        ${parameter/pattern/replacement}        single replacement
+        ${parameter//pattern/replacement}       global replacement
+        ${parameter/#pattern/replacement}       at beginning
+        ${parameter/%pattern/replacement}       at end
+
+        If the /replacement is omitted, matches are deleted instead
+      case expansion
+        ${parameter^pattern}
+        ${parameter^^pattern}
+        ${parameter,pattern}
+        ${parameter,,pattern}
+
+        pattern should be single-char, and if omitted, defaults to ?
 
 
+
+
+
+
+
+
+    ------------------------------
+    -0.2.1- strings
+    ------------------------------
+
+      operations
+
+        version 5.1+
+          ${var@op}
+            ops:
+              U to uppercase
+              u capitalized
+              L to lowercase
+              Q quoted format (like printf %q)
+              E expand backslash escape sequences
+              P expand as if prompt string
+              A creation command to recreate the var
+              K same as Q except arrays->quoted key value pairs
+              a "string consisting of flag values representing parameter's attributes"
+
+
+
+
+    ------------------------------
+    -0.2.2- numbers
+    ------------------------------
+
+    ------------------------------
+    -0.2.3- arrays
+    ------------------------------
+      index arrays (int keys)
+        creation:
+          name[subscript]=value           create array+initialize single value
+          declare -a name                 create empty array
+          declare -a name[subscript]      same as above
+          name=(val1 val2 val3 ...)       create/initialize array
+          name=([key]=val [key]=val)      if key omitted, then place val
+                                          after previous item in list
+      adding items
+        arr+=(stuff to append to arr)
+
+      associative arrays (str keys)
+        declare -A name                   associative array
+        name=(key val key val...)         odd number assumes last value is empty str
+        name=([key]=val [key]=val)
+
+      indexing:
+        subscripts are treated as arithmetic expressions
+          ex:
+            a=1
+            ${arr[a]} is the same as ${arr[$a]}
+        (as if within $[])
+        @ as subscript = all (separate words) * = all(single word)
+        (index arrays only)
+          negative indices are incremented by maxidx+1 (-1 = last item)
+
+      getting info:
+        get keys/idxs:
+          ${!arr[@]}
+        get number of items (regardless of contiguity)
+          ${#arr[@]}
+
+      deleting items
+        unset arr[idxOrKey]
+
+      variable manipulations (-2-) also work with array indexed array values.
+      ie in ${arr[idx]}, arr[idx] can be treated as name of a string var
+
+  ------------------------------
+  -0.3- functions
+  ------------------------------
+    defining functions:
+      [function] funcname() {
+        body
+      }
+      (function keyword is optional)
+
+    functions run in the current shell (its variables will bleed out
+    to caller, unless declared as local)
+      arguments are same as scripts, ${1-9}, ${@}, shift, etc
+
+
+  ------------------------------
+  -0.4- pattern matching
+  ------------------------------
+    *: any length of any char
+    ?: any single char
+    [...]: any enclosed char
+      ranges are allowed (ascii)
+      negated with ! or ^
+      -: must be 1st or last to match
+      ]: must be first to match
+      character classes:
+        alnum   cntrl   print   word
+        alpha   digit   punct   xdigit
+        ascii   graph   space
+        blank   lower   upper
+      [=<thing>=]: equivalence class (eg. a or accented a, etc)
+      [.<thing>.]: collating class (like the ae in encyclopaedia)
+
+    extended pattern matching
+      requires shopt extglob
+      ?(pattern-list)   zero or one of patterns
+      *(pattern-list)   zero+ of patterns
+      +(pattern-list)   one+ of patterns
+      @(patternlist)    exactly one of patterns
+      !(pattern-list)   none of patterns
+
+  ------------------------------
+  -0.5- shopt
+  ------------------------------
+    optional shell behavior
+    shopt [-pqsu] -o [optname...]
+      -s        set
+      -u        unset
+      -q        quiet, use returncode to check status
+      -p        print options
+      -o        restrict to set -o values
+
+    options:
+      assoc_expand_once
+      autocd                    use directories as cd
+      cdable_vars
+      cdspell                   allow minor mispelling for cd
+      checkhash
+      checkjobs
+      checkwinsize
+      cmdhist
+      compat[31|32|40|41|42|43|44]      compatibility modes
+      complete_fullquote
+      direxpand
+      dirspell
+      dotglob                   include .files in globbing
+      execfail
+      expand_aliases
+      extdebug
+      extglob                   extended pattern matching
+      extquote
+      failglob                  unmatched patterns result in error
+      force_fignore
+      globasciiranges
+      globstar
+      gnuerrfmt
+      histappend
+      histreedit
+      histverify
+      hostcomplete
+      huponexit
+      inherit_errexit
+      interactive_comments
+      lastpipe
+      lithist
+      localvar_inherit
+      localvar_unset
+      login_shell
+      mailwarn
+      no_empty_cmd_completion
+      nocaseglob
+      nocasematch
+      nullglob
+      progcomp
+      progcomp_alias
+      promptvars
+      restricted_shell
+      shift_verbose
+      sourcepath
+      xpg_echo
 
 ##############################
 -1- drives and devices
@@ -157,7 +433,6 @@ var as bool
     ${a:-thing}     thing
     ${b:-thing}     ${b}
     ${c:-thing}     thing
-    
 
 
 
