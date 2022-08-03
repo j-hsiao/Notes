@@ -156,6 +156,7 @@ webcam:
 
 ffplay:
     -window_title title
+    -seek_interval seconds      seconds to seek when left/right arrow
 
 ______________________________
 -4- filters

@@ -4,6 +4,7 @@ contents:
   -0.1- starting vim
   -0.2- terminology
   -0.3- regex
+  -0.4- undo history
 -1- normal mode
   -1.1- movement
   -1.2- scrolling
@@ -142,6 +143,16 @@ ______________________________
           cntrl     punct   tab
           digit     space   escape
 
+  ______________________________
+  -0.4- undo history
+    :h undo-branches, undo-tree
+    Vim saves undo history as branches rather than linear
+
+    :undol[ist]     lists leaves in undo graph
+    g-              go to older text state
+    g+              go to newer text state
+
+    undo can take the undo number to undo to that state
 
 
 
