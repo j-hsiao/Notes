@@ -18,6 +18,7 @@ contents
 -11- clean
 -12- show
 -13- remote
+-14- server
 
 
 ------------------------------
@@ -464,3 +465,26 @@ git config [--system | --global | --local] [-e | [--unset] <name> [value] | --li
   show remotes
   git remote set-url --push: add a separate push remote
     (no command to separately set a pull url)
+-------------------------------
+-14- server
+  simple serve git repos:
+    bare repo:
+      cd /root
+      git clone --bare <project>
+      cd <project>
+      git --bare update-server-info
+      mv hooks/post-update.sample .git/hooks/post-update
+      start a server at /root
+
+    non-bare repo:
+      same steps as bare
+      except remove --bare tag
+      start server IN THE REPO DIR
+      you will need to pull .git and rename it.
+      eg:
+        git clone project
+        cd project
+        git update-server-info
+        cp .git/hooks/post-update.sample .git/hooks/post-update
+        py -m http.server
+        git clone http://localhost:8000/.git project

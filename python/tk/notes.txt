@@ -394,6 +394,12 @@ ______________________________
       trace_vdelete('r|w|u', name)
       trace_vinfo()
 
+    NOTE:
+      textvariable/listvariable: variable containing value to be displayed
+        (variable like text in entry widget or displayed, (configure(text=variable.get()))
+      variable: variable whose value is changed/managed by the widget
+        (like checkbutton or radiobutton)
+
     Some tk widgets can take a variable as an config argument
     (variable, textvariable, listvariable, etc).  The variable will be
     auto-updated with the widget's contents.
@@ -986,6 +992,14 @@ ______________________________
         Enter/Leave caused by change in fill all say state=0, weirdness
         enter/leave, state is unreliable, better to just
         bind something (or empty script) to all B1-Motion events etc.
+
+  ______________________________
+  -3.7- Listbox
+    a sequence of choices to choose from.
+    note:
+      exportselection defaults to True which means
+      clicking/highlighting anywhere else will cause the selection
+      to be removed.
 
   ______________________________
   -3.8- Menu

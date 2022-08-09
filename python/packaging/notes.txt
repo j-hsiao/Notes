@@ -183,6 +183,8 @@ ______________________________
             file://abs-path-to-dir-with-setup.py
               NOTE: file:// is ALWAYS (re)installed.
               vcs will check versions though.
+              Also, file:// is supposedly abs-path only? BUT trying out
+              using file://relativepath in pyproject.toml seems to work?
           tags:
             @branchname
             @tagname
