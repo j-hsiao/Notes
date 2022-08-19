@@ -4,6 +4,7 @@ contents:
   -0.1- starting vim
   -0.2- terminology
   -0.3- regex
+  -0.4- undo history
 -1- normal mode
   -1.1- movement
   -1.2- scrolling
@@ -142,6 +143,16 @@ ______________________________
           cntrl     punct   tab
           digit     space   escape
 
+  ______________________________
+  -0.4- undo history
+    :h undo-branches, undo-tree
+    Vim saves undo history as branches rather than linear
+
+    :undol[ist]     lists leaves in undo graph
+    g-              go to older text state
+    g+              go to newer text state
+
+    undo can take the undo number to undo to that state
 
 
 
@@ -450,6 +461,9 @@ ______________________________
   Command mode runs vim commands/functions.  These can generally be
   prefixed with a range to run the command on given lines.
 
+  A range can be specified by specifying 2 line numbers separated by a
+  ',' or ';'. ',' moves the cursor, ';' does not.
+
   line number formats:
     <N>         line N
     .           current line
@@ -460,9 +474,6 @@ ______________________________
     /pattern/   lines that match regexp (after cursor)
     ?pattern?   lines that match regexp (before cursor)
     <spec>+-[N] one of above specifications +- N lines, N=1 if omitted
-
-  A range can be specified by specifying 2 line numbers separated by a
-  ',' or ';'. ',' moves the cursor, ';' does not.
 
   sidenote:
     when entering commandmode from visual mode with a selection,
@@ -624,6 +635,9 @@ ______________________________
                                 c: confirm
                                 i: case insensitive
                                 I: case sensitive
+
+    :g[!]/pattern/cmd           Run cmd on all matches of pattern
+    :v/pattern/cmd              v or g! = invert match
   ______________________________
   -4.5- windows/tabs
     :split <filename>   split view horizontally opens file fn,
