@@ -415,6 +415,30 @@ ______________________________
 
   ______________________________
   -1.5- fonts
+    py2: tkFont
+    py3: tkinter.font
+    font.Font(
+        family: Courier, Times, Helvetica (mono, serif, sans-serif)
+                guaranteed, others optional.
+        size: font size
+        weight: bold/normal
+        slant: roman/italic
+        underline: true/false
+        overstrike: true/false
+        name: name of font (used by tk.nametofont)
+      )
+    font.families()
+      list available families
+    methods:
+      metrics([key]): get metric or dict
+        ascent: space above line (like size of an A)
+        descent: space below line (like bottom of p or g)
+        linespace: line height
+        fixed: True/False
+      configure(): set properties
+      measure(text):
+        get width of text
+
 
   ______________________________
   -1.6- helpers
@@ -477,6 +501,8 @@ ______________________________
               ATOM: 4 bytes??
               anything else: string of 32-bit ints??
     clipboard_clear()
+      Clear before append to set value.
+      Otherwise, it'll just keep concatenating values.
 
   ______________________________
   -1.8- window manager
@@ -520,8 +546,9 @@ ______________________________
           Image.open(file path).convert('1')
           Image.fromarray(numpy array).convert('1'))
           ('1' = number 1 not lower L)
-
-
+    NOTE:
+      a reference to ImageTk.PhotoImage must be retained
+      or else the image will be freed.
 ______________________________
 -2- Bindings
   Bindings bind callbacks to certain event sequences.
@@ -1045,7 +1072,8 @@ ______________________________
     menu entry config options:
       activebackground
       activeforeground
-      accelerator
+      accelerator: general key-combo (ex. added to 'all' bindtag) to
+        perform same function without opening the menu.
       background
       bitmap
       columnbreak: 0/1, start a new column? (ignored on mac)
@@ -1058,7 +1086,8 @@ ______________________________
       label
       state: normal, active, disabled
       underline: underline a character at given index in 'label' value
-        for quick-key traversal/selection
+        for quick-key traversal/selection.  (This is shortcut key to
+        select an item in the menu, binding auto-added)
       cascade only
         menu
       checkbutton only
@@ -1235,6 +1264,7 @@ handle on the root window
     background      : name ('red'), hex (#ff340a)
     borderwidth     : border width
     class           :
+    command         : a script (string)
     compound        : str:
                       text, image (only text or image)
                       center, top, left, bottom, right
