@@ -154,6 +154,9 @@ webcam:
 
     ffprobe -v error -show_entries stream=width,height -of csv=s=x:p=0 -i input
 
+    ffmpeg -f dshow -list_devices true -i dummy
+    ffmpeg -f dshow -list_options true -i video="name of webcam"
+
 ffplay:
     -window_title title
     -seek_interval seconds      seconds to seek when left/right arrow
