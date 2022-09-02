@@ -47,13 +47,13 @@ ______________________________
   a(rgs)        print arg list
   b(reak)       set/list breakpoints
                 (use base filename? doesn't need to be fullpath?)
-                [[filename:]line | function [,condition]]
-                no args:
-                  list all breakpoints
-                filename/lineno / function:
-                  set the breakpoint
-                condition:
-                  break if condition
+                args: [([filename:]line | function) [,condition]]
+                  no args:
+                    list all breakpoints
+                  filename/lineno / function:
+                    set the breakpoint
+                  condition:
+                    break if condition
   bt|w(here)    print stack trace
   c(ont(inue))  continue to next breakpoint
   cl(ear)       clear breakpoints
