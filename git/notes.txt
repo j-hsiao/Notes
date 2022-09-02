@@ -6,6 +6,8 @@ contents
   -2.1- reference syntax
 -3- rebase
 -4- history
+  -4.1- reflog
+  -4.2- log
 -5- alias
 -6- miscellaneous
   -6.1- line endings
@@ -170,7 +172,7 @@ other
   -2.1- reference syntax
   ------------------------------
     <sha1>    the sha1 (eg. from git log) or unique leading substring
-    <refname> [refs/][heads/|tags/|remotes/]<branch>
+    <refname> [refs/][heads/|tags/|remotes/]<branch/tagname>
     <refname>[@{date|index}|^]
               date:
                 blank: pick HEAD
@@ -225,7 +227,7 @@ other
 ------------------------------
 -4- history
 ------------------------------
-  git reflog: history of what actually happened
+  -4.1- git reflog: history of what actually happened
               (includes reset, rebase, etc)
 
       expire: expire reflog entries (dangling commits will then be able to be pruned)
@@ -236,10 +238,20 @@ other
         --all
           (dunno bout this, but need this to cause reflogs to dangling commits to be removed)
 
-  git log: history of the path to HEAD
+  -4.2- git log: history traversing parent commits
+    general tips:
+      git log --all --decorate --oneline --graph
+        (adog)
 
-  git log --all --decorate --oneline --graph
-    (adog)
+    options:
+      <paths>                           show commits that modified the <paths> given
+      --all                             use all /refs and HEAD
+      --decorate[=short|full|auto|no]   show ref names (branches, tags, etc), defaults to short
+      -<number> | -n <number>           limit to <number> commits
+      -[after|before]=<date>            after or before the date
+      --abbrev-commit                   show unique part of commit SHAs
+      --oneline                         same as --pretty=oneline --abbrev-commit
+      --graph                           draw graph
 
 ------------------------------
 -5- alias
