@@ -167,6 +167,11 @@ ______________________________
       install_requires format is a list of strings:
         'project-name' (you would pip install <project-name>)
         'project-name @ uri[@tag][#fragment[&more&fragments...]]' (specify uri)
+          This is called a "direct reference" (pep 440).  The url plays
+          the role of the version specifier.
+          file://c:/some/path/on/windows
+          file://[machine share ip]/some/path/on/
+          file://[host]/some/path/on/unix
           uris:
             <vcs>+<protocol>:url
             examples:
@@ -190,13 +195,15 @@ ______________________________
             @tagname
             @hash (full hash is preferred)
           fragments:
-            #egg=project_name
-              the name to show in pip list/use for dependency
-              checking
-            #subdirectory
+            syntax:
+              <URL>#egg=project_name&subdirectory=relpath2repo
+            egg=project_name
+              This is ignored within setup.py and is only useful for
+              direct pip installing.  (setup.py would have the format
+              "name @ protocol:.../blah.git" so the egg name is already
+              given.
+            subdirectory=relpath2repo
               name of subdirectory relative to repo root
-
-
 
 ______________________________
 -2- config

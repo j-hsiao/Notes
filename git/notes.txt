@@ -20,7 +20,8 @@ contents
 -11- clean
 -12- show
 -13- remote
--14- server
+-14- submodule
+-15- server
 
 
 ------------------------------
@@ -478,7 +479,34 @@ git config [--system | --global | --local] [-e | [--unset] <name> [value] | --li
   git remote set-url --push: add a separate push remote
     (no command to separately set a pull url)
 -------------------------------
--14- server
+-14- submodule
+  sub git directories.
+  git submodule [cmd]
+    add <repo> [path]
+    init [path]
+    deinit (--all| <path>)
+    update [path]
+      NOTE: for initial update on windows (git submodule init; git
+        submodule update) if the submodule requires a password, you need
+        to use git-bash or it will error saying permission denied.  An
+        alternative is to just git clone directly into the submodule dir
+        and then use absorbgitdirs
+    foreach <command>
+      available vars:
+        $name             name of submodule
+        $sm_path          path from root git dir
+        $displaypath      relative path
+        $sha1             sha1 of submodule
+        $toplevel         abs path to root git dir
+      command should be a single bash command line.
+      (even on windows, since it uses git-bash)
+      -q will prevent the "Entering $displaypath" message per submodule.
+    absorbgitdirs [path...]
+      move submodule .git directories into root git dir's .git/modules
+      and replace submodule .git with a file pointing to corresponding
+      dir.
+-------------------------------
+-15- server
   simple serve git repos:
     bare repo:
       cd /root
