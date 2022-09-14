@@ -396,6 +396,51 @@ ______________________________
       <(some command)   treat output of command as a file/stream
   ______________________________
   -0.9- redirection
+    syntax:
+      [dst][direction] [src]
+        dst:
+          blank:        defaults to stdin if reading, stdout if writing
+          fd
+          {varname}     if opening: allocate an fd>10 and assign to varname
+                        if closing: close the fd named by varname
+                        redirection persists past command
+                        (must manually manage)
+        direction:
+            <           read
+            >           write
+            >|          clobber write
+            &>          both stderr and stdout
+            >>          append data
+            &>>         append both stderr and stdout
+            <>          both input/output (use > to close)
+            <<[-]word   heredoc, word is delimiter. If with -, ignore leading TABS
+            <<<         herestring
+
+        src:
+          ${varname}    value of var
+          filename
+          &fd
+          &${var}     value of var as fd
+          &-    (closes the dst)
+          &fd-  move the file descriptor
+            NOTE: spaces are allowed between & and the following value
+                but not before.
+          special filenames:
+            /dev/stdin
+            /dev/stdout
+            /dev/stderr
+            /dev/fd/<fd>
+            /dev/tcp/host/port
+            /dev/udp/host/port
+    examples:
+      {fd}<>myfile      open myfile for reading and save to variable "fd"
+      >&"${fd}"         use fd as stdout
+      {fd}<&-           close fd
+
+    Create redirection in the current shell:
+        exec <redirection expression>
+
+
     ______________________________
     output
       SRC>DEST
@@ -431,12 +476,19 @@ ______________________________
         processes' stdout and stderr both go to something
     ______________________________
     exec
-      exec <filename              change stdin to filename
-      exec fd<&ofd                save ofd to fd as readable
-      exec fd<&-                  clear fd
-      exec >filename              change stdout to filename
-      exec fd>&ofd                store ofd into fd as writeable
-      exec fd>&-                  clear fd
+      exec 
+        dst
+          defaults to stdin if direction is <
+          defaults to stdout if direction is >
+        direction
+          < for read
+          > for write
+          <> for both
+        src
+          a filename
+          a process substitution
+          &fd
+          &-    close the fd (to close read+write fd, just use > instead of <>)
 
 ______________________________
 -1-regexp
