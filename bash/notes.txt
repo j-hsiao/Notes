@@ -438,7 +438,9 @@ ______________________________
       {fd}<&-           close fd
 
     Create redirection in the current shell:
-        exec <redirection expression>
+      exec <redirection expression>
+    NOTE: while, for, if, until blocks can also have redirection
+          just add the redirection after the closing line of the block
 
 
     ______________________________
