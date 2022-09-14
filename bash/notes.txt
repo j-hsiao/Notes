@@ -393,7 +393,22 @@ ______________________________
       $(command)
 
     process substitution
-      <(some command)   treat output of command as a file/stream
+      <(bash script)   treat output of command as a file/stream
+      example:
+        code:
+          cat <( echo hello
+          echo goodbye
+          )
+        result:
+          hello
+          goodbye
+        code:
+          cat <( echo hello \
+          echo goodbye
+          )
+        result:
+          hello echo goodbye
+
   ______________________________
   -0.9- redirection
     syntax:

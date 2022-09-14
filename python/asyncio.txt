@@ -1,0 +1,157 @@
+https://docs.python.org/3/library/asyncio-stream.html
+Python asyncio notes
+asynchronous tasks etc + event loops
+coroutines
+
+-0- definitions
+-1- asyncio methods
+  -1.1- execution management
+  -1.2- object types
+  -1.3- comms
+-2- exceptions
+
+------------------------------
+-0- definitions
+  awaitable: something that can be awaited
+  coroutine: A function that is called when awaited.
+  task: Representative of a function that is thrown to some thread to
+    run.  Use the task object to wait for finishing the task.
+    Tasks are futures.
+    methods:
+      cancel(msg=None)
+      canceled(): was it canceled?
+      done(): is it done?
+      result(): result of task, only call after awaited
+      exception(): the exception when running task
+        result() and exception():
+          If canceled, raises CancelledError
+          If not done, InvalidStateError
+      add_done_callback(callback, context=None)
+      remove_done_callback(callback)
+      get_coro()
+      get_name()
+      set_name()
+
+  futures: An object representing value of await coroutine.
+    use future.result(timeout=None) to get the result...
+    don't see how this is any different from just calling await on a
+    task...
+  NOTE:
+    tasks should always have references saved, otherwise they may
+    disappear mid-execution (loop only holds weak references)
+  event loop: the loop that runs awaitables
+    await calls in each awaitable are like pause-points and allow
+    switching to a different task to allow it to complete or something
+
+------------------------------
+-1- asyncio methods
+  ------------------------------
+  -1.1- execution management
+    asyncio.run(coro, debug=False)
+      Create a loop and run the coroutine.  No recursive calls allowed.
+    asyncio.create_task(coro, name=None)
+      create a task from coroutine
+    asyncio.sleep(delay, result=None)
+      sleep for delay and return result
+      delay=0 is optimized to unblock loop
+    asyncio.gather(*aws, return_exceptions=False)
+      coroutines in aws are taskified
+      return a sequence of results per awaitable
+      if return_exceptions is True, exceptions = return values
+      otherwise, propagate on first exception.
+      cancellation also cancels all awaitables (if not "done" yet)
+      where done = awaited
+    asyncio.shield(aw):
+      shield aw from cancellation by containing awaitable
+    asyncio.wait_for(aw, timeout=None)
+      call aw with a timeout, cancel if timed out
+    asyncio.wait(aws, timeout=None, return_when=ALL_COMPLETED):
+      aws is an iterable of TASKS, NO COROUTINES (non-empty)
+      return_when = ALL_COMPLETED|FIRST_EXCEPTION|FIRST_COMPLETED
+      return (done, pending)
+    as_completed(aws, timeout=None)
+      return an iterator of coroutines.
+      awaiting each coroutine gets the next earliest result
+      pending = aws
+      similar code:
+      while pending:
+        fin, pending = wait(pending, return_when=FIRST_COMPLETED)
+        do something with fin or whatever
+    to_thread(func, *args, **kwargs)
+      do something in a thread and get result (don't block event loop)
+    run_coroutine_threadsafe(coro, loop)
+      return a future object
+  ------------------------------
+  -1.2- object types
+    iscoroutine(obj)
+    iscoroutinefunction(func)
+  ------------------------------
+  -1.3- comms
+    open_connection(host, port,...)
+      return (reader,writer) pair
+      writer.write(data): schedule a write
+      await methods:
+        writer.drain
+        reader.read
+    start_server(connection_callback, host, port, ...)
+      def connection_callback(reader, writer):
+        #handle connection
+        if callable, blocking
+        if coroutine, become a task
+    open_unix_connection(...)
+    start_unix_server(...)
+
+    classes:
+      Server
+        is a context manager (async with)
+        attrs:
+          sockets: sequence of listening sockets or None
+        methods:
+          close()
+          get_loop()
+          is_serving()
+        awaitables:
+          wait_closed()
+          start_serving()
+          serve_forever()
+
+      reader
+        awaitables:
+          read(n=-1)
+          readline()
+          readexactly(n)
+          readuntil(sep=b'\n')
+        ateof()
+      writer
+        transport
+        write(data)
+        writelines(data)
+        close()
+        can_write_eof()
+        write_eof()
+        is_closing()
+        get_extra_info(name, default=None)
+          BaseTransport.get_extra_info() args
+          sockets:
+            peername
+            socket
+            sockname
+          ssl sockets:
+            compression
+            cipher
+            peercert
+            sslcontext
+            ssl_object
+          pipe:
+            pipe
+          subprocess:
+            subprocess
+        awaitables:
+          drain()
+          wait_closed()
+
+------------------------------
+-2- exceptions
+  asyncio.CancelledError: task was canceled
+  asyncio.TimeoutError: timed out (from wait_for)
+  asyncio.InvalidStateError: result not ready
