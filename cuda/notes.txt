@@ -1,0 +1,74 @@
+contents
+-1- general
+-2- execution configurations
+
+
+______________________________
+-1- general
+  cuda uses nvcc for compilation:
+    converts kernels to ptx (gpu code)
+    modifies host code (with <<<...>>>) and outputs:
+      a source file that can be compiled (eg. with gcc)
+      OR
+      object file (nvcc would just use the compiler for you)
+
+  device: the acceleration device like a gpu
+  host: the computer (standard cpu)
+
+  files have .cu extension
+
+  declaration:
+    use __global__ to identify a kernel.
+
+  memory:
+    cudaMallocManaged(**ptr, nbytes)
+      compiler magic to access same pointer from both CPU and GPU.
+      ptr: address of a pointer variable to hold resulting address
+    CudaFree()
+
+    __shared__ can be used to declare an array of shared memory
+    (should be faster)
+
+    transfer between memory(if not used cudaMallocManaged):
+      use cudaMemcpy(
+        dst, src, nbytes, cudaMemcpy[HostToDevice|DeviceToHost]);
+
+
+  calling kernels:
+    function<<<gpuargs...>>>(func args...)
+      gpuargs
+    NOTE: calls are asynchronous. call cudaDeviceSynchronize()
+    to sync data
+
+______________________________
+-2- execution configurations
+  execution is multidimensional:
+    <<<nblocks, threadsperblock>>>
+
+  grid: 1,2, or 3d grid of blocks
+  blocks: 1, 2 or 3d "array" of threads
+  threads: do 1 task
+  warp: group of 32 threads (the reason why threads per block must be a
+    multiple of 32)
+
+  blocks MUST EXECUTE INDEPENDENTLY
+
+  Within a block, threads can communicate via
+  shared memory and __syncthreads()
+
+
+
+  Each block is a multiple of 32 threads
+
+  Access info via:
+    indexes:
+      threadIdx.x:  thread index within the block in x direction
+      blockIdx.x:   block index within total blocks
+    sizes:
+      blockDim.x:   number of threads in block in x direction
+      gridDim.x:    number of blocks
+
+  generally:
+    1. each "individual" calculation should be done by a single thread
+    2. pick a threads per block and calculate number of blocks(round up)
+    3. use result in <<<>>> call
