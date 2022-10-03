@@ -1,37 +1,64 @@
 contents:
 -1- general
--2- windows and regions
+-2- controls
 -3- config
-
-
 ______________________________
--1- general
+-1- commandline
   tmux                                  start new session
   tmux ls                               list sessions
   tmux attach -t <N>                    attach to session N
   tmux new -s <name>                    create session with name
   tmux rename-session -t <N> <name>     rename session N to name
 
+______________________________
+-2- controls
   similar to screen with prefix key...
   C-b is the default prefix key
+  In the notes below, C-b is omitted for brevity.
 
-  basic controls (prefix is implicit)
+  basic controls 
     d   detach
+    ]   paste copied text from copy mode.
     [   copy mode (use this for scrolling too, q to exit)
-
-
-______________________________
--2- windows and regions
-  %             split vertically
-  "             split horizontally
-  x             kill current region
-  arrows        same as above
-  C-d           close a region
-  c             create a window
-  n/p           next/previous window
-  <number>      go to Nth window
+      copy modes:
+        use EDITOR environment var if set
+        else default to emacs
+        emacs
+          C-space   set mark
+          C-w       copy, (emacs is yank but doesn't actually yank)
+          M-w       copy
+          C-f, C-b  move forward/backward 1 char
+          M-f, M-b  move forward/backward 1 word
+          C-a, C-e  move to front/back
+          C-n, C-p  move to next/previous line
+          C-g       clear selection
+          escape    cancel
+        vi
+          space     set mark
+          return    copy
+          q         cancel
+          escape    clear selection
+          hjkl      move 1 char left down up right
+          bw        move back/forward 1 word
+          0$        move to front/back
+  regions:
+    %             split vertically
+    "             split horizontally
+    x             kill current region
+    arrows        move regions
+  windows (like tabs)
+    c             create a window
+    w             gui list/change (q to quit)
+    n/p           next/previous window
+    <number>      go to Nth window
 ______________________________
 -3- config
   .tmux.conf:
     unbind C-b		remove C-b binding so terminal can go back
     set -g prefix C-q	rebind to C-q because unused
+    setw -g mode-keys vi  use vi copy mode
+
+  set:
+    set   : server-options (same as set -s)
+    setw  : window options (same as set -w)
+    set -g: set a global option
