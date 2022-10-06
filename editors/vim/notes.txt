@@ -43,11 +43,11 @@ contents:
   -5.6- plugins
 
 quick topics:
-  registers, macros             -1.5-
-  remapping/binding keys        -4.7-
-  viewports/tabs                -1.7-
-  file manipulation             -1.3-, -4.3-
-  indentation                   -4.2.1-
+  registers, macros       -1.5-
+  remapping/binding keys  -4.7-
+  viewports/tabs          -1.7-
+  file manipulation       -1.3-, -4.3-
+  indentation             -4.2.1-
 
 Vim is a modal editor.  In general, vim has normal, insert, visual,
 and command modes each with their own functionalities.
@@ -63,8 +63,8 @@ ______________________________
   -0.1- starting vim
     vim/vi can be started by vim <file1> <file2>...
     useful commandline arguments:
-      -u <file|NONE>        use <file> instead of ${HOME}/.vimrc for
-                            initialization.  If NONE, no initialization.
+      -u <file|NONE>  use <file> instead of ${HOME}/.vimrc for
+                      initialization.  If NONE, no initialization.
 
   ______________________________
   -0.2- terminology
@@ -367,11 +367,11 @@ ______________________________
       t|b       to top|bottom viewport
 
     new tabs:
-      :tabn	command mode to create new tab
+      :tabn     command mode to create new tab
       T         move viewport to a new tab
 
     change tabs:
-      g<t|T>	go to Nth(default=next)/previous Nth tab
+      g<t|T>    go to Nth(default=next)/previous Nth tab
 
   ______________________________
   -1.8- searching
@@ -508,11 +508,17 @@ ______________________________
     (not all variables can be buffer local though)
     ______________________________
     -4.2.1- indentation
-      softtabstop     sts     target destinations of tab key
+      softtabstop     sts     target destinations of pressing tabkey or
+                              backspace.  Fit as many tabs as possible, and do
+                              the rest with spaces
+                              0: off, just insert tabs only (use ts)
+                              <0: use sw instead
       tabstop         ts      size of a tab character
-      shiftwidth      sw      size of indentation
+      shiftwidth      sw      size of indentation (normal >> or <<, insert <C-t> <C-d>)
+                              0: use ts
       autoindent      ai      copy indent of previous line when new line
-      expandtab       et      use spaces instead of tab chars.
+      expandtab       et      Whenever normally inserting a tab char (not
+                              prefixed with C-v), replace with ts spaces
 
       If applicable, spaces will be converted to tabs once they
       reach tabstop

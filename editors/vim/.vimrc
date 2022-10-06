@@ -1,21 +1,24 @@
 "summary of keybindings
 "<C-K>  do something
-"  ?      ask[?] bindings
-"  c      toggle [c]olumn ruler stl
-"  n      toggle [n]umbering
-"  r      toggle [r]elative numbering
-"  l      toggle [l]ist
-"  b      scratch [b]uffer
-"  )      toggle auto-close mappings (pair ([{ with closing )]})
-"  <Tab>  toggle expandtab
-"  p      toggle paste
+"  ?        ask[?] bindings
+"  c        toggle [c]olumn ruler stl
+"  n        toggle [n]umbering
+"  r        toggle [r]elative numbering
+"  l        toggle [l]ist
+"  b        scratch [b]uffer
+"  )        toggle auto-close mappings (pair ([{ with closing )]})
+"  <Tab>    toggle expandtab
+"  p        toggle paste
 
-"<C-K><C-K>  set an option to numeric value
-"  >       [shift]width
-"  <Tab>   [tab]stop
-"  <S-Tab> [s]oft [tab]stop
+"<C-K><C-K> set an option to numeric value
+"  >        [shift]width
+"  <Tab>    [tab]stop
+"  <S-Tab>  [s]oft [tab]stop
 
-"<S-Tab>   add a literal tab
+"<S-Tab>    if expandtab: add literal tab
+"           else: add spaces
+"<S-BS>     when sts == 0, <BS> only deletes 1 char(space)
+"           This makes it act as if sts == ts (delete multiple spaces)
 
 syntax on
 filetype plugin on
@@ -108,7 +111,40 @@ function! ToggleAutoclose()
 	endif
 endfunction
 
-inoremap <silent> <S-Tab> <C-v><Tab>
+function! DoOpTab()
+	" insert literal tab char OR spaces up to boundary
+	" depending on value of expandtab
+	if &l:expandtab
+		execute "norm a\<C-v>\<Tab>"
+	else
+		" sts=0 avoids merging tabs/spaces allowing adding just
+		" spaces
+		setlocal et
+		let [ots, osts, &l:sts] = [&l:ts, &l:sts, 0]
+		if osts > 0
+			let &l:ts = osts
+		elseif osts < 0 && &l:sw > 0
+			let &l:ts = &l:sw
+		endif
+		execute "norm a\<Tab>"
+		let [&l:ts, &l:sts] = [ots, osts]
+		setlocal noet
+	endif
+endfunction
+inoremap <silent> <S-Tab> <Esc>:call DoOpTab()<CR>a
+
+function! DoSTSBS()
+	" backspace as if sts is on
+	" mainly useful if expandtab AND sts==0
+	if &l:sts == 0
+		let &l:sts = &l:ts
+		execute "norm a\<BS>"
+		let &l:sts = 0
+	else
+		execute "norm a\<BS>"
+	endif
+endfunction
+inoremap <silent> <S-BS> <Esc>:call DoSTSBS()<CR>a
 
 nnoremap <silent> <C-K>) :call ToggleAutoclose()<CR>
 function! RulerSTL(...)
