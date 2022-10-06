@@ -1,21 +1,21 @@
 "summary of keybindings
 "<C-K>  do something
-"?      ask[?] bindings
-"c      toggle [c]olumn ruler stl
-"n      toggle [n]umbering
-"r      toggle [r]elative numbering
-"l      toggle [l]ist
-"b      scratch [b]uffer
-")      toggle auto-close mappings (pair ([{ with closing )]})
-"<Tab>  toggle expandtab
-"n      toggle nu
-"r      toggle rnu
-"p      toggle paste
-"
+"  ?      ask[?] bindings
+"  c      toggle [c]olumn ruler stl
+"  n      toggle [n]umbering
+"  r      toggle [r]elative numbering
+"  l      toggle [l]ist
+"  b      scratch [b]uffer
+"  )      toggle auto-close mappings (pair ([{ with closing )]})
+"  <Tab>  toggle expandtab
+"  p      toggle paste
+
 "<C-K><C-K>  set an option to numeric value
-">       [shift]width
-"<Tab>   [tab]stop
-"<S-Tab> [s]oft [tab]stop
+"  >       [shift]width
+"  <Tab>   [tab]stop
+"  <S-Tab> [s]oft [tab]stop
+
+"<S-Tab>   add a literal tab
 
 syntax on
 filetype plugin on
@@ -45,7 +45,7 @@ nnoremap <silent> <C-K><Tab> :setlocal expandtab! expandtab?<CR>
 nnoremap <C-K>b :enew<CR>:setlocal buftype=nofile bufhidden=hide noswapfile<CR>
 "basic options
 nnoremap <C-K>? :nnoremap <lt>C-K><CR>
-set nowrap autoindent number ruler
+set nowrap autoindent number ruler incsearch
 set ignorecase smartcase hlsearch
 set hidden belloff=all scrolloff=0 list
 set formatoptions+=roj
@@ -107,6 +107,9 @@ function! ToggleAutoclose()
 		endfor
 	endif
 endfunction
+
+inoremap <silent> <S-Tab> <C-v><Tab>
+
 nnoremap <silent> <C-K>) :call ToggleAutoclose()<CR>
 function! RulerSTL(...)
 	"Return a string suitable for use as the status line that shows
