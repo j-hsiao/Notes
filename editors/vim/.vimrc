@@ -48,7 +48,7 @@ nnoremap <silent> <C-K><Tab> :setlocal expandtab! expandtab?<CR>
 nnoremap <C-K>b :enew<CR>:setlocal buftype=nofile bufhidden=hide noswapfile<CR>
 "basic options
 nnoremap <C-K>? :nnoremap <lt>C-K><CR>
-set nowrap autoindent number ruler incsearch
+set nowrap number ruler incsearch
 set ignorecase smartcase hlsearch
 set hidden belloff=all scrolloff=0 list
 set formatoptions+=roj
@@ -66,6 +66,7 @@ set formatoptions+=roj
 " 	autocmd Myft bufnewfile,bufread *.txt setlocal sw=2 sts=4 ts=4
 " augroup END
 
+" autocompletion for [](){} etc
 function! IgnoreIfSame(key)
 	"handle the case where cursor is on closing key
 	"If on a closing key, move 1 over.  Otherwise add the closing key.
@@ -111,41 +112,7 @@ function! ToggleAutoclose()
 	endif
 endfunction
 
-function! DoOpTab()
-	" insert literal tab char OR spaces up to boundary
-	" depending on value of expandtab
-	if &l:expandtab
-		execute "norm a\<C-v>\<Tab>"
-	else
-		" sts=0 avoids merging tabs/spaces allowing adding just
-		" spaces
-		setlocal et
-		let [ots, osts, &l:sts] = [&l:ts, &l:sts, 0]
-		if osts > 0
-			let &l:ts = osts
-		elseif osts < 0 && &l:sw > 0
-			let &l:ts = &l:sw
-		endif
-		execute "norm a\<Tab>"
-		let [&l:ts, &l:sts] = [ots, osts]
-		setlocal noet
-	endif
-endfunction
-inoremap <silent> <S-Tab> <Esc>:call DoOpTab()<CR>a
-
-function! DoSTSBS()
-	" backspace as if sts is on
-	" mainly useful if expandtab AND sts==0
-	if &l:sts == 0
-		let &l:sts = &l:ts
-		execute "norm a\<BS>"
-		let &l:sts = 0
-	else
-		execute "norm a\<BS>"
-	endif
-endfunction
-inoremap <silent> <S-BS> <Esc>:call DoSTSBS()<CR>a
-
+" Column-ruler stl
 nnoremap <silent> <C-K>) :call ToggleAutoclose()<CR>
 function! RulerSTL(...)
 	"Return a string suitable for use as the status line that shows
@@ -255,3 +222,81 @@ function! ColRuler()
 	endif
 endfunction
 nnoremap <silent> <C-K>c :call ColRuler()<CR>
+
+"custom indentation stuffs
+function! DoOpTab()
+	" insert literal tab char OR spaces up to boundary
+	" depending on value of expandtab
+	if &l:expandtab
+		execute "norm gi\<C-v>\<Tab>"
+	else
+		" sts=0 avoids merging tabs/spaces allowing adding just
+		" spaces
+		setlocal et
+		let [ots, osts, &l:sts] = [&l:ts, &l:sts, 0]
+		if osts > 0
+			let &l:ts = osts
+		elseif osts < 0 && &l:sw > 0
+			let &l:ts = &l:sw
+		endif
+		execute "norm gi\<Tab>"
+		let [&l:ts, &l:sts] = [ots, osts]
+		setlocal noet
+	endif
+endfunction
+inoremap <silent> <S-Tab> <Esc>:call DoOpTab()<CR>gi
+
+function! DoSTSBS()
+	" backspace as if sts is on
+	" mainly useful if expandtab AND sts==0
+	if &l:sts == 0
+		let &l:sts = &l:ts
+		execute "norm gi\<BS>"
+		let &l:sts = 0
+	else
+		execute "norm gi\<BS>"
+	endif
+endfunction
+inoremap <silent> <S-BS> <Esc>:call DoSTSBS()<CR>gi
+
+function! CopyIndent(key)
+	"autoindent uses the column then most tabs+spaces
+	"this just literally copies the indentation
+	"much more useful for tab->indent, space->align
+	if &l:autoindent
+		if a:key == '<CR>'
+			execute "norm! gi\<CR>"
+		else
+			execute 'norm! ' . a:key
+		endif
+		return
+	endif
+	norm _
+	let p = getpos('.')[2]
+	if p > 1
+		let ind = getline('.')[:p-2]
+	else
+		let ind = ''
+	endif
+	if a:key == '<CR>'
+		execute "norm! gi\<CR>"
+	else
+		execute 'norm! ' . a:key
+	endif
+	let target = getpos("'^")
+	norm _
+	let p = getpos('.')
+	let post = getline('.')[p[2]-1:]
+	call setline('.', ind . post)
+	let wantpos = len(ind) + target[2] - p[2] + 1
+	
+	if len(ind) + len(post) < wantpos
+		cursor('.', wantpos)
+		norm! i
+	else
+		norm! A
+	endif
+endfunction
+inoremap <silent> <CR> <Esc>:call CopyIndent('<CR>')<CR>gi
+nnoremap <silent> O :call CopyIndent('O')<CR>gi
+nnoremap <silent> o :call CopyIndent('o')<CR>gi

@@ -8,11 +8,11 @@ fi
 
 settings=(
 	"python sts=4 sw=4 expandtab"
-	"cmake ts=4 sts=4 sw=4"
-	"c sts=2 sw=2 ts=2 noexpandtab"
-	"cpp sts=2 sw=2 ts=2 noexpandtab"
-	"sh ts=4 sw=4 sts=4 noexpandtab"
-	"text sw=2 ts=8 sts=8 noexpandtab"
+	"cmake ts=4 sts=0 sw=4 noexpandtab"
+	"c sts=0 sw=2 ts=2 noexpandtab"
+	"cpp sts=0 sw=2 ts=2 noexpandtab"
+	"sh ts=4 sw=4 sts=0 noexpandtab"
+	"text sw=2 ts=8 sts=0 noexpandtab"
 )
 
 for info in "${settings[@]}"
