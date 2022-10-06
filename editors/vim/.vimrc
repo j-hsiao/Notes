@@ -17,8 +17,10 @@
 
 "<S-Tab>    if expandtab: add literal tab
 "           else: add spaces
-"<S-BS>     when sts == 0, <BS> only deletes 1 char(space)
+"<C-BS>     when sts == 0, <BS> only deletes 1 char(space)
 "           This makes it act as if sts == ts (delete multiple spaces)
+"           <S-BS> does not work on home windows, but does on work
+"           windows?
 
 syntax on
 filetype plugin on
@@ -106,8 +108,8 @@ function! ToggleAutoclose()
 		endfor
 	else
 		for oc in split('() [] {}')
-			execute 'inoremap ' . oc[0] . ' ' . '<Esc>:call CompleteIfWS("' . oc . '")<CR>'
-			execute 'inoremap ' . oc[1] . ' ' . '<Esc>:call IgnoreIfSame("' . oc[1] . '")<CR>'
+			execute 'inoremap ' . oc[0] . ' ' . '<C-o>:call CompleteIfWS("' . oc . '")<CR>'
+			execute 'inoremap ' . oc[1] . ' ' . '<C-o>:call IgnoreIfSame("' . oc[1] . '")<CR>'
 		endfor
 	endif
 endfunction
@@ -244,7 +246,7 @@ function! DoOpTab()
 		setlocal noet
 	endif
 endfunction
-inoremap <silent> <S-Tab> <Esc>:call DoOpTab()<CR>gi
+inoremap <silent> <S-Tab> <C-o>:call DoOpTab()<CR>
 
 function! DoSTSBS()
 	" backspace as if sts is on
@@ -257,46 +259,71 @@ function! DoSTSBS()
 		execute "norm gi\<BS>"
 	endif
 endfunction
-inoremap <silent> <S-BS> <Esc>:call DoSTSBS()<CR>gi
+inoremap <silent> <C-BS> <C-o>:call DoSTSBS()<CR>
+
+function! GetIndent()
+	"Return the indentation on the current line
+	"changes '^ mark
+	let curline = getline('.')
+	execute "norm! I\<Esc>"
+	let lasti = getpos("'^")
+	let idx = lasti[2] 
+	if idx > 1
+		return curline[:idx-2]
+	else
+		return ''
+	endif
+endfunction
 
 function! CopyIndent(key)
 	"autoindent uses the column then most tabs+spaces
 	"this just literally copies the indentation
-	"much more useful for tab->indent, space->align
+	" much more useful for tab->indent, space->align
 	if &l:autoindent
-		if a:key == '<CR>'
-			execute "norm! gi\<CR>"
-		else
-			execute 'norm! ' . a:key
-		endif
+		call feedkeys(a:key, 'n')
 		return
 	endif
-	norm _
-	let p = getpos('.')[2]
-	if p > 1
-		let ind = getline('.')[:p-2]
-	else
-		let ind = ''
-	endif
-	if a:key == '<CR>'
+	if a:key == "\<CR>"
+		let origpos = getpos("'^")
+		let trailing = getline(origpos[1])[origpos[2]-1:]
 		execute "norm! gi\<CR>"
+		let newpos = getpos("'^")
+		" TODO
 	else
+		"o or O, expect empty line because no autoindent
+		"If not empty, then that'd be because of comment.
+		"  Either way, always move cursor to the end.
+		let indentation = GetIndent()
+		let origline = line('.')
 		execute 'norm! ' . a:key
-	endif
-	let target = getpos("'^")
-	norm _
-	let p = getpos('.')
-	let post = getline('.')[p[2]-1:]
-	call setline('.', ind . post)
-	let wantpos = len(ind) + target[2] - p[2] + 1
-	
-	if len(ind) + len(post) < wantpos
-		cursor('.', wantpos)
-		norm! i
-	else
-		norm! A
+		let addedline = line('.')
+		if origline == addedline
+			let origline = addedline + 1
+		endif
+		if len(getline(addedline))
+			call cursor(origline, 0)
+			norm _
+			let commentstart = getpos('.')
+			norm w
+			let wordstart = getpos('.')
+			let oline = getline(origline)
+			if commentstart[1] == wordstart[1]
+				let extra = oline[commentstart[2]-1:wordstart[2]-2]
+			else
+				let extra = oline[commentstart[2]-1:]
+			endif
+			call setline(addedline, indentation . extra)
+			call cursor(addedline, 0)
+		else
+			call setline('.', indentation)
+		endif
+		return feedkeys('A')
 	endif
 endfunction
-inoremap <silent> <CR> <Esc>:call CopyIndent('<CR>')<CR>gi
-nnoremap <silent> O :call CopyIndent('O')<CR>gi
-nnoremap <silent> o :call CopyIndent('o')<CR>gi
+
+function Tst()
+	return "gi\<CR>"
+endfunction
+inoremap <CR> <C-o>:call CopyIndent("\<lt>CR>")<CR>
+nnoremap  O :call CopyIndent('O')<CR>
+nnoremap  o :call CopyIndent('o')<CR>
