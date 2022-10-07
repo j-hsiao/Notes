@@ -276,19 +276,27 @@ function! GetIndent()
 endfunction
 
 function! CopyIndent(key)
-	"autoindent uses the column then most tabs+spaces
-	"this just literally copies the indentation
-	" much more useful for tab->indent, space->align
+	"similar to autoindentation except copy the indentation
+	"instead of processing it to max tabs + spaces
 	if &l:autoindent
 		call feedkeys(a:key, 'n')
 		return
 	endif
 	if a:key == "\<CR>"
 		let origpos = getpos("'^")
-		let trailing = getline(origpos[1])[origpos[2]-1:]
 		execute "norm! gi\<CR>"
 		let newpos = getpos("'^")
-		" TODO
+		let trailing = getline(newpos[1])[newpos[2]-1:]
+		" auto-comment
+		" seems like it has correct behavior if noai
+		" and formatoptions has r
+		" so only handle the case when not comment
+		if newpos[2] == 1
+			call cursor(origpos[1], 0)
+			let indentation = GetIndent()
+			call setline(newpos[1], indentation . trim(trailing))
+			call cursor(newpos[1], len(indentation)+1)
+		endif
 	else
 		"o or O, expect empty line because no autoindent
 		"If not empty, then that'd be because of comment.
