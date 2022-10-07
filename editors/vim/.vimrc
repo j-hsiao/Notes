@@ -50,10 +50,10 @@ nnoremap <silent> <C-K><Tab> :setlocal expandtab! expandtab?<CR>
 nnoremap <C-K>b :enew<CR>:setlocal buftype=nofile bufhidden=hide noswapfile<CR>
 "basic options
 nnoremap <C-K>? :nnoremap <lt>C-K><CR>
-set nowrap number ruler incsearch
-set ignorecase smartcase hlsearch
-set hidden belloff=all scrolloff=0 list
-set formatoptions+=roj
+set nowrap number ruler incsearch autoindent copyindent
+	\ ignorecase smartcase hlsearch
+	\ hidden belloff=all scrolloff=0 list
+	\ formatoptions+=roj
 
 "Note: one maybe large benefit of ftplugin over autocmd is that
 "the ftplugin has its own file-type identification that can be
@@ -225,12 +225,13 @@ function! ColRuler()
 endfunction
 nnoremap <silent> <C-K>c :call ColRuler()<CR>
 
-"custom indentation stuffs
-function! DoOpTab()
+"custom indentation handling to work with tabindent + spacealign
+" Tab
+function! DoOpTab(expandprefix)
 	" insert literal tab char OR spaces up to boundary
 	" depending on value of expandtab
 	if &l:expandtab
-		execute "norm gi\<C-v>\<Tab>"
+		call feedkeys(a:expandprefix . "\<Tab>", 'n')
 	else
 		" sts=0 avoids merging tabs/spaces allowing adding just
 		" spaces
@@ -241,13 +242,19 @@ function! DoOpTab()
 		elseif osts < 0 && &l:sw > 0
 			let &l:ts = &l:sw
 		endif
-		execute "norm gi\<Tab>"
+		execute "norm! gi\<Tab>"
 		let [&l:ts, &l:sts] = [ots, osts]
 		setlocal noet
+		call setpos('.', getpos("'^"))
 	endif
 endfunction
-inoremap <silent> <S-Tab> <C-o>:call DoOpTab()<CR>
+" prevent C-o from killing any autoindents
+" If noexpandtab, then <C-d> <C-t> for indentation
+" <Tab> for alignment
+inoremap <silent> <S-Tab> <Space><BS><C-o>:call DoOpTab("\<lt>C-v>")<CR>
+inoremap <silent> <Tab> <Space><BS><C-o>:call DoOpTab("")<CR>
 
+" backspace
 function! DoSTSBS()
 	" backspace as if sts is on
 	" mainly useful if expandtab AND sts==0
@@ -255,83 +262,69 @@ function! DoSTSBS()
 		let &l:sts = &l:ts
 		execute "norm gi\<BS>"
 		let &l:sts = 0
+		call setpos('.', getpos("'^"))
 	else
-		execute "norm gi\<BS>"
+		call feedkeys("\<BS>", 'n')
 	endif
 endfunction
-inoremap <silent> <C-BS> <C-o>:call DoSTSBS()<CR>
+" prevent C-o from killing any autoindents
+inoremap <silent> <C-BS> <Space><BS><C-o>:call DoSTSBS()<CR>
 
-function! GetIndent()
-	"Return the indentation on the current line
-	"changes '^ mark
+" shifting, preserve tab/space structure
+function! DoShift(keys, count)
+	" Special handling for shifting if indent/align is detected
+	" (\t* \+) also et is off
 	let curline = getline('.')
-	execute "norm! I\<Esc>"
-	let lasti = getpos("'^")
-	let idx = lasti[2] 
-	if idx > 1
-		return curline[:idx-2]
-	else
-		return ''
-	endif
-endfunction
-
-function! CopyIndent(key)
-	"similar to autoindentation except copy the indentation
-	"instead of processing it to max tabs + spaces
-	if &l:autoindent
-		call feedkeys(a:key, 'n')
-		return
-	endif
-	if a:key == "\<CR>"
-		let origpos = getpos("'^")
-		execute "norm! gi\<CR>"
-		let newpos = getpos("'^")
-		let trailing = getline(newpos[1])[newpos[2]-1:]
-		" auto-comment
-		" seems like it has correct behavior if noai
-		" and formatoptions has r
-		" so only handle the case when not comment
-		if newpos[2] == 1
-			call cursor(origpos[1], 0)
-			let indentation = GetIndent()
-			call setline(newpos[1], indentation . trim(trailing))
-			call cursor(newpos[1], len(indentation)+1)
-		endif
-	else
-		"o or O, expect empty line because no autoindent
-		"If not empty, then that'd be because of comment.
-		"  Either way, always move cursor to the end.
-		let indentation = GetIndent()
-		let origline = line('.')
-		execute 'norm! ' . a:key
-		let addedline = line('.')
-		if origline == addedline
-			let origline = addedline + 1
-		endif
-		if len(getline(addedline))
-			call cursor(origline, 0)
-			norm _
-			let commentstart = getpos('.')
-			norm w
-			let wordstart = getpos('.')
-			let oline = getline(origline)
-			if commentstart[1] == wordstart[1]
-				let extra = oline[commentstart[2]-1:wordstart[2]-2]
-			else
-				let extra = oline[commentstart[2]-1:]
-			endif
-			call setline(addedline, indentation . extra)
-			call cursor(addedline, 0)
+	if !&l:et && match(curline, '^\m\t* \+') == 0
+		let offset = a:count
+		if a:keys == "\<C-t>"
+			let target = getpos("'^")
 		else
-			call setline('.', indentation)
+			let target = getpos('.')
 		endif
-		return feedkeys('A')
+		let counter = a:count
+		if counter > 0
+			while counter > 0
+				let curline = "\<Tab>" . curline
+				let counter -= 1
+			endwhile
+		else
+			while counter < 0 && curline[0] == "\<Tab>"
+				let curline = curline[1:]
+				let counter += 1
+			endwhile
+			if counter < 0
+				let shiftwidth = &l:sw
+				if shiftwidth == 0
+					let shiftwidth = &l:ts
+				endif
+				let mypattern = '^ \{1,' . shiftwidth . '}'
+				let mymatch = matchstr(curline, mypattern)
+				while counter < 0 && len(mymatch) > 0
+					let curline = curline[len(mymatch):]
+					let offset -= len(mymatch)-1
+					let mymatch = matchstr(curline, mypattern)
+					let counter += 1
+				endwhile
+			endif
+		endif
+		call setline('.', curline)
+		call cursor(target[1], target[2]+offset)
+	else
+		call feedkeys(a:keys, 'n')
 	endif
 endfunction
-
-function Tst()
-	return "gi\<CR>"
+inoremap <silent> <C-t> <Space><BS><C-o>:call DoShift("\<lt>C-t>", 1)<CR>
+nnoremap <silent> >> :<C-U>call DoShift('>>', v:count == 0 ? 1 : v:count)<CR>
+inoremap <silent> <C-d> <Space><BS><C-o>:call DoShift("\<lt>C-d>", -1)<CR>
+nnoremap <silent> <lt><lt> :<C-U>call DoShift('<lt><lt>', v:count == 0 ? -1 : -v:count)<CR>
+function! DoRangeShift(keys) range
+	execute "'<,'>norm " . a:keys | call setpos('.', getpos("'<"))
 endfunction
-inoremap <CR> <C-o>:call CopyIndent("\<lt>CR>")<CR>
-nnoremap  O :call CopyIndent('O')<CR>
-nnoremap  o :call CopyIndent('o')<CR>
+" TODO visual handle visual mode shift?
+" visual mode shifts cause indent
+" but normal visual mode allows . to redo...
+" maybe add a realign function that searches
+" lines for block of same-indent until reaching
+" the first different indent
+" use that as indent and the remaining as alignment

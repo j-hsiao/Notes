@@ -7,12 +7,12 @@ then
 fi
 
 settings=(
-	"python ts=4 sts=4 sw=4 expandtab"
-	"cmake ts=4 sts=0 sw=4 noexpandtab noautoindent"
-	"c ts=2 sts=0 sw=2 noexpandtab noautoindent"
-	"cpp ts=2 sts=0 sw=2 noexpandtab noautoindent"
-	"sh ts=4 sts=0 sw=4 noexpandtab noautoindent"
-	"text ts=8 sts=0 sw=2 noexpandtab noautoindent"
+	"python ts=4 sts=0 sw=0 expandtab"
+	"cmake ts=4 sts=0 sw=0 noexpandtab"
+	"c ts=2 sts=0 sw=0 noexpandtab"
+	"cpp ts=2 sts=0 sw=0 noexpandtab"
+	"sh ts=4 sts=0 sw=0 noexpandtab"
+	"text ts=2 sts=4 sw=2 noexpandtab"
 )
 
 for info in "${settings[@]}"
