@@ -1193,21 +1193,14 @@ ______________________________
     :h user-functions
     function names MUST be capitalized
     script-local begin with s:
-    Use <SID> to generate the current script's id.  This can allow
-      the function to be called from outside the script if the value is known.
-      (like using an RNG to generate a unique name)
-      ie:
-        function s:Myfunc()
-        endfunction
-        function <SID>Myfunc()
-        endfunction
-        nnoremap blah :call s:Myfunc()          This fails because s:Myfunc() is local
-                                                to the script but the mapping is activated
-                                                outside the script by the user.
-        nnoremap blah :call <SID>Myfunc()       This succeeds because <SID>Myfunc() is just a
-                                                unique name to a global function.  ie. If you knew
-                                                what the <SID> was, you could just :call <SID>Myfunc()
-                                                as normal.
+      Note on script-local functions used for mappings:
+      It will fail because the mapping is run outside the script.
+      As a result it does not know which script the function is
+      defined in.  As a result, for "script-local" functions
+      to be used in mappings, prefix it with <SID> in both function
+      definition and in the mapping definition.  (the function becomes
+      a global that just happens to have a script-unique string
+      prefixing its name).
     <Plug> "is a special code never produced by a keyboard" ??
       Use this on the function name (usually <Plug>ScriptnameFunctionname(...))
       to make some unique?? name??

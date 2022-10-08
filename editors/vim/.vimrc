@@ -39,11 +39,11 @@ nnoremap <C-K>r :setlocal relativenumber! relativenumber?<CR>
 "cancel search highlights
 nnoremap <silent> <C-[><C-[> :nohl<CR>
 "shiftwidth
-nnoremap <silent> <C-K><C-K>> :<C-U>execute "setlocal sw" . (v:count == 0 ? "&" : "=" . v:count)<CR>
+nnoremap <silent> <C-K><C-K>> :<C-U>execute "setlocal sw" . (v:count == v:count1 ? "=" . v:count : "&")<CR>
 "softtabstop
-nnoremap <silent> <C-K><C-K><S-Tab> :<C-U>execute "setlocal sts" . (v:count == 0 ? "&" : "=" . v:count)<CR>
+nnoremap <silent> <C-K><C-K><S-Tab> :<C-U>execute "setlocal sts" . (v:count == v:count1 ? "=" . v:count : "&")<CR>
 "tabstop
-nnoremap <silent> <C-K><C-K><Tab> :<C-U>execute "setlocal ts" . (v:count == 0 ? "&" : "=" . v:count)<CR>
+nnoremap <silent> <C-K><C-K><Tab> :<C-U>execute "setlocal ts" . (v:count == v:count1 ? "=" . v:count : "&")<CR>
 "expandtab
 nnoremap <silent> <C-K><Tab> :setlocal expandtab! expandtab?<CR>
 "scratch buffer
@@ -69,7 +69,7 @@ set nowrap number ruler incsearch autoindent copyindent
 " augroup END
 
 " autocompletion for [](){} etc
-function! IgnoreIfSame(key)
+function! s:IgnoreIfSame(key)
 	"handle the case where cursor is on closing key
 	"If on a closing key, move 1 over.  Otherwise add the closing key.
 	let [curline, ccol] = [getline("."), col("'^")]
@@ -86,7 +86,7 @@ function! IgnoreIfSame(key)
 		startinsert
 	endif
 endfunction
-function! CompleteIfWS(keypair)
+function! s:CompleteIfWS(keypair)
 	let curline = getline('.')
 	let curbyte = col("'^") - 1
 	if curbyte >= len(curline) || curline[curbyte] =~ '\s'
@@ -97,7 +97,7 @@ function! CompleteIfWS(keypair)
 	endif
 	startinsert
 endfunction
-function! ToggleAutoclose()
+function! <SID>ToggleAutoclose()
 	"Toggle whether ([{ should be auto-closed.
 	"When typing one of these keys, the corresponding
 	"close character will be automatically added
@@ -108,15 +108,15 @@ function! ToggleAutoclose()
 		endfor
 	else
 		for oc in split('() [] {}')
-			execute 'inoremap ' . oc[0] . ' ' . '<C-o>:call CompleteIfWS("' . oc . '")<CR>'
-			execute 'inoremap ' . oc[1] . ' ' . '<C-o>:call IgnoreIfSame("' . oc[1] . '")<CR>'
+			execute 'inoremap ' . oc[0] . ' ' . '<C-O>:call s:CompleteIfWS("' . oc . '")<CR>'
+			execute 'inoremap ' . oc[1] . ' ' . '<C-O>:call s:IgnoreIfSame("' . oc[1] . '")<CR>'
 		endfor
 	endif
 endfunction
 
 " Column-ruler stl
-nnoremap <silent> <C-K>) :call ToggleAutoclose()<CR>
-function! RulerSTL(...)
+nnoremap <silent> <C-K>) :call <SID>ToggleAutoclose()<CR>
+function! s:RulerSTL(...)
 	"Return a string suitable for use as the status line that shows
 	"the columns similar to nu.  Numbering starts at 1 and numbers
 	"each sts or sw or ts, whichever is non-zero first.  If the max
@@ -125,7 +125,7 @@ function! RulerSTL(...)
 	"Optional arguments: delimiter per column, delimiter for curcol.
 	let delim = a:0 ? a:1 : '|'
 	let cdelim = a:0 > 1 ? a:2 : '^'
-	let step = &sts ? &sts : &sw ? &sw : &ts
+	let step = &l:sts ? &l:sts : &l:sw ? &l:sw : &l:ts
 	let maxlen = winwidth(0)
 	let midlen = len(max([col('$'), maxlen]) . '^ ')
 	while step < midlen
@@ -139,7 +139,7 @@ function! RulerSTL(...)
 	"rather than the beginning.  However, if list is set, then
 	"the cursor is placed on the beginning of the tab rather than
 	"the last column of the tab.  Correct the issue.
-	if curchar == "\t" && &list
+	if curchar == "\t" && &l:list
 		" could be <space><Tab>
 		" to get the tab start, need the end of the previous char
 		" can't just take tab and subtract ts-1 because that would
@@ -149,7 +149,7 @@ function! RulerSTL(...)
 			let cbufvpos = virtcol('.') + 1
 			call cursor(0, curcol)
 		else
-			let cbufvpos -= &ts - 1
+			let cbufvpos -= &l:ts - 1
 		endif
 	endif
 	let maxlen = winwidth(0)
@@ -203,7 +203,7 @@ function! RulerSTL(...)
 endfunction
 
 function! CpOrigSTL()
-	if ! exists('w:ColRuler_origstl') && &stl == '%!RulerSTL()'
+	if ! exists('w:ColRuler_origstl') && &l:stl == '%!s:RulerSTL()'
 		let w:ColRuler_origstl = getwinvar(winnr('#'), 'ColRuler_origstl')
 	endif
 endfunction
@@ -214,11 +214,11 @@ augroup END
 
 unlet! w:ColRuler_origstl
 function! ColRuler()
-	"Toggle using RulerSTL() for stl
+	"Toggle using s:RulerSTL() for stl
 	"The original stl line is saved as w:ColRuler_origstl
-	if !exists('w:ColRuler_origstl') || &stl != '%!RulerSTL()'
-		let w:ColRuler_origstl = &stl
-		let &l:stl = '%!RulerSTL()'
+	if !exists('w:ColRuler_origstl') || &l:stl != '%!s:RulerSTL()'
+		let w:ColRuler_origstl = &l:stl
+		let &l:stl = '%!s:RulerSTL()'
 	else
 		let &l:stl = w:ColRuler_origstl
 	endif
@@ -227,7 +227,7 @@ nnoremap <silent> <C-K>c :call ColRuler()<CR>
 
 "custom indentation handling to work with tabindent + spacealign
 " Tab
-function! DoOpTab(expandprefix)
+function! <SID>DoOpTab(expandprefix)
 	" insert literal tab char OR spaces up to boundary
 	" depending on value of expandtab
 	if &l:expandtab
@@ -249,13 +249,13 @@ function! DoOpTab(expandprefix)
 	endif
 endfunction
 " prevent C-o from killing any autoindents
-" If noexpandtab, then <C-d> <C-t> for indentation
+" If noexpandtab, then <C-D> <C-T> for indentation
 " <Tab> for alignment
-inoremap <silent> <S-Tab> <Space><BS><C-o>:call DoOpTab("\<lt>C-v>")<CR>
-inoremap <silent> <Tab> <Space><BS><C-o>:call DoOpTab("")<CR>
+inoremap <silent> <S-Tab> <Space><BS><C-O>:call <SID>DoOpTab("\<lt>C-v>")<CR>
+inoremap <silent> <Tab> <Space><BS><C-O>:call <SID>DoOpTab("")<CR>
 
 " backspace
-function! DoSTSBS()
+function! <SID>DoSTSBS()
 	" backspace as if sts is on
 	" mainly useful if expandtab AND sts==0
 	if &l:sts == 0
@@ -268,59 +268,52 @@ function! DoSTSBS()
 	endif
 endfunction
 " prevent C-o from killing any autoindents
-inoremap <silent> <C-BS> <Space><BS><C-o>:call DoSTSBS()<CR>
+inoremap <silent> <C-BS> <Space><BS><C-O>:call <SID>DoSTSBS()<CR>
 
 " shifting, preserve tab/space structure
-function! DoShift(keys, count)
+function! <SID>DoShift(keys, count)
 	" Special handling for shifting if indent/align is detected
 	" (\t* \+) also et is off
-	let curline = getline('.')
-	if !&l:et && match(curline, '^\m\t* \+') == 0
-		let offset = a:count
-		if a:keys == "\<C-t>"
-			let target = getpos("'^")
-		else
-			let target = getpos('.')
-		endif
-		let counter = a:count
-		if counter > 0
-			while counter > 0
-				let curline = "\<Tab>" . curline
-				let counter -= 1
-			endwhile
-		else
-			while counter < 0 && curline[0] == "\<Tab>"
-				let curline = curline[1:]
-				let counter += 1
-			endwhile
-			if counter < 0
-				let shiftwidth = &l:sw
-				if shiftwidth == 0
-					let shiftwidth = &l:ts
-				endif
-				let mypattern = '^ \{1,' . shiftwidth . '}'
-				let mymatch = matchstr(curline, mypattern)
-				while counter < 0 && len(mymatch) > 0
-					let curline = curline[len(mymatch):]
-					let offset -= len(mymatch)-1
-					let mymatch = matchstr(curline, mypattern)
-					let counter += 1
-				endwhile
-			endif
-		endif
-		call setline('.', curline)
-		call cursor(target[1], target[2]+offset)
-	else
+	if &l:et
 		call feedkeys(a:keys, 'n')
+		return
+	endif
+	let curline = getline('.')
+	if a:keys == "\<C-T>" || a:keys == "\<C-D>"
+		let curpos = getpos("'^")
+	else
+		let curpos = getpos('.')
+		if len(curline) == 0
+			" in normal mode, do not shift blank lines
+			return
+		endif
+	endif
+	let data = matchlist(curline, '^\v(\t*)( *)(.*)')
+	if a:count > 0
+		call setline('.', repeat("\<Tab>", a:count) . data[0])
+		call cursor(curpos[1], curpos[2] + a:count)
+	elseif a:count < 0
+		let tabs = data[1][-a:count:]
+		if len(tabs)
+			call setline('.', tabs . data[2] . data[3])
+			call cursor(curpos[1], curpos[2] + a:count)
+		else
+			let removed = len(data[1])
+			let toremove = a:count + len(data[1])
+			let shift = &l:sw ? &l:sw : &l:ts
+			let amount = 0
+			while len(data[2]) > amount * shift && amount < toremove
+				let amount += 1
+			endwhile
+			call setline('.', data[2][amount*shift:] . data[3])
+			call cursor(curpos[1], curpos[2] - (removed + shift * amount))
+		endif
 	endif
 endfunction
-inoremap <silent> <C-t> <Space><BS><C-o>:call DoShift("\<lt>C-t>", 1)<CR>
-nnoremap <silent> >> :<C-U>call DoShift('>>', v:count == 0 ? 1 : v:count)<CR>
-inoremap <silent> <C-d> <Space><BS><C-o>:call DoShift("\<lt>C-d>", -1)<CR>
-nnoremap <silent> <lt><lt> :<C-U>call DoShift('<lt><lt>', v:count == 0 ? -1 : -v:count)<CR>
-function! DoRangeShift(keys) range
-	execute "'<,'>norm " . a:keys | call setpos('.', getpos("'<"))
-endfunction
+inoremap <silent> <C-T> <Space><BS><C-O>:call <SID>DoShift("\<lt>C-t>", 1)<CR>
+nnoremap <silent> >> :<C-U>call <SID>DoShift('>>', v:count1)<CR>
+inoremap <silent> <C-D> <Space><BS><C-O>:call <SID>DoShift("\<lt>C-d>", -1)<CR>
+nnoremap <silent> <lt><lt> :<C-U>call <SID>DoShift('<lt><lt>', -v:count1)<CR>
 " TODO visual handle visual mode shift?
 " visual mode shifts cause indent
 " but normal visual mode allows . to redo...
@@ -328,3 +321,69 @@ endfunction
 " lines for block of same-indent until reaching
 " the first different indent
 " use that as indent and the remaining as alignment
+
+
+function! s:CalcBlock()
+	" Return start and stop line of block
+	" A block is a series of lines indented at least
+	" to the same display column as current line.
+	let bstart = line('.')
+	let bstop = bstart
+	let indent = matchstr(getline(bstart), '\m[[:space:]]*')
+	let icol = strdisplaywidth(indent)
+	let check = getline(bstart - 1)
+	while bstart > 1 && (
+		\ strdisplaywidth(matchstr(check, '\m[[:space:]]*')) >= icol
+		\ || len(check) == 0)
+		let bstart -= 1
+		let check = getline(bstart - 1)
+	endwhile
+	let check = getline(bstop + 1)
+	let lastline = line('$')
+	while bstop < lastline && (
+		\ strdisplaywidth(matchstr(check, '\m[[:space:]]*')) >= icol
+		\ || len(check) == 0)
+		let bstop += 1
+		let check = getline(bstop + 1)
+	endwhile
+	return [bstart, bstop]
+endfunction
+
+function! <SID>Realign() range
+	" Realign a block of lines.
+	" (Tabs followed by spaces)
+	if &l:et
+		return
+	endif
+	let [bstart, bstop] = s:CalcBlock()
+	let parlnum = bstart == 1 ? 1 : bstart - 1
+	let parline = getline(parlnum)
+	while len(parline) == 0 && parlnum < bstop
+		let parlnum += 1
+		let parline = getline(parlnum)
+	endwhile
+	if len(parline) == 0
+		return
+	endif
+	if match(parline, '^\v\t* *([^[:space:]]|$)') >= 0
+		let indentation = matchstr(parline, '^\m\t*')
+		echo 'copy indentation'
+	else
+		echo 'calc indentation'
+		let icol = strdisplaywidth(matchstr(parline, '\m[[:space:]]*'))
+		let indentation = repeat("\<Tab>", icol / &l:ts)
+	endif
+	sleep 1
+	let tabend = strdisplaywidth(indentation)
+	while bstart <= bstop
+		let curline = getline(bstart)
+		if len(curline) == 0
+			continue
+		endif
+		let data = matchlist(curline, '^\v([[:space:]]*)(.*)')
+		let icol = strdisplaywidth(data[1])
+		call setline(bstart, indentation . repeat(' ', icol - tabend) . data[2])
+		let bstart += 1
+	endwhile
+endfunction
+nnoremap <silent> <C-K>a :call <SID>Realign()<CR>
