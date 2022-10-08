@@ -208,7 +208,7 @@ function! CpOrigSTL()
 	endif
 endfunction
 augroup CpOrigstlOnSplit
- 	au! CpOrigstlOnSplit
+	au! CpOrigstlOnSplit
 	au WinEnter * call CpOrigSTL()
 augroup END
 
@@ -302,9 +302,7 @@ function! <SID>DoShift(keys, count)
 			let toremove = a:count + len(data[1])
 			let shift = &l:sw ? &l:sw : &l:ts
 			let amount = 0
-			while len(data[2]) > amount * shift && amount < toremove
-				let amount += 1
-			endwhile
+			let amount = min([len(data[2]) / shift, toremove])
 			call setline('.', data[2][amount*shift:] . data[3])
 			call cursor(curpos[1], curpos[2] - (removed + shift * amount))
 		endif
@@ -314,22 +312,29 @@ inoremap <silent> <C-T> <Space><BS><C-O>:call <SID>DoShift("\<lt>C-t>", 1)<CR>
 nnoremap <silent> >> :<C-U>call <SID>DoShift('>>', v:count1)<CR>
 inoremap <silent> <C-D> <Space><BS><C-O>:call <SID>DoShift("\<lt>C-d>", -1)<CR>
 nnoremap <silent> <lt><lt> :<C-U>call <SID>DoShift('<lt><lt>', -v:count1)<CR>
-" TODO visual handle visual mode shift?
-" visual mode shifts cause indent
-" but normal visual mode allows . to redo...
-" maybe add a realign function that searches
-" lines for block of same-indent until reaching
-" the first different indent
-" use that as indent and the remaining as alignment
-
-
-function! s:CalcBlock()
+function! s:CalcBlock(lnum)
 	" Return start and stop line of block
 	" A block is a series of lines indented at least
 	" to the same display column as current line.
-	let bstart = line('.')
+	let bstart = a:lnum
 	let bstop = bstart
-	let indent = matchstr(getline(bstart), '\m[[:space:]]*')
+	let curline = getline(bstart)
+	if len(curline) == 0
+		let above = prevnonblank(a:lnum)
+		let aboveindent = len(matchstr(getline(above), '^\m[[:space:]]*'))
+		let below = nextnonblank(a:lnum)
+		let belowindent = len(matchstr(getline(below), '^\m[[:space:]]*'))
+		if aboveindent > belowindent
+			return s:CalcBlock(above)
+		elseif aboveindent < belowindent || aboveindent > 0
+			return s:CalcBlock(below)
+		elseif aboveindent > 0 ||
+			return s:CalcBlock(above)
+		else
+			return [0, 0]
+		endif
+	endif
+	let indent = matchstr(curline, '\m[[:space:]]*')
 	let icol = strdisplaywidth(indent)
 	let check = getline(bstart - 1)
 	while bstart > 1 && (
@@ -355,7 +360,10 @@ function! <SID>Realign() range
 	if &l:et
 		return
 	endif
-	let [bstart, bstop] = s:CalcBlock()
+	let [bstart, bstop] = s:CalcBlock(line('.'))
+	if bstart == 0
+		return
+	endif
 	let parlnum = bstart == 1 ? 1 : bstart - 1
 	let parline = getline(parlnum)
 	while len(parline) == 0 && parlnum < bstop
@@ -367,23 +375,18 @@ function! <SID>Realign() range
 	endif
 	if match(parline, '^\v\t* *([^[:space:]]|$)') >= 0
 		let indentation = matchstr(parline, '^\m\t*')
-		echo 'copy indentation'
 	else
-		echo 'calc indentation'
 		let icol = strdisplaywidth(matchstr(parline, '\m[[:space:]]*'))
 		let indentation = repeat("\<Tab>", icol / &l:ts)
 	endif
-	sleep 1
 	let tabend = strdisplaywidth(indentation)
-	while bstart <= bstop
-		let curline = getline(bstart)
-		if len(curline) == 0
-			continue
+	for lineno in range(bstart, bstop)
+		let curline = getline(lineno)
+		if len(curline) > 0
+			let data = matchlist(curline, '^\v([[:space:]]*)(.*)')
+			let icol = strdisplaywidth(data[1])
+			call setline(lineno, indentation . repeat(' ', icol - tabend) . data[2])
 		endif
-		let data = matchlist(curline, '^\v([[:space:]]*)(.*)')
-		let icol = strdisplaywidth(data[1])
-		call setline(bstart, indentation . repeat(' ', icol - tabend) . data[2])
-		let bstart += 1
-	endwhile
+	endfor
 endfunction
 nnoremap <silent> <C-K>a :call <SID>Realign()<CR>
