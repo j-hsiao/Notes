@@ -328,8 +328,6 @@ function! s:CalcBlock(lnum)
 			return s:CalcBlock(above)
 		elseif aboveindent < belowindent || aboveindent > 0
 			return s:CalcBlock(below)
-		elseif aboveindent > 0 ||
-			return s:CalcBlock(above)
 		else
 			return [0, 0]
 		endif
@@ -390,3 +388,10 @@ function! <SID>Realign() range
 	endfor
 endfunction
 nnoremap <silent> <C-K>a :call <SID>Realign()<CR>
+
+function! <SID>SetBlockBounds()
+	let [firstline, lastline] = s:CalcBlock(line('.'))
+	call setpos("'<", [0, firstline, 1, 0])
+	call setpos("'>", [0, lastline, 2, 0])
+endfunction
+nnoremap <silent> <C-K>s :call <SID>SetBlockBounds()<CR>'<lt><S-V>'>
