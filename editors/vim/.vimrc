@@ -233,17 +233,8 @@ function! <SID>DoOpTab(expandprefix)
 	if &l:expandtab
 		call feedkeys(a:expandprefix . "\<Tab>", 'n')
 	else
-		" sts=0 avoids merging tabs/spaces allowing adding just
-		" spaces
 		setlocal et
-		let [ots, osts, &l:sts] = [&l:ts, &l:sts, 0]
-		if osts > 0
-			let &l:ts = osts
-		elseif osts < 0 && &l:sw > 0
-			let &l:ts = &l:sw
-		endif
 		execute "norm! gi\<Tab>"
-		let [&l:ts, &l:sts] = [ots, osts]
 		setlocal noet
 		call setpos('.', getpos("'^"))
 	endif
@@ -394,4 +385,4 @@ function! <SID>SetBlockBounds()
 	call setpos("'<", [0, firstline, 1, 0])
 	call setpos("'>", [0, lastline, 2, 0])
 endfunction
-nnoremap <silent> <C-K>s :call <SID>SetBlockBounds()<CR>'<lt><S-V>'>
+nnoremap <silent> <C-K>s :call <SID>SetBlockBounds()<CR>'<lt>V'>
