@@ -15,12 +15,23 @@
 "  <Tab>    [tab]stop
 "  <S-Tab>  [s]oft [tab]stop
 
+"<-[><-[>   stop highlighting search
 "<S-Tab>    if expandtab: add literal tab
 "           else: add spaces
+"<Tab>      spaces always
 "<C-BS>     when sts == 0, <BS> only deletes 1 char(space)
 "           This makes it act as if sts == ts (delete multiple spaces)
 "           <S-BS> does not work on home windows, but does on work
 "           windows?
+"<C-D>,<C-T>    shift and respect space alignment
+"   >>, <<
+"<C-K>i     tabs at beginning
+"<C-K>I     tabs at end of indent (because shifts remove from the end of
+"           indentation with preserveindent instead of the end)
+"<C-K><C-K>i    last selection, tabs at beginning
+"<C-K><C-K>I    last selection, tabs at end
+"<C-K>a     realign block (same or more indent)
+"<C-K>s     select block (same or more indent)
 
 syntax on
 filetype plugin on
@@ -50,7 +61,7 @@ nnoremap <silent> <C-K><Tab> :setlocal expandtab! expandtab?<CR>
 nnoremap <C-K>b :enew<CR>:setlocal buftype=nofile bufhidden=hide noswapfile<CR>
 "basic options
 nnoremap <C-K>? :nnoremap <lt>C-K><CR>
-set nowrap number ruler incsearch autoindent copyindent
+set nowrap number ruler incsearch autoindent copyindent preserveindent
 	\ ignorecase smartcase hlsearch
 	\ hidden belloff=all scrolloff=0 list
 	\ formatoptions+=roj
@@ -68,6 +79,7 @@ set nowrap number ruler incsearch autoindent copyindent
 " 	autocmd Myft bufnewfile,bufread *.txt setlocal sw=2 sts=4 ts=4
 " augroup END
 
+" TODO change to <expr> mappings
 " autocompletion for [](){} etc
 function! s:IgnoreIfSame(key)
 	"handle the case where cursor is on closing key
@@ -227,82 +239,101 @@ nnoremap <silent> <C-K>c :call ColRuler()<CR>
 
 "custom indentation handling to work with tabindent + spacealign
 " Tab
-function! <SID>DoOpTab(expandprefix)
+function! <SID>DoTab(reverse)
 	" insert literal tab char OR spaces up to boundary
 	" depending on value of expandtab
-	if &l:expandtab
-		call feedkeys(a:expandprefix . "\<Tab>", 'n')
-	else
-		setlocal et
-		execute "norm! gi\<Tab>"
-		setlocal noet
-		call setpos('.', getpos("'^"))
+	if &l:expandtab && a:reverse
+		return "\<C-V>\<Tab>"
 	endif
+	let step = &l:sts
+	if step < 0
+		let step = &l:sw
+	endif
+	if step == 0
+		let step = &l:ts
+	endif
+	" Cannot just use virtcol because if on a tab
+	" virtcol will be the last col of the tab, not
+	" the first col
+	let curline = getline('.')
+	let curpos = getpos('.')
+	if curpos[2] > 1
+		let upto = curline[:curpos[2]-2]
+	else
+		let upto = ''
+	endif
+	return repeat(' ', step - strdisplaywidth(upto) % step)
 endfunction
-" prevent C-o from killing any autoindents
-" If noexpandtab, then <C-D> <C-T> for indentation
-" <Tab> for alignment
-inoremap <silent> <S-Tab> <Space><BS><C-O>:call <SID>DoOpTab("\<lt>C-v>")<CR>
-inoremap <silent> <Tab> <Space><BS><C-O>:call <SID>DoOpTab("")<CR>
+" <Tab>: always spaces
+" <S-Tab>: raw tab if expandtab else spaces
+" tab for indent: use shifting >>,<<,<C-T>,<C-D>
+" I could try a <Cmd> map but . repetition does not work with that
+inoremap <expr> <silent> <S-Tab> <SID>DoTab(1)
+inoremap <expr> <silent> <Tab> <SID>DoTab(0)
 
 " backspace
 function! <SID>DoSTSBS()
 	" backspace as if sts is on
-	" mainly useful if expandtab AND sts==0
+	" mainly useful if sts==0
 	if &l:sts == 0
-		let &l:sts = &l:ts
-		execute "norm gi\<BS>"
-		let &l:sts = 0
-		call setpos('.', getpos("'^"))
+		let curline = getline('.')
+		let curpos = getpos('.')
+		if curpos[2] > 1
+			let upto = curline[:curpos[2]-2]
+		else
+			let upto = ''
+		endif
+		let toremove = strdisplaywidth(upto) % &l:ts
+		if toremove == 0
+			let toremove = &l:ts
+		endif
+		let nspaces = matchstr(upto, '\m \{1,' . toremove . '}$')
+		return repeat("\<BS>", len(nspaces) ? len(nspaces) : 1)
 	else
-		call feedkeys("\<BS>", 'n')
+		return "\<BS>"
 	endif
 endfunction
-" prevent C-o from killing any autoindents
-inoremap <silent> <C-BS> <Space><BS><C-O>:call <SID>DoSTSBS()<CR>
+inoremap <expr> <silent> <C-BS> <SID>DoSTSBS()
 
 " shifting, preserve tab/space structure
-function! <SID>DoShift(keys, count)
-	" Special handling for shifting if indent/align is detected
-	" (\t* \+) also et is off
-	if &l:et
-		call feedkeys(a:keys, 'n')
-		return
-	endif
+function! <SID>SwapIndent(tabfirst)
+	"Fix indenting caused by preserveindent
+	"which adds tabs to after the whitespace
+	"rather than before
 	let curline = getline('.')
-	if a:keys == "\<C-T>" || a:keys == "\<C-D>"
-		let curpos = getpos("'^")
-	else
-		let curpos = getpos('.')
-		if len(curline) == 0
-			" in normal mode, do not shift blank lines
-			return
-		endif
-	endif
-	let data = matchlist(curline, '^\v(\t*)( *)(.*)')
-	if a:count > 0
-		call setline('.', repeat("\<Tab>", a:count) . data[0])
-		call cursor(curpos[1], curpos[2] + a:count)
-	elseif a:count < 0
-		let tabs = data[1][-a:count:]
-		if len(tabs)
-			call setline('.', tabs . data[2] . data[3])
-			call cursor(curpos[1], curpos[2] + a:count)
-		else
-			let removed = len(data[1])
-			let toremove = a:count + len(data[1])
-			let shift = &l:sw ? &l:sw : &l:ts
-			let amount = 0
-			let amount = min([len(data[2]) / shift, toremove])
-			call setline('.', data[2][amount*shift:] . data[3])
-			call cursor(curpos[1], curpos[2] - (removed + shift * amount))
+	let parts = matchlist(curline, '^\v(\t*)( *)(\t*)(.*)$')
+	if len(parts[2]) > 0
+		if len(parts[3]) > 0 && a:tabfirst
+			call setline('.', parts[3] . parts[1] . parts[2] . parts[4])
+		elseif len(parts[1]) > 0 && ! a:tabfirst
+			call setline('.', parts[2] . parts[1] . parts[3] . parts[4])
 		endif
 	endif
 endfunction
-inoremap <silent> <C-T> <Space><BS><C-O>:call <SID>DoShift("\<lt>C-t>", 1)<CR>
-nnoremap <silent> >> :<C-U>call <SID>DoShift('>>', v:count1)<CR>
-inoremap <silent> <C-D> <Space><BS><C-O>:call <SID>DoShift("\<lt>C-d>", -1)<CR>
-nnoremap <silent> <lt><lt> :<C-U>call <SID>DoShift('<lt><lt>', -v:count1)<CR>
+
+function! <SID>SwapWrap(keys, before, prefix, rng)
+	let ret = ''
+	if  a:before
+		let ret = "\<Cmd>" . a:rng . 'call ' . a:prefix . "SwapIndent(0)\<CR>"
+	endif
+	let ret .= a:keys . "\<Cmd>" . a:rng . 'call ' . a:prefix . "SwapIndent(1)\<CR>"
+	return ret
+endfunction
+inoremap <expr> <silent> <C-T> <SID>SwapWrap("\<lt>C-T>", 0, '<SID>', '')
+inoremap <expr> <silent> <C-D> <SID>SwapWrap("\<lt>C-D>", 1, '<SID>', '')
+nnoremap <expr> <silent> >> <SID>SwapWrap(">>", 0, '<SID>', '')
+nnoremap <expr> <silent> << <SID>SwapWrap('<lt><lt>', 1, '<SID>', '')
+
+"raw indent tab/space swapping
+nnoremap <silent> <C-K>i :call <SID>SwapIndent(1)<CR>
+nnoremap <silent> <C-K>I :call <SID>SwapIndent(0)<CR>
+"shortcut for tab/space swap of last selection
+nnoremap <silent> <C-K><C-K>i :'<lt>,'>call <SID>SwapIndent(1)<CR>'<lt>
+nnoremap <silent> <C-K><C-K>I :'<lt>,'>call <SID>SwapIndent(0)<CR>'<lt>
+"tab/space swap in visual mode
+vnoremap <silent> <C-K>i :call <SID>SwapIndent(1)<CR>'<lt>
+vnoremap <silent> <C-K>I :call <SID>SwapIndent(0)<CR>'<lt>
+
 function! s:CalcBlock(lnum)
 	" Return start and stop line of block
 	" A block is a series of lines indented at least

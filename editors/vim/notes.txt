@@ -490,6 +490,10 @@ ______________________________
 				:       command
 			postfixes
 				()      builtin function
+			useful searches
+				index           default controls by mode
+				key-notation    notation for special keys
+				quote-expr      vimscript special keys as string
 		C-]         jump to link
 		C-t         previous topic
 	______________________________
@@ -726,7 +730,7 @@ ______________________________
 		removes the auto-linerange added when <prefix number>:
 
 		commands:
-		[mode][no][re]map
+		[mode][[no]re]map
 		re = recursive map (use other mappings)
 		nore = no recursive map (don't need to worry if other mappings
 			would affect what the mapping does)
@@ -754,8 +758,15 @@ ______________________________
 				<silent>        don't echo to command line
 				<special>       ??
 				<script>        ??
-				<expr>          evaluate rhs to get the rhs to use for mapping
+				<expr>          Use rhs as an expression.  This is useful because you
+				                don't have to exit insert mode (doesn't break change seq
+				                and becomes more . repeatable)
 				<unique>        fail if already exists
+
+			rhs can also take special <Cmd>commandlinestuffs<CR> which can run
+			command-line code without changinge the current mode.
+			NOTE: the return value of expr can also return these types of
+			commands via expr-quote expressions "\<Cmd>...\<CR>"
 
 		key sequences:
 			a         the key as is
