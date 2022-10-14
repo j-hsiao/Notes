@@ -32,6 +32,8 @@
 "<C-K><C-K>I    last selection, tabs at end
 "<C-K>a     realign block (same or more indent)
 "<C-K>s     select block (same or more indent)
+"<C-.>      right shift last visual selection
+"<C-,>      left shift last visual selection
 
 syntax on
 filetype plugin on
@@ -311,18 +313,25 @@ function! <SID>SwapIndent(tabfirst)
 	endif
 endfunction
 
-function! <SID>SwapWrap(keys, before, prefix, rng)
+function! <SID>SwapWrap(keys, before, prefix)
 	let ret = ''
 	if  a:before
-		let ret = "\<Cmd>" . a:rng . 'call ' . a:prefix . "SwapIndent(0)\<CR>"
+		let ret = "\<Cmd>call " . a:prefix . "SwapIndent(0)\<CR>"
 	endif
-	let ret .= a:keys . "\<Cmd>" . a:rng . 'call ' . a:prefix . "SwapIndent(1)\<CR>"
+	let ret .= a:keys . "\<Cmd>call " . a:prefix . "SwapIndent(1)\<CR>"
 	return ret
 endfunction
-inoremap <expr> <silent> <C-T> <SID>SwapWrap("\<lt>C-T>", 0, '<SID>', '')
-inoremap <expr> <silent> <C-D> <SID>SwapWrap("\<lt>C-D>", 1, '<SID>', '')
-nnoremap <expr> <silent> >> <SID>SwapWrap(">>", 0, '<SID>', '')
-nnoremap <expr> <silent> << <SID>SwapWrap('<lt><lt>', 1, '<SID>', '')
+inoremap <expr> <silent> <C-T> <SID>SwapWrap("\<lt>C-T>", 0, '<SID>')
+inoremap <expr> <silent> <C-D> <SID>SwapWrap("\<lt>C-D>", 1, '<SID>')
+nnoremap <expr> <silent> >> <SID>SwapWrap(">>", 0, '<SID>')
+nnoremap <expr> <silent> << <SID>SwapWrap('<lt><lt>', 1, '<SID>')
+" '< and '> are not set yet if <Cmd> command
+vnoremap <silent> > >:'<lt>,'>call <SID>SwapIndent(1)<CR>'<lt>
+vnoremap <silent> <lt> :call <SID>SwapIndent(0)<CR>'<lt>V'><lt>:'<lt>,'>call <SID>SwapIndent(1)<CR>'<lt>
+
+"shift on last visual region
+nmap <silent> <C-.> '<lt>V'>>
+nmap <silent> <C-,> '<lt>V'><lt>
 
 "raw indent tab/space swapping
 nnoremap <silent> <C-K>i :call <SID>SwapIndent(1)<CR>
