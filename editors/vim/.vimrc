@@ -16,21 +16,19 @@
 "  <S-Tab>  [s]oft [tab]stop
 
 "<-[><-[>   stop highlighting search
-"<S-Tab>    if expandtab: add literal tab
-"           else: add spaces
+"<S-Tab>    literal tab character.
 "<Tab>      spaces always
-"<C-BS>     when sts == 0, <BS> only deletes 1 char(space)
-"           This makes it act as if sts == ts (delete multiple spaces)
-"           <S-BS> does not work on home windows, but does on work
-"           windows?
+"<C-BS>     delete width of spaces or do 1 bs.
+"           (<S-BS> does not register on some cygwins...)
 "<C-D>,<C-T>    shift and respect space alignment
 "   >>, <<
-"<C-K>i     tabs at beginning
-"<C-K>I     tabs at end of indent (because shifts remove from the end of
-"           indentation with preserveindent instead of the end)
-"<C-K><C-K>i    last selection, tabs at beginning
-"<C-K><C-K>I    last selection, tabs at end
+"<C-K>i     move tabs in (mixed) leading whitespace to beginning
+"<C-K>I     move tabs in (mixed) leading whitespace to end
+"<C-K><C-K>i    <C-K>i on last selection
+"<C-K><C-K>I    <C-K>I on last selection
 "<C-K>a     realign block (same or more indent)
+"           match previous lower-level indentation and then convert
+"           the rest to spaces
 "<C-K>s     select block (same or more indent)
 "<C-.>      right shift last visual selection
 "<C-,>      left shift last visual selection
@@ -241,12 +239,11 @@ nnoremap <silent> <C-K>c :call ColRuler()<CR>
 
 "custom indentation handling to work with tabindent + spacealign
 " Tab
-function! <SID>DoTab(reverse)
-	" insert literal tab char OR spaces up to boundary
-	" depending on value of expandtab
-	if &l:expandtab && a:reverse
-		return "\<C-V>\<Tab>"
-	endif
+function! <SID>DoTab()
+	" Act as if et.  Literal tabs can be added via
+	" shifting or shift+tab so a quick-button to
+	" add a bunch of spaces up to tabstop for alignment
+	" is more useful.
 	let step = &l:sts
 	if step < 0
 		let step = &l:sw
@@ -270,30 +267,39 @@ endfunction
 " <S-Tab>: raw tab if expandtab else spaces
 " tab for indent: use shifting >>,<<,<C-T>,<C-D>
 " I could try a <Cmd> map but . repetition does not work with that
-inoremap <expr> <silent> <S-Tab> <SID>DoTab(1)
-inoremap <expr> <silent> <Tab> <SID>DoTab(0)
+inoremap <silent> <S-Tab> <C-V><Tab>
+inoremap <expr> <silent> <Tab> <SID>DoTab()
 
 " backspace
 function! <SID>DoSTSBS()
-	" backspace as if sts is on
-	" mainly useful if sts==0
+	" backspace as if sts is on (for spaces)
 	if &l:sts == 0
-		let curline = getline('.')
-		let curpos = getpos('.')
-		if curpos[2] > 1
-			let upto = curline[:curpos[2]-2]
+		let width = &l:ts
+	elseif &l:sts < 0
+		if &l:sws == 0
+			let width = &l:ts
 		else
-			let upto = ''
+			let width = &l:sws
 		endif
-		let toremove = strdisplaywidth(upto) % &l:ts
-		if toremove == 0
-			let toremove = &l:ts
-		endif
-		let nspaces = matchstr(upto, '\m \{1,' . toremove . '}$')
-		return repeat("\<BS>", len(nspaces) ? len(nspaces) : 1)
 	else
-		return "\<BS>"
+		let width = &l:sts
 	endif
+	let curline = getline('.')
+	let curpos = getpos('.')
+	if curpos[2] > 1
+		let upto = curline[:curpos[2]-2]
+	else
+		let upto = ''
+	endif
+
+	let toremove = strdisplaywidth(upto) % width
+	if toremove == 0
+		let toremove = width
+	endif
+	let nspaces = matchstr(upto, '\m \{1,' . toremove . '}$')
+	" add a space first to avoid normal sts backspace deletion
+	" removing multiple spaces in 1 BS
+	return ' ' . repeat("\<BS>", (len(nspaces) ? len(nspaces) : 1)+1)
 endfunction
 inoremap <expr> <silent> <C-BS> <SID>DoSTSBS()
 
