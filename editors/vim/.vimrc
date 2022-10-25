@@ -321,10 +321,19 @@ endfunction
 
 function! <SID>SwapWrap(keys, before, prefix)
 	let ret = ''
-	if  a:before
-		let ret = "\<Cmd>call " . a:prefix . "SwapIndent(0)\<CR>"
+	if v:version > 801
+		let prefix="\<Cmd>"
+	else
+		if a:keys == "<<" || a:keys == ">>"
+			let prefix=":"
+		else
+			let prefix=" \<BS>\<C-O>:"
+		endif
 	endif
-	let ret .= a:keys . "\<Cmd>call " . a:prefix . "SwapIndent(1)\<CR>"
+	if  a:before
+		let ret = prefix . "call " . a:prefix . "SwapIndent(0)\<CR>"
+	endif
+	let ret .= a:keys . prefix . "call " . a:prefix . "SwapIndent(1)\<CR>"
 	return ret
 endfunction
 inoremap <expr> <silent> <C-T> <SID>SwapWrap("\<lt>C-T>", 0, '<SID>')

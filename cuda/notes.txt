@@ -1,74 +1,571 @@
+https://docs.nvidia.com/cuda/cuda-c-programming-guide/index.html#kernels
 contents
 -1- general
--2- execution configurations
-
+	-1.1- kernel
+	-1.2- threads
+	-1.3- memory
+	-1.4- heterogeneous programming
+	-1.5- async
+	-1.6- compute capability
+-2- programming
+	-2.1- initialization
+	-2.2- memory
+	-2.3- async
+		-2.3.1- streams
+		-2.3.2- graphs
+		-2.3.3- events
+	-2.4- devices
+	-2.5- unified memory
+	-2.7- error checking
+-3- performance
+	-3.1- coalescing
+	-3.2- alignment
+	-3.3- intrinsics
 
 ______________________________
 -1- general
-  cuda uses nvcc for compilation:
-    converts kernels to ptx (gpu code)
-    modifies host code (with <<<...>>>) and outputs:
-      a source file that can be compiled (eg. with gcc)
-      OR
-      object file (nvcc would just use the compiler for you)
+	______________________________
+	-1.1- kernel
+		functions executed on the GPU.  declare with the __global__ declspec
+		kernels are called as functionname<<<execution configuration>>>(args)
+			<<<gridshape, blockshape>>>
+				shapes can be:
+					int
+					dim3 (can give just 2 args for a 2d shape)
+	______________________________
+	-1.2- threads
+		block: a group of threads
+		       blocks can have up to 1024 threads "on current GPUs"
+		grid: a group of blocks
+		cluster: a subgrid of threads (cc9.0+), max8 on most
+		         check with cudaOccupancyMaxPotentialClusterSize()
+		         use cluster group api, griddim "still denotes size in terms
+		         of thread blocks
+		         launch via __cluster_dims__(X,Y,Z) or cudaLaunchKernelEx
 
-  device: the acceleration device like a gpu
-  host: the computer (standard cpu)
+		kernels have builtin variables for thread info:
+			threadIdx.[xyz]
+			blockIdx.[xyz]
+			blockDim.[xyz]
+			gridDim.[xyz]
+			warpSize
 
-  files have .cu extension
+	______________________________
+	-1.3- memory
+		local memory (private)
+		shared memory (within a block)
+		cluster memory (each block's shared memory in the cluster, cc9.0+)
+		global memory (slow!)
+		constants
+		textures
+	______________________________
+	-1.4- heterogeneous programming
+		generally, host and device are separate and have their own memory.
+		data must be transfered to be used.
+		unified memory:
+			abstraction of memory shared between host and device
+	______________________________
+	-1.5- async
+		async operations are always associated with the thread that started it.
+		synchronization uses cuda::barrier or cuda::pipeline
+		synchronization happens on a scope:
+			cuda::thread_scope::thread_scope_XXX
+				thread: just the thread that started the async
+				block : any thread in the block
+				device: same device
+				system: all cuda/cpu threads in same "system"
+	______________________________
+	-1.6- compute capability
+		compute capability will be refered to as cc
+		aka "SM version"
+		indicates what features are available
+		x.y
+		query cc:
+			cudaError_t cudaGetDeviceProperties(cudaDeviceProp *prop, int dev);
+			cudaError_t cudaDeviceGetAttribute(int *ret, cudaDeviceAttr attr, int dev);
+		(see also -2.4- devices)
+______________________________
+-2- programming
+	Use nvcc to compile
+	cuda api: C++, higher level
+	driver api: C, lower level
+	compatibility
+		-gencode opt=arg,opt=arg...
+			options:
+				code=sm_XY      binary compatibility for compute capability
+				code=\"compute_XY,sm_XY\"   allows running on future archs via jit??
+				arch=compute_XY PTX compatibility?
+			__CUDA_ARCH__ macro expands to XY0 and can be used to branch
+			based on comput capability
 
-  declaration:
-    use __global__ to identify a kernel.
+		binary compatibility
+			specify capability with code=sm_XY for ccX.Y+
+		PTX compatibility
+			specify with arch=compute_XY (PTX is generally jitted)
 
-  memory:
-    cudaMallocManaged(**ptr, nbytes)
-      compiler magic to access same pointer from both CPU and GPU.
-      ptr: address of a pointer variable to hold resulting address
-    CudaFree()
+	compatibility only exists for same major and >= minor
+		(newer but still same major version)
 
-    __shared__ can be used to declare an array of shared memory
-    (should be faster)
+	link to cudart for cuda runting
 
-    transfer between memory(if not used cudaMallocManaged):
-      use cudaMemcpy(
-        dst, src, nbytes, cudaMemcpy[HostToDevice|DeviceToHost]);
+	error codes:
+		enum cudaError:
+			cudaSuccess = 0
+			cudaErrorInvalidValue = 1
+			cudaErrorMemoryAllocation = 2
+			cudaErrorInitializationError = 3
+			cudaErrorCudartUnloading = 4
+			cudaErrorProfilerDisabled = 5
+			cudaError ProfilerNotInitialized = 6
+			cudaErrorProfilerAlreadyStarted = 7
+			cudaErrorProfilerAlreadyStopped = 8
+			cudaErrorInvalidConfiguration = 9
+			cudaErrorInvalidPitchValue = 12
+			cudaErrorInvalidSymbol = 13
+			cudaErrorInvalidHostPointer = 16
+			cudaErrorInvalidDevicePointer = 17
+			...
+
+	______________________________
+	-2.1- initialization
+		initialization happens automatically with cuda runtime (global primary context)
+		otherwise:
+			create a context
+			jit code if needed, load into memory
+	______________________________
+	-2.2- memory
+		cc8.0+ can influence global (L2) cache
+		______________________________
+		consts/global:
+			cudaMemcpyToSymbol(void *dst, void *src, nbytes);
+			cudaMemcpyToSymbol(void *dst, void *src, nbytes);
+		______________________________
+		shared memory
+			declare with __shared__
+			use this to reduce global mem access
+			NOTE:
+				shared memory is stored in "banks"
+				accesses to same banks result in "bank conflicts"
+				banks ARE NOT CONTIGUOUS
+				ie 
+				address:    0   1   2   3   4   5   6   7   8   9   10  11  12  13  14  15
+				bank:       1   2   3   4   5   6   7   8   1   2   3   4   5   6   7   8
+
+		______________________________
+		distributed shared memory
+			clusters, use cluster.sync() etc
+		______________________________
+		linear memory: normal malloc
+			cudaErr_t cudaMalloc(void **ret, size)
+			cudaErr_t cudaMemcpy(
+				void *dst, void *src, size, cudaMemcpy[HostToDevice|DeviceToHost])
+			cudaErr_t cudaFree(void *data)
+		______________________________
+		multidim arrays are also linear memory, but may have alignment requirements.
+			cudaErr_t stride cudaMallocPitch(
+				void **ret, size_t *byte_stride, rowbytes, height);
+			cudaExtent make_cudaExtent(rowbytes, height, depth)
+				creates an "extent"? a shape for 3d array
+			struct cudaPitchedPtr
+			{
+				ptr
+				pitch
+			};
+			cudaErr_t cudaMalloc3D(cudaPitchedPtr *ret, cudaExtent)
+				allocates as CHW, alignment only affects W so still a single 
+				stride ("pitch")
+			cudaErr_t cudaMemcpy2D()
+			cudaErr_t cudaMemcpy3D()
+		______________________________
+		cuda arrays: optimized for texture fetching
+			??
+		______________________________
+		PageLocked host memory: aka pinned
+			can be concurrent with kernel execution
+			can map (mapped memory)
+			faster transfers
+			allow async transfers
+			______________________________
+			portable
+				normally, pinned can only be used with the device that was
+				current at time of allocation, but if portable, can be used
+				with any gpu.
+			______________________________
+			write-combining: "write-only" memory (reads are super slow)
+				releases cache, use for reading data into gpu
+			______________________________
+			mapped memory
+				must call cudaSetDeviceFlags(cudaDeviceMapHost)
+				check canMapHostMemory in device properties
+				also allocate gpu memory
+				devptr = cudaHostGetDevicePointer(hostptr)
+				mapped pagelocked memory must be synced via streams/events
+				use if data is only read once, or gpu has low/no memory
+				kernel-originated data transfers auto-overlap with execution
+				(basically treat mapped memory as global memory)
+				except without the initial explicit cudaMemcpy
+
+		______________________________
+		allocating memory
+			cudaHostAlloc(void **ret, size_t, flags);
+				cudaHostAllocPortable
+				cudaHostAllocWriteCombined
+				cudaHostAllocMapped
+			cudaHostFree(void*);
+			cudaHostRegister(void *mem, size, flags);
+				cudaHostRegisterPortable
+				cudaHostRegisterMapped
+				convert regular malloced memory to page-locked
+
+	______________________________
+	-2.3- async
+		host code
+		device code
+		memory transfers
+
+		only 1 context can be active at a time so must be same context for
+		kernel to be concurrent
+
+		______________________________
+		-2.3.1- streams
+			Note that stream creation/destruction overhead is very low
+			according to https://forums.developer.nvidia.com/t/cudastreamcreate-and-cudastreamdestroy-overhead/37416/4
+			so okay to create/destroy, maybe even per call? dunno
+			stream = sequence of commands
+			use with async versions of commands
+			or kernel launch <<<grid, block, ??, stream>>>
+			same stream = sync, dif stream = maybe async
+			create:
+				cudaStreamCreate(cudaStream_t *stream);
+			destroy:
+				cudaStreamDestroy(cudaStream_t &stream)
+			sync:
+				cudaDeviceSynchronize(): all streams all threads
+				cudaStreamSynchronize(cudaStream_t stream): sync to given stream
+				cudaStreamWaitEvent(cudaStream_t stream, cudaEvent_t event, uint flags=0)
+					add a block command to the stream to block, waiting for
+					the event.
+				cudaStreamQuery(cudaStream_t stream)
+					cudaSuccess if idle (all done)
+					else cudaErrorNotReady
+			callbacks:
+				cudaLaunchHostFunc(stream, callbac, void *data)
+				callback has signature:
+					func(cudaStream_t stream, cudaError_t status, void *data)
+				cannot make cuda calls in callback (would wait on itself
+				to resulting in deadlock)
+			priorities:
+				cudaDeviceGetStreamPriorityRange(int *low, int *high);
+				cudaStreamCreateWithPriority(
+					cudaStream_t *stream, flag, priority)
+		______________________________
+		-2.3.2- graphs
+			graphs: set of calls/dependencies etc
+			set of kernels/depenendencies etc instantiated and executed
+			together, more efficient than streams because some overhead
+			is pre-calculated and the results are reused per instance.
+
+			cudaGraph_t graph;
+			cudaError_t cudaGraphCreate(cudaGraph_t *graph, flags)
+				"flags must be 0"
+			https://docs.nvidia.com/cuda/cuda-runtime-api/group__CUDART__GRAPH.html
+			cudaGraphAddX(cudaGraphNode_t *node, cudaGraph_t &graph, ...)
+				add some type of node:
+					kernel
+					host call
+					memcpy
+					memset
+					empty
+					waiting for event
+					recording event
+					signalling semaphore
+					waiting semaphore
+					child-graph
+			graphs set parameters during instantiation (ie memcpy addresses)
+				use graph update to change these params
+				graph updates/launches are synchronous
+
+				whole graph:
+					cudaGraphExecUpdate
+				by node:
+					cudaGraphExecXXXNodeSetParams
+				generally:
+					params must be from same context (alloc from same device etc)
+		______________________________
+		-2.3.3- events
+			cudaEventCreate(cudaEvent_t *ev);
+			cudaEventDestroy(cudaEvent_t &ev);
+			cudaEventRecord(ev, stream=0)
+			cudaEventSynchronize(cudaEvent_t &ev);
+			cudaEventElapsedTime(float *ret, ev1, ev2)
+	______________________________
+	-2.4- devices
+		cudaGetDeviceCount(int *ret);
+		cudaGetDeviceProperties(cudaDeviceProp *ret, int devicenum);
+		cudaSetDevice(int dev);
+		property attrs:
+			major
+			minor
+			unifiedAddressing
+			integrated
+			managedMemory
+			ConcurrentManagedAccess
+			canMapHostMemory
+			concurrentKernels
+			asyncEngineCount
+		streams are associated with device.
+			kernel launches must be on currently set device
+			memcpy can be on any device
+		peer-to-peer access: gpus can access each others' memories (if cc)
+			cudaDeviceCanAccessPeer()
+			cudaDeviceEnablePeerAccess()
+			cudaMemcpyPeer[Async]
+			cudaMemcpy3DPeer[Async]
+	______________________________
+	-2.5- unified memory
+		requires 64-bit
+		allows use of cudaPointerGetAttributes()
+	______________________________
+	-2.6- ipc
+		cudaIpcGetMemHandle()
+		cudaIpcOpenMemHandle()
+		to avoid process data leaks, only share
+		2MiB aligned blocks of mem
+	______________________________
+	-2.7- error checking
+		sync: return value
+		async: returnvalue of sync
+
+		cuda has global error code per thread
+		cudaPeekAtLastError(): get error
+		cudaGetLastError(): get/reset error
+
+______________________________
+-3- performance
+	______________________________
+	-3.1- coalesce memory accesses:
+		make contiguous threads access contiguous memory
+		(since threads are run concurrently each thread's first access
+		is performed, then the second, etc, result is to code
+		opposite to c++ access pattern
+		the data should be a multiple of warp (32)
+		and threadblock should have width of warp
+	______________________________
+	-3.2- alignment:
+		1, 2, 4, 8, or 16 bytes
+		builtin vector types = all okay
+			ie: make_<tp><N>
+		structs: add __align__(value)
+			eg.
+				struct __align(8) {
+					float x;
+					float y;
+				};
+
+	______________________________
+	-3.3- intrinsics
+		faster but less accurate operator versions
+		alternatively, -use_fast_math
+		generally, intrinsic version is prefixed with __
+		eg. sinf(x) vs __sinf(x)
+		exception:
+			division-> __fdividef(x,y)
+
+		relevant ops:
+			x/y
+			sinf(x)
+			cosf(x)
+			tanf(x)
+			sincosf(x,sptr,cptr)
+			logf(x)
+			log2f(x)
+			log10f(x)
+			expf(x)
+			exp10f(x)
+			powf(x,y)
+		single-precision ops:
+			functions endign with _X mean the X can be replaced with one of
+				rn  round nearest
+				rz  round zero
+				ru  round up (+inf)
+				rd  round down (-inf)
+			eg. __fadd_X(x,y) means __fadd_rn(x,y) for round nearest version
+			__fadd_X(x,y)
+			__fsub_X(x,y)
+			__fmul_X(x,y)
+			__fmaf_X(x,y,z)
+			__frcp_X(x)
+			__fsqrt_X(x)
+			__frsqrt_rn(x)
+			__fdiv_X(x,y)
+			__fdividef(x,y)
+			__expf(x)
+			__exp10f(x)
+			__logf(x)
+			__log2f(x)
+			__log10f(x)
+			__sinf(x)
+			__cosf(x)
+			__sincosf(x,sptr,cptr)
+			__tanf(x)
+			__powf(x,y)
+
+		double precision:
+			__dadd_X(x,y)
+			__dsub_X(x,y)
+			__dmul_X(x,y)
+			__fma_X(x,y)
+			__ddiv_X(x,y)(x,y)
+			__drcp_X(x)
+			__dsqrt_X(x)
+
+		directly using +,* may result in compilation into fmad
+		(fused multiply/add)
+
+	int div/mmod expensive:
+		if power of 2, use >>log2(n) or <<log2(n)
+		i&(n-1)
+
+	for add, multiply, multiply-add, use half2 for half precision
+	or __nv_bfloat162 for __nv_bfloat16
+	__halves2half2
+	__halves2bfloat162
 
 
-  calling kernels:
-    function<<<gpuargs...>>>(func args...)
-      gpuargs
-    NOTE: calls are asynchronous. call cudaDeviceSynchronize()
-    to sync data
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+old
+______________________________
+-1- general
+	cuda uses nvcc for compilation:
+		converts kernels to ptx (gpu code)
+		modifies host code (with <<<...>>>) and outputs:
+			a source file that can be compiled (eg. with gcc)
+			OR
+			object file (nvcc would just use the compiler for you)
+
+	device: the acceleration device like a gpu
+	host: the computer (standard cpu)
+
+	files have .cu extension
+
+	declarations:
+		__global__  declare a cuda kernel (add to beginning of func signature)
+		__shared__  declare shared memory buffer.
+		__device__  a gpu function callable from a kernel.
+
+
+	memory:
+		cudaMallocManaged(**ptr, nbytes)
+			compiler magic to access same pointer from both CPU and GPU.
+			ptr: address of a pointer variable to hold resulting address
+		CudaFree()
+
+		transfer between memory(if not used cudaMallocManaged):
+			use cudaMemcpy(
+				dst, src, nbytes, cudaMemcpy[HostToDevice|DeviceToHost]);
+
+	calling kernels:
+		function<<<gpuargs...>>>(func args...)
+			gpuargs
+		NOTE: calls are asynchronous. call cudaDeviceSynchronize()
+		to sync data
+
+	synchronization:
+		__syncthreads()
+		wait for threads to all reach same point before continuing
+
+	pointer attributes:
+		cudaPointerGetAttributes()
+			isManaged
+
+	______________________________
+	-1.1- capabilities
+		Compute capabilities determine what cuda features can be used.
+		They can be queried by
+			cudaError_t cudaGetDeviceProperties(cudaDeviceProp *prop, int dev);
+			cudaError_t cudaDeviceGetAttribute(int *ret, cudaDeviceAttr attr, int dev);
+
+		capability          capability      property                    attribute
+		managed memory      3.0             managedMemory               cudaDevAttrManagedMemory
+		concurrent mmem     6.0             concurrentManagedAccess
 
 ______________________________
 -2- execution configurations
-  execution is multidimensional:
-    <<<nblocks, threadsperblock>>>
+	execution is multidimensional:
+		<<<nblocks, threadsperblock>>>
 
-  grid: 1,2, or 3d grid of blocks
-  blocks: 1, 2 or 3d "array" of threads
-  threads: do 1 task
-  warp: group of 32 threads (the reason why threads per block must be a
-    multiple of 32)
+	grid: 1,2, or 3d grid of blocks
+	blocks: 1, 2 or 3d "array" of threads
+	threads: do 1 task
+	warp: group of 32 threads (the reason why threads per block must be a
+		multiple of 32)
 
-  blocks MUST EXECUTE INDEPENDENTLY
+	blocks MUST EXECUTE INDEPENDENTLY
 
-  Within a block, threads can communicate via
-  shared memory and __syncthreads()
+	Each block is a multiple of 32 threads
+
+	Access info via:
+		indexes:
+			threadIdx.x:  thread index within the block in x direction
+			blockIdx.x:   block index within total blocks
+		sizes:
+			blockDim.x:   number of threads in block in x direction
+			gridDim.x:    number of blocks
+
+	generally:
+		1. each "individual" calculation should be done by a single thread
+		2. pick a threads per block and calculate number of blocks(round up)
+		3. use result in <<<>>> call
+
+	example:
+		__global__ void function(int *idata, int *odata, int width):
+			int y = threadIdx.y;
+			int x = threadIdx.x;
+			idata[y*width + x] = odata[y*width + x]
+
+		function<<<32,32>>>(idata, odata, width);
 
 
+______________________________
+-3- optimization
+	______________________________
+	-3.1- memory coalescing
+		Threads run parallel and if they access contiguous memory,
+		memory accesses are "coalesced" which improves performance.
+		The code is performed by the same thread.  As a result, for 2d
+		array access, you should code them iterating over the slower
+		dimension.  For c style 2d array, within a thread, iterate on rows
+		instead of columns.  This is because each thread will then access
+		contiguous memory, so TEMPORALLY, the accesses are contiguous.
 
-  Each block is a multiple of 32 threads
-
-  Access info via:
-    indexes:
-      threadIdx.x:  thread index within the block in x direction
-      blockIdx.x:   block index within total blocks
-    sizes:
-      blockDim.x:   number of threads in block in x direction
-      gridDim.x:    number of blocks
-
-  generally:
-    1. each "individual" calculation should be done by a single thread
-    2. pick a threads per block and calculate number of blocks(round up)
-    3. use result in <<<>>> call
+	______________________________
+	-3.2- shared memory
+		shared memory is allocated per thread-block
+		__shared__ type array[dim][dim]... can be used to declare a block of
+		shared memory between threads.  This can be useful, for example, with
+		transposing.  Normally, either input or output accesses are
+		contiguous.  As a result, performance can suffer.  However, by using
+		a "small" intermediate buffer (shared memory) and tiling,
+		performance can be improved.
