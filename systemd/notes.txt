@@ -1,0 +1,57 @@
+systemd service
+-0- example
+-1- options
+  -1.1- Unit
+  -1.2- Service
+  -1.3- Install
+-2- systemctl
+
+
+man systemd.[unit|service]
+______________________________
+-0- example
+
+place file: /etc/systemd/system/<servicename>.service
+example:
+
+  [Unit]
+  Description=some description
+  StartLimitIntervalSec=0
+
+  [Service]
+  Type=simple
+  Restart=always
+  RestartSec=1
+  User=<user>
+  ExecStart=<commandline>
+
+  [Install]
+  WantedBy=target (probably multi-user.target)
+______________________________
+-1- options:
+	______________________________
+	-1.1- Unit
+		StartLimitBurst         restart count threshold
+		StartLimitIntervalSec   if StartLimitBurst restarts within
+		                        interval, then stop trying to restart
+		                        forever.
+		After                   begin after the corresponding item
+	______________________________
+	-1.2- Service
+		Type                    
+		RestartSec              restart after seconds if ends
+	______________________________
+	-1.3- Install
+		WantedBy                the run level to start at:
+		                        0: runlevel0.target, poweroff.target
+		                        1: runlevel1.target, rescue.target
+		                        2,3,4: runlevel[2|3|4].target, multi-user.target
+		                        5: runlevel5.target, graphical.target
+		                        6: runlevel6.target, reboot.target
+
+______________________________
+-2- systemctl
+	enable service:
+		systemctl enable service
+	start service:
+		systemctl start service
