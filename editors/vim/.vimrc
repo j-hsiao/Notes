@@ -18,7 +18,7 @@
 "<-[><-[>   stop highlighting search
 "<S-Tab>    literal tab character.
 "<Tab>      spaces always
-"<C-BS>     delete width of spaces or do 1 bs.
+"<C-H>      delete width of spaces or do 1 bs.
 "           (<S-BS> does not register on some cygwins...)
 "<C-D>,<C-T>    shift and respect space alignment
 "   >>, <<
@@ -301,7 +301,7 @@ function! <SID>DoSTSBS()
 	" removing multiple spaces in 1 BS
 	return ' ' . repeat("\<BS>", (len(nspaces) ? len(nspaces) : 1)+1)
 endfunction
-inoremap <expr> <silent> <C-BS> <SID>DoSTSBS()
+inoremap <expr> <silent> <C-H> <SID>DoSTSBS()
 
 " shifting, preserve tab/space structure
 function! <SID>SwapIndent(tabfirst)
