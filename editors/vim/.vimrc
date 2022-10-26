@@ -40,7 +40,7 @@ set wmnu wim=list:longest,list:full wic
 "status line
 set ls=2 stl=%<%n\ %f\ %h%m%r%=%l(%p%%),%c%V\ %P
 "listchars
-set listchars=eol:$,tab:.\ ,trail:.
+set listchars=eol:$,tab:.\ ,trail:_
 nnoremap <C-K>l :setlocal list! list?<CR>
 "toggle paste
 nnoremap <C-K>p :setlocal paste! paste?<CR>
