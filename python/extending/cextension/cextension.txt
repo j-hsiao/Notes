@@ -1,0 +1,197 @@
+python c extensions
+
+-0- general
+-1- python objects
+	-1.1- reference counting
+	-1.2- arguments
+		-1.2.1- format strings
+	-1.3- return values
+
+
+TODO Py_BEGIN_ALLOW_THREADS
+
+_____________________________
+-0- general
+	#define PY_SSIZE_T_CLEAN
+	#include <Python.h>
+		the PY_SSIZE_T_CLEAN makes lengths use Py_ssize_t instead of int.
+______________________________
+-1- python objects
+	Python objects are generally represented by a PyObject *ptr
+	______________________________
+	-1.1- reference counting
+		Objects are reference counted.
+		Module attrs should give an extra reference count.
+			Otherwise, if you do something like del module.attr,
+			Now it is lost and any function that uses it may segfault
+			or something.
+		functions that return objects generally have them already
+		increfed. REMEMBER TO DECREF THEM ONCE NO LONGER IN USE.
+
+		Py_XDECREF(PyObject*)
+		Py_XINCREF(PyObject*)
+		Py_DECREF(PyObject*)
+		Py_INCREF(PyObject*)
+			These change refcount.  The X versions allow NULL.
+
+		PyObject_CallObject(PyObject *thing, PyObject *args)
+			args should be a tuple or NULL (no args)
+	______________________________
+	-1.2- arguments
+		PyObject *tup = Py_BuildValue("formatstr", arg1, arg2,...)
+		PyArg_ParseTuple(PyObject *args, "formatstr", PyObject **arg1dst,...)
+		PyArg_ParseTupleAndKeywords()
+		PyArg_Parse()
+
+		______________________________
+		-1.2.1- format strings:
+			______________________________
+			-1.2.1.1- strings/buffers
+				Returned pointers are managed by corresponding PyObject, don't
+				allocate, don't free (except et/es)
+
+				PyBuffer_Release(PyBuffer *view)
+					When buffers get parsed, they get locked?, must release it:
+
+				codes can end with # to indicate PY_SSIZE_T_CLEAN
+
+				code    pytype          ctype
+				s       str             null-terminated const char*
+				s*      str/bytes       Py_buffer
+				s#      r str           [const char*, Py_ssize_t]
+				z       s or None       const char* or NULL
+				z*      s* or None      Py_buffer->buf is NULL if None
+				z#      s# or None      [const char*, Py_ssize_t], NULL if None
+				y       r bytes         null-terminated const char*
+				y*      bytes-like      Py_buffer (RECOMMENDED FOR BINARY DATA)
+				y#      bytes-like      [const char*, Py_ssize_t]
+				S       bytes           PyBytesObject*
+				Y       bytearray       PyByteArrayObject*
+				U       str             PyObject*
+				w*      rw bytes-like   Py_Buffer
+				es      str             const char *encoding, char **buffer, call PyMem_Free afterwards
+				et      str/bytes-like  const char *encoding, char **buffer
+				es#     str             const char *encoding, char **buffer, Py_ssize_t *buffer_length
+				                        buffer and length can be pre-valued to use a
+				                        preallocated buffer
+				et#
+
+
+
+
+	______________________________
+	-1.3- return values
+		Python functions should always return some object on success.
+		Returning NULL generally indicates that some kind of exception
+		happened.
+
+		Return Py_None, if no return value:
+			Py_RETURN_NONE
+				this is a macro for:
+					Py_INCREF(Py_None);
+					return Py_None;
+
+
+
+
+
+______________________________
+-0- raw c/c++
+	API is in Python.h
+	pros: fast
+	cons: version-specific
+
+	#define PY_SSIZE_T_CLEAN "make s# use Py_ssize_t instead of int"
+	#include <Python.h>
+	NOTE: include Python.h as first thing (or almost first)
+	since it can modify standard headers via macros etc
+
+	PyObject: some python object type.
+	______________________________
+	references
+		Py_XDECREF()
+		Py_XINCREF()
+		Py_DECREF()
+		Py_INCREF()
+
+	______________________________
+	-1.1- exceptions
+		exception classes:
+			PyExc_<NameOfError
+
+		ONLY CALL THESE if you are the actual source
+		of the error, otherwise just return -1 or NULL
+		(the actual source should have already called PyErr*)
+
+		return -1 or NULL to specify error occurred
+		3 thread-local vars:
+			exception type, object, and traceback
+
+		PyErr_SetString()
+			take object and cstring
+		PyErr_SetFromErrno()
+			take exc object, check errno
+		PyErr_SetObject()
+			take exc and value
+		PyErr_Occurred()
+			NULL if no exc else the obj
+		PyErr_Clear()
+			ignore error
+		PyErr_NoMemory()
+			failed malloc/calloc etc
+		PyErr_NewException('full.name', NULL, NULL);
+			A new exception type.
+
+		remember to decref if applicable
+
+		custom exceptions:
+			static PyObject *MyError;
+			PyMODINIT_FUNC PyInit_mymod(void)
+			{
+				//?? where did module come from
+				PyObject *m;
+				m = PyModule_Create(&module);
+				if (m == NULL)
+					return NULL;
+
+				MyError = PyErr_NewException("mod.name", NULL, NULL);
+				Py_XINCREF(MyError);
+				if (PyModule_AddObject(m, "error", MyError) < 0)
+				{
+					PyXDECREF(MyError);
+					PyCLEAR(MyError);
+					PyDECREF(m);
+					return NULL;
+				}
+			return m;
+			}
+	______________________________
+	-1.2- modules
+	Modules expect:
+		static struct PyModuleDef nameInC = {
+			PyModuleDef_HEAD_INIT,
+			"name",
+			docOrNULL,
+			-1 (size of per-interpreter state or -1 if global vars),
+			array_of_Methods
+		};
+		init function:
+			PyMODINIT_FUNC PyInit_<modulename>
+				returns a PyObject*
+				create via PyModule_Create()
+		array of methods:
+			static PyMethodDef <Modulename>Methods[] = {
+				{"attrname", ptr, METH_VARARGS|METH_KEYWORDS, "helpstr"},
+				...
+				{NULL, NULL, 0, NULL}
+			};
+			The NULLs is a sentinel value for end of list.
+
+	______________________________
+	-1.3- methods
+	static PyObject* func(PyObject *self, PyObject *args)
+		self = module or object instance
+		args = python *args tuple
+		PyArg_ParseTuple()
+		PyArg_ParseTupleAndKeywords()
+
