@@ -75,6 +75,8 @@ contents:
 		configure_file(infile outfile)
 			replace any @NAMEOFVARIABLE@ with the value of the variable
 			inside infile and write to outfile
+			infile: relative to CMAKE_CURRENT_SOURCE_DIR
+			outfile: relative to CMAKE_CURRENT_BINARY_DIR
 
 		target_include_directories(
 			Tutorial PUBLIC "${PROJECT_BINARY_DIR}")
@@ -474,57 +476,80 @@ ctest: run tests from add_test
 ------------------------------
 -7- making install packages
 ------------------------------
-A cmake installation has at least 1 file:
-	packagenameConfig.cmake
-generally, you'd have at least 2:
-	packagenameConfig.cmake
-	packagenameTargets.cmake
-The Config.cmake file will find dependencies etc
-(CMakeFindDependencyMacro's find_dependency instead of a normal find_package)
-packagenameTargets.cmake contains the info about
-the installed package (libs, include dirs, etc)
+	Creating a package means creating some file to allow cmake to find your
+	project.
 
-steps:
-	0. setup:
-		1. anything in INTERFACE must be in export set
-			(INTERFACE or PUBLIC dependencies)
-		2. target_include_directories will complain about absolute paths.
-			add actual dirs via: $<BUILD_INTERFACE:PATH>
-			add include directories after installation (relative to CMAKE_INSTALL_PREFIX)
-			via $<INSTALL_INTERFACE:PATH>
-			NOTE: PATH CANNOT have quotes
+	You can include(CMakePackageConfigHelpers) to use its helper functions.
 
-	1. add targets to an "export set":
-		install(
-			TARGETS target names ...
-			EXPORT "name of export set"
-			RUNTIME DESTINATION bin
-			...
-		)
-	2. generate the export set file:
-		NOTE: this is used for subdirectory or something and isn't actually necessary?
-		export(
-			EXPORT "name of export set"
-			NAMESPACE "<name of namespace>::"
-			FILE "path of output file")
-	3. install the export file:
-		install(
-			EXPORT "name of export set"
-			FILE "name.cmake"
-			DESTINATION "(relative) dest dir"
-			NAMESPACE "namespace::"
-		)
-	4. make a Config.cmake file
-		include(CMakeFindDependencyMacro)
-		include(the file created via step 3)
-	5. install the config.cmake file
-		install(
-			FILES "${generated Config file}"
-			DESTINATION "probably same dir as export file (step 3)"
+	Generally, this takes the form of:
+		<packagename>Config.cmake
+		<packagename>ConfigVersion.cmake
+		<packagename>Targets.cmake
 
-helpers:
-	CMakePackageConfigHelpers
-		configure_package_config_file
+	Config.cmake
+		This generally finds dependencies.
+			ie: replace find_package in CMakeList.txt with:
+				include(CMakeFindDependencyMacro)
+				find_dependency(...)
+		And then includes the Targets.cmake file.
 
-		write_basic_package_version_file
+		It is usually created by first writing a <package>Config.cmake.in
+		file with paths denoted by @CMAKE_VARIABLE_NAME@ and then
+		configure_file() to make a <package>Config.cmake in the build dir.
+		Finally, installing that result in wherever.
 
+		CMakePackageConfigHelpers:
+			In the <package>Config.cmake.in:
+				add a "@PACKAGE_INIT@" line
+				use set_and_check() to set dirnames/filenames
+				add last line check_required_components(<package>)
+					if project has components.
+
+			configure_package_config_file(
+				<input>
+				<output>
+				INSTALL_DESTINATION <path>
+				PATH_VARS var1 var2, ...
+			)
+			INSTALL_DESTINATION:
+				where the *Config.cmake will be installed
+			PATH_VARS:
+				name of the path variables that you will use.
+				In the *cmake.in file, use @PACKAGE_varname@
+				instead of just @varname@ and the values
+				will be auto-calculated as relative to install dir
+				to make a "relocatable" package
+		
+	ConfigVersion.cmake
+		This tells the version of the package and the policy.
+		CMakePackageConfigHelpers:
+			write_basic_package_version_file(
+				filename
+				VERSION major.minor.patch (defaults to ${PROJECT_VERSION})
+				COMPATIBILITY AnyNewerVersion|SameMajorVersion|ExactVersion
+			)
+			COMPATIBILITY: look from find_package perspective
+				AnyNewerVersion: newer than requested = okay
+				SameMajorVersion: same major as requested = okay
+				ExactVersion: must match exactly
+
+
+	Targets.cmake
+		This gives the actual info about your package.
+		This is created by
+			install(
+				EXPORT <exportname>
+				FILE <installedName>
+				DESTINATION <dst dir>
+				NAMESPACE <namespace
+			)
+			<exportname> should match the 
+			install for the targets etc
+			when install(TARGETS targets... EXPORT <exportname> otherargs...)
+
+	Additionally, an optional file to allow find_package directly
+	in the build-tree
+		use export(
+			EXPORT <name>
+			NAMESPACE <namespace>
+			FILE <export file>)
