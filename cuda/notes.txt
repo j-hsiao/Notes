@@ -20,7 +20,8 @@ contents
 -3- performance
 	-3.1- coalescing
 	-3.2- alignment
-	-3.3- intrinsics
+	-3.3- bank conflicts
+	-3.4- intrinsics
 
 ______________________________
 -1- general
@@ -343,16 +344,14 @@ ______________________________
 ______________________________
 -3- performance
 	______________________________
-	-3.1- coalesce memory accesses:
-		make contiguous threads access contiguous memory
-		(since threads are run concurrently each thread's first access
-		is performed, then the second, etc, result is to code
-		opposite to c++ access pattern
-		the data should be a multiple of warp (32)
-		and threadblock should have width of warp
+	-3.1- coalescing
+		This applies to GLOBAL MEMORY (or pinned with unified addressing).
+		This basically means to access data in order.
+		Note that memory accesses are via ALIGNED 32, 64, or 128-byte transactions.
+
 	______________________________
 	-3.2- alignment:
-		1, 2, 4, 8, or 16 bytes
+		individual value reads should have alignment: 1, 2, 4, 8, or 16 bytes
 		builtin vector types = all okay
 			ie: make_<tp><N>
 		structs: add __align__(value)
@@ -361,9 +360,20 @@ ______________________________
 					float x;
 					float y;
 				};
-
 	______________________________
-	-3.3- intrinsics
+	-3.3- bank conflicts
+		This applies to shared memory.
+		Each bank is 32-bit (4-bytes)
+		Banks handle memory in round-robin fashion.
+		On older gpus, if all threads access same memory (same bank, same address),
+		there is no conflict ("broadcast")
+		Otherwise, it is best for banks to be accessed 1-per thread.
+		ie: if working with uint8, 4 uint8 per bank
+		warp size is 32, so if thread I handles uint8[I], then there will be bank conflict
+		(not all threads access same bank memory)
+		To make it faster, each thread should handle 4 uint8 instead.
+	______________________________
+	-3.4- intrinsics
 		faster but less accurate operator versions
 		alternatively, -use_fast_math
 		generally, intrinsic version is prefixed with __
