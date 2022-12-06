@@ -10,6 +10,7 @@
 -6- namespace packages
 -7- repositories
 -8- pip
+-9- extensions
 
 ______________________________
 -0- general
@@ -344,3 +345,14 @@ ______________________________
   into cwd/src/project or venvpath/src/project
   This path can be changed with --src.  Otherwise, build in
   a temp dir and install it normally
+
+______________________________
+-9- extensions
+	setuptools.Extension(name, sources, ...)
+		name: "extension module name"
+		sources: [filenames]
+		include_dirs: ["unix-style dirs"]
+		define_macros: [("macroname","value"|None)]
+		undef_macros:["macroname"...]
+		library_dirs: ["dirs"...]
+		libraries: ["libnames (not path/file)"...]

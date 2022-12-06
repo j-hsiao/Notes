@@ -1,23 +1,151 @@
 python c extensions
 
 -0- general
+	-0.0- notation:
+		-0.0.1- references
+	-0.1- format strings
 -1- python objects
+	-1.0- Py_BuildValue
 	-1.1- reference counting
-	-1.2- arguments
-		-1.2.1- format strings
-	-1.3- return values
-
-
-TODO Py_BEGIN_ALLOW_THREADS
+	-1.2- working with objects
+	-1.3- specific types
+		-1.3.1- numbers
+		-1.3.2- tuple
+		-1.3.3- str
+		-1.3.4- list
+		-1.3.5- dict
+		-1.3.6- buffers
+-2- functions/methods
+	-2.1- PyMethodDef
+	-2.2- arguments
+	-2.3- return values/exceptions
+	-2.4- exceptions
+-3- module api
+	-3.0- instantiation
+	-3.1- PyModuleDef
+	-3.2- PyInit
+-4- compilation
+-5- GIL
+-6- C api (for other modules)
 
 _____________________________
 -0- general
 	#define PY_SSIZE_T_CLEAN
 	#include <Python.h>
 		the PY_SSIZE_T_CLEAN makes lengths use Py_ssize_t instead of int.
+
+	NOTE: include Python.h as first thing (or almost first)
+		since it can modify standard headers via macros etc
+
+	Python is a C interface, so "bool" is actually int
+	______________________________
+	-0.0- notation:
+		______________________________
+		-0.0.1- references
+			nref: new reference PyObject*
+			bref: borrowed reference PyObject*
+			tref: takes reference PyObject* (function input)
+		______________________________
+		-0.0.2- bool
+			bool: int, 0 or 1, 1 = success
+			ibool: inverted bool, 0=success, 1 = error
+			-ibool: -0 = 0 = success, -1 = error
+			tbool: bool, but -1 for error
+
+
+
+	______________________________
+	-0.1- format strings
+		Format strings generally have:
+			[{(]code[:funcname][)}]
+		() in the string indicates a tuple.
+		funcname is used for error message
+
+		The following is for PyArg_Parse*
+		______________________________
+		strings/buffers
+			Returned pointers are managed by corresponding PyObject, don't
+			allocate, don't free (except et/es)
+
+			PyBuffer_Release(PyBuffer *view)
+				When buffers get parsed, they get locked?, must release it:
+
+			general principles:
+				#: const char* + Py_ssize_t
+				*: a Py_buffer
+
+			code  nitems  python_type         c_type
+			s     1       str                 null-terminated const char*
+			s*    1       str/byteslike       Py_buffer
+			s#    2       str/bytes, size     const char*, Py_ssize_t
+			z     1       str/None            s or nullptr
+			z*    1       z/byteslike         Py_buffer
+			z#    2       z*, size            z*, Py_ssize_t
+			y     1       bytes-like          null-terminated const char*
+			y*    1       bytes-like          Py_buffer
+			y#    2       y, size             y, Py_ssize_t
+			S     1       bytes               PyBytesObject*
+			Y     1       bytearray           PyByteArrayObject*
+			u     1       str                 const Py_UNICODE*
+			u#    2       str, size           const Py_UNICODE*, Py_ssize_t
+			Z     1       str/None            const Py_UNICODE*
+			Z#    2       Z, size             const Py_UNICODE*, Py_ssize_t
+			U     1       str                 PyObject*
+			W*    1       rw bytes-like       Py_buffer
+			es    2       str                 const char *encoding, char **buffer
+			et    2       str/bytes/bytearray same as es
+			es#   3       str                 es, Py_ssize_t
+			et#   3       str/bytes/bytearray et, Py_ssize_t
+
+		NOTE: the es/et/es#/et# return allocated data buffer addresses.
+		use PyMem_Free() on them when no longer needed
+		______________________________
+		numbers
+			code  nitems  python_type         c_type
+			b     1       int                 uchar, char?
+			B     1       int                 uchar (no overflow??)
+			h     1       int                 short
+			H     1       int                 ushort
+			i     1       int                 int
+			I     1       int                 uint
+			l     1       int                 long
+			k     1       int                 ulong
+			L     1       int                 long long
+			K     1       int                 ulong long
+			n     1       int                 Py_ssize_t
+			c     1       bytes/bytearray     char    (should be length 1)
+			C     1       str                 int     (should be length 1)
+			f     1       float               float
+			d     1       float               double
+			D     1       complex             Py_complex
+		______________________________
+		objects
+			O     1       object              PyObject *
+			O!    2       object              typeobject, PyObject*
+			O&    2       object              converter, void*
+			                                  converter(object, address) ???
+			p     1       bool                int
+			(...) N       tuple               corresponding code C types.
+			|             optional args       args to the right are optional
+			$             keyword only        args are keyword only
+			:             function name for error
+			;             error message
+
+		______________________________
+		Py_BuildValue(const char *fmt, ...)
+			same as above, except no * codes (no Py_buffer)
+			strings: s, y, u
+			numbers: same
+			objects: N: no increment object
+
 ______________________________
 -1- python objects
 	Python objects are generally represented by a PyObject *ptr
+	______________________________
+	-1.0- Py_BuildValue
+		This is a quick/easy way to build some python value.
+		PyObject *thing = Py_BuildValue("format", arg1, arg2, ...);
+			NOTE: strs/bytes etc get copied
 	______________________________
 	-1.1- reference counting
 		Objects are reference counted.
@@ -25,173 +153,269 @@ ______________________________
 			Otherwise, if you do something like del module.attr,
 			Now it is lost and any function that uses it may segfault
 			or something.
-		functions that return objects generally have them already
+		functions that return objects generally give a reference
 		increfed. REMEMBER TO DECREF THEM ONCE NO LONGER IN USE.
-
 		Py_XDECREF(PyObject*)
 		Py_XINCREF(PyObject*)
 		Py_DECREF(PyObject*)
 		Py_INCREF(PyObject*)
-			These change refcount.  The X versions allow NULL.
+			These change refcount.  The X versions checks for NULL.
+
+		Some functions "borrow" a reference.  In this case, the object
+		is assumed to last for the lifetime of the call.  If it needs
+		to be saved or something, explicitly call Py_[X]INCREF.
+		NOTE: whenever objects could possibly be freed, items can be
+		invalidated by some callback or destructor.  It is generally
+		safe to Py_[X]INCREF to ensure something remains in scope if
+		calling any python methods and then Py_[X]DECREF aftewards.
+
+		All object creation functions return a new reference.
+		(PyLong_FromLong(), Py_BuildValue(), ...)
 
 		PyObject_CallObject(PyObject *thing, PyObject *args)
 			args should be a tuple or NULL (no args)
+
+		When calling functions, most calls will borrow reference.
+		Some will take reference though
+
 	______________________________
-	-1.2- arguments
-		PyObject *tup = Py_BuildValue("formatstr", arg1, arg2,...)
-		PyArg_ParseTuple(PyObject *args, "formatstr", PyObject **arg1dst,...)
-		PyArg_ParseTupleAndKeywords()
-		PyArg_Parse()
+	-1.2- working with objects
+		attrs
+			nref PyObject_GetAttr(PyObject *obj, PyObject *attr);
+			nref PyObject_GetAttrString(PyObject *obj, const char *attr);
+			bool PyObject_HasAttr(PyObject *obj, PyObject *attr);
+			bool PyObject_HasAttrString(PyObject *obj, const char *attr);
+			-ibool PyObject_SetAttr(PyObject *self, PyObject *name, PyObject *val);
+			-ibool PyObject_SetAttrString(PyObject *self, const char *name, PyObject *val);
+			-bool PyObject_DelAttr(PyObject *self, PyObject *name);
+			-bool PyObject_DelAttrString(PyObject *self, const char *name);
+
+		types:
+			tbool PyObject_IsSubclass(PyObject *obj, PyObject *cls)
+
 
 		______________________________
-		-1.2.1- format strings:
-			______________________________
-			-1.2.1.1- strings/buffers
-				Returned pointers are managed by corresponding PyObject, don't
-				allocate, don't free (except et/es)
-
-				PyBuffer_Release(PyBuffer *view)
-					When buffers get parsed, they get locked?, must release it:
-
-				codes can end with # to indicate PY_SSIZE_T_CLEAN
-
-				code    pytype          ctype
-				s       str             null-terminated const char*
-				s*      str/bytes       Py_buffer
-				s#      r str           [const char*, Py_ssize_t]
-				z       s or None       const char* or NULL
-				z*      s* or None      Py_buffer->buf is NULL if None
-				z#      s# or None      [const char*, Py_ssize_t], NULL if None
-				y       r bytes         null-terminated const char*
-				y*      bytes-like      Py_buffer (RECOMMENDED FOR BINARY DATA)
-				y#      bytes-like      [const char*, Py_ssize_t]
-				S       bytes           PyBytesObject*
-				Y       bytearray       PyByteArrayObject*
-				U       str             PyObject*
-				w*      rw bytes-like   Py_Buffer
-				es      str             const char *encoding, char **buffer, call PyMem_Free afterwards
-				et      str/bytes-like  const char *encoding, char **buffer
-				es#     str             const char *encoding, char **buffer, Py_ssize_t *buffer_length
-				                        buffer and length can be pre-valued to use a
-				                        preallocated buffer
-				et#
-
-
-
-
+		Calling objects
+			PyObject_Call(PyObject *obj, PyObject *args, PyObject *kwargs);
+			PyObject_CallObject(PyObject *obj, PyObject *args);
+			PyObject_CallFunction(PyObject *obj, const char *fmt, ...);
+			PyObject_CallFunctionObjArgs(PyObject *obj, PyObject *arg1, PyObject *arg2, ...);
+			PyObject_CallMethod(PyObject *obj, const char *name, const char *fmt, ...);
 	______________________________
-	-1.3- return values
-		Python functions should always return some object on success.
-		Returning NULL generally indicates that some kind of exception
-		happened.
+	-1.3- specific types
+		______________________________
+		-1.3.1- numbers
+		______________________________
+		-1.3.2- tuple
+			bref PyTuple_GetItem()
+			PyTuple_SetItem(PyObject *self, tref item)
+		______________________________
+		-1.3.3- str
+		______________________________
+		-1.3.4- list
+			bref PyList_GetItem()
+			PyList_SetItem(PyObject *self, tref item)
+		______________________________
+		-1.3.5- dict
+			bref PyDict_GetItem():
+			bref PyDict_GetItemString():
+		______________________________
+		-1.3.6- buffers
+			Get buffer by:
+				PyArg_Parse*
+				PyObject_GetBuffer()
+			Py_buffers represent views and should be released
+			struct Py_buffer
+			{
+				void *buf;
+				PyObject *obj;
+				Py_ssize_t len;
+				int readonly;
+				Py_ssize_t itemsize;
+				const char *format;
+				int ndim;
+				Py_ssize_t *shape;
+				Py_ssize_t *strides;
+				Py_ssize_t *suboffsets;
+				void *internal;
+			};
+			strides is in bytes
+			suboffsets:
+				If any >= 0, then
+				values along that dimension are pointers.
+				and each val is byte offset from th epointers.
+				<0 indicates no dereferencing
+				NULL indicates all <0
 
-		Return Py_None, if no return value:
-			Py_RETURN_NONE
-				this is a macro for:
-					Py_INCREF(Py_None);
-					return Py_None;
-
-
-
-
+				ie: after applying strides, if suboffsets >= 0:
+					newptr = *((char**)ptr) + suboffsets[i]
+			format:
+				if NULL, "B" is assumed
 
 ______________________________
--0- raw c/c++
-	API is in Python.h
-	pros: fast
-	cons: version-specific
-
-	#define PY_SSIZE_T_CLEAN "make s# use Py_ssize_t instead of int"
-	#include <Python.h>
-	NOTE: include Python.h as first thing (or almost first)
-	since it can modify standard headers via macros etc
-
-	PyObject: some python object type.
+-2- functions/methods
 	______________________________
-	references
-		Py_XDECREF()
-		Py_XINCREF()
-		Py_DECREF()
-		Py_INCREF()
+	-2.1- PyMethodDef
+		PyMethodDef is a struct that describes a python method/function.
+		An array of PyMethodDef is used to enumerate the methods of a module
+		(or class?? needs verification)
+
+		Initialization of PyMethodDef:
+			{python_name, ptr2func, METH_VARARGS|METH_KEYWORDS, "helpstr"}
+
+		Arrays of PyMethodDef should end with
+			{NULL, NULL, 0, NULL}
+	______________________________
+	-2.2- handling arguments
+		see also -0.1- format strings
+		Arguments are generally obj (module or class or instance, etc)
+		and then either 1 or 2: (tuple) or (tuple, dict)
+		depending on whether keyword arguments are supported.
+		ie:
+			function(PyObject *self, PyObject *args);
+			function(PyObject *self, PyObject *args, PyObject *kwargs);
+
+		Argument parsing has a few functions:
+			PyArg_ParseTuple()
+			PyArg_ParseTupleAndKeywords()
+			PyArg_Parse()
+
+		These generally take a format string and a list of destinations
+		to store the values.  Format strings are sequential strings
+		that indicate iterated values.
+		Example:
+			function(PyObject *self, PyObject *args)
+			{
+				int i;
+				const char *str;
+				std::size_t size;
+				PyArg_ParseTuple(args, "is#", &i, &str, &size);
+			}
+		NOTE: PyArg_ParseTupleAndKeywords() cannot handle nested tuples.
+
+		Parse functions return truthy int for success.
+		PyArg_ParseTuple(PyObject *args, const char *fmt, ...);
+		PyArg_VaParse(PyObject *args, const char *fmt, va_list vargs);
+		PyArg_ParseTupleAndKeywords(
+			PyObject *args, PyObject *kw,
+			const char *format, const char *keywords[], ...)
+		PyArg_VaParseTupleAndKeywords(
+			PyObject *args, PyObject *kw,
+			const char *format, const char *keywords[],va_list vargs);
+		PyArg_UnpackTuple(
+			PyObject *args, const char *name,
+			Py_ssize_t min, Py_ssize_t max, PyObject*...)
+
+
 
 	______________________________
-	-1.1- exceptions
-		exception classes:
-			PyExc_<NameOfError
+	-2.3- returns
+		Generally, functions should return PyObject*.
+		A return of NULL indicates an error.
+		Returned values should have a reference.
 
-		ONLY CALL THESE if you are the actual source
-		of the error, otherwise just return -1 or NULL
-		(the actual source should have already called PyErr*)
+		------------------------------
+		Returning None
+			None is a common return value and has dedicated macro:
+				Py_RETURN_NONE
+			which stands for:
+				Py_INCREF(Py_None);
+				return Py_None;
 
-		return -1 or NULL to specify error occurred
+	______________________________
+	-2.4- exceptions
+		Returning NULL indicates an error.
+		Unless you are the source of the exception, do not call any
+		exception functions.  (Just return NULL to propagate the error.)
+
+		Builtin exception classes are named PyExc_<NameOfError>
+		like PyExc_TypeError.
+
 		3 thread-local vars:
 			exception type, object, and traceback
 
-		PyErr_SetString()
-			take object and cstring
-		PyErr_SetFromErrno()
-			take exc object, check errno
-		PyErr_SetObject()
-			take exc and value
-		PyErr_Occurred()
-			NULL if no exc else the obj
-		PyErr_Clear()
-			ignore error
-		PyErr_NoMemory()
-			failed malloc/calloc etc
-		PyErr_NewException('full.name', NULL, NULL);
-			A new exception type.
-
-		remember to decref if applicable
+		To raise an exception call one of:
+			PyErr_SetString()
+				take object and cstring
+			PyErr_SetFromErrno()
+				take exc object, check errno
+			PyErr_SetObject()
+				take exc and value
+			PyErr_Occurred()
+				NULL if no exc else the obj
+			PyErr_Clear()
+				ignore error
+			PyErr_NoMemory()
+				failed malloc/calloc etc
+			PyErr_NewException('full.name', NULL, NULL);
+				A new exception type.
 
 		custom exceptions:
-			static PyObject *MyError;
-			PyMODINIT_FUNC PyInit_mymod(void)
-			{
-				//?? where did module come from
-				PyObject *m;
-				m = PyModule_Create(&module);
-				if (m == NULL)
-					return NULL;
-
-				MyError = PyErr_NewException("mod.name", NULL, NULL);
-				Py_XINCREF(MyError);
+			Have some kind of static PyObject* to hold the exception class.
+			PyObject *new_exception_class = PyErr_NewException("mod.name", NULL, NULL);
+			Py_XINCREF(MyError);
+			adding it to a module:
+				PyModule_AddObject(module, "pyname", new_exception_class)
 				if (PyModule_AddObject(m, "error", MyError) < 0)
 				{
-					PyXDECREF(MyError);
-					PyCLEAR(MyError);
-					PyDECREF(m);
+					Py_XDECREF(MyError);
+					Py_CLEAR(MyError);
+					Py_DECREF(m);
 					return NULL;
 				}
 			return m;
 			}
+
+______________________________
+-3- module api
+	Modules are shared library objects with a (extern "C") init func.
+	The name of the module must match the import name and the
+	corresponding init func.  Suffixes are allowed.
 	______________________________
-	-1.2- modules
-	Modules expect:
-		static struct PyModuleDef nameInC = {
-			PyModuleDef_HEAD_INIT,
-			"name",
-			docOrNULL,
-			-1 (size of per-interpreter state or -1 if global vars),
-			array_of_Methods
-		};
-		init function:
-			PyMODINIT_FUNC PyInit_<modulename>
-				returns a PyObject*
-				create via PyModule_Create()
-		array of methods:
-			static PyMethodDef <Modulename>Methods[] = {
-				{"attrname", ptr, METH_VARARGS|METH_KEYWORDS, "helpstr"},
-				...
-				{NULL, NULL, 0, NULL}
+	-3.0- instantiation
+		The module init func should have the following signature:
+		PyMODINIT_FUNC PyInit_modulename()
+		{ ... }
+
+		The module is instantiated via PyModule_Create
+		PyModule_Create(&my_PyModuleDef_object);
+
+	______________________________
+	-3.1- PyModuleDef
+		Modules are defined by a PyModuleDef struct.  These should
+		generally be static and are referenced directly.
+		(If non-static likely will cause segfault)
+
+		example:
+			static struct PyModuleDef mydef = {
+				PyModuleDef_HEAD_INIT,
+				"python module name",
+				"docstring or NULL",
+				-1 (size of per-interpreter state or -1),
+				PyMethodDef*
 			};
-			The NULLs is a sentinel value for end of list.
 
-	______________________________
-	-1.3- methods
-	static PyObject* func(PyObject *self, PyObject *args)
-		self = module or object instance
-		args = python *args tuple
-		PyArg_ParseTuple()
-		PyArg_ParseTupleAndKeywords()
+______________________________
+-4- compilation
+______________________________
+-5- GIL
+	Py_BEGIN_ALLOW_THREADS
 
+______________________________
+-6- C api (for other modules)
+	The interface should be static.  Python handles this with capsules.
+	Using this mechanism means you don't need to worry about declspec etc.
+	When compiling, the interface should be placed into the module
+	as capsules.  When other extension modules want to use your C
+	interface, they will "import" your interface PyCapsule_Import()
+	so that they can use it
+	ie:
+		library:
+			static void* interface[N];
+		PyInit_module():
+			interface[i] = (void*)functions
+			capsule = PyCapsule_New((void*)interface, "module.attrname", NULL);
+			PyModule_AddObject(module, "attrname", capsule)
+		clients:
+			void** interface =  PyCapsule_Import("module.attrname", 0);
+			#define method (*(returntype *(args))interface[N])
