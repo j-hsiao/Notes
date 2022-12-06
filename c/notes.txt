@@ -286,7 +286,7 @@ ______________________________
       __LINE__
       __STDC__
 
-    # 
+    #
       stringize (turn into a string)
       ie:
         #define myfunc(str1, str2) \
@@ -295,8 +295,29 @@ ______________________________
     ##
       token pasting
       ie:
-        #define printvar(vname) \
-          printf(#vname " is %d", ##vname)
+      #define COMMAND(NAME) { #NAME, NAME ## _command }
+      COMMAND(hello) -> {"hello", hello_command}
+    NOTE:
+      "All arguments to a macro are completely macro-expanded before
+      substitution", exception is if it is stringized via # or ##
+      for token pasting
+
+      After this, then the entire result is scanned again for
+      more macro expansion
+
+      macros are note expanded when stringizing, but otherwise
+      are expanded recursively:
+      example:
+      #define var 10
+      #define tostr(arg) #arg
+      tostr(var)-> "var"
+      #define indirect(arg) tostr(arg)
+      indirect(arg) -> "10"
+        (tostr(arg), arg is not stringized so it is expanded
+
+
+
+
 
     defined()
       is it defined?

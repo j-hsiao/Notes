@@ -22,6 +22,7 @@ contents
 	-3.2- alignment
 	-3.3- bank conflicts
 	-3.4- intrinsics
+	-3.5- __restrict__
 
 ______________________________
 -1- general
@@ -29,10 +30,14 @@ ______________________________
 	-1.1- kernel
 		functions executed on the GPU.  declare with the __global__ declspec
 		kernels are called as functionname<<<execution configuration>>>(args)
-			<<<gridshape, blockshape>>>
+			<<<gridshape, blockshape, sharedmembytes, cudaStream_t>>>
 				shapes can be:
 					int
-					dim3 (can give just 2 args for a 2d shape)
+					dim3 (can give just 2 args for a 2d shape, so not necessarily 3d)
+				sharedmembytes:
+					If kernel does extern __shared__ data*;
+					data* will point to a block of size sharedmembytes for dynamically sized
+					shared memory.
 	______________________________
 	-1.2- threads
 		block: a group of threads
@@ -138,6 +143,7 @@ ______________________________
 		cc8.0+ can influence global (L2) cache
 		______________________________
 		consts/global:
+			__constant__
 			cudaMemcpyToSymbol(void *dst, void *src, nbytes);
 			cudaMemcpyToSymbol(void *dst, void *src, nbytes);
 		______________________________
@@ -441,141 +447,147 @@ ______________________________
 	__halves2half2
 	__halves2bfloat162
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-old
-______________________________
--1- general
-	cuda uses nvcc for compilation:
-		converts kernels to ptx (gpu code)
-		modifies host code (with <<<...>>>) and outputs:
-			a source file that can be compiled (eg. with gcc)
-			OR
-			object file (nvcc would just use the compiler for you)
-
-	device: the acceleration device like a gpu
-	host: the computer (standard cpu)
-
-	files have .cu extension
-
-	declarations:
-		__global__  declare a cuda kernel (add to beginning of func signature)
-		__shared__  declare shared memory buffer.
-		__device__  a gpu function callable from a kernel.
-
-
-	memory:
-		cudaMallocManaged(**ptr, nbytes)
-			compiler magic to access same pointer from both CPU and GPU.
-			ptr: address of a pointer variable to hold resulting address
-		CudaFree()
-
-		transfer between memory(if not used cudaMallocManaged):
-			use cudaMemcpy(
-				dst, src, nbytes, cudaMemcpy[HostToDevice|DeviceToHost]);
-
-	calling kernels:
-		function<<<gpuargs...>>>(func args...)
-			gpuargs
-		NOTE: calls are asynchronous. call cudaDeviceSynchronize()
-		to sync data
-
-	synchronization:
-		__syncthreads()
-		wait for threads to all reach same point before continuing
-
-	pointer attributes:
-		cudaPointerGetAttributes()
-			isManaged
-
 	______________________________
-	-1.1- capabilities
-		Compute capabilities determine what cuda features can be used.
-		They can be queried by
-			cudaError_t cudaGetDeviceProperties(cudaDeviceProp *prop, int dev);
-			cudaError_t cudaDeviceGetAttribute(int *ret, cudaDeviceAttr attr, int dev);
-
-		capability          capability      property                    attribute
-		managed memory      3.0             managedMemory               cudaDevAttrManagedMemory
-		concurrent mmem     6.0             concurrentManagedAccess
-
-______________________________
--2- execution configurations
-	execution is multidimensional:
-		<<<nblocks, threadsperblock>>>
-
-	grid: 1,2, or 3d grid of blocks
-	blocks: 1, 2 or 3d "array" of threads
-	threads: do 1 task
-	warp: group of 32 threads (the reason why threads per block must be a
-		multiple of 32)
-
-	blocks MUST EXECUTE INDEPENDENTLY
-
-	Each block is a multiple of 32 threads
-
-	Access info via:
-		indexes:
-			threadIdx.x:  thread index within the block in x direction
-			blockIdx.x:   block index within total blocks
-		sizes:
-			blockDim.x:   number of threads in block in x direction
-			gridDim.x:    number of blocks
-
-	generally:
-		1. each "individual" calculation should be done by a single thread
-		2. pick a threads per block and calculate number of blocks(round up)
-		3. use result in <<<>>> call
-
-	example:
-		__global__ void function(int *idata, int *odata, int width):
-			int y = threadIdx.y;
-			int x = threadIdx.x;
-			idata[y*width + x] = odata[y*width + x]
-
-		function<<<32,32>>>(idata, odata, width);
+	-3.5- __restrict__
+		Pointers can be given __restrict__ if they are non-overlapping.
+		This allows them to have some optimization.
+		NOTE: this only applies to raw pointers as arguments.
 
 
-______________________________
--3- optimization
-	______________________________
-	-3.1- memory coalescing
-		Threads run parallel and if they access contiguous memory,
-		memory accesses are "coalesced" which improves performance.
-		The code is performed by the same thread.  As a result, for 2d
-		array access, you should code them iterating over the slower
-		dimension.  For c style 2d array, within a thread, iterate on rows
-		instead of columns.  This is because each thread will then access
-		contiguous memory, so TEMPORALLY, the accesses are contiguous.
 
-	______________________________
-	-3.2- shared memory
-		shared memory is allocated per thread-block
-		__shared__ type array[dim][dim]... can be used to declare a block of
-		shared memory between threads.  This can be useful, for example, with
-		transposing.  Normally, either input or output accesses are
-		contiguous.  As a result, performance can suffer.  However, by using
-		a "small" intermediate buffer (shared memory) and tiling,
-		performance can be improved.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+//OLD        old
+//OLD        ______________________________
+//OLD        -1- general
+//OLD        	cuda uses nvcc for compilation:
+//OLD        		converts kernels to ptx (gpu code)
+//OLD        		modifies host code (with <<<...>>>) and outputs:
+//OLD        			a source file that can be compiled (eg. with gcc)
+//OLD        			OR
+//OLD        			object file (nvcc would just use the compiler for you)
+//OLD        
+//OLD        	device: the acceleration device like a gpu
+//OLD        	host: the computer (standard cpu)
+//OLD        
+//OLD        	files have .cu extension
+//OLD        
+//OLD        	declarations:
+//OLD        		__global__  declare a cuda kernel (add to beginning of func signature)
+//OLD        		__shared__  declare shared memory buffer.
+//OLD        		__device__  a gpu function callable from a kernel.
+//OLD        
+//OLD        
+//OLD        	memory:
+//OLD        		cudaMallocManaged(**ptr, nbytes)
+//OLD        			compiler magic to access same pointer from both CPU and GPU.
+//OLD        			ptr: address of a pointer variable to hold resulting address
+//OLD        		CudaFree()
+//OLD        
+//OLD        		transfer between memory(if not used cudaMallocManaged):
+//OLD        			use cudaMemcpy(
+//OLD        				dst, src, nbytes, cudaMemcpy[HostToDevice|DeviceToHost]);
+//OLD        
+//OLD        	calling kernels:
+//OLD        		function<<<gpuargs...>>>(func args...)
+//OLD        			gpuargs
+//OLD        		NOTE: calls are asynchronous. call cudaDeviceSynchronize()
+//OLD        		to sync data
+//OLD        
+//OLD        	synchronization:
+//OLD        		__syncthreads()
+//OLD        		wait for threads to all reach same point before continuing
+//OLD        
+//OLD        	pointer attributes:
+//OLD        		cudaPointerGetAttributes()
+//OLD        			isManaged
+//OLD        
+//OLD        	______________________________
+//OLD        	-1.1- capabilities
+//OLD        		Compute capabilities determine what cuda features can be used.
+//OLD        		They can be queried by
+//OLD        			cudaError_t cudaGetDeviceProperties(cudaDeviceProp *prop, int dev);
+//OLD        			cudaError_t cudaDeviceGetAttribute(int *ret, cudaDeviceAttr attr, int dev);
+//OLD        
+//OLD        		capability          capability      property                    attribute
+//OLD        		managed memory      3.0             managedMemory               cudaDevAttrManagedMemory
+//OLD        		concurrent mmem     6.0             concurrentManagedAccess
+//OLD        
+//OLD        ______________________________
+//OLD        -2- execution configurations
+//OLD        	execution is multidimensional:
+//OLD        		<<<nblocks, threadsperblock>>>
+//OLD        
+//OLD        	grid: 1,2, or 3d grid of blocks
+//OLD        	blocks: 1, 2 or 3d "array" of threads
+//OLD        	threads: do 1 task
+//OLD        	warp: group of 32 threads (the reason why threads per block must be a
+//OLD        		multiple of 32)
+//OLD        
+//OLD        	blocks MUST EXECUTE INDEPENDENTLY
+//OLD        
+//OLD        	Each block is a multiple of 32 threads
+//OLD        
+//OLD        	Access info via:
+//OLD        		indexes:
+//OLD        			threadIdx.x:  thread index within the block in x direction
+//OLD        			blockIdx.x:   block index within total blocks
+//OLD        		sizes:
+//OLD        			blockDim.x:   number of threads in block in x direction
+//OLD        			gridDim.x:    number of blocks
+//OLD        
+//OLD        	generally:
+//OLD        		1. each "individual" calculation should be done by a single thread
+//OLD        		2. pick a threads per block and calculate number of blocks(round up)
+//OLD        		3. use result in <<<>>> call
+//OLD        
+//OLD        	example:
+//OLD        		__global__ void function(int *idata, int *odata, int width):
+//OLD        			int y = threadIdx.y;
+//OLD        			int x = threadIdx.x;
+//OLD        			idata[y*width + x] = odata[y*width + x]
+//OLD        
+//OLD        		function<<<32,32>>>(idata, odata, width);
+//OLD        
+//OLD        
+//OLD        ______________________________
+//OLD        -3- optimization
+//OLD        	______________________________
+//OLD        	-3.1- memory coalescing
+//OLD        		Threads run parallel and if they access contiguous memory,
+//OLD        		memory accesses are "coalesced" which improves performance.
+//OLD        		The code is performed by the same thread.  As a result, for 2d
+//OLD        		array access, you should code them iterating over the slower
+//OLD        		dimension.  For c style 2d array, within a thread, iterate on rows
+//OLD        		instead of columns.  This is because each thread will then access
+//OLD        		contiguous memory, so TEMPORALLY, the accesses are contiguous.
+//OLD        
+//OLD        	______________________________
+//OLD        	-3.2- shared memory
+//OLD        		shared memory is allocated per thread-block
+//OLD        		__shared__ type array[dim][dim]... can be used to declare a block of
+//OLD        		shared memory between threads.  This can be useful, for example, with
+//OLD        		transposing.  Normally, either input or output accesses are
+//OLD        		contiguous.  As a result, performance can suffer.  However, by using
+//OLD        		a "small" intermediate buffer (shared memory) and tiling,
+//OLD        		performance can be improved.
