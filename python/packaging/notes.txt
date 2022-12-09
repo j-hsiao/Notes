@@ -356,3 +356,16 @@ ______________________________
 		undef_macros:["macroname"...]
 		library_dirs: ["dirs"...]
 		libraries: ["libnames (not path/file)"...]
+	
+	NOTE:
+		If a module is precompiled, you cannot install it
+		by py_modules.  You must use package_data.
+		You can install it as package_data of a package if it will be
+		under that package.  However, if you want your cextension module
+		to be used as a top-level module, you will need to install
+		with similar args:
+			packages=[''],
+			package_dir={'':'.'},
+			package_data={'':['modulename.so']}
+		Then you will be able to
+			import modulename

@@ -24,9 +24,10 @@ python c extensions
 	-3.0- instantiation
 	-3.1- PyModuleDef
 	-3.2- PyInit
--4- compilation
+-4- compilation/installation
 -5- GIL
 -6- C api (for other modules)
+-7- installation
 
 _____________________________
 -0- general
@@ -396,7 +397,18 @@ ______________________________
 			};
 
 ______________________________
--4- compilation
+-4- compilation/installation
+	Modules can be compiled with gcc or via setuptools.Extension in setup.py
+	The only requirements are:
+		PyMODINIT_FUNC PyInit_<modulename>()
+		{
+		}
+	must be externc
+	the name of the shared lib must begin with the module name
+	(mymodule.so instead of libmymodule.so (which is default for cmake outputs)
+	for installation: see python packaging notes, -9- extensions.
+
+
 ______________________________
 -5- GIL
 	Py_BEGIN_ALLOW_THREADS
