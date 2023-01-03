@@ -426,11 +426,16 @@ git config [--system | --global | --local] [-e | [--unset] <name> [value] | --li
       then not reversible)
     credential.helper
       name is "credential-<name>"
-      git config value is just <name>
+      git config value is just '<name> [options]'
       list all helpers installed:
         git help -a | grep credential-
       builtin helpers:
         cache: cache for short period of time
+          options:
+            --timeout seconds
+            --socket path
+          other:
+            git credential-cache exit: clear cache(close daemon)
         store: store forever
         manager-core: opensource builtin to git for windows
 ------------------------------
