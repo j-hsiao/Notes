@@ -1,5 +1,6 @@
 # quicker cd to different drives on cygwin
 if [ -d /cygdrive ]
+then
 	alias to=cd
 	function to_() {
 		readarray -t COMPREPLY < <(compgen -d "/cygdrive/${2}")
