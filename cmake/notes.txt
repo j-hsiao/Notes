@@ -460,6 +460,18 @@ ctest: run tests from add_test
 			ctest -R <regexp matching test names>
 		list tests
 			ctest -N 
+
+		Tests pass if:
+			1. executable was found
+			2. ran without crashing
+			3. exit code 0
+
+		test properties:
+			ENVIRONMENT: list of NAME=VAR environment variables to use.
+			LABELS: labels associated with test.
+			WILL_FAIL: If True, then executable should "fail" to pass test.
+			PASS_REGULAR_EXPRESSION: list of regex that test stdout should match (at least one match)
+			FAIL_REGULAR_EXPRESSION: list of regex that stdout should not match
 ------------------------------
 -6- mingw
 ------------------------------

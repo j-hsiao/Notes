@@ -27,6 +27,7 @@ contents
 =5= other
     =5.1= templates
     =5.2=declarations helpful rules:
+    =5.3= value categories
 =7= reference
     =7.1= <cstdint>
     =7.2= <limits>
@@ -872,6 +873,7 @@ contents
             ios::pos_type   same as above but more generic
             stremaoff       for offset, alias of an int
             ios::off_type   same as above, but more generic
+
 ______________________________
 =3= syntax
     compound statements:
@@ -1319,6 +1321,26 @@ ______________________________
 
             this would be a:
                 pointer to array of 5 arrays of 2 const pointers to const unsigned char 
+
+    ______________________________
+    =5.3= value categories
+
+    lvalue: left-hand value
+      string literals, members (., ->, .*, ->*), dereference
+      can take address
+      can assign to (if modifiable)
+    prvalue: pure rvalue
+      non-string literals
+      function returning non-reference
+      arithmetic/logic expressions
+      cast to non-reference
+      this
+    xvalue: expiring values
+      member of rvalue
+    glvalue:lvalue or xvalue
+    rvalue: prvalue or xvalue
+
+
 
 ------------------------------
 =7= reference

@@ -4,6 +4,14 @@ python c extensions
 	-0.0- notation:
 		-0.0.1- references
 	-0.1- format strings
+	-0.2- Abstractions
+		-0.2.1- object
+		-0.2.2- sequence
+		-0.2.3- call
+		-0.2.4- number
+		-0.2.5- mapping
+		-0.2.6- iterator
+		-0.2.7- buffer
 -1- python objects
 	-1.0- Py_BuildValue
 	-1.1- reference counting
@@ -139,6 +147,38 @@ _____________________________
 			numbers: same
 			objects: N: no increment object
 
+	______________________________
+	-0.2- Abstractions
+
+		______________________________
+		-0.2.1- general
+			Py_Is(PyObject*, PyObject*)
+			Py_IsNone(PyObject*)
+			Py_IsTrue(PyObject*)
+			Py_IsFalse(PyObject*)
+
+			Py_TYPE(PyObject*)
+			Py_IS_TYPE(PyObject*, PyTypeObject*)
+
+			int PyObject_HasAttr(PyObject*, PyObject *name)
+			int PyObject_HasAttrString(PyObject*, const char *name)
+
+			PyObject* PyObject_GetAttr(PyObject*, PyObject *name)
+			PyObject* PyObject_GetAttrString(PyObject*, const char *name)
+			PyObject* PyObject_GenericGetAttr(PyObject *, PyObject *name)
+			PyObject* PyObject_Str(Pyobject*)
+			PyObject* PyObject_Repr(Pyobject*)
+			PyObject* PyObject_ASCII(Pyobject*)
+		______________________________
+		-0.2.2- sequences
+			Py_ssize_t PySequence_Size(PyObject*)
+			Py_ssize_t PySequence_Length(PyObject*)
+				-1 if fail
+			PyObject* PySequence_GetItem(PyObject *o, Py_ssize_t i)
+				NULL if fail.
+
+
+
 ______________________________
 -1- python objects
 	Python objects are generally represented by a PyObject *ptr
@@ -263,6 +303,19 @@ ______________________________
 
 		Initialization of PyMethodDef:
 			{python_name, ptr2func, METH_VARARGS|METH_KEYWORDS, "helpstr"}
+
+		flags:
+			METH_VARARGS                      positional only
+			METH_VARARGS|METH_KEYWORDS        position + keyword
+			METH_FASTCALL                     3.7+
+			METH_FASTCALL|METH_KEYWORDS       3.7+
+			METH_NOARGS                       no arguments (use Py_UNUSED for second arg)
+			METH_O                            1 argument, already parsetupled
+
+			METH_CLASS                        a class method (self = type)
+			METH_STATIC                       a static method (self = NULL)
+
+
 
 		Arrays of PyMethodDef should end with
 			{NULL, NULL, 0, NULL}
@@ -431,3 +484,29 @@ ______________________________
 		clients:
 			void** interface =  PyCapsule_Import("module.attrname", 0);
 			#define method (*(returntype *(args))interface[N])
+
+
+______________________________
+-8- members
+	PyMemberDef
+	{name, type, offset, flags, doc}
+
+		type:
+			T_SHORT
+			T_INT
+			T_LONG
+			T_FLOAT
+			T_DOUBLE
+			T_STRING
+			T_OBJECT      (None if not exist)
+			T_OBJECT_EX   (AttributeError if not exist)
+			T_CHAR
+			T_BYTE
+			T_UBYTE
+			T_UINT
+			T_USHORT
+			T_ULONG
+			T_BOOL
+			T_LONGLONG
+			T_ULONGLONG
+			T_PYSSIZET
