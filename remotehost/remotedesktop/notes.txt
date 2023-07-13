@@ -53,6 +53,20 @@ tigervnc
   connect to display:
     vncviewer <:display#> options
 
+  ------------------------------
+  summary:
+  ------------------------------
+    on host:
+      sudo apt install xfce4-session tigervnc-standalone-server
+      edit ~/.vnc/xstartup:
+        unset SESSION_MANAGER
+        startxfce4
+      vncserver -localhost -NeverShared
+        (may need to add a password first)
+    on client:
+      sudo apt install tigervnc-viewer
+      vncviewer host:port -passwd pathtofile
+
 
 xrdp
   windows can connect via "remote destop connection" (no extra installs)
