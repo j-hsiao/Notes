@@ -1304,6 +1304,27 @@ ______________________________
 
 	______________________________
 	-5.6- plugins
+		plugins must end with .vim extension
+
+		2 types of plugins:
+			:h plugin
+			global plugins
+				place inside ~/.vim/plugin (check help for paths on other os)
+				or any subdirs
+
+			filetype plugins
+				place it in ~/.vim/ftplugin
+				naming convention:
+					ftplugin/<filetype>.vim
+					ftplugin/<filetype>_<name>.vim
+					ftplugin/<filetype>/<name>.vim
+
+		plugins can be given help files
+			1. put plugin in plugins dir
+			2. put name.txt under ~/.vim/doc
+			3. open vim and :helptags ~/.vim/doc
+			4. now can :help pluginname
+
 		ftplugin
 			to find filetypes:
 				:e $VIMRUNTIME/filetype.vim
