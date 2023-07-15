@@ -37,7 +37,7 @@ syntax on
 filetype plugin on
 "basic options
 nnoremap <C-K>? :nnoremap <lt>C-K><CR>
-set nowrap number ruler incsearch autoindent copyindent preserveindent
+set nowrap number relativenumber ruler incsearch autoindent copyindent preserveindent
 	\ ignorecase smartcase hlsearch
 	\ hidden belloff=all scrolloff=0 list
 	\ formatoptions+=roj

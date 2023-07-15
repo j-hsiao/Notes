@@ -421,6 +421,13 @@ ______________________________
 	C-r <reg>     insert register
 	C-v key       literal key
 	C-[ | <Esc>   exit insert mode
+
+	C-g           prefix
+		j|C-j|down  down one line at column where insertion started
+		k|C-k|up    up one line at column where insertion started
+
+	C-E           insert character in next line below cursor
+	C-Y           insert character in previous line above cursor
 ______________________________
 -3- visual mode
 	This mode is generally for selecting text to perform a command over.
