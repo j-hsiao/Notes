@@ -28,6 +28,9 @@ nnoremap <C-K>r :setlocal relativenumber! relativenumber?<CR>
 "cancel search highlights
 nnoremap <silent> <C-[><C-[> :nohl<CR>
 
+"scratch buffer
+nnoremap <C-K>b :enew<CR>:setlocal buftype=nofile bufhidden=hide noswapfile<CR>
+
 "------------------------------
 "shortcut tab/indent settings
 "(number)C-K C-K >|S-Tab|Tab
@@ -42,7 +45,3 @@ nnoremap <silent> <C-K><C-K><S-Tab> :<C-U>execute "setlocal sts" . (v:count == v
 nnoremap <silent> <C-K><C-K><Tab> :<C-U>execute "setlocal ts" . (v:count == v:count1 ? "=" . v:count : "&")<CR>
 "expandtab
 nnoremap <silent> <C-K><Tab> :setlocal expandtab! expandtab?<CR>
-
-"scratch buffer
-nnoremap <C-K>b :enew<CR>:setlocal buftype=nofile bufhidden=hide noswapfile<CR>
-
