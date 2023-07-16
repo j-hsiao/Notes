@@ -2,6 +2,10 @@
 "Closing brackets only works when the cursor is on whitespace
 "or a closing bracket of any kind.
 
+"More convenient to remove an auto-closed char in the case
+"where it is undesired.
+inoremap <C-L> <Del>
+
 "Opening char handling
 let s:close_braces = {}
 function! s:Prebrace(chars)

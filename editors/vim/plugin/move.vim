@@ -3,6 +3,12 @@
 "These mappings allow you to hold the movement as needed.
 "home/end can just use C-O as normal.  Cursor movements start a new
 "undoable edit anyways.
+"
+"Extra notes
+"Any cursor movement not resulting from typing/deleting
+"starts a new undoable edit.  There isn't really THAT much
+"benefit from these. You can just <C-[> and then move
+"wherever.  It is the same result.
 
 let s:move = {}
 
