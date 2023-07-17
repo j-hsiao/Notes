@@ -102,10 +102,11 @@ function! s:AddIndent()
 	let curpos = col('.')
 	if &l:et
 		call setline('.', repeat(' ', &l:ts) . getline('.'))
+		call cursor(0, curpos+&l:ts)
 	else
 		call setline('.', "\t" . getline('.'))
+		call cursor(0, curpos+1)
 	endif
-	call cursor(0, curpos+1)
 endfunction
 
 function! s:RmIndent()
