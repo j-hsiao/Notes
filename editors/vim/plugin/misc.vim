@@ -45,3 +45,12 @@ nnoremap <silent> <C-K><C-K><S-Tab> :<C-U>execute "setlocal sts" . (v:count == v
 nnoremap <silent> <C-K><C-K><Tab> :<C-U>execute "setlocal ts" . (v:count == v:count1 ? "=" . v:count : "&")<CR>
 "expandtab
 nnoremap <silent> <C-K><Tab> :setlocal expandtab! expandtab?<CR>
+
+"Easier escape
+inoremap ;l <Esc>
+
+"Abbreviations
+inorea <expr> --- repeat('-', 30)
+inorea <expr> ___ repeat('_', 30)
+inorea Inp Inputs<CR>======
+inorea Outp Outputs<CR>=======

@@ -894,11 +894,20 @@ ______________________________
 	-4.9- others
 		______________________________
 		abbreviations
+			Abbreviations are triggered by:
+				punctuation
+				whitespace
+				esc (doesn't work with maps to <Esc> though)
 			Abbreviations will be expanded to rhs when typed.
 			:ab[breviate]             list abbreviations
 			:ab[breviate] lhs rhs     abbreviate rhs as lhs
 			:ab[breviate] lhs         list abbreviation
 			:una[bbreviate] lhs       remove abbreviation
+			:ia                       abbreviation for insert mode only
+			:ca                       abbreviation for command mode only
+			:norea                    non-recursive abbreviations
+			:inorea
+			:cnorea
 
 		______________________________
 		redirection
