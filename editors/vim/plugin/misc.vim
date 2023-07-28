@@ -49,8 +49,13 @@ nnoremap <silent> <C-K><Tab> :setlocal expandtab! expandtab?<CR>
 "Easier escape
 inoremap ;l <Esc>
 
-"Abbreviations
-inorea <expr> --- repeat('-', 30)
-inorea <expr> ___ repeat('_', 30)
+"Preserve a mapping to original <C-K>
+inoremap <C-K>k <C-K>
+
+"Sectioning
+inoremap <expr> <C-K>- repeat('-', 30)
+inoremap <expr> <C-K>= repeat('=', 30)
+inoremap <expr> <C-K>_ repeat('_', 30)
+
 inorea Inp Inputs<CR>======
 inorea Outp Outputs<CR>=======
