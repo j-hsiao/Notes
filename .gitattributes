@@ -1,2 +1,3 @@
-vim/.vimrc text eol=lf
-vim/makeft.sh text eol=lf
+.vimrc text eol=lf
+makeft.sh text eol=lf
+*.vim text eol=lf
