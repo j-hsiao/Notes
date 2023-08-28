@@ -1,0 +1,132 @@
+contents
+-0- general
+-1- syntax
+-2- variables
+-3- bindings
+
+______________________________
+-0- general
+	Readline is a library for readling lines from terminal.
+	config: ${INPUTRC} env var
+	        ~/.inputrc
+	        /etc/inputrc
+______________________________
+-1- syntax
+	# comment
+	$ conditional
+		$if var=val
+		$else
+		$endif
+		$include
+
+		vars:
+			mode
+			term
+			version
+			application
+			a readline variable
+				bools must be tested against on or off
+				only =, ==, and != supported
+				spaces must break the comparator with variable name
+
+	set variable value
+		var and val are case insensitive
+		ignored if unrecognized variable name
+
+	key: function-name|macro
+		: must IMMEDIATELY follow key. No spaces are allowed.
+		key:
+			english
+				DEL      RETURN
+				ESC      RUBOUT
+				ESCAPE   SPACE
+				LFD      SPC
+				NEWLINE  TAB
+				RET      control
+			doublequote
+				\C  control
+				\M  meta
+				\e  escape
+				\\  backslash
+				\"
+				\'
+				\a  bell
+				\b  backspace
+				\d  delete
+				\f  form feed
+				\n  newline
+				\r  carriage return
+				\t  horizontal tab
+				\v  vertical tab
+				\nnn octal
+				\xhh hex
+		function-name|macro
+			function-name: an UNQUOTED seq of words
+			macro: a QUOTED string of keys to be typed as is.
+______________________________
+-2- variables
+	types:
+		boolean variables
+			turned on: null/empty, on, or 1
+			turned off: not on
+
+	list all current variables:
+		bind -V
+
+	useful variables:
+		completion-ignore-case
+			on/off
+		editing-mode
+			vi: start in insert mode by default.
+			emacs: general default
+			set -o 'vi'|'emacs'
+		bell-style
+			none
+			visible
+			audible
+		show-mode-in-prompt
+			show mode string in the prompt
+			emacs-mode-string (default @)
+			vi-cmd-mode-string (default (cmd))
+			vi-ins-mode-string (default (ins))
+		enable-active-region
+______________________________
+-3- bindings
+	display bindings:
+		bind -p 
+	https://www.gnu.org/software/bash/manual/html_node/Bindable-Readline-Commands.html
+	useful commands over defaults
+		backward-kill-word
+
+	Use M-[0-9-] to add number argument (can be negative if start with -)
+
+	moving:
+		beginning-of-line
+		end-of-line
+		forward-char
+		backward-char
+		forward-word
+		backward-word
+		shell-forward-word
+		shell-backward-word
+		previous-screen-line
+		next-screen-line
+	history
+		clear-screen
+		accept-line
+		previous-history
+		next-history
+		reverse-search-history
+		forward-search-history
+	editing
+		end-of-file (send eof)
+		delete-char
+		backward-delete-char
+		self-insert
+		transpose-chars
+	kill/yank
+		kill-line
+		backward-kill-line
+		unix-line-discard
+		backward-kill-word
+		unix-word-rubout

@@ -1,0 +1,11 @@
+set completion-ignore-case on
+set show-mode-in-prompt
+
+set keymap emacs
+"\C-j": vi-editing-mode
+"\C-h": backward-kill-word
+
+set keymap vi-insert
+"\C-j": emacs-editing-mode
+set keymap vi-command
+"\C-j": emacs-editing-mode
