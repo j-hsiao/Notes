@@ -1261,6 +1261,41 @@ ______________________________
                         bool max<bool>(bool a, bool b){
                             return a || b;
                         }
+
+            NOTE: precedence of specializations is determined by first
+            substituting all types may have defaults.  Select all
+            specializations that match these types.  Pick most
+            specialized.
+
+            ex: failure
+                template<class T, class V=void>
+                struct a{static const bool value = false; };
+                template<class T>
+                struct a<T, typename T::value_type>
+                {static const bool value = true; };
+
+                a<tp>: V defaults to void.
+                whether the specialization would succeed or fail, the
+                second arg isn't void.  The non-specialization is always
+                used.
+
+            ex2: success
+                template<class T, class V=void>
+                struct helper { typedef V value_type; };
+
+                template<class T, class V=void>
+                struct a{static const bool value = false; };
+
+                template<class T>
+                struct a<T, typename helper<typename T::value_type, void>::value_type>
+                {static const bool value = true; };
+
+                a<tp>: V defaults to void.
+                The specialization also has V=void.
+                If the specialization succeeds, then it will be used.
+                Otherwise the default is used.
+
+
         ______________________________
         alias
         template <typename T>
