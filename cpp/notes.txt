@@ -1,1419 +1,1420 @@
 contents
 
-=1= compilers
-=2= basics
-    =2.1= variables
-    =2.2= constants
-    =2.3= operators
-    =2.4= basic io
-    =2.5= scope/namespaces
-    =2.6= memory management
-    =2.7= type aliases
-    =2.8= classes
-    =2.9= casting
-    =2.10= exceptions
-    =2.11= preprocessor directives
-    =2.12= file io
-=3= syntax
-    =3.1= branches
-    =3.2= loops
-    =3.3= functions
-=4= types
-    =4.1= arrays (fundamental)
-    =4.2= arrays (<array>)
-    =4.3= pointers
-    =4.4= structs
-    =4.5= unions
-=5= other
-    =5.1= templates
-    =5.2=declarations helpful rules:
-    =5.3= value categories
-=7= reference
-    =7.1= <cstdint>
-    =7.2= <limits>
-    =7.3= <string>
-
+-1- compilers
+-2- basics
+	-2.1- variables
+	-2.2- constants
+	-2.3- operators
+	-2.4- basic io
+	-2.5- scope/namespaces
+	-2.6- memory management
+	-2.7- type aliases
+	-2.8- classes
+	-2.9- casting
+	-2.10- exceptions
+	-2.11- preprocessor directives
+	-2.12- file io
+-3- syntax
+	-3.1- branches
+	-3.2- loops
+	-3.3- functions
+-4- types
+	-4.1- arrays (fundamental)
+	-4.2- arrays (<array>)
+	-4.3- pointers
+	-4.4- structs
+	-4.5- unions
+-5- other
+	-5.1- templates
+	-5.2-declarations helpful rules:
+	-5.3- value categories
+-7- reference
+	-7.1- <cstdint>
+	-7.2- <limits>
+	-7.3- <string>
 
 
 
 ------------------------------
-=1= compilers
-    actually generally a tool-chain
-        consisting of a compiler and linker
+-1- compilers
+	actually generally a tool-chain
+		consisting of a compiler and linker
 
-    c++ does name-mangling when compiling allowing overloading.
-    You can use c++filt to de-mangle the names to see what the
-    fully qualified name was.
+	c++ does name-mangling when compiling allowing overloading.
+	You can use c++filt to de-mangle the names to see what the
+	fully qualified name was.
 
 
 ------------------------------
-=2= basics
-    // comment
-    /* multiline
-    comment*/
-    #include <standardfile>
-    #include "localfile"
-
-    type name(args){
-        body;
-    }
-
-    ------------------------------
-    =2.1= variables
-        [a-zA-Z_][a-zA-Z0-9_]*
-        ______________________________
-        fundamental types:
-            char
-                char                >=8 bits
-                char16_t            >= 16 bits
-                char32_t            >= 32 bits
-                wchar_t             largest character set supported
-            int
-                signed:
-                    signed char     >= 8 bits
-                    short           >= 16 bits
-                    int             >= 16 bits
-                    long            >= 32 bits
-                    long long       >= 64 bits
-                unsigned:
-                    char            >= 8 bits
-                    short           >= 16 bits
-                    int             >= 16 bits
-                    long            >= 32 bits
-                    longlong        >= 64 bits
-            float
-                float               unspecified
-                double              > float
-                longdouble          > double
-            bool
-            void
-                    no storage
-            null pointer
-                decltype(nullptr)
-
-        ______________________________
-        declaration/initialization:
-            type name1, name2, name3...;
-
-            type n1 = val1;
-            type n2(val2);
-            type n3 {val1};
-
-            auto name1 = val1; // same type as val1
-            decltype(foo) bar; // bar is set to same type as foo
-
-    ------------------------------
-    =2.2= constants
-        numeric:
-            ints:
-                9128749127      int
-                0113 (octal)    int
-                0x69 (hex)      int
-                69l             long
-                69ll            longlong
-            uints:
-                69u             uint
-                69ul            ulong
-                69ull           ulonglong
-            floats:
-                3.1415          double
-                6.02e23         double
-                1.6e-19         double
-
-                3.1415f         float
-                6.02e23l        long double
-        strings:
-            "some string"       string
-            'c'                 char
-            u'x'                char16_t
-            U'x'                char32_t
-            L'x'                wchar_t
-            R"delim(strdat)delim"  raw string
-            u8"asdf"            utf-8 encoded string
-
-            escapes
-                \n      newline
-                \r      carriage return
-                \t      tab
-                \v      vertical tab
-                \b      backspace
-                \f      form feed (page feed)
-                \a      beep
-                \'      single quote
-                \"      double quote
-                \?      a ?
-                \\      a \
-                \111    octal code
-                \x69    hex code
-
-            strings are concatenated when
-            separated by white space
-            " str1" " str2" == " str1 str2"
-
-        bool:
-            true
-            false
-
-        pointers:
-            nullptr
-
-        const:
-            indicate a variable is a constant
-
-            const double pi = 3.14159
-
-        #define seq1 seq2
-            use preprocessor to define a constant
-            preprocessor replaces seq1 with seq2
-
-    ______________________________
-    =2.3= operators
-        = assignment
-            copy bits from right to left
-
-            n1 = n2 = n3 = val;
-            assign val to all names
-
-        +-*/%, standard meanings
-
-        compound assignment:
-            operators can be prepended to =
-            to assign the operated value
-                +=, -=, %=, /=, *=, >>=, <<=, &=, ^=, |=
-
-        incr decr:
-            i++         inc by 1 after assign
-            ++i         inc by 1 before assign
-            i--         dec by 1 after assign
-            --i         dec by 1 before assign
-
-        comparison
-            == != > < >= <=
-
-        logic
-            ! && ||
-        ternary
-            bool ? truval : falseval
-
-        comma
-            similar to combine lines into one line
-            in assignment, only the last line is considered
-            ie:
-                a = (b = 3, b + 69)
-                a == 72
-                b == 3
-        bitwise
-            & | ^ ~ << >>
-
-        casting
-            (type) var
-            type(var)
-
-        sizeof
-            # of bytes
-    ______________________________
-    =2.4= basic io
-        c++ uses "streams"
-        use << and >> operators to move data into/out of
-        streams
-
-        insertions can be chained
-        cout << "this" << " is" << " a" << " sentence";
-        
-        cout
-            standard output
-
-        endl
-            newline and flush
-            (if just used '\n', it wouldn't flush)
-
-        cin
-            standard input
-            use >> to extract data and store into a variable
-            can extract fundamental types or strings
-                (depend on the type of the var)
-            cin tokenizes by spaces, so won't extract a line
-            if there are spaces in it, only the 1st word
-
-        related functions:
-            getline(stream, var)
-                ie:
-                    string str;
-                    getline(cin, str);
-
-        related types:
-            stringstream
-                treat a string as a stream
-                ie:
-                    string word;
-                    stringstream("hello world!") >> word;
-                    word == "hello";
-    ______________________________
-    =2.5= scope/namespaces
-        outside blocks: "global scope"
-        inside blocks: scoped to the block
-        names must be unique within same scope
-        locals override globals
-
-        namespace NAME
-        {
-            global vars qualified by NAME
-            int global;
-        }
-
-        NAME::global
-
-        using namespace NAME
-            all things under namespace NAME is available
-            to be directly named
-
-            similar to python's "from NAME import *"
-
-        using NAME::val
-            can directly reference val without the NAME::
-
-            similar to python "from NAME import val"
-
-    ______________________________
-    =2.6= memory management
-
-        new/delete
-            pointer = new type
-            pointer = new type[N]
-
-            default: throws exception on failure
-            can add (nothrow), ie:
-            int *x = new (nothrow) int[5];
-            if x == NULL:
-                failed
-
-            note: exception is likely faster (when it doesn't fail, and when it does, not like
-                you can continue anyways right?)
-
-            delete pointer;
-            delete[] pointer;
-
-        malloc/calloc/realloc/free
-            from <cstdlib>
-            do not mix these with new/delete
-
-    ______________________________
-    =2.7= type aliases
-        typedef
-            typedef type1 newname;
-            typedef type1 newname [N];
-                alias newname to type1[N]
-        using
-            using newname = oldname;
-
-        NOTE:
-            mostly the same except
-            typedef has some issues with templates
-
-    ______________________________
-    =2.8= classes
-        struct (see struct)
-        class
-            class classname {
-                ACCESS:
-                    vals
-                    vals
-                    ...
-                ACCESS:
-                    vals
-                    vals
-                    ...
-                ...
-            } objs;
-
-                classname: valid name (ie ^[a-zA-Z_][a-zA-Z_0-9]*)
-                ACCESS:
-                    private
-                        only within the class (or "friends")
-                    public
-                        anyone
-                    protected
-                        private + subclasses
-
-                default ACCESS is private
-
-        example:
-            class Person {
-                    string secret;
-                public:
-                    Person(string, string, int)
-                    string name;
-                    void scream(string message);
-                protected:
-                    int savings;
-            }
-            void Person::scream(string message){
-                definition of function here
-            }
-
-        ______________________________
-        constructors:
-            Person::Person(string sec, string nm, int sv){
-                //this is a contructor
-                secret = sec
-                name = nm
-                savings = sv
-            }
-
-            Person::Person(string sec, string nm, int sv) : secret(sec), name(nm), savings(sv) {}
-            Person::Person(string sec, string nm, int sv) : secret{sec}, name{nm}, savings(sv) {}
-
-            NOTE1:
-                second syntax is "member initialization"
-                unless it is used, then members will be default-initialized (default is do nothing)
-                (for fundamentals, set to the default value, for objects, call the default constructor)
-                which is potential issue if they don't have a default constructor
-        
-
-
-
-            NOTE2:
-                if constructor takes no arguments, it is
-                the default constructor (called when
-                declared with no args)
-                cannot call default constructor with ()
-                (becomes a function definition that
-                returns a Person instead)
-
-        ______________________________
-        instantiation:
-
-            Person me("its a secret", "jason", -69)
-
-
-            Type name(arg1, arg2...)
-            Type name; //default constructor
-            Type name {} // default constructor
-            Type name {arg1, arg2...}
-            type name = {}
-            type name = {arg1, arg2...}
-
-            type name = val //constructor with 1 argument
-
-
-        ______________________________
-        overloading operators:
-            + - * / = < >  % & ^ ! | ~  ,
-            += -= *= /= << >> <= >= == != ++ -- &= ^= |= && || %= [] () ->
-            <<= >>= ->* new delete new[] delete[]
-
-            type operator[my operator to overload] (parameters){body}
-            ie:
-                vec2d vec2d::operator+ (const vec2d& other) {
-                    vec2d temp(x + other.x, y + other.y)
-                    return temp
-
-        ______________________________
-        this:
-            pointer to the object being called
-
-        ______________________________
-        static members:
-            class variable
-            must be initialized outside of the class
-            can be referred to as:
-                class::staticvar
-                    or
-                instance.staticvar
-
-        ______________________________
-        const:
-            const cls var()
-            constructors are still called normally
-            cannot modify member values
-            can only call constant member functions:
-                (ret cls::funcname(args...) const {body}
-
-            methods can be overloaded by constness
-
-        ______________________________
-        templates:
-
-            template <class T>
-            class mypair {
-                T values [2];
-                public:
-                    mypair(T v1, T v2){
-                        values[0] = v1;
-                        values[1] = v2;
-                    }
-                    T set(T v1, T v2);
-
-            }
-
-            template <class T>
-            T mypair<T>::set( T v1, T v2) {
-                body
-            }
-
-            specialization:
-                overload the class for a particular type
-
-
-                template <>
-                class mypair<char> {
-                    char values[2];
-                    public:
-                        mycontainer (char arg1, char arg2) values[0](arg1) values[1](arg2) {};
-                        char set(car v1, char v2)
-                }
-                etc...
-                basically if going to make a specialization, must clone the class
-                changing the bits that you want to change
-            
-        ______________________________
-        special members:
-            default constructor
-                C::C();
-
-                must be explicitly defined if any other constructors exist
-                otherwise is a freebie
-
-            destructor
-                C::~C();
-
-                similar to default constructor
-                release any resources that were allocated
-
-            copy constructor
-                C::C(const C&)
-
-                default is shallow copy
-
-
-            copy assignment
-                C& operator= (const C&)
-
-                default is shallow copy
-
-            move constructor
-                C::C(C&&)
-
-                called when the operand is unnamed (ie return value of a function, etc)
-                take value of the param and then null out the param (steal its values)
-
-
-            move assignment
-                C& operator= (C&&)
-                same with constructor, except "this" has already been initialized
-                (free "this"'s stuff and take the params' stuff)
-
-            ie:
-                assignment : object already exists
-                constructor: "assigned" in a declaration (initialization)
-
-            can be controlled by assigning "default" or "delete" to the signatures
-            ie:
-                class C {
-                    C& operator= (const C&) = delete
-                }
-        ______________________________
-        friends
-            friend function
-                class person {
-                    private:
-                        int savings;
-
-                    public:
-                        friend int steal(const person&, int amount);
-                }
-                int steal(const person&, int amount){
-                    person.savings -= amount;
-                    return amount;
-                }
-
-            friend class
-                class rect {
-                    int width, height
-                    public:
-                        rect copy(square&){
-                            width = square.side
-                            height = square.side}
-                }
-                class square {
-                    friend class rect;
-                    int side
-        ______________________________
-        subclasses
-
-            class subclassName : public baseclassName
-
-                NOTE:
-                    the public specifies the minimum access level to inherit from baseclassName
-                    ie: if baseclass has private, public, and protected
-                    and you use public, no change
-                    if you use protected, everything is inherited, but public things become protected
-
-                class lips {
-                    public:
-                        string secret;
-                }
-                class tightLips : private lips {
-                        //secret is inherited and is now private in this class
-                    tightLips(void): lips(args) {} //call the corresponding constructor
-                }
-            default constructors of base class are called unless explicitly specified
-
-            can specifiy comma delimited list for base classes:
-                class base {blah}
-                class derived: public base1, public base2, private base3, ...{blah}
-
-        ______________________________
-        polymorphism:
-            derived class interpreted as a base class
-
-            when subclasses have their own implementations, can use "virtual" members
-
-            class blah {
-                public:
-                    virtual type func(args){}
-            }
-            NOTE:
-                virtual: allow calling derived classes' implementations through a pointer of type base class
-
-        ______________________________
-        abstract base classes:
-            only for base classes
-            virtual functions can have no definition (replace definition with =0)
-            a "pure virtual function"
-            cannot be instantiated
-            but subclasses can be casted to it
-
-    ______________________________
-    =2.9= casting
-        okay:
-            to void
-            null pointers to any
-            derived class to base class
-            lower precision to higher precision
-            higher precision to lower precision (though may give warning)
-
-        class casting:
-            single-argument constructors
-            assignment operators
-            type-cast operator
-            (defined by hand)
-
-        explicit
-            add explicit before a function to disable automatic casting of arguments
-
-        class castings:
-            dynamic_cast <newtype>
-                only with classes or void*
-                verifies valid casting (target must be an "is a" relationship)
-                if related, but incomplete (ie base is not a derived), will return null pointer
-                otherwise, if unrelated, will raise exception
-            static_cast <newtype>
-                cast between related classes, no checks
-            reinterpret_cast <newtype>
-                anything to anything
-            const_cast <newtype>
-                change constness of a pointer
-        typeid
-            check type of an expression
-            returns a type_info from <typeinfo>
-
-    ______________________________
-    =2.10= exceptions
-        ______________________________
-        syntax:
-            try {
-                potential exception;
-                throw 69;
-            }
-            catch (int e)
-            {
-                cout << "error " << e << " occurred." << endl;
-            }
-            catch (string msg)
-            {
-                cout << msg << "happened." << endl;
-            }
-            catch (...)
-            {
-                cout << "something excepted" << endl;
-            }
-            normal code
-
-        the arg to catch must match the throw arg
-        (or use ... to specify default handler)
-
-        throw: like python raise
-        when used in a catch block, re-throws the exception
-
-        ______________________________
-        dynamic exception specifications
-            add throw ( type ) to indicate a function may throw the type (deprecated in C++)
-            ie:
-                double penetration(int seconds) throw (int);
-            calls std::unexpected if throw something of a different type or std::terminate
-            leave it out to behave normally
-
-        ______________________________
-        exception classes:
-            #include <exception>
-            std::exception
-                base class for exceptions
-                specifically for being thrown
-
-            class TheMatch: public std::exception
-            {
-                virtual const char* what() const throw()
-                {
-                    return "TheMatch was thrown";
-                }
-            }
-
-            try {
-                throw TheMatch;
-            } catch (std::exception& e) {
-                cout << e.what() << endl;
-            }
-
-                NOTE:
-                    use exception& e so subclasses will also be caught here
-                    otherwise, probably try to implicitly up cast
-            ______________________________
-            standard exception subclasses
-                logic_error
-                    indicates internal logic has problem
-                runtime_error
-                    detected during runtime
-
-            std::logic_error
-
-        ______________________________
-        standard exceptions:
-            bad_alloc               thrown by "new" on allocation failure
-            bad_cast                thrown by "dynamic_cast"
-            bad_exception           thrown by dynamic exception specifiers
-            bad_typeid              thrown by typeid
-            bad_function_call       thrown by empty function objects
-            bad_weak_ptr            thrown by shared_ptr when passed a bad weak_ptr
-
-
-    ______________________________
-    =2.11= preprocessor directives
-        instructions for preprocessor 
-            (copy/paste code into a single file for compilation among other things)
-
-        can use trailling \ to continue on next line
-        no trailing ; 
-
-        ______________________________
-        #define/undef
-            #define PATTERN REPLACEMENT
-            define a macro
-            replace PATTERN with REPLACEMENT anywhere it is found
-
-            ex:
-                #define CANDY "GOOD"
-            function macro
-                example 1: normal function macro
-                    code:
-                        #define max(a, b) a>b?a:b
-                        max(x, y)
-                    result:
-                        x>y?x:y
-
-                example 2: function macro with # operator
-                    surround the named argument with double quotes
-                    ie:
-                        code:
-                            #define boink(x) #x
-                            cout << boink(wut)
-                        result:
-                            cout << "wut"
-                example 3: function macro with ## operator
-                    concatenate the two params
-                    ie:
-                        code:
-                            #define cat(a,b) a ## b
-                            cat(c,out) << "why!" << endl;
-                        result:
-                            cout << "why!" << endl;
-
-        ______________________________
-        #conditionals
-
-        ifdef arg                   if arg is defined (#define)d
-
-        ifndef arg                  if arg is not (#define)d
-                        NOTE: doesn't need to be defined in the same file
-                              the arg may have been defined in an included header
-
-        if cond                     cond must be a constant expression (though can contain macros)
-        elif cond                   same as if except follows an if
-        else
-        endif                       end an if clause
-
-                        NOTE:
-                            for if and elif, cond may also use "defined" or "!defined", same result is #ifdef or #ifndef
-                            ie:
-                                    #if defined MAXVAL && MAXVAL > 69
-                                    etc...
-                                    ie: > < == >= <= || && !  etc can be used 
-
-        ______________________________
-        #line
-            control printed line number and file name upon an error
-            syntax
-                # line number "replacement"
-                    number: new line number for next line of code
-                    filename: replacement for the name of the file
-
-                ie:
-                    instead of "error at line 69 in file wut.cpp" or something like that,
-                    it would be:
-                        "error at line number in in file replacement"
-        ______________________________
-        #error
-            throw a preprocessor exception
-
-        ______________________________
-        #include
-            include a file
-            #include <name>             c++ implemented code (may be a file or not, depends on compiler and stuff)
-            #include "name"             a filefile
-
-        ______________________________
-        #pragma
-            special compiler options
-            may be ignored without error if not supported
-            like omp parallel
-
-        ______________________________
-        predefined macros
-            __LINE__                            current line in source code
-            __FILE__                            current file name
-            __DATE__                            date during compilation
-            __TIME__                            time during compilation
-            __cplusplus                         199711L (for c++ 1998/2003) or 201103L (c++ 2011)
-            __STDC_HOSTED__                     1 if is a "hosted implementation" (all of standard C is available)
-            __STDC__                            1 if conform to C standard and in C
-            __STDC_VERSION__                    in C:   199401L
-                                                        199901L
-                                                        201112L
-            __STDC_MB_MIGHT_NEQ_WC__            1 if multi-byte encoding may give a character different values in literals
-            __STDC_ISO_10646__                  yyyymmL date of unicode standard and encoding of wchar_t characters
-            __STDCPP_STRICT_POINTER_SAFETY__    1 if has strict pointer safety
-            __STDCPP_THREADS__                  1 if threading is available
-
-
-    ______________________________
-    =2.12= file io
-        ofstream: output file stream
-        ifstream: input file stream
-        fstream : both in and out
-
-        stream.open("path", mode)
-            open the file
-            mode: combination of flags
-                ios::in         read
-                ios::out        write
-                ios::binary     binary mode
-                ios::ate        at end
-                ios::app        append
-                ios::trunc      truncate the file
-
-            ios::in and ios::out are automatically added to 
-            corresponding i/ofstream object (even if given mode doesn't include them)
-            for fstream, given mode is as is
-
-        is_open()
-            return True if opened else False
-        bad()
-            failed to read or write (ie no space, or file not opened, etc)
-        fail()
-            bad() or a formatting error (ie read an invalid int)
-        eof()
-            if at end
-        good()
-            if no problem
-        clear()
-            reset state flags
-
-        tell[g|p]()
-            tell current get/put (read/write) position
-        seek[g|p](int x)
-            seek current get/put (read/write) position
-
-        seek[g|p](int offset, int whence)
-            offset:
-                offset amount to seek
-            whence:
-                ios::beg
-                ios::cur
-                ios::end
-        stream.close()
-        read(block, size)
-        write(char* block, int size)
-            read/write data from/into the block (a char*) for N bytes
-            reads:
-                if eof encountered, then stream.fail() and stream.eof()
-            writes:
-                seems like it will keep writing until all is written
-                data is buffered
-                writing to physical device (file or socket or whatever??)
-                when:
-                    file is closed
-                    buffer is full
-                    explicitly (endl or flush())
-                    sync()
-        gcount()
-            # of bytes read by the stream
-            (generally use this when encountered eof to see where the data ends)
-        types:
-            streampos       (an int-like type for file position, can cast to int (should be large enough to hold size)
-            ios::pos_type   same as above but more generic
-            stremaoff       for offset, alias of an int
-            ios::off_type   same as above, but more generic
+-2- basics
+	// comment
+	/* multiline
+	comment*/
+	#include <standardfile>
+	#include "localfile"
+
+	type name(args){
+		body;
+	}
+
+
+
+	------------------------------
+	-2.1- variables
+		[a-zA-Z_][a-zA-Z0-9_]*
+		______________________________
+		fundamental types:
+			char
+				char                >=8 bits
+				char16_t            >= 16 bits
+				char32_t            >= 32 bits
+				wchar_t             largest character set supported
+			int
+				signed:
+					signed char     >= 8 bits
+					short           >= 16 bits
+					int             >= 16 bits
+					long            >= 32 bits
+					long long       >= 64 bits
+				unsigned:
+					char            >= 8 bits
+					short           >= 16 bits
+					int             >= 16 bits
+					long            >= 32 bits
+					longlong        >= 64 bits
+			float
+				float               unspecified
+				double              > float
+				longdouble          > double
+			bool
+			void
+					no storage
+			null pointer
+				decltype(nullptr)
+
+		______________________________
+		declaration/initialization:
+			type name1, name2, name3...;
+
+			type n1 = val1;
+			type n2(val2);
+			type n3 {val1};
+
+			auto name1 = val1; // same type as val1
+			decltype(foo) bar; // bar is set to same type as foo
+
+	------------------------------
+	-2.2- constants
+		numeric:
+			ints:
+				9128749127      int
+				0113 (octal)    int
+				0x69 (hex)      int
+				69l             long
+				69ll            longlong
+			uints:
+				69u             uint
+				69ul            ulong
+				69ull           ulonglong
+			floats:
+				3.1415          double
+				6.02e23         double
+				1.6e-19         double
+
+				3.1415f         float
+				6.02e23l        long double
+		strings:
+			"some string"       string
+			'c'                 char
+			u'x'                char16_t
+			U'x'                char32_t
+			L'x'                wchar_t
+			R"delim(strdat)delim"  raw string
+			u8"asdf"            utf-8 encoded string
+
+			escapes
+				\n      newline
+				\r      carriage return
+				\t      tab
+				\v      vertical tab
+				\b      backspace
+				\f      form feed (page feed)
+				\a      beep
+				\'      single quote
+				\"      double quote
+				\?      a ?
+				\\      a \
+				\111    octal code
+				\x69    hex code
+
+			strings are concatenated when
+			separated by white space
+			" str1" " str2" == " str1 str2"
+
+		bool:
+			true
+			false
+
+		pointers:
+			nullptr
+
+		const:
+			indicate a variable is a constant
+
+			const double pi = 3.14159
+
+		#define seq1 seq2
+			use preprocessor to define a constant
+			preprocessor replaces seq1 with seq2
+
+	______________________________
+	-2.3- operators
+		= assignment
+			copy bits from right to left
+
+			n1 = n2 = n3 = val;
+			assign val to all names
+
+		+-*/%, standard meanings
+
+		compound assignment:
+			operators can be prepended to =
+			to assign the operated value
+				+=, -=, %=, /=, *=, >>=, <<=, &=, ^=, |=
+
+		incr decr:
+			i++         inc by 1 after assign
+			++i         inc by 1 before assign
+			i--         dec by 1 after assign
+			--i         dec by 1 before assign
+
+		comparison
+			== != > < >= <=
+
+		logic
+			! && ||
+		ternary
+			bool ? truval : falseval
+
+		comma
+			similar to combine lines into one line
+			in assignment, only the last line is considered
+			ie:
+				a = (b = 3, b + 69)
+				a == 72
+				b == 3
+		bitwise
+			& | ^ ~ << >>
+
+		casting
+			(type) var
+			type(var)
+
+		sizeof
+			# of bytes
+	______________________________
+	-2.4- basic io
+		c++ uses "streams"
+		use << and >> operators to move data into/out of
+		streams
+
+		insertions can be chained
+		cout << "this" << " is" << " a" << " sentence";
+
+		cout
+			standard output
+
+		endl
+			newline and flush
+			(if just used '\n', it wouldn't flush)
+
+		cin
+			standard input
+			use >> to extract data and store into a variable
+			can extract fundamental types or strings
+				(depend on the type of the var)
+			cin tokenizes by spaces, so won't extract a line
+			if there are spaces in it, only the 1st word
+
+		related functions:
+			getline(stream, var)
+				ie:
+					string str;
+					getline(cin, str);
+
+		related types:
+			stringstream
+				treat a string as a stream
+				ie:
+					string word;
+					stringstream("hello world!") >> word;
+					word == "hello";
+	______________________________
+	-2.5- scope/namespaces
+		outside blocks: "global scope"
+		inside blocks: scoped to the block
+		names must be unique within same scope
+		locals override globals
+
+		namespace NAME
+		{
+			global vars qualified by NAME
+			int global;
+		}
+
+		NAME::global
+
+		using namespace NAME
+			all things under namespace NAME is available
+			to be directly named
+
+			similar to python's "from NAME import *"
+
+		using NAME::val
+			can directly reference val without the NAME::
+
+			similar to python "from NAME import val"
+
+	______________________________
+	-2.6- memory management
+
+		new/delete
+			pointer = new type
+			pointer = new type[N]
+
+			default: throws exception on failure
+			can add (nothrow), ie:
+			int *x = new (nothrow) int[5];
+			if x == NULL:
+				failed
+
+			note: exception is likely faster (when it doesn't fail, and when it does, not like
+				you can continue anyways right?)
+
+			delete pointer;
+			delete[] pointer;
+
+		malloc/calloc/realloc/free
+			from <cstdlib>
+			do not mix these with new/delete
+
+	______________________________
+	-2.7- type aliases
+		typedef
+			typedef type1 newname;
+			typedef type1 newname [N];
+				alias newname to type1[N]
+		using
+			using newname = oldname;
+
+		NOTE:
+			mostly the same except
+			typedef has some issues with templates
+
+	______________________________
+	-2.8- classes
+		struct (see struct)
+		class
+			class classname {
+				ACCESS:
+					vals
+					vals
+					...
+				ACCESS:
+					vals
+					vals
+					...
+				...
+			} objs;
+
+				classname: valid name (ie ^[a-zA-Z_][a-zA-Z_0-9]*)
+				ACCESS:
+					private
+						only within the class (or "friends")
+					public
+						anyone
+					protected
+						private + subclasses
+
+				default ACCESS is private
+
+		example:
+			class Person {
+					string secret;
+				public:
+					Person(string, string, int)
+					string name;
+					void scream(string message);
+				protected:
+					int savings;
+			}
+			void Person::scream(string message){
+				definition of function here
+			}
+
+		______________________________
+		constructors:
+			Person::Person(string sec, string nm, int sv){
+				//this is a contructor
+				secret = sec
+				name = nm
+				savings = sv
+			}
+
+			Person::Person(string sec, string nm, int sv) : secret(sec), name(nm), savings(sv) {}
+			Person::Person(string sec, string nm, int sv) : secret{sec}, name{nm}, savings(sv) {}
+
+			NOTE1:
+				second syntax is "member initialization"
+				unless it is used, then members will be default-initialized (default is do nothing)
+				(for fundamentals, set to the default value, for objects, call the default constructor)
+				which is potential issue if they don't have a default constructor
+
+
+
+
+			NOTE2:
+				if constructor takes no arguments, it is
+				the default constructor (called when
+				declared with no args)
+				cannot call default constructor with ()
+				(becomes a function definition that
+				returns a Person instead)
+
+		______________________________
+		instantiation:
+
+			Person me("its a secret", "jason", -69)
+
+
+			Type name(arg1, arg2...)
+			Type name; //default constructor
+			Type name {} // default constructor
+			Type name {arg1, arg2...}
+			type name = {}
+			type name = {arg1, arg2...}
+
+			type name = val //constructor with 1 argument
+
+
+		______________________________
+		overloading operators:
+			+ - * / = < >  % & ^ ! | ~  ,
+			+= -= *= /= << >> <= >= == != ++ -- &= ^= |= && || %= [] () ->
+			<<= >>= ->* new delete new[] delete[]
+
+			type operator[my operator to overload] (parameters){body}
+			ie:
+				vec2d vec2d::operator+ (const vec2d& other) {
+					vec2d temp(x + other.x, y + other.y)
+					return temp
+
+		______________________________
+		this:
+			pointer to the object being called
+
+		______________________________
+		static members:
+			class variable
+			must be initialized outside of the class
+			can be referred to as:
+				class::staticvar
+					or
+				instance.staticvar
+
+		______________________________
+		const:
+			const cls var()
+			constructors are still called normally
+			cannot modify member values
+			can only call constant member functions:
+				(ret cls::funcname(args...) const {body}
+
+			methods can be overloaded by constness
+
+		______________________________
+		templates:
+
+			template <class T>
+			class mypair {
+				T values [2];
+				public:
+					mypair(T v1, T v2){
+						values[0] = v1;
+						values[1] = v2;
+					}
+					T set(T v1, T v2);
+
+			}
+
+			template <class T>
+			T mypair<T>::set( T v1, T v2) {
+				body
+			}
+
+			specialization:
+				overload the class for a particular type
+
+
+				template <>
+				class mypair<char> {
+					char values[2];
+					public:
+						mycontainer (char arg1, char arg2) values[0](arg1) values[1](arg2) {};
+						char set(car v1, char v2)
+				}
+				etc...
+				basically if going to make a specialization, must clone the class
+				changing the bits that you want to change
+
+		______________________________
+		special members:
+			default constructor
+				C::C();
+
+				must be explicitly defined if any other constructors exist
+				otherwise is a freebie
+
+			destructor
+				C::~C();
+
+				similar to default constructor
+				release any resources that were allocated
+
+			copy constructor
+				C::C(const C&)
+
+				default is shallow copy
+
+
+			copy assignment
+				C& operator= (const C&)
+
+				default is shallow copy
+
+			move constructor
+				C::C(C&&)
+
+				called when the operand is unnamed (ie return value of a function, etc)
+				take value of the param and then null out the param (steal its values)
+
+
+			move assignment
+				C& operator= (C&&)
+				same with constructor, except "this" has already been initialized
+				(free "this"'s stuff and take the params' stuff)
+
+			ie:
+				assignment : object already exists
+				constructor: "assigned" in a declaration (initialization)
+
+			can be controlled by assigning "default" or "delete" to the signatures
+			ie:
+				class C {
+					C& operator= (const C&) = delete
+				}
+		______________________________
+		friends
+			friend function
+				class person {
+					private:
+						int savings;
+
+					public:
+						friend int steal(const person&, int amount);
+				}
+				int steal(const person&, int amount){
+					person.savings -= amount;
+					return amount;
+				}
+
+			friend class
+				class rect {
+					int width, height
+					public:
+						rect copy(square&){
+							width = square.side
+							height = square.side}
+				}
+				class square {
+					friend class rect;
+					int side
+		______________________________
+		subclasses
+
+			class subclassName : public baseclassName
+
+				NOTE:
+					the public specifies the minimum access level to inherit from baseclassName
+					ie: if baseclass has private, public, and protected
+					and you use public, no change
+					if you use protected, everything is inherited, but public things become protected
+
+				class lips {
+					public:
+						string secret;
+				}
+				class tightLips : private lips {
+						//secret is inherited and is now private in this class
+					tightLips(void): lips(args) {} //call the corresponding constructor
+				}
+			default constructors of base class are called unless explicitly specified
+
+
+
+			can specifiy comma delimited list for base classes:
+				class base {blah}
+				class derived: public base1, public base2, private base3, ...{blah}
+
+		______________________________
+		polymorphism:
+			derived class interpreted as a base class
+
+			when subclasses have their own implementations, can use "virtual" members
+
+			class blah {
+				public:
+					virtual type func(args){}
+			}
+			NOTE:
+				virtual: allow calling derived classes' implementations through a pointer of type base class
+
+		______________________________
+		abstract base classes:
+			only for base classes
+			virtual functions can have no definition (replace definition with =0)
+			a "pure virtual function"
+			cannot be instantiated
+			but subclasses can be casted to it
+
+	______________________________
+	-2.9- casting
+		okay:
+			to void
+			null pointers to any
+			derived class to base class
+			lower precision to higher precision
+			higher precision to lower precision (though may give warning)
+
+		class casting:
+			single-argument constructors
+			assignment operators
+			type-cast operator
+			(defined by hand)
+
+		explicit
+			add explicit before a function to disable automatic casting of arguments
+
+		class castings:
+			dynamic_cast <newtype>
+				only with classes or void*
+				verifies valid casting (target must be an "is a" relationship)
+				if related, but incomplete (ie base is not a derived), will return null pointer
+				otherwise, if unrelated, will raise exception
+			static_cast <newtype>
+				cast between related classes, no checks
+			reinterpret_cast <newtype>
+				anything to anything
+			const_cast <newtype>
+				change constness of a pointer
+		typeid
+			check type of an expression
+			returns a type_info from <typeinfo>
+
+	______________________________
+	-2.10- exceptions
+		______________________________
+		syntax:
+			try {
+				potential exception;
+				throw 69;
+			}
+			catch (int e)
+			{
+				cout << "error " << e << " occurred." << endl;
+			}
+			catch (string msg)
+			{
+				cout << msg << "happened." << endl;
+			}
+			catch (...)
+			{
+				cout << "something excepted" << endl;
+			}
+			normal code
+
+		the arg to catch must match the throw arg
+		(or use ... to specify default handler)
+
+		throw: like python raise
+		when used in a catch block, re-throws the exception
+
+		______________________________
+		dynamic exception specifications
+			add throw ( type ) to indicate a function may throw the type (deprecated in C++)
+			ie:
+				double penetration(int seconds) throw (int);
+			calls std::unexpected if throw something of a different type or std::terminate
+			leave it out to behave normally
+
+		______________________________
+		exception classes:
+			#include <exception>
+			std::exception
+				base class for exceptions
+				specifically for being thrown
+
+			class TheMatch: public std::exception
+			{
+				virtual const char* what() const throw()
+				{
+					return "TheMatch was thrown";
+				}
+			}
+
+			try {
+				throw TheMatch;
+			} catch (std::exception& e) {
+				cout << e.what() << endl;
+			}
+
+				NOTE:
+					use exception& e so subclasses will also be caught here
+					otherwise, probably try to implicitly up cast
+			______________________________
+			standard exception subclasses
+				logic_error
+					indicates internal logic has problem
+				runtime_error
+					detected during runtime
+
+			std::logic_error
+
+		______________________________
+		standard exceptions:
+			bad_alloc               thrown by "new" on allocation failure
+			bad_cast                thrown by "dynamic_cast"
+			bad_exception           thrown by dynamic exception specifiers
+			bad_typeid              thrown by typeid
+			bad_function_call       thrown by empty function objects
+			bad_weak_ptr            thrown by shared_ptr when passed a bad weak_ptr
+
+
+	______________________________
+	-2.11- preprocessor directives
+		instructions for preprocessor
+			(copy/paste code into a single file for compilation among other things)
+
+		can use trailling \ to continue on next line
+		no trailing ;
+
+		______________________________
+		#define/undef
+			#define PATTERN REPLACEMENT
+			define a macro
+			replace PATTERN with REPLACEMENT anywhere it is found
+
+			ex:
+				#define CANDY "GOOD"
+			function macro
+				example 1: normal function macro
+					code:
+						#define max(a, b) a>b?a:b
+						max(x, y)
+					result:
+						x>y?x:y
+
+				example 2: function macro with # operator
+					surround the named argument with double quotes
+					ie:
+						code:
+							#define boink(x) #x
+							cout << boink(wut)
+						result:
+							cout << "wut"
+				example 3: function macro with ## operator
+					concatenate the two params
+					ie:
+						code:
+							#define cat(a,b) a ## b
+							cat(c,out) << "why!" << endl;
+						result:
+							cout << "why!" << endl;
+
+		______________________________
+		#conditionals
+
+		ifdef arg                   if arg is defined (#define)d
+
+		ifndef arg                  if arg is not (#define)d
+		                            NOTE: doesn't need to be defined in the same file
+		                            the arg may have been defined in an included header
+
+		if cond                     cond must be a constant expression (though can contain macros)
+		elif cond                   same as if except follows an if
+		else
+		endif                       end an if clause
+
+						NOTE:
+							for if and elif, cond may also use "defined" or "!defined", same result is #ifdef or #ifndef
+							ie:
+								#if defined MAXVAL && MAXVAL > 69
+								etc...
+								ie: > < == >= <= || && !  etc can be used
+
+		______________________________
+		#line
+			control printed line number and file name upon an error
+			syntax
+				# line number "replacement"
+					number: new line number for next line of code
+					filename: replacement for the name of the file
+
+				ie:
+					instead of "error at line 69 in file wut.cpp" or something like that,
+					it would be:
+						"error at line number in in file replacement"
+		______________________________
+		#error
+			throw a preprocessor exception
+
+		______________________________
+		#include
+			include a file
+			#include <name>             c++ implemented code (may be a file or not, depends on compiler and stuff)
+			#include "name"             a filefile
+
+		______________________________
+		#pragma
+			special compiler options
+			may be ignored without error if not supported
+			like omp parallel
+
+		______________________________
+		predefined macros
+			__LINE__                            current line in source code
+			__FILE__                            current file name
+			__DATE__                            date during compilation
+			__TIME__                            time during compilation
+			__cplusplus                         199711L (for c++ 1998/2003) or 201103L (c++ 2011)
+			__STDC_HOSTED__                     1 if is a "hosted implementation" (all of standard C is available)
+			__STDC__                            1 if conform to C standard and in C
+			__STDC_VERSION__                    in C:   199401L
+			                                    199901L
+			                                    201112L
+			__STDC_MB_MIGHT_NEQ_WC__            1 if multi-byte encoding may give a character different values in literals
+			__STDC_ISO_10646__                  yyyymmL date of unicode standard and encoding of wchar_t characters
+			__STDCPP_STRICT_POINTER_SAFETY__    1 if has strict pointer safety
+			__STDCPP_THREADS__                  1 if threading is available
+
+
+	______________________________
+	-2.12- file io
+		ofstream: output file stream
+		ifstream: input file stream
+		fstream : both in and out
+
+		stream.open("path", mode)
+			open the file
+			mode: combination of flags
+				ios::in         read
+				ios::out        write
+				ios::binary     binary mode
+				ios::ate        at end
+				ios::app        append
+				ios::trunc      truncate the file
+
+			ios::in and ios::out are automatically added to
+			corresponding i/ofstream object (even if given mode doesn't include them)
+			for fstream, given mode is as is
+
+		is_open()
+			return True if opened else False
+		bad()
+			failed to read or write (ie no space, or file not opened, etc)
+		fail()
+			bad() or a formatting error (ie read an invalid int)
+		eof()
+			if at end
+		good()
+			if no problem
+		clear()
+			reset state flags
+
+		tell[g|p]()
+			tell current get/put (read/write) position
+		seek[g|p](int x)
+			seek current get/put (read/write) position
+
+		seek[g|p](int offset, int whence)
+			offset:
+				offset amount to seek
+			whence:
+				ios::beg
+				ios::cur
+				ios::end
+		stream.close()
+		read(block, size)
+		write(char* block, int size)
+			read/write data from/into the block (a char*) for N bytes
+			reads:
+				if eof encountered, then stream.fail() and stream.eof()
+			writes:
+				seems like it will keep writing until all is written
+				data is buffered
+				writing to physical device (file or socket or whatever??)
+				when:
+					file is closed
+					buffer is full
+					explicitly (endl or flush())
+					sync()
+		gcount()
+			# of bytes read by the stream
+			(generally use this when encountered eof to see where the data ends)
+		types:
+			streampos       (an int-like type for file position, can cast to int (should be large enough to hold size)
+			ios::pos_type   same as above but more generic
+			stremaoff       for offset, alias of an int
+			ios::off_type   same as above, but more generic
 
 ______________________________
-=3= syntax
-    compound statements:
-        {statement1; statement2; statement3;}
-            no semicolon after the }
-    =3.1= branches
-        if:
-            if (condition) statement;
+-3- syntax
+	compound statements:
+		{statement1; statement2; statement3;}
+			no semicolon after the }
+	-3.1- branches
+		if:
+			if (condition) statement;
 
-            statement can be a single statement:
-                if (happy) clap();
-            or compound statement:
-                if (angry) {stomp(); shout();}
+			statement can be a single statement:
+				if (happy) clap();
+			or compound statement:
+				if (angry) {stomp(); shout();}
 
-        else (if):
-            if (cond) 
-                statement; 
-            else if (cond)
-                statement;
-            else
-                statement;
+		else (if):
+			if (cond)
+				statement;
+			else if (cond)
+				statement;
+			else
+				statement;
 
-        switch (expr)
-        {
-            case c1:
-                statements;
-                break;
-            case c2:
-                statements;
-                break;
-            ...
-            default:
-                statements
-        }
+		switch (expr)
+		{
+			case c1:
+				statements;
+				break;
+			case c2:
+				statements;
+				break;
+			...
+			default:
+				statements
+		}
 
-    =3.2= loops
-        while (cond) statement;
+	-3.2- loops
+		while (cond) statement;
 
-        do statement; while (cond);
+		do statement; while (cond);
 
-        for (init; cond; change) statement;
-            init, cond, change are "expressions"
-            so must be a single expression
-            (can use a comma to link expressions
-            as a single expression)
-            ie:
-                for (int i=1, int j=1; cond1, cond2; j++,i--) statement;
+		for (init; cond; change) statement;
+			init, cond, change are "expressions"
+			so must be a single expression
+			(can use a comma to link expressions
+			as a single expression)
+			ie:
+				for (int i=1, int j=1; cond1, cond2; j++,i--) statement;
 
-            can also use ranges (like python iter)
-            string str = "hello";
-            for ( char c : str) statement;
+			can also use ranges (like python iter)
+			string str = "hello";
+			for ( char c : str) statement;
 
-            for (auto c : seq) statement;
+			for (auto c : seq) statement;
 
-        jumps
-            break: jump to end of loop
-            continue: jump to next iteration
-            goto: usually use within same block
-                add a 
-                ^label:
+		jumps
+			break: jump to end of loop
+			continue: jump to next iteration
+			goto: usually use within same block
+				add a
+				^label:
 
-                and then goto label;
+				and then goto label;
 
-    =3.3= functions
-        type name (p1, p2...){statement;}
-        type can be void
-        type name (void); //no params
+	-3.3- functions
+		type name (p1, p2...){statement;}
+		type can be void
+		type name (void); //no params
 
-        params are passed by value not reference
-            (copied every time)
+		params are passed by value not reference
+			(copied every time)
 
-        reference:
-            ret name (type& a, type& b, ...)
-                (can modify a and b and caller will see)
+		reference:
+			ret name (type& a, type& b, ...)
+				(can modify a and b and caller will see)
 
-            ret name (const type& a, const type& b...)
-                cannot modify a, and b, but no copies too
+			ret name (const type& a, const type& b...)
+				cannot modify a, and b, but no copies too
 
-        prefix function definition/delcaration with inline
-            to suggest to compiler that
-            function body should be inserted in place
-            of the call
+		prefix function definition/delcaration with inline
+			to suggest to compiler that
+			function body should be inserted in place
+			of the call
 
-        can add default value by assigning
-            a default value to a parameter
-            in the function declaration
+		can add default value by assigning
+			a default value to a parameter
+			in the function declaration
 
-        functions need to be declared before use
-            (though can be implemented later)
-            ie:
-                declaration:
-                    type name (type, type...);
+		functions need to be declared before use
+			(though can be implemented later)
+			ie:
+				declaration:
+					type name (type, type...);
 
 
-                implementation:
-                    type name (type p1, type p2...){
-                        blah blah;
-                    }
+				implementation:
+					type name (type p1, type p2...){
+						blah blah;
+					}
 
-        overloading
-            if function declarations are different
-                in any way, they are treated as
-                separate functions 
-                (aside param names and ret type)
-                so # of params or param types
+		overloading
+			if function declarations are different
+				in any way, they are treated as
+				separate functions
+				(aside param names and ret type)
+				so # of params or param types
 
-        templates:
-            syntax:
-                template <template args> ret name (args) body;
+		templates:
+			syntax:
+				template <template args> ret name (args) body;
 
-            explanation:
-                add keyword template to beginning
-                add template args inside <>
-                (these are compile-time arguments)
-                these arguments are used to create
-                versions of the template function
-                by substituting the template args
-                into the function declaration/body
+			explanation:
+				add keyword template to beginning
+				add template args inside <>
+				(these are compile-time arguments)
+				these arguments are used to create
+				versions of the template function
+				by substituting the template args
+				into the function declaration/body
 
-                use the "class" or "typename" keyword
-                to indicate a type as a a template arg
+				use the "class" or "typename" keyword
+				to indicate a type as a a template arg
 
-            example:
-                template <typename T, int N> T mul (T val) {
-                    T result = val * N;
-                    return result;
+			example:
+				template <typename T, int N> T mul (T val) {
+					T result = val * N;
+					return result;
 
 
 ______________________________
-=4= types
-    ______________________________
-    =4.1= arrays (fundamental)
-        multiple allocations of same type in contiguous memory
+-4- types
+	______________________________
+	-4.1- arrays (fundamental)
+		multiple allocations of same type in contiguous memory
 
-        type name [numElements];
-            numElements: a constant
+		type name [numElements];
+			numElements: a constant
 
-        type name [N] = {v1, v2, v3... vn}
-            n <= N
-            initialize the first n values
-            and set the rest to a default value
+		type name [N] = {v1, v2, v3... vn}
+			n <= N
+			initialize the first n values
+			and set the rest to a default value
 
-        type name [] = {v1, v2, ... vN}
-            array of length N
+		type name [] = {v1, v2, ... vN}
+			array of length N
 
-        use 0-based index for array
+		use 0-based index for array
 
-        add more [N] for multi-dimensional arrays
+		add more [N] for multi-dimensional arrays
 
-        when using array for parameter, the only the first dimension may be omitted
-            (so compiler can correctly compile into the code)
+		when using array for parameter, the only the first dimension may be omitted
+			(so compiler can correctly compile into the code)
 
-    ______________________________
-    =4.2= arrays (<array>)
-        create with template:
-            array<type, length> name = {init};
+	______________________________
+	-4.2- arrays (<array>)
+		create with template:
+			array<type, length> name = {init};
 
-        length is stored within the array:
-            array.size()
+		length is stored within the array:
+			array.size()
 
-        strings/chararrays
-            char arrays: string representation
-            can use str literals (automatic null byte)
-            called "c-strings"
-            functions are overloaded to handle
-            strings from <string> as well as c-strings
-            string.c_str() (return as a c-string)
+		strings/chararrays
+			char arrays: string representation
+			can use str literals (automatic null byte)
+			called "c-strings"
+			functions are overloaded to handle
+			strings from <string> as well as c-strings
+			string.c_str() (return as a c-string)
 
-    ______________________________
-    =4.3= pointers
-        &: address-of, obtain a reference/pointer
-        *: value-at, dereference a pointer
-        ->: dereference a pointer (to a struct) and return the field (see structs)
+	______________________________
+	-4.3- pointers
+		&: address-of, obtain a reference/pointer
+		*: value-at, dereference a pointer
+		->: dereference a pointer (to a struct) and return the field (see structs)
 
-        type * name;
+		type * name;
 
-        const pointers:
-            determined by position of const
-            with respect to the *
+		const pointers:
+			determined by position of const
+			with respect to the *
 
-                const type * name
-                type const * name (
-                    const refers to * name
-                    name cannot be used to modify the values
-                    pointed to, but name itself can point
-                    to different things)
+				const type * name
+				type const * name (
+					const refers to * name
+					name cannot be used to modify the values
+					pointed to, but name itself can point
+					to different things)
 
-                type * const name (
-                    const refers to the name
-                    the pointer can only point to the address
-                    but underlying value can change)
-                    
-                type * name const (
-                    syntax error)
+				type * const name (
+					const refers to the name
+					the pointer can only point to the address
+					but underlying value can change)
 
-            cannot cast const to non-const
+				type * name const (
+					syntax error)
 
-        for pointer pointers, add more *s
+			cannot cast const to non-const
 
-        void: point to anything, but need to be cast into
-            a type in order to dereference
+		for pointer pointers, add more *s
 
-        nullptr: indicate invalid pointer, same as NULL
+		void: point to anything, but need to be cast into
+			a type in order to dereference
 
-
-        function pointers
-            int (*func)(arg types...)
-
-    ______________________________
-    =4.4= structs
-        declarations:
-            struct
-                struct name1 {
-                    type1 name1;
-                    type2 name2;
-                    ...
-                };
-
-            typedef struct:
-                typedef struct name1 {
-                    contents
-                } alias;
-
-            declaring objects as well:
-                struct name1 {
-                    contents
-                } obj1, obj2, obj3;
-
-        explanation:
-            the above examples can be broken up as is:
-
-            1. separate the "struct name { ... }" out and put it above
-            2. replace its previous location with "struct name"
-
-            for the first one:
-                a new type: "struct name1" is defined
-
-            for the second:
-                a new type "struct name1" is defined
-                and then "typedef (struct name1) alias"
-                which allows referencing the "struct name1" by "alias" 
-
-            for the 3rd
-                defines "struct name1"
-                and then "struct name1" obj1 obj2 obj3;
-                (ie, 3 objs with type "struct name1")
-
-            NOTE: in C++, it seems like the typedef is no longer necessary
-                to refer to the struct, but doesn't hurt
-
-        mystruct obj;
-        mystruct obj[4];
-        mystruct* objpointer
-        obj.field1  //access field1
-        objpointer = &obj
-        objpointer->field1 // access field1 through the pointer
+		nullptr: indicate invalid pointer, same as NULL
 
 
-    ______________________________
-    =4.5= unions
-        union typename { 
-            t1 name1;
-            t2 name2;
-            ...
-        }
+		function pointers
+			int (*func)(arg types...)
 
-        (same syntax as structs, see above)
+	______________________________
+	-4.4- structs
+		declarations:
+			struct
+				struct name1 {
+					type1 name1;
+					type2 name2;
+					...
+				};
 
-        overlapping types
-        ie: 
-        union mynum {
-            uchar v1;
-            half v2;
-            long v3;
-        }
-        in memory:
-        byte1       byte1       byte3       byte4
+			typedef struct:
+				typedef struct name1 {
+					contents
+				} alias;
 
-        [   v1     ]
-        [           v2         ]
-        [                      v3                    ]
+			declaring objects as well:
+				struct name1 {
+					contents
+				} obj1, obj2, obj3;
 
-        or:
-        union example {
-            half all;
-            struct {
-                uchar hi;
-                uchar lo;
-            }
-        }
-        byte1       byte2       
-        [       all             ]
-        [   hi     ][    lo     ]
-        (or switched because of endianness
+		explanation:
+			the above examples can be broken up as is:
 
-            if union/struct do not have names and are members
-            their members are refered to as simply the members
-            ie:
-                example.hi
-                exmpale.lo
+			1. separate the "struct name { ... }" out and put it above
+			2. replace its previous location with "struct name"
 
-    ______________________________
-    =4.6= enums
-        enum typename {
-            v1,
-            v2,
-            v3,
-            ...
-        } objnames;
+			for the first one:
+				a new type: "struct name1" is defined
 
-            objnames == v1
-            etc (just use them directly, no . notation)
+			for the second:
+				a new type "struct name1" is defined
+				and then "typedef (struct name1) alias"
+				which allows referencing the "struct name1" by "alias"
 
-        enum class typename {vals};
-            typename myval;
-            myval = typename::val
+			for the 3rd
+				defines "struct name1"
+				and then "struct name1" obj1 obj2 obj3;
+				(ie, 3 objs with type "struct name1")
 
-        enum class typename : fundamental {vals};
-            use fundamental (int, uint, char, etc)
-            as the type for the enum values
+			NOTE: in C++, it seems like the typedef is no longer necessary
+				to refer to the struct, but doesn't hurt
+
+		mystruct obj;
+		mystruct obj[4];
+		mystruct* objpointer
+		obj.field1  //access field1
+		objpointer = &obj
+		objpointer->field1 // access field1 through the pointer
+
+
+	______________________________
+	-4.5- unions
+		union typename {
+			t1 name1;
+			t2 name2;
+			...
+		}
+
+		(same syntax as structs, see above)
+
+		overlapping types
+		ie:
+		union mynum {
+			uchar v1;
+			half v2;
+			long v3;
+		}
+		in memory:
+		byte1       byte1       byte3       byte4
+
+		[   v1     ]
+		[           v2         ]
+		[                      v3                    ]
+
+		or:
+		union example {
+			half all;
+			struct {
+				uchar hi;
+				uchar lo;
+			}
+		}
+		byte1       byte2
+		[       all             ]
+		[   hi     ][    lo     ]
+		(or switched because of endianness
+
+			if union/struct do not have names and are members
+			their members are refered to as simply the members
+			ie:
+				example.hi
+				exmpale.lo
+
+	______________________________
+	-4.6- enums
+		enum typename {
+			v1,
+			v2,
+			v3,
+			...
+		} objnames;
+
+			objnames == v1
+			etc (just use them directly, no . notation)
+
+		enum class typename {vals};
+			typename myval;
+			myval = typename::val
+
+		enum class typename : fundamental {vals};
+			use fundamental (int, uint, char, etc)
+			as the type for the enum values
 
 
 
 ------------------------------
-=5= other
-    ______________________________
-    =5.1= templates
-        ______________________________
-        variadic vs non-variadic
-            C++ <11, always "non-variadic"
+-5- other
+	______________________________
+	-5.1- templates
+		______________________________
+		variadic vs non-variadic
+			C++ <11, always "non-variadic"
 
-            variadic: variable args
+			variadic: variable args
 
-        ______________________________
-        function templates
+		______________________________
+		function templates
 
-            decl:
-                template <class identifier> T func(T v1, T v2){body;}
-                template <typename identifier> T func(T v1, T v2){body;}
+			decl:
+				template <class identifier> T func(T v1, T v2){body;}
+				template <typename identifier> T func(T v1, T v2){body;}
 
-            call:
-                func<type>(args) (explicit, safer to use)
-                func(args)       (implicit, might cause compilation 
-                                  issues depending on compiler)
+			call:
+				func<type>(args) (explicit, safer to use)
+				func(args)       (implicit, might cause compilation
+				                  issues depending on compiler)
 
-            NOTE: the two are interchangeable
-                just the second version is more clear
-                (the identifier could just be a primitive type, not a class)
-            
-        ______________________________
-        class templates
-            decl:
-                
+			NOTE: the two are interchangeable
+				just the second version is more clear
+				(the identifier could just be a primitive type, not a class)
 
-        ______________________________
-        variable templates (C++ 14)
-            template <typename T> constexpr T pi = T(3.14159265359793238462643383L);
-
-        ______________________________
-        specialization
-            template is used, a "specialization" is created 
-            (version of template specifically for handling the corresponding type)
-            ______________________________
-            explicit
-                programmer implements special version of template for a given set of types
-
-                ______________________________
-                partial specialization:
-                    some params are specialized
-                    CLASS ONLY
-
-                ______________________________
-                full speicalization:
-                    all params/args are specialized
-                    class AND function okay
-
-                example:
-                    generic:
-                        template <typename T>
-                        T max(T a, T b){
-                            return a > b ? a : b;
-                        }
-                    specialized:
-                        template <>
-                        bool max<bool>(bool a, bool b){
-                            return a || b;
-                        }
-
-            NOTE: precedence of specializations is determined by first
-            substituting all types may have defaults.  Select all
-            specializations that match these types.  Pick most
-            specialized.
-
-            ex: failure
-                template<class T, class V=void>
-                struct a{static const bool value = false; };
-                template<class T>
-                struct a<T, typename T::value_type>
-                {static const bool value = true; };
-
-                a<tp>: V defaults to void.
-                whether the specialization would succeed or fail, the
-                second arg isn't void.  The non-specialization is always
-                used.
-
-            ex2: success
-                template<class T, class V=void>
-                struct helper { typedef V value_type; };
-
-                template<class T, class V=void>
-                struct a{static const bool value = false; };
-
-                template<class T>
-                struct a<T, typename helper<typename T::value_type, void>::value_type>
-                {static const bool value = true; };
-
-                a<tp>: V defaults to void.
-                The specialization also has V=void.
-                If the specialization succeeds, then it will be used.
-                Otherwise the default is used.
+		______________________________
+		class templates
+			decl:
 
 
-        ______________________________
-        alias
-        template <typename T>
-        using alias = std::somelongname<T,fixedtypes>;
+		______________________________
+		variable templates (C++ 14)
+			template <typename T> constexpr T pi = T(3.14159265359793238462643383L);
 
-        now can use
-            alias<int>(args)
-        to mean
-            std::somelongname<int,fixedtypes>(args)
+		______________________________
+		specialization
+			template is used, a "specialization" is created
+			(version of template specifically for handling the corresponding type)
+			______________________________
+			explicit
+				programmer implements special version of template for a given set of types
+
+				______________________________
+				partial specialization:
+					some params are specialized
+					CLASS ONLY
+
+				______________________________
+				full speicalization:
+					all params/args are specialized
+					class AND function okay
+
+				example:
+					generic:
+						template <typename T>
+						T max(T a, T b){
+							return a > b ? a : b;
+						}
+					specialized:
+						template <>
+						bool max<bool>(bool a, bool b){
+							return a || b;
+						}
+
+			NOTE: precedence of specializations is determined by first
+			substituting all types may have defaults.  Select all
+			specializations that match these types.  Pick most
+			specialized.
+
+			ex: failure
+				template<class T, class V=void>
+				struct a{static const bool value = false; };
+				template<class T>
+				struct a<T, typename T::value_type>
+				{static const bool value = true; };
+
+				a<tp>: V defaults to void.
+				whether the specialization would succeed or fail, the
+				second arg isn't void.  The non-specialization is always
+				used.
+
+			ex2: success
+				template<class T, class V=void>
+				struct helper { typedef V value_type; };
+
+				template<class T, class V=void>
+				struct a{static const bool value = false; };
+
+				template<class T>
+				struct a<T, typename helper<typename T::value_type, void>::value_type>
+				{static const bool value = true; };
+
+				a<tp>: V defaults to void.
+				The specialization also has V=void.
+				If the specialization succeeds, then it will be used.
+				Otherwise the default is used.
 
 
-        ______________________________
-        template vs macro
-            #define max(a,b) ((a) < (b) ? (b) : (a))
+		______________________________
+		alias
+		template <typename T>
+		using alias = std::somelongname<T,fixedtypes>;
 
-                        macro           template
-            inline      always          sometimes
-            errors      maybe           no              *1
-            typesafe    no              yes
-            portable    yes             maybe?          *2
-            code bloat  no              maybe           *3
-            build time  shorter         longer?         *4
-            debugging   easier          harder?         *5
-            recursive   dunno           maybe?          *6
-            rebuild     no?             yes?            *7
-            black box   yes             no?             *8
+		now can use
+			alias<int>(args)
+		to mean
+			std::somelongname<int,fixedtypes>(args)
 
 
+		______________________________
+		template vs macro
+			#define max(a,b) ((a) < (b) ? (b) : (a))
 
-            1. macro can have errors when macro is expanded
-                example:
-                    max(0, std::rand() - 100)
+			            macro           template
+			inline      always          sometimes
+			errors      maybe           no              *1
+			typesafe    no              yes
+			portable    yes             maybe?          *2
+			code bloat  no              maybe           *3
+			build time  shorter         longer?         *4
+			debugging   easier          harder?         *5
+			recursive   dunno           maybe?          *6
+			rebuild     no?             yes?            *7
+			black box   yes             no?             *8
 
-                    will be expanded as
 
-                    0 < (std::rand() - 100) ? (std::rand() - 100) : a
 
-                    which may be negative (std::rand() called twice)
-            2. "some compilers have poor template support"
-                poor instructions for template errors (difficult debugging)
-            3. new version for every type = more code generated
-            4. templates "expose their implementation"
-                "use in larger systems can lead to longer build times"
-            5. compiler replaces templates, debugger may have difficulty
-                figuring out where the error occurred in the code
-            6. templates of templates not supported by all compilers
-            7. "templates in headers, requires complete rebuild when changes are made"
-            8. code in header, can't contain solely in a single library
+			1. macro can have errors when macro is expanded
+				example:
+					bad line:
+						max(0, std::rand() - 100)
+					will be expanded as
+						0 < (std::rand() - 100) ? (std::rand() - 100) : a
+							which may be negative (std::rand() called twice)
+			2. "some compilers have poor template support"
+			    poor instructions for template errors (difficult debugging)
+			3. new version for every type = more code generated
+			4. templates "expose their implementation"
+			    "use in larger systems can lead to longer build times"
+			5. compiler replaces templates, debugger may have difficulty
+			    figuring out where the error occurred in the code
+			6. templates of templates not supported by all compilers
+			7. "templates in headers, requires complete rebuild when changes are made"
+			8. code in header, can't contain solely in a single library
 
-    ------------------------------
-    =5.2=
+	------------------------------
+	-5.2-
 	http://cseweb.ucsd.edu/~ricko/rt_lt.rule.html
 
-        basically, from the name, go right, until hit ) and then go left until hit (
-        then go up one level
-        example:
-            typedef const unsigned char * const ((*mytype)[5][2])
+		basically, from the name, go right, until hit ) and then go left until hit (
+		then go up one level
+		example:
+			typedef const unsigned char * const ((*mytype)[5][2])
 
-            this would be a:
-                pointer to array of 5 arrays of 2 const pointers to const unsigned char 
+			this would be a:
+				pointer to array of 5 arrays of 2 const pointers to const unsigned char
 
-    ______________________________
-    =5.3= value categories
+	______________________________
+	-5.3- value categories
 
-    lvalue: left-hand value
-      string literals, members (., ->, .*, ->*), dereference
-      can take address
-      can assign to (if modifiable)
-    prvalue: pure rvalue
-      non-string literals
-      function returning non-reference
-      arithmetic/logic expressions
-      cast to non-reference
-      this
-    xvalue: expiring values
-      member of rvalue
-    glvalue:lvalue or xvalue
-    rvalue: prvalue or xvalue
+	lvalue: left-hand value
+		string literals, members (., ->, .*, ->*), dereference
+		can take address
+		can assign to (if modifiable)
+	prvalue: pure rvalue
+		non-string literals
+		function returning non-reference
+		arithmetic/logic expressions
+		cast to non-reference
+		this
+	xvalue: expiring values
+	  member of rvalue
+	glvalue:lvalue or xvalue
+	rvalue: prvalue or xvalue
 
 
 
 ------------------------------
-=7= reference
+-7- reference
 
-    =7.1= <cstdint>
-        types:
-            intXX_t
-            intptr_t
-            uintXX_t
-            uintptr_t
-            
-            where XX = 8, 16, 32, 64
-        macros:
-            [INT | UINT]XX_[MIN | MAX]
-    =7.2= <limits>
-        numeric_limits()
-    =7.3= <string>
-        string (type)
-    =7.4= <iostream>
-        cin
-        getLine
-    =7.5= <sstream>
-        stringstream
-    =7.6= <array>
-        array<type, length>
-            array.size()
-            array[0]
-    =7.7= <cstdlib> (<stdlib.h> in C)
-        malloc
-        calloc
-        realloc
-        free
+	-7.1- <cstdint>
+		types:
+			intXX_t
+			intptr_t
+			uintXX_t
+			uintptr_t
 
-    =7.8= <exception>
-        std::exception: exception baseclass
+			where XX = 8, 16, 32, 64
+		macros:
+			[INT | UINT]XX_[MIN | MAX]
+	-7.2- <limits>
+		numeric_limits()
+	-7.3- <string>
+		string (type)
+	-7.4- <iostream>
+		cin
+		getLine
+	-7.5- <sstream>
+		stringstream
+	-7.6- <array>
+		array<type, length>
+			array.size()
+			array[0]
+	-7.7- <cstdlib> (<stdlib.h> in C)
+		malloc
+		calloc
+		realloc
+		free
 
-    =7.9= <fstream>
-        file io:
-            ifstream
-            ofstream
-            fstream
+	-7.8- <exception>
+		std::exception: exception baseclass
+
+	-7.9- <fstream>
+		file io:
+			ifstream
+			ofstream
+			fstream

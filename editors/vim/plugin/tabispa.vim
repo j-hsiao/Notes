@@ -199,3 +199,13 @@ function! s:SelectBlock()
 endfunction
 
 nnoremap <expr> <C-K>s <SID>SelectBlock()
+
+" TODO implement a function that
+" converts spaces to tabs
+" 1. use ts value to determine number of spaces to convert to tab
+" 2. Generally speaking, at most 1 unindent or 1 indent between
+"    consecutive lines.  If ts=4, and 4 space indent is followed by N>4
+"    and N!=8, then the spaces after the first 4 spaces are likely
+"    aligning spaces...
+" 3. No need for tabs->spaces because tabs generally wouldn't be placed
+"    on an unaligned column.  The tabs can just be directly replaced.

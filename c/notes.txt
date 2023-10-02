@@ -1,430 +1,450 @@
 contents
-:1:code constructs
-  :1.1:preprocessor
-  :1.2:functions
-  :1.3:variables
-    :1.3.1:types
-    :1.3.2:declaration
-  :1.4:statements/expressions
-  :1.5:comments
-  :1.6:keywords
-  :1.7:operators
-:2:compilation
-  :2.1:preprocess
-  :2.2:compiling
-  :2.3:linking
-:3:memory
-:4:headers
+-1- code constructs
+	-1.1- preprocessor
+	-1.2- functions
+	-1.3- variables
+		-1.3.1- types
+		-1.3.2- declaration
+	-1.4- statements/expressions
+	-1.5- comments
+	-1.6- keywords
+	-1.7- operators
+-2- compilation
+	-2.1- preprocess
+	-2.2- compiling
+	-2.3- linking
+	-2.4- archives
+	-2.5- shared libs
+-3- memory
+-4- headers
 
 
 
 __________________
-:1:code constructs
-  :1.1:preprocessor
-    see :2.1:
+-1- code constructs
+	-1.1- preprocessor
+		see -2.1-
 
-  :1.2:functions
-    retType name(argtype argname)
-    retType name(type, ...)
-      see stdarg.h
+	-1.2- functions
+		retType name(argtype argname)
+		retType name(type, ...)
+			see stdarg.h
 
-    main function:
-      int main (int argc, char* argv[]){
-        //argc: number of arguments (0th is always program name)
-        //argv: array of char* representing each arg
-
-
-
-  :1.3:variables
-    leading characters:
-      a-zA-Z_
-    rest:
-      a-zA-Z_0-9
-
-    const: cannot change
-    pointer: type*
-
-    type and const can be swapped
-    what matters is relative position to *
-    o = changeable, x = not
-    ie:                     loc   val
-      int* v                o     o
-      const int* v          o     x
-      int const * v         o     x
-      int* const v          x     o
-      const int* const v    x     x
-
-
-    :1.3.1:types
-      integer
-        types:
-          char      1 byte
-          int       2/4 bytes
-          short     2 bytes
-          long      4 bytes
-        modifiers:
-          signed (default)
-          unsigned
-      floats
-        types:
-          float       4 bytes
-          double      8 bytes
-          long double 10 bytes
-      void
-        no return value
-        no parameters
-        pointers to memory location
-          (no info about type/size)
-
-      array
-        type name[size][size][size...]
-        type array[size][size] = {
-          {v1, v2, v3...vsize},
-          {v1,v2,v3,...vsize},
-          ...}
-
-        assignment:
-          array[ind] = val
-      pointer
-        type* name
-          pointer can be accessed by indexing
-
-        operations:
-          +, -, ++, -- (change by pointer type width)
-          
-      strings:
-        char arrays terminated in null value
-
-      structs:
-        struct [structTag] {
-          member:numBits;
-          member:numBits;
-
-          ...
-        } structName;
-
-        use struct [structTag] or structName as the "type" of the struct
-        struct.member
-        structPointer->member
-
-      unions:
-        union [unionTag] {
-          member;
-          member;
-          ...
-        } unionName;
-        allocated the bits to store the largest member
-        each "member" is more of an interpretation method
-        of the memory pointed to by the union
-
-      FILE
-        use fopen, fclose
-
-    :1.3.2:declaration
-      not initialized:
-        type v1, v2, v3...;
-      initialized:
-        type vname = val, vname=val...;
-
-
-  :1.4:statements/expressions
-    ______________________________
-    \
-      \ for escaping
-      \ to break a line into multiple
+		main function:
+			int main (int argc, char* argv[]){
+				//argc: number of arguments (0th is always program name)
+				//argv: array of char* representing each arg
 
 
 
-    ______________________________
-    typedef
-      define a type
-      ie:
-        typedef unsigned char BYTE;
-        typedef sturct Struct {
-          stuff
-        } typname;
-    ______________________________
-    NULL
-      null value
-    ______________________________
-    if statements
-      if (condition){
-        stuff
-      } else if (condition) {
-        stuff
-      } else {
-        stuff
-      }
-    ______________________________
-    switch
-      switch (expr) {
-        case const-expr :
-          stuff
-          break;
-        case const-expr:
-          stuff;
-          break;
-        default :
-          stuff;
-      }
-      note: break is not necessary
-      it only prevents following cases from being checke
-    ______________________________
-    while
-      while(cond){
-        stuff;
-      }
+	-1.3- variables
+		leading characters:
+			a-zA-Z_
+		rest:
+			a-zA-Z_0-9
 
-      do {
-        stuff;
-      } while (condition)
-    ______________________________
-    for ( init; condition; update ) {
-      stuff;
-    }
+		const: cannot change
+		pointer: type*
 
-    ______________________________
-    functions
-      retType funcName( params ){
-        body;
-      }
-      generally use call-by-value
-      unless params are explicitly pointers or something... ish?
-
-      params: for arrays/pointers, use
-        type* name
-        name[]
-        name[size]
-      when returning arrays:
-        1. pass pointer as arg
-        2. use static variable
-        3. malloc
-
-      
+		type and const can be swapped
+		what matters is relative position to *
+		o = changeable, x = not
+		ie:                     loc     val
+			int* v                o       o
+			const int* v          o       x
+			int const * v         o       x
+			int* const v          x       o
+			const int* const v    x       x
 
 
+		-1.3.1- types
+			integer
+				types:
+					char      1 byte
+					int       2/4 bytes
+					short     2 bytes
+					long      4 bytes
+				modifiers:
+					signed (default)
+					unsigned
+			floats
+				types:
+					float       4 bytes
+					double      8 bytes
+					long double 10 bytes
+			void
+				no return value
+				no parameters
+				pointers to memory location
+					(no info about type/size)
 
-  :1.5:comments
-    // single-line comment
-    /*
-    multi-line
-    comment
-    */
-  :1.6:keywords
-    auto  :
-      default, same as no const, static, extern, etc
-    const : see variables
-    extern :
-      variable declaration
-      variable will be defined elsewhere
-    register:
-      value should be stored in a register
-      typically max size of 1 word
-      has no memory location(not in ram)
-      (only a suggestion)
-    static:
-      allocate once
+			array
+				type name[size][size][size...]
+				type array[size][size] = {
+					{v1, v2, v3...vsize},
+					{v1,v2,v3,...vsize},
+					...}
 
-  :1.7:operators
-    arithmetic
-      + - * / %
-      ++/--
-        var++: return var then ++
-        ++var: ++var then return var
+				assignment:
+					array[ind] = val
+			pointer
+				type* name
+					pointer can be accessed by indexing
 
-    comparison
-      == != > < >= <=
+				operations:
+					+, -, ++, -- (change by pointer type width)
 
-    logic
-      && || !
+			strings:
+				char arrays terminated in null value
 
-    bit
-      & | ^ ~ << >>
+			structs:
+				struct [structTag] {
+					member:numBits;
+					member:numBits;
 
-    others:
-      & address
-      sizeof()
-      * dereference
-      bool ? x : y
-        if bool, then x else y
+					...
+				} structName;
 
-    casting
-      (typeName) value
+				use struct [structTag] or structName as the "type" of the struct
+				struct.member
+				structPointer->member
+
+			unions:
+				union [unionTag] {
+					member;
+					member;
+					...
+				} unionName;
+				allocated the bits to store the largest member
+				each "member" is more of an interpretation method
+				of the memory pointed to by the union
+
+			FILE
+				use fopen, fclose
+
+		-1.3.2- declaration
+			not initialized:
+				type v1, v2, v3...;
+			initialized:
+				type vname = val, vname=val...;
+
+
+	-1.4- statements/expressions
+		______________________________
+		\
+			\ for escaping
+			\ to break a line into multiple
 
 
 
+		______________________________
+		typedef
+			define a type
+			ie:
+				typedef unsigned char BYTE;
+				typedef sturct Struct {
+					stuff
+				} typname;
+		______________________________
+		NULL
+			null value
+		______________________________
+		if statements
+			if (condition){
+				stuff
+			} else if (condition) {
+				stuff
+			} else {
+				stuff
+			}
+		______________________________
+		switch
+			switch (expr) {
+				case const-expr :
+					stuff
+					break;
+				case const-expr:
+					stuff;
+					break;
+				default :
+					stuff;
+			}
+			note: break is not necessary
+			it only prevents following cases from being checke
+		______________________________
+		while
+			while(cond){
+				stuff;
+			}
+
+			do {
+				stuff;
+			} while (condition)
+		______________________________
+		for ( init; condition; update ) {
+			stuff;
+		}
+
+		______________________________
+		functions
+			retType funcName( params ){
+				body;
+			}
+			generally use call-by-value
+			unless params are explicitly pointers or something... ish?
+
+			params: for arrays/pointers, use
+				type* name
+				name[]
+				name[size]
+			when returning arrays:
+				1. pass pointer as arg
+				2. use static variable
+				3. malloc
+
+	-1.5- comments
+		// single-line comment
+		/*
+		multi-line
+		comment
+		*/
+	-1.6- keywords
+		auto  :
+			default, same as no const, static, extern, etc
+		const : see variables
+		extern :
+			variable declaration
+			variable will be defined elsewhere
+		register:
+			value should be stored in a register
+			typically max size of 1 word
+			has no memory location(not in ram)
+			(only a suggestion)
+		static:
+			allocate once
+
+	-1.7- operators
+		arithmetic
+			+ - * / %
+			++/--
+				var++: return var then ++
+				++var: ++var then return var
+
+		comparison
+			== != > < >= <=
+
+		logic
+			&& || !
+
+		bit
+			& | ^ ~ << >>
+
+		others:
+			& address
+			sizeof()
+			* dereference
+			bool ? x : y
+				if bool, then x else y
+
+		casting
+			(typeName) value
+
+______________________________
+-2- compilation
+	compiler, gcc
+	-2.1- preprocess
+		#define SOME_SYMBOL VALUE
+		#undef
+		#include
+			#include <header_in_path>
+			#include "local_header_relative_to_current_file"
+
+		#ifdef SOME_SYMBOL
+		#ifndef SOME_SYMBOL
+		#if
+		#else
+		#elif
+		#endif
+		#error
+			print error to stderr
+		#pragma
+			special compiler commands
+
+		predefined macros:
+			__DATE__
+			__TIME__
+			__FILE__
+			__LINE__
+			__STDC__
+
+		#
+			stringize (turn into a string)
+			ie:
+				#define myfunc(str1, str2) \
+					printf(#str1 " and " #str2 "\n")
+
+		##
+			token pasting
+			ie:
+			#define COMMAND(NAME) { #NAME, NAME ## _command }
+			COMMAND(hello) -> {"hello", hello_command}
+		NOTE:
+			"All arguments to a macro are completely macro-expanded before
+			substitution", exception is if it is stringized via # or ##
+			for token pasting
+
+			After this, then the entire result is scanned again for
+			more macro expansion
+
+			macros are note expanded when stringizing, but otherwise
+			are expanded recursively:
+			example:
+			#define var 10
+			#define tostr(arg) #arg
+			tostr(var)-> "var"
+			#define indirect(arg) tostr(arg)
+			indirect(arg) -> "10"
+				(tostr(arg), arg is not stringized so it is expanded
+
+		defined()
+			is it defined?
+			ie:
+				#if defined(SYMBOL)
+					stuff
+				#endif
+
+				#if !defined(SYMBOL)
+					stuff
+				#endif
+
+			#define name(params) expression_using_params
+
+	-2.2- compiling
+		turn source code into object code.
+			gcc/g++ -c filename -o filename.o (other args like -I, -L, -l, etc)
+
+	-2.3- linking
+		Generally use gcc/g++ which uses ld instead of using ld directly.
+		Linker options:
+			-Ldname       Specify library dirs to search
+			-llibname     specify libnames to link to.  To link to a file
+			              `libmyname.so` or `libmyname.a`, use `-lmyname`.
+		Any shared libs should be on LD_LIBRARY_PATH to be linked to at runtime.
+		Alternatively, executables and shared libraries can use -rpath
+			-rpath=dir1:dir2:dir3...
+				List of absolute dirs to search for required shared libraries.
+				usually /lib /usr/lib /usr/local/lib etc.
+				use $ORIGIN as the path to the lib/exe (like relative path)
+					${ORIGIN} might be accepted as well.
+				$LIB will be lib or lib64 depending on whether the lib/exe was
+					compiled as 32 or 64 bits.
+
+	-2.4- archives
+		Turn object files into static library
+		basic command:
+			ar rcs libname.a *.o
+				r: insert with replacement (or can use q for quick append)
+				c: create if nonexistent
+				s: add index (linker needs this)
+
+	-2.5- shared libs
+		Shared libs are shared among multiple executables.  Generally end
+		with .so extension
+		gcc/g++ options:
+			-fPIC     force position independent code, required for shared libs.
+			          Also required for archives if archive will be used by a
+			          shared lib.
+			-shared   make a shared lib
 
 
 
 ______________________________
-:2:compilation
-  compiler, gcc
-  :2.1:preprocess
-    #define SOME_SYMBOL VALUE
-    #undef
-    #include
-      #include <header_in_path>
-      #include "local_header_relative_to_current_file"
-
-
-
-    #ifdef SOME_SYMBOL
-    #ifndef SOME_SYMBOL
-    #if
-    #else
-    #elif
-    #endif
-    #error
-      print error to stderr
-    #pragma
-      special compiler commands
-
-    predefined macros:
-      __DATE__
-      __TIME__
-      __FILE__
-      __LINE__
-      __STDC__
-
-    #
-      stringize (turn into a string)
-      ie:
-        #define myfunc(str1, str2) \
-          printf(#str1 " and " #str2 "\n")
-
-    ##
-      token pasting
-      ie:
-      #define COMMAND(NAME) { #NAME, NAME ## _command }
-      COMMAND(hello) -> {"hello", hello_command}
-    NOTE:
-      "All arguments to a macro are completely macro-expanded before
-      substitution", exception is if it is stringized via # or ##
-      for token pasting
-
-      After this, then the entire result is scanned again for
-      more macro expansion
-
-      macros are note expanded when stringizing, but otherwise
-      are expanded recursively:
-      example:
-      #define var 10
-      #define tostr(arg) #arg
-      tostr(var)-> "var"
-      #define indirect(arg) tostr(arg)
-      indirect(arg) -> "10"
-        (tostr(arg), arg is not stringized so it is expanded
-
-
-
-
-
-    defined()
-      is it defined?
-      ie:
-        #if defined(SYMBOL)
-          stuff
-        #endif
-
-        #if !defined(SYMBOL)
-          stuff
-        #endif
-
-      #define name(params) expression_using_params
-    
-
-
-  :2.2:compiling
-  :2.3:linking
-
+-3- memory
+	sizeof(type)
+		return size of type in bytes
 
 ______________________________
-:3:memory
-  sizeof(type)
-    return size of type in bytes
-
-______________________________
-:4:headers
-  should generally be enclosed in
-    #ifndef HEADER_FILE
-    #define HEADER_FILE
-    CODE
-    #endif
-    otherwise, compiler sees definitions multiple times
-    will complain that it already exists
+-4- headers
+	should generally be enclosed in
+		#ifndef HEADER_FILE
+		#define HEADER_FILE
+		CODE
+		#endif
+		otherwise, compiler sees definitions multiple times
+		will complain that it already exists
 
 
 
-  float.h
-    FLT_MIN
-    FLT_MAX
-    FLT_DIG
-  stdio.h
-    printf
-    scanf
-      %s  string
-      %d  decimal
-      %c  char
-      %f  float
-    getchar
-    putchar
-    gets
-    puts
-    fgets
-    fputs
-    fgetc
-    fputc
-    fread
-    fwrite
-    stderr
-    stdout
-    stdin
+	float.h
+		FLT_MIN
+		FLT_MAX
+		FLT_DIG
+	stdio.h
+		printf
+		scanf
+			%s  string
+			%d  decimal
+			%c  char
+			%f  float
+		getchar
+		putchar
+		gets
+		puts
+		fgets
+		fputs
+		fgetc
+		fputc
+		fread
+		fwrite
+		stderr
+		stdout
+		stdin
 
 
 
-  string.h
-    various string manipulation functions
-    strcpy
-    strcat
-    strlen
-    strcmp
-    strchr
-    strstr
+	string.h
+		various string manipulation functions
+		strcpy
+		strcat
+		strlen
+		strcmp
+		strchr
+		strstr
 
-  error.h
-    perror
-    strerror
+	error.h
+		perror
+		strerror
 
-  stdlib.h
-    EXIT_SUCCESS
-    EXIT_FAILURE
+	stdlib.h
+		EXIT_SUCCESS
+		EXIT_FAILURE
 
-    calloc
-    free
-    malloc
-    realloc
+		calloc
+		free
+		malloc
+		realloc
 
-  stdarg.h
-    allow variable args in a function
-    steps:
-      1. function definition
-      2. end paramlist with int, ...
-          int: length of lists, 
-          ...: the items
-      3. create a va_list
-      4. use int and va_start to initialize list
-      5. use va_arg and va_list to access items
-      6. va_end to cleanup memory
+	stdarg.h
+		allow variable args in a function
+		steps:
+			1. function definition
+			2. end paramlist with int, ...
+			   int: length of lists, 
+			   ...: the items
+			3. create a va_list
+			4. use int and va_start to initialize list
+			5. use va_arg and va_list to access items
+			6. va_end to cleanup memory
 
-    example:
-      double average(int num, ...) {
-        va_list vars;
-        double sum = 0.0;
-        int i;
-        vastart(valist, num);
-        for (i=0; i < num; i++){
-          sum += va_arg(valist, i);
-        va_end(valist);
-        return sum / num;
-      }
+		example:
+			double average(int num, ...) {
+				va_list vars;
+				double sum = 0.0;
+				int i;
+				vastart(valist, num);
+				for (i=0; i < num; i++){
+					sum += va_arg(valist, i);
+				va_end(valist);
+				return sum / num;
+			}
 
