@@ -209,3 +209,26 @@ nnoremap <expr> <C-K>s <SID>SelectBlock()
 "    aligning spaces...
 " 3. No need for tabs->spaces because tabs generally wouldn't be placed
 "    on an unaligned column.  The tabs can just be directly replaced.
+
+function! s:ToTab()
+	let prevline = line('.')
+	let previndent = indent(prevline)
+	let curline = prevline + 1
+	let bufend = line('$')
+	if curline <= bufend
+		let nexttext = getline(curline)
+		let nextindent = indent(curline)
+		if nextindent == previndent
+			echo "same"
+		elseif nextindent > previndent && nextindent == previndent + &l:ts
+			echo "indented"
+		elseif nextindent < previndent && nextindent == previndent - &l:ts
+			echo "unindented"
+		else
+			echo "aligned?!??"
+		endif
+		let curline += 1
+	endif
+endfunction
+
+nnoremap <C-K>
