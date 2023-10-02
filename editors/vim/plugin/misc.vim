@@ -1,5 +1,30 @@
 "Miscellaneous mappings and settings
 "These usually begin with C-K
+"
+"toggling common settings:
+"  <C-K>
+"       l: list
+"       p: paste
+"       n: number
+"       r: relative number
+"       tab: expandtab
+"
+"Setting common settings:
+"  <C-K><C-K>
+"       >: shiftwidth
+"       shift+tab: softtabstop
+"       tab: tabstop
+"others
+"  <C-K>
+"       b: Change current frame to new scratch buffer
+"       k: original <C-K>
+"       -: 30 - separator
+"       =: 30 = separator
+"       _: 30 _ separator
+"
+"Abbreviations:
+"  Inp:  Inputs header
+"  Outp: Outputs header
 
 "basic options
 nnoremap <C-K>? :nnoremap <lt>C-K><CR>
@@ -38,11 +63,11 @@ nnoremap <C-K>b :enew<CR>:setlocal buftype=nofile bufhidden=hide noswapfile<CR>
 "------------------------------
 "Shortcut 
 "shiftwidth
-nnoremap <silent> <C-K><C-K>> :<C-U>execute "setlocal sw" . (v:count == v:count1 ? "=" . v:count : "&")<CR>
+nnoremap <silent> <C-K><C-K>> :<C-U>execute "setlocal sw" . (v:count == v:count1 ? "=" . v:count : "&") . " sw?"<CR>
 "softtabstop
-nnoremap <silent> <C-K><C-K><S-Tab> :<C-U>execute "setlocal sts" . (v:count == v:count1 ? "=" . v:count : "&")<CR>
+nnoremap <silent> <C-K><C-K><S-Tab> :<C-U>execute "setlocal sts" . (v:count == v:count1 ? "=" . v:count : "&") . " sts?"<CR>
 "tabstop
-nnoremap <silent> <C-K><C-K><Tab> :<C-U>execute "setlocal ts" . (v:count == v:count1 ? "=" . v:count : "&")<CR>
+nnoremap <silent> <C-K><C-K><Tab> :<C-U>execute "setlocal ts" . (v:count == v:count1 ? "=" . v:count : "&") . " ts?"<CR>
 "expandtab
 nnoremap <silent> <C-K><Tab> :setlocal expandtab! expandtab?<CR>
 
