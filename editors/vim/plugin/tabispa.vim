@@ -1,30 +1,30 @@
 "tabispa: TABIndentSPaceAlignment
-" 'ts' indicates indentation
-" 'sts' indicates alignment
-" 'sw' should be same as 'ts'
+"	'ts' indicates indentation
+"	'sts' indicates alignment
+"	'sw' should be same as 'ts'
 "Usage:
-"  normal mode:
-"    <C-K>a: realign current line (move tabs to beginning, maintain
-"      indent/alignment level)
-"    <C-K>A: Same as above, but apply to range '<,'>
-"    <C-K>s: Select block with same indentation (exclude empty lines)
-"  insert mode:
-"    <C-T>, <C-D>: Add/remove tabs at 0 position (if not et, else ts spaces)
-"    <C-H>: delete like sts
-"    <Tab>: add sts spaces
-"    <S-Tab>: literal tab
+"	normal mode:
+"	  <C-K>a: realign current line (move tabs to beginning, maintain
+"	    indent/alignment level)
+"	  <C-K>A: Same as above, but apply to range '<,'>
+"	  <C-K>s: Select block with same indentation (exclude empty lines)
+"	insert mode:
+"	  <C-T>, <C-D>: Add/remove tabs at 0 position (if not et, else ts spaces)
+"	  <C-H>: delete like sts
+"	  <Tab>: add sts spaces
+"	  <S-Tab>: literal tab
 "
 "Observations:
-"  Insert mode <C-T>, <C-D> do NOT preserve the alignment level of the
-"  first non-indent character.
-"  Normal mode << and >> DO preserve the alignemnt level of the first
-"  non-indent character.
-"  eg.
-"  start with    |  something
-"  after i_<C-T> |  [tabchar]something
-"    again       |  [tabchar][tabchar  ]something
-"  after n_>>    |  [tabchar]  something
-"    again       |  [tabchar]  [tabchar]  something
+"	Insert mode <C-T>, <C-D> do NOT preserve the alignment level of the
+"	first non-indent character.
+"	Normal mode << and >> DO preserve the alignemnt level of the first
+"	non-indent character.
+"	eg.
+"	start with    |  something
+"	after i_<C-T> |  [tabchar]something
+"	  again       |  [tabchar][tabchar  ]something
+"	after n_>>    |  [tabchar]  something
+"	  again       |  [tabchar]  [tabchar]  something
 "
 "  . does not repeat an entire mapping so just add realignment hotkeys.
 
@@ -41,7 +41,7 @@ function! s:GetSTS()
 endfunction
 
 function! s:AddAlignment()
-	"Add spaces to next tabstop for alignment
+	"Add spaces to next soft tabstop for alignment
 	let curpos = strdisplaywidth(slice(getline('.'), 0, charcol('.')-1))
 	let step = s:GetSTS()
 	return repeat(' ', step-(curpos%step))
@@ -69,7 +69,7 @@ inoremap <expr> <silent> <C-H> <SID>RemoveAlignment()
 function! s:Realign()
 	"Rearrange all leading spaces/tabs to be tabs first then spaces
 	"NOTE: this may change the number of spaces depending on the
-	"plaement of the tabs.  The  number of tabs will remain the same
+	"placement of the tabs.  The  number of tabs will remain the same
 	"though.
 	let ntabs = 0
 	let nspace = 0
@@ -200,6 +200,21 @@ endfunction
 
 nnoremap <expr> <C-K>s <SID>SelectBlock()
 
+
+" Convert space/tabs up to col into all tabs
+" any remaining whitespace is converted to spaces.
+" col and ws should be virtual columns (0-based)
+function! s:TabToCol(line, col, ws, txt)
+	let tabs = repeat("\t", a:col / &l:ts)
+	let align = repeat(' ', a:ws - a:col)
+	let spcidx = virtcol2col(0, a:line, a:col+1)-1
+	let txtidx = virtcol2col(0, a:line, a:ws+1)-1
+	let txt = a:txt[txtidx:]
+	if strcharpart(a:txt, 0, a:col / &l:ts) != tabs || strcharpart(a:txt, spcidx, a:ws-a:col) != align
+		call setline(a:line, tabs . align . txt)
+	endif
+endfunction
+
 " TODO implement a function that
 " converts spaces to tabs
 " 1. use ts value to determine number of spaces to convert to tab
@@ -209,26 +224,31 @@ nnoremap <expr> <C-K>s <SID>SelectBlock()
 "    aligning spaces...
 " 3. No need for tabs->spaces because tabs generally wouldn't be placed
 "    on an unaligned column.  The tabs can just be directly replaced.
-
-function! s:ToTab()
-	let prevline = line('.')
-	let previndent = indent(prevline)
-	let curline = prevline + 1
+function! s:Tabify() range
+	let curline = a:firstline
+	let ws = indent(curline)
+	let previndent = ws - ws % &l:ts
+	call s:TabToCol(curline, previndent, ws, getline(curline))
 	let bufend = line('$')
-	if curline <= bufend
-		let nexttext = getline(curline)
-		let nextindent = indent(curline)
-		if nextindent == previndent
-			echo "same"
-		elseif nextindent > previndent && nextindent == previndent + &l:ts
-			echo "indented"
-		elseif nextindent < previndent && nextindent == previndent - &l:ts
-			echo "unindented"
+	let curline += 1
+	while curline <= a:lastline
+		let txt = getline(curline)
+		let ws = indent(curline)
+		if ws == strdisplaywidth(txt)
+			if ws
+				call setline(curline, "")
+			endif
+		elseif ws == previndent
+			call s:TabToCol(curline, previndent, ws, txt)
+		elseif ws > previndent && ws == previndent + &l:ts || ws < previndent && ws == previndent - &l:ts
+			call s:TabToCol(curline, ws, ws, txt)
+			let previndent = ws
 		else
-			echo "aligned?!??"
+			call s:TabToCol(curline, previndent, ws, txt)
 		endif
 		let curline += 1
-	endif
+	endwhile
 endfunction
 
-nnoremap <C-K>
+nnoremap <C-K><C-K><C-K><Tab> :call <SID>Tabify()<CR>
+vnoremap <C-K><Tab> :call <SID>Tabify()<CR>
