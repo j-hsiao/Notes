@@ -205,12 +205,18 @@ nnoremap <expr> <C-K>s <SID>SelectBlock()
 " any remaining whitespace is converted to spaces.
 " col and ws should be virtual columns (0-based)
 function! s:TabToCol(line, col, ws, txt)
-	let tabs = repeat("\t", a:col / &l:ts)
+	let tabend = a:col / &l:ts
+	let tabs = repeat("\t", tabend)
 	let align = repeat(' ', a:ws - a:col)
-	let spcidx = virtcol2col(0, a:line, a:col+1)-1
-	let txtidx = virtcol2col(0, a:line, a:ws+1)-1
+	let txtidx = 0
+	for char in a:txt
+		if char != ' ' && char != "\t"
+			break
+		endif
+		let txtidx += 1
+	endfor
 	let txt = a:txt[txtidx:]
-	if strcharpart(a:txt, 0, a:col / &l:ts) != tabs || strcharpart(a:txt, spcidx, a:ws-a:col) != align
+	if strcharpart(a:txt, 0, tabend) != tabs || strcharpart(a:txt, tabend, a:ws-a:col) != align
 		call setline(a:line, tabs . align . txt)
 	endif
 endfunction
