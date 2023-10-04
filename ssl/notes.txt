@@ -4,101 +4,101 @@ certificates for https etc
 contents:
 -1- vocab
 -2- CA
-    -2.1- create a key
-    -2.2- create a certificate
+	-2.1- create a key
+	-2.2- create a certificate
 -3- signed certificates
-    -3.1- create a key for server
-    -3.2- create a csr
-    -3.3- sign the csr
+	-3.1- create a key for server
+	-3.2- create a csr
+	-3.3- sign the csr
 -4- installing ca
 
 
 
 ______________________________
 -1- vocab
-    CA:
-        certifying authority, entity that signs certificates
-        and is trusted, once CA is installed on a device
-        the device will see any certificate signed by the CA
-        as trustworthy
-    server:
-        server that clients will use, need a certificate saying
-        the server is indeed that server. certificate should be
-        signed by a CA, otherwise there will be a security error
-        saying the site is untrustworthy
-    csr:
-        certificate signing request
-        a request that a CA signs. The result of the signing
-        is the certificate that a server uses to identify itself
-        as trustworthy
+	CA:
+		certifying authority, entity that signs certificates
+		and is trusted, once CA is installed on a device
+		the device will see any certificate signed by the CA
+		as trustworthy
+	server:
+		server that clients will use, need a certificate saying
+		the server is indeed that server. certificate should be
+		signed by a CA, otherwise there will be a security error
+		saying the site is untrustworthy
+	csr:
+		certificate signing request
+		a request that a CA signs. The result of the signing
+		is the certificate that a server uses to identify itself
+		as trustworthy
 ______________________________
 -2- CA
 
-    ______________________________
-    -2.1- create a key:
-        command:
-            openssl genrsa -des3 -out myCA.key 2048
-        note: create a passphrase to prevent
-            someone from using your key to
-            sign certificates without your
-            permission)
+	______________________________
+	-2.1- create a key:
+		command:
+			openssl genrsa -des3 -out myCA.key 2048
+		note: create a passphrase to prevent
+			someone from using your key to
+			sign certificates without your
+			permission)
 
-    ______________________________
-    -2.2- create a certificate:
-        command:
-            openssl req -x509 -new -nodes -key KEY_FILE_FROM_PREVIOUS_STEP \
-                -sha256 -days NDAYS -out CA.pem
-        notes:
-            NDAYS: number of days before certificate expires (non-expiring
-                certificates not supported)
+	______________________________
+	-2.2- create a certificate:
+		command:
+			openssl req -x509 -new -nodes -key KEY_FILE_FROM_PREVIOUS_STEP \
+				-sha256 -days NDAYS -out CA.pem
+		notes:
+			NDAYS: number of days before certificate expires (non-expiring
+				certificates not supported)
 
-            answer the Common Name field, the others don't matter
+			answer the Common Name field, the others don't matter
 
 ______________________________
 -3- signed certificates
 
-    ______________________________
-    -3.1- create a key for server
-        command:
-            openssl genrsa -out SOMENAME.key 2048
-    
-    ______________________________
-    -3.2- create a csr
-        command:
-            openssl req -new -key KEY_FROM_PREVIOUS_STEP -out SOMENAME.csr
+	______________________________
+	-3.1- create a key for server
+		command:
+			openssl genrsa -out SOMENAME.key 2048
 
-    ______________________________
-    -3.3- sign the csr:
-        create a config file: name.ext
-            contents:
-                authorityKeyIdentifier=keyid,issuer
-                basicConstraints=CA:FALSE
-                keyUsage = digitalSignature, nonRepudiation, keyEncipherment, dataEncipherment
-                subjectAltName = @alt_names
+	______________________________
+	-3.2- create a csr
+		command:
+			openssl req -new -key KEY_FROM_PREVIOUS_STEP -out SOMENAME.csr
 
-                [alt_names]
-                DNS.1 = name1 of server
-                DNS.2 = name2 of server
-            steps:
-                fill in the nameX of website values
-                as many as there are names for the server
-        command:
-            openssl x509 -req -in CSR_FILE_FROM_-3.2- -CA PEM_FROM_-2.2- \
-                -CAkey KEY_FROM_-2.1- -CAcreateserial -out CERTNAME \
-                -days NUMDAYS -sha256 -extfile CONFIG_FILE_FROM_PREVIOUS_STEP
+	______________________________
+	-3.3- sign the csr:
+		create a config file: name.ext
+			contents:
+				authorityKeyIdentifier=keyid,issuer
+				basicConstraints=CA:FALSE
+				keyUsage = digitalSignature, nonRepudiation, keyEncipherment, dataEncipherment
+				subjectAltName = @alt_names
+
+				[alt_names]
+				DNS.1 = name1 of server
+				DNS.2 = name2 of server
+			steps:
+				fill in the nameX of website values
+				as many as there are names for the server
+		command:
+			openssl x509 -req -in CSR_FILE_FROM_-3.2- -CA PEM_FROM_-2.2- \
+				-CAkey KEY_FROM_-2.1- -CAcreateserial -out CERTNAME \
+				-days NUMDAYS -sha256 -extfile CONFIG_FILE_FROM_PREVIOUS_STEP
 ______________________________
 -4- installing ca
-    NOTE:
-        may need to convert the CA.pem file to a CA.crt file (just change the extension)
-        when adding CA certificate to windows
-    ______________________________
-    -4.1- chrome
-        settings->advanced->manage certificates
-        choose trusted root certification authorities tab
-        click import import
-        import the CA's cert file (-2.2-)
-    -4.2- firefox
-        preferences->privacy & security->security->certificates->view certificates
-        import cert
+	NOTE:
+		may need to convert the CA.pem file to a CA.crt file (just change the extension)
+		when adding CA certificate to windows
+	______________________________
+	-4.1- chrome
+		settings->advanced->manage certificates
+		choose trusted root certification authorities tab
+		click import import
+		import the CA's cert file (-2.2-)
+	-4.2- firefox
+		preferences->privacy & security->security->certificates->view certificates
+		import cert
 
-        
+

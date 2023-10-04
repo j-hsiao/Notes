@@ -16,14 +16,14 @@ hdf5group.org: userguide, referencemanual
 -0- basics
 ------------------------------
 concepts:
-	file:						contiguous string of bytes (file, ram, etc)
-	group:					collection of objects (like a directory)
-	dataset:				nd array + metadata/attrs
-	dataspace:			shape of dataset
-	datatype:				dtype of dataset
-	attribute:			named data item
+	file:             contiguous string of bytes (file, ram, etc)
+	group:            collection of objects (like a directory)
+	dataset:          nd array + metadata/attrs
+	dataspace:        shape of dataset
+	datatype:         dtype of dataset
+	attribute:        named data item
 		mini-dataset
-	property list:	list of params
+	property list:    list of params
 		name-value pairs
 		examples:
 			H5P_FILE_CREATE
@@ -32,7 +32,7 @@ concepts:
 			H5P_DATASET_XFER
 			H5P_FILE_MOUNT
 
-	link:						the way objects are connected
+	link:             the way objects are connected
 
 
 	space: a specification of dimensions ( can be applied to data in file or memory)
@@ -40,27 +40,27 @@ concepts:
 HDF5 has unix-directory-like structure
 
 methods are prefixed:
-	H5		general
-	H5A		annotation
-	H5D		dataset
-	H5E		error
-	H5F		file
-	H5G		group
-	H5I		identifier
-	H5L		link
-	H5O		object
-	H5P		property list
-	H5R		reference
-	H5S		dataspace
-	H5T		datatype
-	H5Z		compression
-	H5LT	high level light interface
+	H5    general
+	H5A   annotation
+	H5D   dataset
+	H5E   error
+	H5F   file
+	H5G   group
+	H5I   identifier
+	H5L   link
+	H5O   object
+	H5P   property list
+	H5R   reference
+	H5S   dataspace
+	H5T   datatype
+	H5Z   compression
+	H5LT  high level light interface
 
 types:
-	hid_t			object handles
-	hsize_t		dimensions
-	herr_t		return values
-	htri_t		?bool?
+	hid_t     object handles
+	hsize_t   dimensions
+	herr_t    return values
+	htri_t    ?bool?
 c:
 	#include hdf5.h
 python:
@@ -81,7 +81,7 @@ python:
 	herr_t H5Eclear(stackid);
 		clear the stack
 
-	typedef herr_t (*H5E_auto_t)(stackid, void*) 
+	typedef herr_t (*H5E_auto_t)(stackid, void*)
 	herr_t H5Eset_auto (macro to below)
 	herr_t H5Eset_auto1(stackid, H5E_auto_t func, void *clientdata
 	herr_t H5Eset_auto2(H5E_auto_t func, void *clientdata
@@ -124,23 +124,20 @@ python:
 	H5get_libversion
 	H5open
 
-
-
-
 	------------------------------
 		-1- files
 	------------------------------
 		hid_t H5Fcreate("name", access, create_plist, access_plist);
-			H5F_ACC_TRUNC			truncate data
-			H5F_ACC_EXCL			create if not exist, fail otherwise
+			H5F_ACC_TRUNC     truncate data
+			H5F_ACC_EXCL      create if not exist, fail otherwise
 		hid_t H5Fopen("name", access, access_plist)
-			H5F_ACC_RDONLY		rd only
-			H5F_ACC_RDWR			rd and write
+			H5F_ACC_RDONLY    rd only
+			H5F_ACC_RDWR      rd and write
 		herr_t H5Fclose(hid_t)
 		H5Fflush
 		herr_t H5Fmount(loc_id, "/path", child_id, plist_id)		(temporary file-connection)
 		H5Funmount
-		H5Lcreate_external	(create permanent link)
+		H5Lcreate_external  (create permanent link)
 
 		propertylists:
 			H5P_FILE_CREATE
@@ -155,21 +152,18 @@ python:
 				data alignment, metadata blocks, cache sizes,
 				garbage collection, parallel io, etc
 				properties: H5Pset/get_XXX
-					fapl_core			in-memory files
-					fapl_direct		direct i/o	 (no fs caching)
-					fapl_family		multi-file (FS does not support >2G)
-					fapl_multi		multi-file
-					fapl_mpio			parallel fs
-					fapl_sec2			unbuffered file
-					fapl_stdio		buffered file
+					fapl_core     in-memory files
+					fapl_direct   direct i/o	 (no fs caching)
+					fapl_family   multi-file (FS does not support >2G)
+					fapl_multi    multi-file
+					fapl_mpio     parallel fs
+					fapl_sec2     unbuffered file
+					fapl_stdio    buffered file
 
 			userblocks:
 				header in file ignored by hdf5
 				minimum size is 512
 				must be a power of 2
-
-
-
 
 	------------------------------
 		-2- dataspaces
@@ -184,18 +178,17 @@ python:
 		------------------------------
 		-2.1- hyperslabs
 		------------------------------
-			
 			herr_t H5Sselect_hyperslab(
 				hid_t space, H5S_seloper_t op,
 				hsize_t *start hsize_t *stride, hsize_t *count, hsize_t *block)
 
 				op:
-					H5S_SELECT_SET	(set value)
-					H5S_SELECT_OR		(union)
-					H5S_SELECT_AND	(intersection)
-					H5S_SELECT_XOR	(disjoint)
-					H5S_SELECT_NOTA	(disjoint and new)
-					H5S_SELECT_NOTB	(disjoint and old)
+					H5S_SELECT_SET    (set value)
+					H5S_SELECT_OR     (union)
+					H5S_SELECT_AND    (intersection)
+					H5S_SELECT_XOR    (disjoint)
+					H5S_SELECT_NOTA   (disjoint and new)
+					H5S_SELECT_NOTB   (disjoint and old)
 				start:
 					offset
 				count:
@@ -271,7 +264,6 @@ python:
 			C             MIPS
 			FORTRAN       ALPHA
 			NATIVE
-			
 		base:
 			F(loat)
 			I(nteger)
@@ -352,26 +344,6 @@ python:
 		herr_t H5Aclose(hid_t)
 		H5A_open_by_idx(fid, datasetname, idx_type, iter_order, ?, proplist, proplist);
 		H5Aiterate
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 ------------------------------
 -1.2- datasets
 ------------------------------
@@ -452,12 +424,10 @@ python:
 					memspace = H5Screate_simple(rank, dims, maxdims);
 					H5Sselect_hyperslab(memspace, op, start, stride, count, block);
 				NOTES:
-					op: H5S_SELECT_SET, 
+					op: H5S_SELECT_SET,
 
 					H5Screate_simple: creates simple in-memory space
 					H5Dget_space: get the space of a dataset that is in a file
-				
-			
 
 	------------------------------
 	HL Interface:
@@ -483,7 +453,3 @@ python:
 	hl example
 		H5LTset_attribute_int(file_id, dset_name, attr_name, data, size);
 		H5LTget_attribute_int(file_id, dset_name, attr_name, data);
-
-
-	
-

@@ -125,15 +125,15 @@ types: created with optional initialier
 
 note:
 	printf prints to std (not sys.std)
-	
+
 custom types require:
 	_as_parameter_ (value to represent your object)
 		or
 	_as_parameter_ = property([fget, fset, fdel, doc])
-	
+
 ______________________________
 -1.1.5- arg/ret types
-lib.function.argtypes 
+lib.function.argtypes
 lib.function.restype
 
 tries to protect against invalid types and attemps auto-conversion
@@ -190,9 +190,9 @@ alignment/bytes:
 	aligned as C
 	use _pack_ to offset
 		_pack_ = int > 0
-	use ctypes.BigEndianStructure, 
-	           LittleEndianStructure, 
-	           BigEndianUnion, 
+	use ctypes.BigEndianStructure,
+	           LittleEndianStructure,
+	           BigEndianUnion,
 	           LittleEndianUnion
 bit fields (for ints only)
 bit width as 3rd arg to int field
@@ -226,12 +226,12 @@ ex:
 
 ______________________________
 -1.1.10- conversion
-pointers and arrays are compatible like c-type arrays		
+pointers and arrays are compatible like c-type arrays
 for passing pointers, can use object of same type,
 	ctypes calls byref() automatically
 
 can assign None to pointer to make it NULL
-ctypes.cast(pointerobjthing, desiredtype)  
+ctypes.cast(pointerobjthing, desiredtype)
 
 ______________________________
 -1.1.11- forward declarations
@@ -242,7 +242,7 @@ ex:
 
 
 ______________________________
--1.1.12- callables/function pointers		
+-1.1.12- callables/function pointers
 create class for callback
 calling convention, return type, #/types of args
 use CFUNCTYPE factory function for cdecl
@@ -364,7 +364,7 @@ instantiation:
 				index 0: 1|2|4: input|output|input defaults 0
 				index 1: param name as string
 				index 2: default value for parameter
-		
+
 ex:
 	from ctypes import c_int, WINFUNCTYPE, windll
 	from ctypes.wintypes import HWND, LPCSTR, UINT

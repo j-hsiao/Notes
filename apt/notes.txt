@@ -1,15 +1,15 @@
 apt/apt-get, package manager on ubuntu
 
 apt-get remove --purge
-  --purge: also remove config files
+	--purge: also remove config files
 
 apt <purge|purge|install>
 apt list
 
 
 dpkg -P <package>
-  remove(purge) a package, will also print why something cannot
-  be removed if some reason
+	remove(purge) a package, will also print why something cannot
+	be removed if some reason
 
 dpkg -i <local .deb file>
-  install from a local .deb file
+	install from a local .deb file

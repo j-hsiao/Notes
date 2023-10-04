@@ -2,994 +2,993 @@ ______________________________
 contents
 
 -0- general
-  -0.1- logic
-  -0.2- variable
-    -0.2.1- strings
-    -0.2.2- numbers
-    -0.2.3- arrays
-    -0.2.4- ANSI-C quoting
-  -0.3- functions
-  -0.4- pattern matching
-  -0.5- shopt
-  -0.6- brace expansion
-  -0.7- configuration files
-  -0.8- inputs
-  -0.9- redirection
+	-0.1- logic
+	-0.2- variable
+		-0.2.1- strings
+		-0.2.2- numbers
+		-0.2.3- arrays
+		-0.2.4- ANSI-C quoting
+	-0.3- functions
+	-0.4- pattern matching
+	-0.5- shopt
+	-0.6- brace expansion
+	-0.7- configuration files
+	-0.8- inputs
+	-0.9- redirection
 -1- regexp
 -2- completion
 -3- ps1 (prompt)
 -4- various utilities
-  -4.1- text manipulation
-    -4.1.1- cut
-    -4.1.2- cut
-    -4.1.3- sed
-    -4.1.4- grep
-  -4.2- drives and devices
-    4.1.1- lsblk
-    4.1.2- blkid
-    4.1.3- df
-    4.1.4- mount
-    4.1.5- umount
-  -4.69- others
-    -4.69.1- shuf
-    -4.69.2- tput
+	-4.1- text manipulation
+		-4.1.1- cut
+		-4.1.2- cut
+		-4.1.3- sed
+		-4.1.4- grep
+	-4.2- drives and devices
+		4.1.1- lsblk
+		4.1.2- blkid
+		4.1.3- df
+		4.1.4- mount
+		4.1.5- umount
+	-4.69- others
+		-4.69.1- shuf
+		-4.69.2- tput
 
 ______________________________
 -0- general
-  ______________________________
-  -0.1- logic
-    if command; then <do stuff; and more stuff; ...;> fi
+	______________________________
+	-0.1- logic
+		if command; then <do stuff; and more stuff; ...;> fi
 
-    while command; do <stuff; and morestuff; ...;> done
+		while command; do <stuff; and morestuff; ...;> done
 
-    for var in <sequence of items by ifs>; do <stuff; and more stuff...;> done
+		for var in <sequence of items by ifs>; do <stuff; and more stuff...;> done
 
-    case <pat> in
-      pat)
-        stuffs
-        ;; (break)
-      pat)
-        stuffs
-        ;& (fall through, only bash 4.0+)
-      *)
-        etc
-    esac
-    (see -0.4- pattern matching)
+		case <pat> in
+			pat)
+				stuffs
+				;; (break)
+			pat)
+				stuffs
+				;& (fall through, only bash 4.0+)
+			*)
+				etc
+		esac
+		(see -0.4- pattern matching)
 
-  ______________________________
-  -0.2- variables
-    general note:
-      using * and @ result in all relevant items.
-      However, putting the thing into double quotes,
-      * becomes a single item whereas @ preserves
-      identity of each item
-      eg:
-        a=("this" "contains" "something with a space")
-        >>> printf '%s\n' "${a[@]}"
-        this
-        contains
-        something with a space
-        >>> printf '%s\n' "${a[*]}"
-        this contains something with a space
+	______________________________
+	-0.2- variables
+		general note:
+			using * and @ result in all relevant items.
+			However, putting the thing into double quotes,
+			* becomes a single item whereas @ preserves
+			identity of each item
+			eg:
+				a=("this" "contains" "something with a space")
+				>>> printf '%s\n' "${a[@]}"
+				this
+				contains
+				something with a space
+				>>> printf '%s\n' "${a[*]}"
+				this contains something with a space
 
-      if parameter is array-like, operations are usually
-      applied to each item in the array
+			if parameter is array-like, operations are usually
+			applied to each item in the array
 
-    creation:
-      declare varname
-      varname=value
-    deletion:
-      unset varname
-    expansions:
-      normal expansion:
-        ${varname}
-      indirect expansion:
-        ${!varContainingVarName}
-          NOTE: only 1 level of indirection is allowed
-          save to tempvariable and reuse for more levels
-          It does not work on arrays
-      existence/emptiness expansions:
-        If : is omitted, check only for existence or not
-        otherwise, check for non-emptiness (undefined = empty)
+		creation:
+			declare varname
+			varname=value
+		deletion:
+			unset varname
+		expansions:
+			normal expansion:
+				${varname}
+			indirect expansion:
+				${!varContainingVarName}
+					NOTE: only 1 level of indirection is allowed
+					save to tempvariable and reuse for more levels
+					It does not work on arrays
+			existence/emptiness expansions:
+				If : is omitted, check only for existence or not
+				otherwise, check for non-emptiness (undefined = empty)
 
-        ${var:-word}    replace with word if unset or empty
-        ${var:=word}    assign word to var if unset or empty
-        ${var:?words}   print words to stderr and (exit if not interactive)
-        ${var:+word}    replace with word if not (unset or empty)
+				${var:-word}    replace with word if unset or empty
+				${var:=word}    assign word to var if unset or empty
+				${var:?words}   print words to stderr and (exit if not interactive)
+				${var:+word}    replace with word if not (unset or empty)
 
-        if var is array-like, operates on entire concatenated str
+				if var is array-like, operates on entire concatenated str
 
-      slicing (substring/subarray expansion):
-        ${param:offset[:length]}
-        offset/length are arithmetic expressions and expanded as such
-        negative values are indices from end of var
-        offset >= 0 = number of chars
-        offset < 0 = end position (exclusive)
-          need a space to avoid :- existence/emptiness expansions
-          if using literal negative values
+			slicing (substring/subarray expansion):
+				${param:offset[:length]}
+				offset/length are arithmetic expressions and expanded as such
+				negative values are indices from end of var
+				offset >= 0 = number of chars
+				offset < 0 = end position (exclusive)
+					need a space to avoid :- existence/emptiness expansions
+					if using literal negative values
 
-        If param is arraylike, then operate on items instead of chars.
-          Also, negative length is not allowed.
+				If param is arraylike, then operate on items instead of chars.
+					Also, negative length is not allowed.
 
-      key/idx/prefix expansions
-        ${!prefix*}
-        ${!prefix@}
-          sequence of varnames that begin with prefix
+			key/idx/prefix expansions
+				${!prefix*}
+				${!prefix@}
+					sequence of varnames that begin with prefix
 
-        ${!arrname[@]}
-        ${!arrname[*]}
-          sequence of keys/indices for the arrays
+				${!arrname[@]}
+				${!arrname[*]}
+					sequence of keys/indices for the arrays
 
-      length expansion
-        ${#param}       number of characters
-                        number of items if param is an array-like
-                        (eg @, *, arr[@], arr[*]...)
-      deletion expansion
-        see also -0.4- pattern matching
-        ${param#pattern}        delete from beginning (shortest)
-        ${param##pattern}       delete from beginning (longest)
-        ${param%pattern}        delete from end (shortest)
-        ${param%%pattern}       delete from end (longest)
+			length expansion
+				${#param}       number of characters
+				                number of items if param is an array-like
+				                (eg @, *, arr[@], arr[*]...)
+			deletion expansion
+				see also -0.4- pattern matching
+				${param#pattern}        delete from beginning (shortest)
+				${param##pattern}       delete from beginning (longest)
+				${param%pattern}        delete from end (shortest)
+				${param%%pattern}       delete from end (longest)
 
-      substitution expansion
-        like regex but pattern matching instead
-        ${parameter/pattern/replacement}        single replacement
-        ${parameter//pattern/replacement}       global replacement
-        ${parameter/#pattern/replacement}       at beginning
-        ${parameter/%pattern/replacement}       at end
+			substitution expansion
+				like regex but pattern matching instead
+				${parameter/pattern/replacement}        single replacement
+				${parameter//pattern/replacement}       global replacement
+				${parameter/#pattern/replacement}       at beginning
+				${parameter/%pattern/replacement}       at end
 
-        If the /replacement is omitted, matches are deleted instead
-      case expansion
-        ${parameter^pattern}
-        ${parameter^^pattern}
-        ${parameter,pattern}
-        ${parameter,,pattern}
+				If the /replacement is omitted, matches are deleted instead
+			case expansion
+				${parameter^pattern}
+				${parameter^^pattern}
+				${parameter,pattern}
+				${parameter,,pattern}
 
-        pattern should be single-char, and if omitted, defaults to ?
+				pattern should be single-char, and if omitted, defaults to ?
 
-    ______________________________
-    -0.2.1- strings
-      operations
-        version 5.1+
-          ${var@op}
-            ops:
-              U to uppercase
-              u capitalized
-              L to lowercase
-              Q quoted format (like printf %q)
-              E expand backslash escape sequences
-              P expand as if prompt string
-              A creation command to recreate the var
-              K same as Q except arrays->quoted key value pairs
-              a "string consisting of flag values representing parameter's attributes"
+		______________________________
+		-0.2.1- strings
+			operations
+				version 5.1+
+					${var@op}
+						ops:
+							U to uppercase
+							u capitalized
+							L to lowercase
+							Q quoted format (like printf %q)
+							E expand backslash escape sequences
+							P expand as if prompt string
+							A creation command to recreate the var
+							K same as Q except arrays->quoted key value pairs
+							a "string consisting of flag values representing parameter's attributes"
 
-    ______________________________
-    -0.2.2- numbers
+		______________________________
+		-0.2.2- numbers
 
-    ______________________________
-    -0.2.3- arrays
-      index arrays (int keys)
-        creation:
-          name[subscript]=value           create array+initialize single value
-          declare -a name                 create empty array
-          declare -a name[subscript]      same as above
-          name=(val1 val2 val3 ...)       create/initialize array
-          name=([key]=val [key]=val)      if key omitted, then place val
-                                          after previous item in list
-      adding items
-        arr+=(stuff to append to arr)
+		______________________________
+		-0.2.3- arrays
+			index arrays (int keys)
+				creation:
+					name[subscript]=value           create array+initialize single value
+					declare -a name                 create empty array
+					declare -a name[subscript]      same as above
+					name=(val1 val2 val3 ...)       create/initialize array
+					name=([key]=val [key]=val)      if key omitted, then place val
+					                                after previous item in list
+			adding items
+				arr+=(stuff to append to arr)
 
-      associative arrays (str keys)
-        declare -A name                   associative array
-        name=(key val key val...)         odd number assumes last value is empty str
-        name=([key]=val [key]=val)
+			associative arrays (str keys)
+				declare -A name                   associative array
+				name=(key val key val...)         odd number assumes last value is empty str
+				name=([key]=val [key]=val)
 
-      indexing:
-        subscripts are treated as arithmetic expressions
-          ex:
-            a=1
-            ${arr[a]} is the same as ${arr[$a]}
-        (as if within $[])
-        @ as subscript = all (separate words) * = all(single word)
-        (index arrays only)
-          negative indices are incremented by maxidx+1 (-1 = last item)
+			indexing:
+				subscripts are treated as arithmetic expressions
+					ex:
+						a=1
+						${arr[a]} is the same as ${arr[$a]}
+				(as if within $[])
+				@ as subscript = all (separate words) * = all(single word)
+				(index arrays only)
+					negative indices are incremented by maxidx+1 (-1 = last item)
 
-      getting info:
-        get keys/idxs:
-          ${!arr[@]}
-        get number of items (regardless of contiguity)
-          ${#arr[@]}
+			getting info:
+				get keys/idxs:
+					${!arr[@]}
+				get number of items (regardless of contiguity)
+					${#arr[@]}
 
-      deleting items
-        unset arr[idxOrKey]
+			deleting items
+				unset arr[idxOrKey]
 
-    ______________________________
-    -0.2.4- ANSI-C quoting
-      Not really a variable, but putting it here because similar syntax
-      Ansi quoted strings:
-        escapes:
-          $'\escape'
-          ex:
-            $'\r\n'
-        byte:
-          $'\ooo'         octal (1-3 digits)
-          $'\xhh'         hex (1-2 digits)
-          $'\uhhhh'       unicode hex (1-4 digits)
-          $'\Uhhhhhhhh'   unicode hex (1-8 digits)
-        control sequence:
-          $'\cx'          control+x
+		______________________________
+		-0.2.4- ANSI-C quoting
+			Not really a variable, but putting it here because similar syntax
+			Ansi quoted strings:
+				escapes:
+					$'\escape'
+					ex:
+						$'\r\n'
+				byte:
+					$'\ooo'         octal (1-3 digits)
+					$'\xhh'         hex (1-2 digits)
+					$'\uhhhh'       unicode hex (1-4 digits)
+					$'\Uhhhhhhhh'   unicode hex (1-8 digits)
+				control sequence:
+					$'\cx'          control+x
 
-  ______________________________
-  -0.3- functions
-    defining functions:
-      [function] funcname() {
-        body
-      }
-      (function keyword is optional)
+	______________________________
+	-0.3- functions
+		defining functions:
+			[function] funcname() {
+				body
+			}
+			(function keyword is optional)
 
-    functions run in the current shell (its variables will bleed out
-    to caller, unless declared as local)
-      arguments are same as scripts, ${1-9}, ${@}, shift, etc
-
-
-  ______________________________
-  -0.4- pattern matching
-    *: any length of any char
-    ?: any single char
-    [...]: any enclosed char
-      ranges are allowed (ascii)
-      negated with ! or ^
-      -: must be 1st or last to match
-      ]: must be first to match
-      character classes:
-        alnum   cntrl   print   word
-        alpha   digit   punct   xdigit
-        ascii   graph   space
-        blank   lower   upper
-      [=<thing>=]: equivalence class (eg. a or accented a, etc)
-      [.<thing>.]: collating class (like the ae in encyclopaedia)
-
-    extended pattern matching
-      requires shopt extglob
-      ?(pattern-list)   zero or one of patterns
-      *(pattern-list)   zero+ of patterns
-      +(pattern-list)   one+ of patterns
-      @(patternlist)    exactly one of patterns
-      !(pattern-list)   none of patterns
-
-  ______________________________
-  -0.5- shopt
-    (shell options) optional shell behavior
-    shopt [-pqsu] -o [optname...]
-      -s        set
-      -u        unset
-      -q        quiet, use returncode to check status
-      -p        print options
-      -o        restrict to set -o values
-
-    options:
-      assoc_expand_once
-      autocd                    use directories as cd
-      cdable_vars
-      cdspell                   allow minor mispelling for cd
-      checkhash
-      checkjobs
-      checkwinsize
-      cmdhist
-      compat[31|32|40|41|42|43|44]      compatibility modes
-      complete_fullquote
-      direxpand
-      dirspell
-      dotglob                   include .files in globbing
-      execfail
-      expand_aliases
-      extdebug
-      extglob                   extended pattern matching
-      extquote
-      failglob                  unmatched patterns result in error
-      force_fignore
-      globasciiranges
-      globstar
-      gnuerrfmt
-      histappend
-      histreedit
-      histverify
-      hostcomplete
-      huponexit
-      inherit_errexit
-      interactive_comments
-      lastpipe
-      lithist
-      localvar_inherit
-      localvar_unset
-      login_shell
-      mailwarn
-      no_empty_cmd_completion
-      nocaseglob
-      nocasematch
-      nullglob
-      progcomp
-      progcomp_alias
-      promptvars
-      restricted_shell
-      shift_verbose
-      sourcepath
-      xpg_echo
-  ______________________________
-  -0.6- brace expansion
-    brace expansion generates sequences and is performed FIRST
-    before anything else
-    {a,b,...}:    repeat expression replacing with each a,b,...
-    {a..b[..c]}:  iterate from a to b with step c if given, else 1
-                  negative values work, step is abs-valued and direction
-                  is determined by a to b.  {0..-10..2} will expand to
-                  0, -2, -4 ... -10 bounds are inclusive.
-                  prefixing with 0 will cause 0-padding for numbers
-    ie:
-    ls /some/dir/{a,*.x} -> ls /some/dir/a /some/dir/*.x
-    and then /some/dir/*.x will be globbed
-
-    nesting is allowed:
-      {a{1..3},b{2..3}} -> a1 a2 a3 b2 b3
-  ______________________________
-  -0.7- configuration files
-    LOGIN shell: login from somewhere else
-      /etc/profile
-      first of:
-        ~/.bash_profile
-        ~/.bash_login
-        ~/.profile
-
-    else if NON-LOGIN interactive shell: takes user input
-      reads the .bashrc
-
-    ONLY 1 file is sourced.
-    the login files generally should set up the environment.
-    interactive (.bashrc) should set up interaction:
-      color
-      aliases
-    Because only 1 is sourced, login shells do not automatically
-    source .bashrc even if they are also interactive.  This is why
-    .profile/.bash_profile by default usually source .bashrc.
-
-    summary:
-      in .bashrc: check if interactive, return otherwise:
-        [ -z "${PS1}" ] && return
-          or
-        [[ "$-" = *i* ]] || return
-      in .profile, set your environment vars and add:
-        if [ "$BASH" ] && [ -f ~/.bashrc ]; then . ~/.bashrc; fi
-      In .bash_profile you can just source .profile, add any
-        bash-unique settings or whatever.  Otherwise, you could also
-        just delete this since .profile will be used in that case.
-  ______________________________
-  -0.8- inputs
-    read varname
-      useful options:
-        -u(fd)  read from filedescriptor instead (needs to end with
-                delimeter (default newline))
-    readarray arrayname
-      read items into an array
-      useful options:
-        -t  trim the delimiter
-
-    heredocs
-      someCommand << FILE_DELIMITER_OF_YOUR_CHOICE
-      text etc
-      can also use variables:
-      $var1
-      FILE_DELIMITER_OF_YOUR_CHOICE
-
-      NOTE:
-        if vars are in quotes, will not expand
-    herestring
-      someCommand <<< stringvalue_or_dereference
-      *NOTE:
-          herestring causes a new-line to be appended to the end
-          use echo -n if you don't want that
-
-    command substitution
-      `command`
-      $(command)
-
-    process substitution
-      <(bash script)   treat output of command as a file/stream
-      example:
-        code:
-          cat <( echo hello
-          echo goodbye
-          )
-        result:
-          hello
-          goodbye
-        code:
-          cat <( echo hello \
-          echo goodbye
-          )
-        result:
-          hello echo goodbye
-
-  ______________________________
-  -0.9- redirection
-    syntax:
-      [dst][direction] [src]
-        dst:
-          blank:        defaults to stdin if reading, stdout if writing
-          fd
-          {varname}     if opening: allocate an fd>10 and assign to varname
-                        if closing: close the fd named by varname
-                        redirection persists past command
-                        (must manually manage)
-        direction:
-            <           read
-            >           write
-            >|          clobber write
-            &>          both stderr and stdout
-            >>          append data
-            &>>         append both stderr and stdout
-            <>          both input/output (use > to close)
-            <<[-]word   heredoc, word is delimiter. If with -, ignore leading TABS
-            <<<         herestring
-
-        src:
-          ${varname}    value of var
-          filename
-          &fd
-          &${var}     value of var as fd
-          &-    (closes the dst)
-          &fd-  move the file descriptor
-            NOTE: spaces are allowed between & and the following value
-                but not before.
-          special filenames:
-            /dev/stdin
-            /dev/stdout
-            /dev/stderr
-            /dev/fd/<fd>
-            /dev/tcp/host/port
-            /dev/udp/host/port
-    examples:
-      {fd}<>myfile      open myfile for reading and save to variable "fd"
-      >&"${fd}"         use fd as stdout
-      {fd}<&-           close fd
-
-    Create redirection in the current shell:
-      exec <redirection expression>
-    NOTE: while, for, if, until blocks can also have redirection
-          just add the redirection after the closing line of the block
+		functions run in the current shell (its variables will bleed out
+		to caller, unless declared as local)
+			arguments are same as scripts, ${1-9}, ${@}, shift, etc
 
 
-    ______________________________
-    output
-      SRC>DEST
-        SRC:
-          & : stdout and stderr
-          FD: a filedescriptor (0-9)
-          empty : defaults to 1 (stdout)
-        DEST:
-          FNAME : a file name
-          &FD   : to file descriptor
-    ______________________________
-    input
-      DEST<SRC
-        DEST:
-          FD : a file descriptor (0-9) for the file
-        SRC:
-          FNAME: a file name
-    ______________________________
-    pipe
-      CMD1 | CMD2   redirects cmd1 stdout to cmd2 stdin
-      CMD1 |& CMD2  redirects cmd1 stdout+stderr to cmd2 stdin
-    ______________________________
-    input/output redirection is NOT recursive.
-      1>2 2>something
-        1 is stdout, 2 is stderr
-        1 redirects to 2 (which is currently stderr)
-        2 redirects to something (a file)
-        processes' stdout goes to stderr and stderr goes to something
-      2>something 1>2
-        1 is stdout, 2 is stderr
-        2 redirects to something
-        1 redirects to 2, (which is currently something)
-        processes' stdout and stderr both go to something
-    ______________________________
-    exec
-      exec 
-        dst
-          defaults to stdin if direction is <
-          defaults to stdout if direction is >
-        direction
-          < for read
-          > for write
-          <> for both
-        src
-          a filename
-          a process substitution
-          &fd
-          &-    close the fd (to close read+write fd, just use > instead of <>)
+	______________________________
+	-0.4- pattern matching
+		*: any length of any char
+		?: any single char
+		[...]: any enclosed char
+			ranges are allowed (ascii)
+			negated with ! or ^
+			-: must be 1st or last to match
+			]: must be first to match
+			character classes:
+				alnum   cntrl   print   word
+				alpha   digit   punct   xdigit
+				ascii   graph   space
+				blank   lower   upper
+			[=<thing>=]: equivalence class (eg. a or accented a, etc)
+			[.<thing>.]: collating class (like the ae in encyclopaedia)
+
+		extended pattern matching
+			requires shopt extglob
+			?(pattern-list)   zero or one of patterns
+			*(pattern-list)   zero+ of patterns
+			+(pattern-list)   one+ of patterns
+			@(patternlist)    exactly one of patterns
+			!(pattern-list)   none of patterns
+
+	______________________________
+	-0.5- shopt
+		(shell options) optional shell behavior
+		shopt [-pqsu] -o [optname...]
+			-s        set
+			-u        unset
+			-q        quiet, use returncode to check status
+			-p        print options
+			-o        restrict to set -o values
+
+		options:
+			assoc_expand_once
+			autocd                    use directories as cd
+			cdable_vars
+			cdspell                   allow minor mispelling for cd
+			checkhash
+			checkjobs
+			checkwinsize
+			cmdhist
+			compat[31|32|40|41|42|43|44]      compatibility modes
+			complete_fullquote
+			direxpand
+			dirspell
+			dotglob                   include .files in globbing
+			execfail
+			expand_aliases
+			extdebug
+			extglob                   extended pattern matching
+			extquote
+			failglob                  unmatched patterns result in error
+			force_fignore
+			globasciiranges
+			globstar
+			gnuerrfmt
+			histappend
+			histreedit
+			histverify
+			hostcomplete
+			huponexit
+			inherit_errexit
+			interactive_comments
+			lastpipe
+			lithist
+			localvar_inherit
+			localvar_unset
+			login_shell
+			mailwarn
+			no_empty_cmd_completion
+			nocaseglob
+			nocasematch
+			nullglob
+			progcomp
+			progcomp_alias
+			promptvars
+			restricted_shell
+			shift_verbose
+			sourcepath
+			xpg_echo
+	______________________________
+	-0.6- brace expansion
+		brace expansion generates sequences and is performed FIRST
+		before anything else
+		{a,b,...}:    repeat expression replacing with each a,b,...
+		{a..b[..c]}:  iterate from a to b with step c if given, else 1
+		              negative values work, step is abs-valued and direction
+		              is determined by a to b.  {0..-10..2} will expand to
+		              0, -2, -4 ... -10 bounds are inclusive.
+		              prefixing with 0 will cause 0-padding for numbers
+		ie:
+		ls /some/dir/{a,*.x} -> ls /some/dir/a /some/dir/*.x
+		and then /some/dir/*.x will be globbed
+
+		nesting is allowed:
+			{a{1..3},b{2..3}} -> a1 a2 a3 b2 b3
+	______________________________
+	-0.7- configuration files
+		LOGIN shell: login from somewhere else
+			/etc/profile
+			first of:
+				~/.bash_profile
+				~/.bash_login
+				~/.profile
+
+		else if NON-LOGIN interactive shell: takes user input
+			reads the .bashrc
+
+		ONLY 1 file is sourced.
+		the login files generally should set up the environment.
+		interactive (.bashrc) should set up interaction:
+			color
+			aliases
+		Because only 1 is sourced, login shells do not automatically
+		source .bashrc even if they are also interactive.  This is why
+		.profile/.bash_profile by default usually source .bashrc.
+
+		summary:
+			in .bashrc: check if interactive, return otherwise:
+				[ -z "${PS1}" ] && return
+					or
+				[[ "$-" = *i* ]] || return
+			in .profile, set your environment vars and add:
+				if [ "$BASH" ] && [ -f ~/.bashrc ]; then . ~/.bashrc; fi
+			In .bash_profile you can just source .profile, add any
+				bash-unique settings or whatever.  Otherwise, you could also
+				just delete this since .profile will be used in that case.
+	______________________________
+	-0.8- inputs
+		read varname
+			useful options:
+				-u(fd)  read from filedescriptor instead (needs to end with
+				        delimeter (default newline))
+		readarray arrayname
+			read items into an array
+			useful options:
+				-t  trim the delimiter
+
+		heredocs
+			someCommand << FILE_DELIMITER_OF_YOUR_CHOICE
+			text etc
+			can also use variables:
+			$var1
+			FILE_DELIMITER_OF_YOUR_CHOICE
+
+			NOTE:
+				if vars are in quotes, will not expand
+		herestring
+			someCommand <<< stringvalue_or_dereference
+			*NOTE:
+			    herestring causes a new-line to be appended to the end
+			    use echo -n if you don't want that
+
+		command substitution
+			`command`
+			$(command)
+
+		process substitution
+			<(bash script)   treat output of command as a file/stream
+			example:
+				code:
+					cat <( echo hello
+					echo goodbye
+					)
+				result:
+					hello
+					goodbye
+				code:
+					cat <( echo hello \
+					echo goodbye
+					)
+				result:
+					hello echo goodbye
+
+	______________________________
+	-0.9- redirection
+		syntax:
+			[dst][direction] [src]
+				dst:
+					blank:        defaults to stdin if reading, stdout if writing
+					fd
+					{varname}     if opening: allocate an fd>10 and assign to varname
+					              if closing: close the fd named by varname
+					              redirection persists past command
+					              (must manually manage)
+				direction:
+				    <           read
+				    >           write
+				    >|          clobber write
+				    &>          both stderr and stdout
+				    >>          append data
+				    &>>         append both stderr and stdout
+				    <>          both input/output (use > to close)
+				    <<[-]word   heredoc, word is delimiter. If with -, ignore leading TABS
+				    <<<         herestring
+
+				src:
+					${varname}    value of var
+					filename
+					&fd
+					&${var}     value of var as fd
+					&-    (closes the dst)
+					&fd-  move the file descriptor
+						NOTE: spaces are allowed between & and the following value
+						    but not before.
+					special filenames:
+						/dev/stdin
+						/dev/stdout
+						/dev/stderr
+						/dev/fd/<fd>
+						/dev/tcp/host/port
+						/dev/udp/host/port
+		examples:
+			{fd}<>myfile      open myfile for reading and save to variable "fd"
+			>&"${fd}"         use fd as stdout
+			{fd}<&-           close fd
+
+		Create redirection in the current shell:
+			exec <redirection expression>
+		NOTE: while, for, if, until blocks can also have redirection
+		      just add the redirection after the closing line of the block
+
+
+		______________________________
+		output
+			SRC>DEST
+				SRC:
+					& : stdout and stderr
+					FD: a filedescriptor (0-9)
+					empty : defaults to 1 (stdout)
+				DEST:
+					FNAME : a file name
+					&FD   : to file descriptor
+		______________________________
+		input
+			DEST<SRC
+				DEST:
+					FD : a file descriptor (0-9) for the file
+				SRC:
+					FNAME: a file name
+		______________________________
+		pipe
+			CMD1 | CMD2   redirects cmd1 stdout to cmd2 stdin
+			CMD1 |& CMD2  redirects cmd1 stdout+stderr to cmd2 stdin
+		______________________________
+		input/output redirection is NOT recursive.
+			1>2 2>something
+				1 is stdout, 2 is stderr
+				1 redirects to 2 (which is currently stderr)
+				2 redirects to something (a file)
+				processes' stdout goes to stderr and stderr goes to something
+			2>something 1>2
+				1 is stdout, 2 is stderr
+				2 redirects to something
+				1 redirects to 2, (which is currently something)
+				processes' stdout and stderr both go to something
+		______________________________
+		exec
+			exec
+				dst
+					defaults to stdin if direction is <
+					defaults to stdout if direction is >
+				direction
+					< for read
+					> for write
+					<> for both
+				src
+					a filename
+					a process substitution
+					&fd
+					&-    close the fd (to close read+write fd, just use > instead of <>)
 
 ______________________________
 -1-regexp
-  ______________________________
-  basic
-    char: itself
-    *: sequence of 0 or more of previous expr
+	______________________________
+	basic
+		char: itself
+		*: sequence of 0 or more of previous expr
 
-    .: anything
-    ^: beginning if at beginning, else a ^
-    $: end of line (if at end)
-    [list]: any char in list
-    [^list]: anything not in list
+		.: anything
+		^: beginning if at beginning, else a ^
+		$: end of line (if at end)
+		[list]: any char in list
+		[^list]: anything not in list
 
-    GNU extensions:
-    \+ : same as * but 1 or more
-    \? : 0 or 1
-    \{n\}: match n repetitions
-    \{n,m\}: match between n and m repetitions
-    \{n,\}: n or more repetitions
-    \(regexp\): group
-    reg1\|reg2: or
-    \number   : n = 1-9, match previous group
-    \n        : newline
-    \char     : if char is special, use char, else
-                use \char
+		GNU extensions:
+		\+ : same as * but 1 or more
+		\? : 0 or 1
+		\{n\}: match n repetitions
+		\{n,m\}: match between n and m repetitions
+		\{n,\}: n or more repetitions
+		\(regexp\): group
+		reg1\|reg2: or
+		\number   : n = 1-9, match previous group
+		\n        : newline
+		\char     : if char is special, use char, else
+		            use \char
 
-  ______________________________
-  extended regexp
-    ?, +, {}, (), | have special meaning by default
-                    (need to backslash if want it to be literal)
-                    (basic: need to backslash for special meaning)
+	______________________________
+	extended regexp
+		?, +, {}, (), | have special meaning by default
+		                (need to backslash if want it to be literal)
+		                (basic: need to backslash for special meaning)
 
-  ______________________________
-  special classes
-    [[:special_class:]]
-    classes:
-      alnum: alphanumerics
-      alpha: alphabetical
-      blank: space/tab
-      cntrl: control characters (ascii 000-037, 177 etc)
-      digit: digits
-      graph: graphical (alnum + punct)
-      lower: lowercase
-      pirnt: printable
-      punct: ascii punctuation
-      space: space (tabs, formfeed, newlines, etc)
-      upper: uppercase
-      xdigit: hexdigits
+	______________________________
+	special classes
+		[[:special_class:]]
+		classes:
+			alnum: alphanumerics
+			alpha: alphabetical
+			blank: space/tab
+			cntrl: control characters (ascii 000-037, 177 etc)
+			digit: digits
+			graph: graphical (alnum + punct)
+			lower: lowercase
+			pirnt: printable
+			punct: ascii punctuation
+			space: space (tabs, formfeed, newlines, etc)
+			upper: uppercase
+			xdigit: hexdigits
 
-  ______________________________
-  extensions
-    \w: word
-    \W: non-word
-    \b: word boundary
-    \B: not word-boundary
-    \s: whitespace
-    \S: not whitespace
-    \<: word start
-    \>: word end
-    \`: start of pattern space (multiline, only 1st line whereas ^ is all lines)
+	______________________________
+	extensions
+		\w: word
+		\W: non-word
+		\b: word boundary
+		\B: not word-boundary
+		\s: whitespace
+		\S: not whitespace
+		\<: word start
+		\>: word end
+		\`: start of pattern space (multiline, only 1st line whereas ^ is all lines)
 
-  ______________________________
-  escapes:
-    \a: bell
-    \f: form feed
-    \n: newline
-    \r: carriage return
-    \t: tab
-    \v: vertical tab
-    \cx: control-x
-    \dxxx: decimal value (binary)
-    \o: octal value (binary)
-    \b: backspace (but conflicts with above \b so excluded for sed)
+	______________________________
+	escapes:
+		\a: bell
+		\f: form feed
+		\n: newline
+		\r: carriage return
+		\t: tab
+		\v: vertical tab
+		\cx: control-x
+		\dxxx: decimal value (binary)
+		\o: octal value (binary)
+		\b: backspace (but conflicts with above \b so excluded for sed)
 
 ______________________________
 -2- completion
 https://www.gnu.org/software/bash/manual/html_node/Programmable-Completion-Builtins.html
-    code into ~/.bash_completion
-    use command name to determine completion for arguments
+	code into ~/.bash_completion
+	use command name to determine completion for arguments
 
-    Note that command name can also be an alias to activate completions
-    for same command under different situations by using an alias instead.
+	Note that command name can also be an alias to activate completions
+	for same command under different situations by using an alias instead.
 
-    completion priority order:
-        1: 
-            if empty:
-                use any with -E option
-            if a path:
-                use for corresponding path
-                use any with -D option
-        2: glob expansions
-        3: -w options (split by IFS, expanded etc)
-        4: functions with -F invoked
-        5: functions with -C invoked
-        6: filtered with -X option
-        7: prefix/suffix from -P and -S added to candidates
-        8: if no candidates, -o dirnames supplied to complete,
-            directory completion attempted
-    ______________________________
-    builtins:
-    compgen [option] [word]
-        print completions for word
-    complete [-abcdefgjksuv (these are -A <action> shortcuts] [-o comp-option] [-DEI]
-        [-A action] [-G globpat]
-        [ -W wordlist ] [-F function] [-C command] [-X filterpat]
-        [-P prefix] [-S suffix] -pr [-DEI] [name...]
+	completion priority order:
+		1:
+			if empty:
+				use any with -E option
+			if a path:
+				use for corresponding path
+				use any with -D option
+		2: glob expansions
+		3: -w options (split by IFS, expanded etc)
+		4: functions with -F invoked
+		5: functions with -C invoked
+		6: filtered with -X option
+		7: prefix/suffix from -P and -S added to candidates
+		8: if no candidates, -o dirnames supplied to complete,
+			directory completion attempted
+	______________________________
+	builtins:
+	compgen [option] [word]
+		print completions for word
+	complete [-abcdefgjksuv (these are -A <action> shortcuts] [-o comp-option] [-DEI]
+		[-A action] [-G globpat]
+		[ -W wordlist ] [-F function] [-C command] [-X filterpat]
+		[-P prefix] [-S suffix] -pr [-DEI] [name...]
 
-    options:
-        -o <comp-option>
-            bashdefault: use default when no matches
-            default: use readline's filename when no matches
-            dirnames: use dirname when no matches
-            filenames: specify completions are filenames (so process like filenames), used with -F
-            noquote: don't quote if filenames
-            nosort: don't sort
-            nospace: don't append space to end of the completion
-                     ie: | is the cursor
-                        cmd arg[tab] -> cmd complete|
-                        vs
-                        cmd arg[tab] -> cmd complete |
-            plusdirs: add dir completion
-        -p: print to reuse as input
-        -r: remove specification for each name
-        -D: default completion
-        -E: empty completion
-        -I: initial non-assignment word or after delim (like ;, |)
-            -DEI is order of precedence
-        -A action
-            Some actions have short-flags that can be used instead
+	options:
+		-o <comp-option>
+			bashdefault: use default when no matches
+			default: use readline's filename when no matches
+			dirnames: use dirname when no matches
+			filenames: specify completions are filenames (so process like filenames), used with -F
+			noquote: don't quote if filenames
+			nosort: don't sort
+			nospace: don't append space to end of the completion
+			         ie: | is the cursor
+			            cmd arg[tab] -> cmd complete|
+			            vs
+			            cmd arg[tab] -> cmd complete |
+			plusdirs: add dir completion
+		-p: print to reuse as input
+		-r: remove specification for each name
+		-D: default completion
+		-E: empty completion
+		-I: initial non-assignment word or after delim (like ;, |)
+			-DEI is order of precedence
+		-A action
+			Some actions have short-flags that can be used instead
 
-            alias (-a): alias names
-            arrayvar: array variable names
-            binding: key binding names
-            builtin (-b): names of shell builtin commands
-            command (-c): command names
-            directory(-d): directory names
-            disabled: disabled shell builtins
-            enabled: enabled shell builtins
-            export(-e): exported shell vars
-            file(-f): file names
-            function: shell funcs
-            group(-g): group names
-            helptopic: topics to help
-            hostname: hostname from file specified by HOSTFILE var
-            job(-j): job names
-            keyword(-k): shell keywords
-            running: running jobs
-            service(-s): service names
-            setopt: valid args to set -o
-            shopt: option names accepted by shopt
-            signal: signal names
-            stopped: stopped jobs
-            user(-u): user names
-            variable(-v): shell vars
-        -C: command to execute in subshell, output = completions
-        -F: bash func called as:
-            [func] [cmd] [word] [preword]
-              func: the function that is registered
-              cmd: the name of the command
-              word: the current word
-              preword: the word before current word
-              ex:
-                  python -m asdf[tab]
-                  -> $1 = python
-                  -> $2 = asdf
-                  -> $3 = -m
-            COMP_LINE: current commandline
-            COMP_POINT: index of cursor relative to beginning
-            COMP_KEY: key used to invoke completion
-            COMP_TYPE: int: type of completion
-                TAB: normal
-                '?': multiple tabs
-                '!': "listing alternatives on partial word completion" ???
-                '@': list completions if word not unmodified
-                '%': menu completion
-            functions only:
-                COMP_WORDS: completion words array
-                COMP_CWORD: current word
-                COMPREPLY : the completion candidates
-        -G pat expand for completions
-        -P: prefix prepended to completion results
-        -S: suffix to append to completion results
-        -W 'wordlist' (split by IFS)
-            list of words split by IFS to be used as completion
-            "Shell quoting is honored within the string, in order to provide a
-            mechanism for the words to contain shell metacharacters or characters
-            in the value of IFS. Each word is then expanded using brace expansion,
-            tilde expansion, parameter and variable expansion, command substitution,
-            and arithmetic expansion, as described above (see Shell Expansions)."
-            basically, can use variables to avoid IFS clashes
+			alias (-a): alias names
+			arrayvar: array variable names
+			binding: key binding names
+			builtin (-b): names of shell builtin commands
+			command (-c): command names
+			directory(-d): directory names
+			disabled: disabled shell builtins
+			enabled: enabled shell builtins
+			export(-e): exported shell vars
+			file(-f): file names
+			function: shell funcs
+			group(-g): group names
+			helptopic: topics to help
+			hostname: hostname from file specified by HOSTFILE var
+			job(-j): job names
+			keyword(-k): shell keywords
+			running: running jobs
+			service(-s): service names
+			setopt: valid args to set -o
+			shopt: option names accepted by shopt
+			signal: signal names
+			stopped: stopped jobs
+			user(-u): user names
+			variable(-v): shell vars
+		-C: command to execute in subshell, output = completions
+		-F: bash func called as:
+			[func] [cmd] [word] [preword]
+			  func: the function that is registered
+			  cmd: the name of the command
+			  word: the current word
+			  preword: the word before current word
+			  ex:
+			      python -m asdf[tab]
+			      -> $1 = python
+			      -> $2 = asdf
+			      -> $3 = -m
+			COMP_LINE: current commandline
+			COMP_POINT: index of cursor relative to beginning
+			COMP_KEY: key used to invoke completion
+			COMP_TYPE: int: type of completion
+				TAB: normal
+				'?': multiple tabs
+				'!': "listing alternatives on partial word completion" ???
+				'@': list completions if word not unmodified
+				'%': menu completion
+			functions only:
+				COMP_WORDS: completion words array
+				COMP_CWORD: current word
+				COMPREPLY : the completion candidates
+		-G pat expand for completions
+		-P: prefix prepended to completion results
+		-S: suffix to append to completion results
+		-W 'wordlist' (split by IFS)
+			list of words split by IFS to be used as completion
+			"Shell quoting is honored within the string, in order to provide a
+			mechanism for the words to contain shell metacharacters or characters
+			in the value of IFS. Each word is then expanded using brace expansion,
+			tilde expansion, parameter and variable expansion, command substitution,
+			and arithmetic expansion, as described above (see Shell Expansions)."
+			basically, can use variables to avoid IFS clashes
 
-            a=$(printf 'hello\nworld')
-            -W '"${a}" other words'-> 3 items
-                1: hello
-                world
-                2: other
-                3: words
-            sidenote: IFS=\n ->
-                IFS='
-                '
-                IFS=$'\n'
-                IFS=$(printf '\n\b')
-        -X: remove matches to pattern
-            prepend with a ! to remove non-matches
-            & is substituted with curword (escape with a \ for literal &)
-    NOTE:
-        pats (-G, -W, -X) should be quoted
+			a=$(printf 'hello\nworld')
+			-W '"${a}" other words'-> 3 items
+				1: hello
+				world
+				2: other
+				3: words
+			sidenote: IFS=\n ->
+				IFS='
+				'
+				IFS=$'\n'
+				IFS=$(printf '\n\b')
+		-X: remove matches to pattern
+			prepend with a ! to remove non-matches
+			& is substituted with curword (escape with a \ for literal &)
+	NOTE:
+		pats (-G, -W, -X) should be quoted
 
-    example using -F method:
-        compfunc () {
-            do stuff
-        }
-        complete -o filenames -o nospace -o bashdefault -F compfunc cd
+	example using -F method:
+		compfunc () {
+		    do stuff
+		}
+		complete -o filenames -o nospace -o bashdefault -F compfunc cd
 ______________________________
 -3- ps1 (prompt)
-  escapes:
-    \a          bell
-    \d          date (weekday, month, date)
-    \D{format}  date format (strftime)
-    \e          escape (033)
-    \h          hostename to first .
-    \H          host name
-    \j          current number of jobs
-    \l          shell device name
-    \n          new line
-    \r          carriage return
-    \s          name of shell
-    \t          time HH:MM:SS (24hr)
-    \T          \t, (12hr)
-    \@          HH:MM (12hr)
-    \A          HH:MM 24hr
-    \u          username
-    \v          bash version
-    \w          working directory
-    \W          basename of working dir
-    \!          history number for this command
-    \#          command number of command
-    \$          # if uid 0 (root) else $
-    \nnn        octal character code
-    \\          backslash
-    \[          begin non-printing characters
-    \]          end non-printing characters
-    \e[stuff    code for formating color, bold, underline, etc
-      \033[stuff
-                stuff:
-                  [code];[code]...m
+	escapes:
+		\a          bell
+		\d          date (weekday, month, date)
+		\D{format}  date format (strftime)
+		\e          escape (033)
+		\h          hostename to first .
+		\H          host name
+		\j          current number of jobs
+		\l          shell device name
+		\n          new line
+		\r          carriage return
+		\s          name of shell
+		\t          time HH:MM:SS (24hr)
+		\T          \t, (12hr)
+		\@          HH:MM (12hr)
+		\A          HH:MM 24hr
+		\u          username
+		\v          bash version
+		\w          working directory
+		\W          basename of working dir
+		\!          history number for this command
+		\#          command number of command
+		\$          # if uid 0 (root) else $
+		\nnn        octal character code
+		\\          backslash
+		\[          begin non-printing characters
+		\]          end non-printing characters
+		\e[stuff    code for formating color, bold, underline, etc
+			\033[stuff
+			          stuff:
+			            [code];[code]...m
 
-      (use echo -e to check colors)
-      note: \[ and \] should be used around the color code stuff
+			(use echo -e to check colors)
+			note: \[ and \] should be used around the color code stuff
 
-  format codes:
-    \e codes
-      0         full reset
+	format codes:
+		\e codes
+			0         full reset
 
-      1         bold
-      2         dim
-      4         underlined
-      5         blink
-      7         reverse (foreground/background)
-      8         hidden (passwords)
+			1         bold
+			2         dim
+			4         underlined
+			5         blink
+			7         reverse (foreground/background)
+			8         hidden (passwords)
 
-     2X         reset corresponding value 1-8
+			2X        reset corresponding value 1-8
 
-  color codes:
-    XY          X: foreground/background, light/dark
-                                dark      light
-                foreground      3         9
-                background      4         10
+	color codes:
+		XY          X: foreground/background, light/dark
+		                            dark      light
+		            foreground      3         9
+		            background      4         10
 
 
-                Y: color
-                0   black
-                1   red
-                2   green
-                3   yellow
-                4   blue
-                5   magenta
-                6   cyan
-                7   white
-                9   default
+		            Y: color
+		            0   black
+		            1   red
+		            2   green
+		            3   yellow
+		            4   blue
+		            5   magenta
+		            6   cyan
+		            7   white
+		            9   default
 
-    38;5;X      88/256 color for foreground, X = 1-256 (no leading 0)
-    48;5;X      88/256 color for background, X = 1-256 (no leading 0)
+		38;5;X      88/256 color for foreground, X = 1-256 (no leading 0)
+		48;5;X      88/256 color for background, X = 1-256 (no leading 0)
 ______________________________
 -4- various utilities
-  ______________________________
-  -4.1- text manipulation
-    ______________________________
-    -4.1.1- cut
-      cut columns
-      cut -d ''   use null as delimiter (can use $'\0' too if supported)
-    ______________________________
-    -4.1.2- paste
-      join files as columns
+	______________________________
+	-4.1- text manipulation
+		______________________________
+		-4.1.1- cut
+			cut columns
+			cut -d ''   use null as delimiter (can use $'\0' too if supported)
+		______________________________
+		-4.1.2- paste
+			join files as columns
 
-    ______________________________
-    -4.1.3- sed
-      ______________________________
-      options:
-        -n, --quiet, --silent
-          suppress output
+		______________________________
+		-4.1.3- sed
+			______________________________
+			options:
+				-n, --quiet, --silent
+					suppress output
 
-        -e
-          script expression
+				-e
+					script expression
 
-        -f
-          script file
+				-f
+					script file
 
-        -i
-          edit in-place
+				-i
+					edit in-place
 
-        -l N
-          length for l command
+				-l N
+					length for l command
 
-        -b, --binary
-          binary mode
+				-b, --binary
+					binary mode
 
-        -E, -r, --regexp-extended
-          extended regexps
+				-E, -r, --regexp-extended
+					extended regexps
 
-      ______________________________
-      script:
-        [addr]X[options]
-        ______________________________
-        addr:
-          optional
-          indicate range in file to operate on (inclusive)
-          format = START,STOP
-            possible values:
-            integer: line number n (start at 1)
-          /exp/f      : exp = regexp (all lines that match),
-                          NOTE:
-                          / can also be any \char ie
-                          \;regexp;
-                        f: GNU extension
-                           I: case insensitive
-                           M: multiline
+			______________________________
+			script:
+				[addr]X[options]
+				______________________________
+				addr:
+					optional
+					indicate range in file to operate on (inclusive)
+					format = START,STOP
+						possible values:
+						integer: line number n (start at 1)
+					/exp/f      : exp = regexp (all lines that match),
+					                NOTE:
+					                / can also be any \char ie
+					                \;regexp;
+					              f: GNU extension
+					                 I: case insensitive
+					                 M: multiline
 
-          !           : not in address space
-                        ie:
-                          1,5!p (don't print lines 1-5)
-          n~step      : start at n, then take steps
-        ______________________________
-        commands:
-          q             : quit (only takes a single address)
-          s/a/b/f       : substitute a with b, flags = flags
-                          /: usually /, but can actually be any character
-                             (will need \ if want to use it in expression or replacement)
-                          a: regexp expression
-                          b: can contain \N: N=1-9 reference to previous \(\) match
-                                         & : whole matched portion
-                                         GNU sed extension:
-                                         \L: lowercase until \U or \E
-                                         \l: next into lowercase
-                                         \U: upper until \L or \E
-                                         \u: next to uppercase
-                                         \E: stop case conversion
-                          f: flags
-                             g      : globally
-                             n      : a number, replace the nth match
-                             P      : print new pattern space
-                             w fname: write to filename
-                             i/I    : case insensitive
-                             m      : GNU extension, multiline
+					!           : not in address space
+					              ie:
+					                1,5!p (don't print lines 1-5)
+					n~step      : start at n, then take steps
+				______________________________
+				commands:
+					q             : quit (only takes a single address)
+					s/a/b/f       : substitute a with b, flags = flags
+					                /: usually /, but can actually be any character
+					                   (will need \ if want to use it in expression or replacement)
+					                a: regexp expression
+					                b: can contain \N: N=1-9 reference to previous \(\) match
+					                               & : whole matched portion
+					                               GNU sed extension:
+					                               \L: lowercase until \U or \E
+					                               \l: next into lowercase
+					                               \U: upper until \L or \E
+					                               \u: next to uppercase
+					                               \E: stop case conversion
+					                f: flags
+					                   g      : globally
+					                   n      : a number, replace the nth match
+					                   P      : print new pattern space
+					                   w fname: write to filename
+					                   i/I    : case insensitive
+					                   m      : GNU extension, multiline
 
-          a text        : append text after line
-          c text        : replace region with text
-          i text        : insert text before line
-          F             : print filename of current file
-          w fname       : write patternspace to filename
-          z             : empty pattern space
-          {cmd1;cmd2...}: group of commands (use same address space)
-          y/a/b/        : like tr (ab = string of chars)
-                          if char == a[i], then replace with b[i]
-          l n           : print unambiguously (blankspace print with escaped values), n = wrap length
-                          n = GNU sed extension
-          r fname       : insert file contents
+					a text        : append text after line
+					c text        : replace region with text
+					i text        : insert text before line
+					F             : print filename of current file
+					w fname       : write patternspace to filename
+					z             : empty pattern space
+					{cmd1;cmd2...}: group of commands (use same address space)
+					y/a/b/        : like tr (ab = string of chars)
+					                if char == a[i], then replace with b[i]
+					l n           : print unambiguously (blankspace print with escaped values), n = wrap length
+					                n = GNU sed extension
+					r fname       : insert file contents
 
-          #pattern-space related
-          d             : delete pattern space
-          g             : replace patternspace with hold space
-          h             : reploace hold with patternspace
-          n             : replace patternspace with next line of input
-          p             : print pattern space
+					#pattern-space related
+					d             : delete pattern space
+					g             : replace patternspace with hold space
+					h             : reploace hold with patternspace
+					n             : replace patternspace with next line of input
+					p             : print pattern space
 
-          D             : delete patternspace up to first newline
-          G             : appends line from hold space to pattern space with newline before it
-          H             : appends line from patternspace to hold space with newline before it
-          N             : appends next line from file with \nbefore it
-          P             : prints line from patternspace til first newline
+					D             : delete patternspace up to first newline
+					G             : appends line from hold space to pattern space with newline before it
+					H             : appends line from patternspace to hold space with newline before it
+					N             : appends next line from file with \nbefore it
+					P             : prints line from patternspace til first newline
 
-      ______________________________
-      execution
-        2 data buffers: "pattern space", "hold space"
-        steps:(in python)
-        f = file(fname, 'r')
-        pattern = ''
-        hold = ''
-        while more_lines():
-            l = f.readline()
-            pattern = l.strip()
-            execute_commands(pattern_space)
-    ______________________________
-    -4.1.4- grep
-      --color=auto
-      see -4-regexp
-      -A[n] print n lines after matches
-      -B[n] print n lines before matches
+			______________________________
+			execution
+				2 data buffers: "pattern space", "hold space"
+				steps:(in python)
+				f = file(fname, 'r')
+				pattern = ''
+				hold = ''
+				while more_lines():
+				    l = f.readline()
+				    pattern = l.strip()
+				    execute_commands(pattern_space)
+		______________________________
+		-4.1.4- grep
+			--color=auto
+			see -4-regexp
+			-A[n] print n lines after matches
+			-B[n] print n lines before matches
 
-      useful options:
-        -v: inverted search (print things that don't match)
-        -F: interpret pattern as list of literal string patterns
-        -f: use file to get patterns
-        -x: match entire line (automatically surround pattern with ^$)
-        -i: ignore case
-        -n: line number
-        -r: recursive
-        -m: max-matches
-        -z: change entire file into a single line
+			useful options:
+				-v: inverted search (print things that don't match)
+				-F: interpret pattern as list of literal string patterns
+				-f: use file to get patterns
+				-x: match entire line (automatically surround pattern with ^$)
+				-i: ignore case
+				-n: line number
+				-r: recursive
+				-m: max-matches
+				-z: change entire file into a single line
 
-      can also use with find to make it recursive and control depth:
-      find . -maxdepth blah -mindepth 1 -type f -exec 'grep pattern {}'
-      grep pattern $(find . -maxdepth blah -mindepth 1 -type f)
-  ______________________________
-  -4.2- drives and devices
-    ______________________________
-    -4.1.1- lsblk
-      lsblk: list block devices
-    ______________________________
-    -4.1.2- blkid
-      blkid: list blkid (UUID, partition types etc
-         can use for editing /etc/fstab
+			can also use with find to make it recursive and control depth:
+			find . -maxdepth blah -mindepth 1 -type f -exec 'grep pattern {}'
+			grep pattern $(find . -maxdepth blah -mindepth 1 -type f)
+	______________________________
+	-4.2- drives and devices
+		______________________________
+		-4.1.1- lsblk
+			lsblk: list block devices
+		______________________________
+		-4.1.2- blkid
+			blkid: list blkid (UUID, partition types etc
+			   can use for editing /etc/fstab
 
-         fstab:
-             entry:
-                 device   mountpoint   filesystemType   options  dump  pass
-                     device (/dev/XXX or UUID=SOME_BLOCK_DEVICES_UUID_NO_QUOTES)
-                     mountpoint a path in the file system (/media/myblkdevice)
-                     filesystemType: like nfat, ntfs, ext4, vfat, auto, etc
-                     options: see below
-                     dump: enable/disable backups (0 is usual (disabled))
-                     pass: fsck check partition for errors on boot?
-                           root device = 1, other = 2(if check) or 0 (don't check)
+			   fstab:
+			       entry:
+			           device   mountpoint   filesystemType   options  dump  pass
+			               device (/dev/XXX or UUID=SOME_BLOCK_DEVICES_UUID_NO_QUOTES)
+			               mountpoint a path in the file system (/media/myblkdevice)
+			               filesystemType: like nfat, ntfs, ext4, vfat, auto, etc
+			               options: see below
+			               dump: enable/disable backups (0 is usual (disabled))
+			               pass: fsck check partition for errors on boot?
+			                     root device = 1, other = 2(if check) or 0 (don't check)
 
-                 options:
-                     defaults    : (rw, suid, dev, exec, auto, nouser, async
-                     sync/async  : how IO to filesystem should be done
-                     auto/noauto : fs is automatically mounted on boot
-                     dev/nodev   : interp or don't interp block special devices on filesystem
-                     suid/nosuid : permit/block suid and sgid bits operations
-                     ro          : mount read-only
-                     rw          : mount read-write
-                     user        : any user can mount filesystem (implies noexec, nosuid, nodev)
-                     nouser      : only root can mount
+			           options:
+			               defaults    : (rw, suid, dev, exec, auto, nouser, async
+			               sync/async  : how IO to filesystem should be done
+			               auto/noauto : fs is automatically mounted on boot
+			               dev/nodev   : interp or don't interp block special devices on filesystem
+			               suid/nosuid : permit/block suid and sgid bits operations
+			               ro          : mount read-only
+			               rw          : mount read-write
+			               user        : any user can mount filesystem (implies noexec, nosuid, nodev)
+			               nouser      : only root can mount
 
-    ______________________________
-    -4.1.3- df
-      df: show disk info
-    ______________________________
-    -4.1.4- mount
-      mount: (sudo only)
-             ex: mkdir mountpoint1
-                 sudo mount device_from_lsblk mountpoint1
-             (can now access device_from_lsblk at mountpoint1,
-              such as usb etc)
-    ______________________________
-    -4.1.5- umount
-      umount
+		______________________________
+		-4.1.3- df
+			df: show disk info
+		______________________________
+		-4.1.4- mount
+			mount: (sudo only)
+			       ex: mkdir mountpoint1
+			           sudo mount device_from_lsblk mountpoint1
+			       (can now access device_from_lsblk at mountpoint1,
+			        such as usb etc)
+		______________________________
+		-4.1.5- umount
+			umount
 
-  ______________________________
-  -4.69- others
-    ______________________________
-    -4.69.1- shuf
-      shuf->shuffle lines in a file (ex training list)
+	______________________________
+	-4.69- others
+		______________________________
+		-4.69.1- shuf
+			shuf->shuffle lines in a file (ex training list)
 
-    ______________________________
-    -4.69.2- tput
-      ncurses tool for interacting with terminal
+		______________________________
+		-4.69.2- tput
+			ncurses tool for interacting with terminal
 
-      tput <command>
+			tput <command>
 
-        longname      print long name of terminal
-        lines         number of lines
-        cols          number of cols
-        colors        number of colors
-
+				longname      print long name of terminal
+				lines         number of lines
+				cols          number of cols
+				colors        number of colors

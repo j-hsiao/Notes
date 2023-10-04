@@ -1,8 +1,8 @@
 -0- general
 -1- setup.py
-  -1.1- writing setup.py
-  -1.2- using setup.py
-  -1.3- dependencies
+	-1.1- writing setup.py
+	-1.2- using setup.py
+	-1.3- dependencies
 -2- config
 -3- manifest
 -4- extending distutils
@@ -14,337 +14,337 @@
 
 ______________________________
 -0- general
-  Modules are created with distutils:
-  ______________________________
-  terms
-    pure python module: a .py file
-    extension module:   a shared lib (.so, .pyd, ...)
-    package:            a dir of modules
+	Modules are created with distutils:
+	______________________________
+	terms
+		pure python module: a .py file
+		extension module:   a shared lib (.so, .pyd, ...)
+		package:            a dir of modules
 
-  others:
-    wheel format:
-      1. setuptools, not distutils
-      2. pip install wheel
-      (or pip install build and then python -m build)
+	others:
+		wheel format:
+			1. setuptools, not distutils
+			2. pip install wheel
+			(or pip install build and then python -m build)
 
-      This creates a wheel(built) and a tar.gz/zip (source) dist files.
+			This creates a wheel(built) and a tar.gz/zip (source) dist files.
 
 ______________________________
 -1- setup.py
-  ______________________________
-  -1.1- writing setup.py
-    NOTE: windows python2.7 testing, seems everything MUST be below
-      the setup.py directory.  It seems to copy everything into a
-      temp dir and then do the install.  As a result, using a ..
-      path causes the dir to not be found.  os.getcwd() is also the
-      temp dir so no way to get the original dir.
-      __init__.py is always added if it exists and any py file is
-      added within the same dir.  (MANIFEST.in exclude command
-      does not exclude the __init__.py from being added)
+	______________________________
+	-1.1- writing setup.py
+		NOTE: windows python2.7 testing, seems everything MUST be below
+			the setup.py directory.  It seems to copy everything into a
+			temp dir and then do the install.  As a result, using a ..
+			path causes the dir to not be found.  os.getcwd() is also the
+			temp dir so no way to get the original dir.
+			__init__.py is always added if it exists and any py file is
+			added within the same dir.  (MANIFEST.in exclude command
+			does not exclude the __init__.py from being added)
 
 
-    import distutil
-    from distutils.core import setup
-      or
-    from setuptools import setup
+		import distutil
+		from distutils.core import setup
+			or
+		from setuptools import setup
 
-    setup(...)
-      kwargs:
-        py_modules=[...]
-          list of python modules (module notation, not file)
-          These are the names that you would use when importing it
-          post-install.  The default is to search in the same dir
-          as the setup.py.  The search dirs can be modified with the
-          package_dir argument below.  There is NO need to add the 
-          the __init__.py modules.  __main__.py WILL require adding
-          explicitly here (unless you use packages instead)
-        packages=[...]
-          Similar to py_modules, but list the packages instead.  Any .py
-          files IMMEDIATELY under these packages will be added.  NO SUB
-          PACKAGES WILL BE PROCESSED.  These must be listed separately.
-        package_dir={'install_package_name': 'source_directory'}
-          package: dirname, an empty package = the "root" package,
-          prefixed to all packages.
-        ext_modules: [distutils.core.Extension(...),...]
-          Extension('name', ['source... filenames'])
-            swig_opts=['',...]
-              swig options to use swig (.i) files
-            include_dirs=[''...]
-              include directories for compilation
-            define_macros=[(name,value),...]
-              macros to define:
-                '#define {0} {1}'.format(tup).
-                '#define {0}' if tup[1] is None
-            undef_macros['',...]
-              macros to undef
-        ext_package='name'
-          prefix package for all ext_modules
-        libraries=['',...]
-          libraries to link to
-        library_dirs[''...]
-          directories for link libraries.
-        extra_compile_args=['',...]
-          ...
-        extra_link_args=['',...]
-          ...
-        depends=['',...]
-          list of filename dependencies.
-          recompile if any of these change.
-        requires=[''...]
-          'name[<!=>version,...]
-          NOTE:
-            for setuptools' setup(), install_requires may be preferred.
-            when built with install_requires, pip will actually install
-            these requirements when installing the wheel.  Note:
-            using python setup.py install doesn't check python version
-            and will result in trying to install incompatible versions.
-            Using pip install . actually does those checks.  If using
-            install_requires, then using pip is preferred.
-        provides=['',...]
-          python module/package
-          'pkg' or 'pkg (major.minor)'
-        obsolete=['',...]
-          same format as provides
-        scripts=['',...]
-          list of python scripts to install
-        package_data={'pkgname':'glob'}
-          list of package data files
-        data_files=[('installdir', ['fnames'...])...]
-          extra files to install as is
+		setup(...)
+			kwargs:
+				py_modules=[...]
+					list of python modules (module notation, not file)
+					These are the names that you would use when importing it
+					post-install.  The default is to search in the same dir
+					as the setup.py.  The search dirs can be modified with the
+					package_dir argument below.  There is NO need to add the
+					the __init__.py modules.  __main__.py WILL require adding
+					explicitly here (unless you use packages instead)
+				packages=[...]
+					Similar to py_modules, but list the packages instead.  Any .py
+					files IMMEDIATELY under these packages will be added.  NO SUB
+					PACKAGES WILL BE PROCESSED.  These must be listed separately.
+				package_dir={'install_package_name': 'source_directory'}
+					package: dirname, an empty package = the "root" package,
+					prefixed to all packages.
+				ext_modules: [distutils.core.Extension(...),...]
+					Extension('name', ['source... filenames'])
+						swig_opts=['',...]
+							swig options to use swig (.i) files
+						include_dirs=[''...]
+							include directories for compilation
+						define_macros=[(name,value),...]
+							macros to define:
+								'#define {0} {1}'.format(tup).
+								'#define {0}' if tup[1] is None
+						undef_macros['',...]
+							macros to undef
+				ext_package='name'
+					prefix package for all ext_modules
+				libraries=['',...]
+					libraries to link to
+				library_dirs[''...]
+					directories for link libraries.
+				extra_compile_args=['',...]
+					...
+				extra_link_args=['',...]
+					...
+				depends=['',...]
+					list of filename dependencies.
+					recompile if any of these change.
+				requires=[''...]
+					'name[<!=>version,...]
+					NOTE:
+						for setuptools' setup(), install_requires may be preferred.
+						when built with install_requires, pip will actually install
+						these requirements when installing the wheel.  Note:
+						using python setup.py install doesn't check python version
+						and will result in trying to install incompatible versions.
+						Using pip install . actually does those checks.  If using
+						install_requires, then using pip is preferred.
+				provides=['',...]
+					python module/package
+					'pkg' or 'pkg (major.minor)'
+				obsolete=['',...]
+					same format as provides
+				scripts=['',...]
+					list of python scripts to install
+				package_data={'pkgname':'glob'}
+					list of package data files
+				data_files=[('installdir', ['fnames'...])...]
+					extra files to install as is
 
-        name=''
-          This is the name for pip install/uninstall, but not necessarily
-          import.
-        version=''
-        author=''
-        author_email='
-        maintainer=''
-        maintainer_email=''
-        url=''
-        description=''
-        long_description=''
-        download_url=''
-        classifiers=['',...]
-        platforms=['',...]
-        keywords=['',...]
-        license=''
+				name=''
+					This is the name for pip install/uninstall, but not necessarily
+					import.
+				version=''
+				author=''
+				author_email='
+				maintainer=''
+				maintainer_email=''
+				url=''
+				description=''
+				long_description=''
+				download_url=''
+				classifiers=['',...]
+				platforms=['',...]
+				keywords=['',...]
+				license=''
 
-    set DISTUTILS_DEBUG to non-empty for debug info.
+		set DISTUTILS_DEBUG to non-empty for debug info.
 
-  ______________________________
-  -1.2- using setup.py
-    python setup.py args...
-    python setup.py -h
+	______________________________
+	-1.2- using setup.py
+		python setup.py args...
+		python setup.py -h
 
-    notable options:
-      --dry-run     don't actually do anything
-      --help-commands
+		notable options:
+			--dry-run     don't actually do anything
+			--help-commands
 
-    commands:
-      build             build everything needed to install
-      build_py          "build" pure Python modules (copy to build directory)
-      build_ext         build C/C++ extensions (compile/link to build directory)
-      build_clib        build C/C++ libraries used by Python extensions
-      build_scripts     "build" scripts (copy and fixup #! line)
-      clean             clean up temporary files from 'build' command
-      install           install everything from build directory
-      install_lib       install all Python modules (extensions and pure Python)
-      install_headers   install C/C++ header files
-      install_scripts   install scripts (Python or otherwise)
-      install_data      install data files
-      sdist             create a source distribution (tarball, zip file, etc.)
-                            --formats=gztar,zip,...
-      register          register the distribution with the Python package index
-      bdist             create a built (binary) distribution
-      bdist_dumb        create a "dumb" built distribution
-      bdist_rpm         create an RPM distribution
-      bdist_wininst     create an executable installer for MS Windows
-      upload            upload binary package to PyPI
-      check             perform some checks on the package
+		commands:
+			build             build everything needed to install
+			build_py          "build" pure Python modules (copy to build directory)
+			build_ext         build C/C++ extensions (compile/link to build directory)
+			build_clib        build C/C++ libraries used by Python extensions
+			build_scripts     "build" scripts (copy and fixup #! line)
+			clean             clean up temporary files from 'build' command
+			install           install everything from build directory
+			install_lib       install all Python modules (extensions and pure Python)
+			install_headers   install C/C++ header files
+			install_scripts   install scripts (Python or otherwise)
+			install_data      install data files
+			sdist             create a source distribution (tarball, zip file, etc.)
+			                      --formats=gztar,zip,...
+			register          register the distribution with the Python package index
+			bdist             create a built (binary) distribution
+			bdist_dumb        create a "dumb" built distribution
+			bdist_rpm         create an RPM distribution
+			bdist_wininst     create an executable installer for MS Windows
+			upload            upload binary package to PyPI
+			check             perform some checks on the package
 
-  ______________________________
-  -1.3- dependencies
-    see also -1.1- install_requires
-      install_requires format is a list of strings:
-        'project-name' (you would pip install <project-name>)
-        'project-name @ uri[@tag][#fragment[&more&fragments...]]' (specify uri)
-          This is called a "direct reference" (pep 440).  The url plays
-          the role of the version specifier.
-          file://c:/some/path/on/windows
-          file://[machine share ip]/some/path/on/
-          file://[host]/some/path/on/unix
-          uris:
-            <vcs>+<protocol>:url
-            examples:
-              git+https://[user[:password]@]github.com/j-hsiao/misc.git
-                Note also, password can be an app password.
-                might be good to use in the install_requires or something
-              git+file://C/local/git/repo
-              git+ssh://[git@]github.com/j-hsiao/misc.git
-                for ssh, the git@ is unnecessary if specified
-                in ~/.ssh/config
-                NOTE: if ssh key file has a password,
-                this will faill. pip WILL NOT ask for the ssh key
-                password.
-            file://abs-path-to-dir-with-setup.py
-              NOTE: file:// is ALWAYS (re)installed.
-              vcs will check versions though.
-              Also, file:// is supposedly abs-path only? BUT trying out
-              using file://relativepath in pyproject.toml seems to work?
-          tags:
-            @branchname
-            @tagname
-            @hash (full hash is preferred)
-          fragments:
-            syntax:
-              <URL>#egg=project_name&subdirectory=relpath2repo
-            egg=project_name
-              This is ignored within setup.py and is only useful for
-              direct pip installing.  (setup.py would have the format
-              "name @ protocol:.../blah.git" so the egg name is already
-              given.
-            subdirectory=relpath2repo
-              name of subdirectory relative to repo root
+	______________________________
+	-1.3- dependencies
+		see also -1.1- install_requires
+			install_requires format is a list of strings:
+				'project-name' (you would pip install <project-name>)
+				'project-name @ uri[@tag][#fragment[&more&fragments...]]' (specify uri)
+					This is called a "direct reference" (pep 440).  The url plays
+					the role of the version specifier.
+					file://c:/some/path/on/windows
+					file://[machine share ip]/some/path/on/
+					file://[host]/some/path/on/unix
+					uris:
+						<vcs>+<protocol>:url
+						examples:
+							git+https://[user[:password]@]github.com/j-hsiao/misc.git
+								Note also, password can be an app password.
+								might be good to use in the install_requires or something
+							git+file://C/local/git/repo
+							git+ssh://[git@]github.com/j-hsiao/misc.git
+								for ssh, the git@ is unnecessary if specified
+								in ~/.ssh/config
+								NOTE: if ssh key file has a password,
+								this will faill. pip WILL NOT ask for the ssh key
+								password.
+						file://abs-path-to-dir-with-setup.py
+							NOTE: file:// is ALWAYS (re)installed.
+							vcs will check versions though.
+							Also, file:// is supposedly abs-path only? BUT trying out
+							using file://relativepath in pyproject.toml seems to work?
+					tags:
+						@branchname
+						@tagname
+						@hash (full hash is preferred)
+					fragments:
+						syntax:
+							<URL>#egg=project_name&subdirectory=relpath2repo
+						egg=project_name
+							This is ignored within setup.py and is only useful for
+							direct pip installing.  (setup.py would have the format
+							"name @ protocol:.../blah.git" so the egg name is already
+							given.
+						subdirectory=relpath2repo
+							name of subdirectory relative to repo root
 
 ______________________________
 -2- config
-  setup.cfg
-  config files that users may need to modify.
-  (raw text, no "str" types or anything etc)
-  syntax:
-    [command]       (see -1.2-)
-    option=value
-    ...
-  eg:
-    [build]
-    build_base=myval
+	setup.cfg
+	config files that users may need to modify.
+	(raw text, no "str" types or anything etc)
+	syntax:
+		[command]       (see -1.2-)
+		option=value
+		...
+	eg:
+		[build]
+		build_base=myval
 
 ______________________________
 -3- manifest
-  specify all files to include
-  MANIFEST.in   template for MANIFEST file.
-                1 command per line:
-                  include *.txt
-                  recursive-include dirname pat pat ...
-                  prune dirname
-  MANIFEST      file of names.
+	specify all files to include
+	MANIFEST.in   template for MANIFEST file.
+	              1 command per line:
+	                include *.txt
+	                recursive-include dirname pat pat ...
+	                prune dirname
+	MANIFEST      file of names.
 
 ______________________________
 -4- extending distutils
-  from distutils.command.module import commmandclass
-  from distutils.core import Command
-    class newclass(commandclass or Command,...):
-      impl
+	from distutils.command.module import commmandclass
+	from distutils.core import Command
+		class newclass(commandclass or Command,...):
+			impl
 
-  setup(cmdclass={'command': cls...},...)
+	setup(cmdclass={'command': cls...},...)
 
 ______________________________
 -5- setuptools (enhanced distutils)
-  from setuptools import setup
-  from setuptools.config import read_configuration
+	from setuptools import setup
+	from setuptools.config import read_configuration
 ______________________________
 -6- namespace packages
-  see also pep420 (for python3.3+)
+	see also pep420 (for python3.3+)
 
-  For packages inside a namespace, when packaging, it is recommended to
-  use namespace.package as the 'name' field in setup() (pep423).  Also,
-  you should not make namespace packages too deep.  If a namespace
-  package is not a top-level package, every package above it must also
-  be a namespace package.  Otherwise, searching will be stopped by those
-  packages.
+	For packages inside a namespace, when packaging, it is recommended to
+	use namespace.package as the 'name' field in setup() (pep423).  Also,
+	you should not make namespace packages too deep.  If a namespace
+	package is not a top-level package, every package above it must also
+	be a namespace package.  Otherwise, searching will be stopped by those
+	packages.
 
-  Note that relative imports are also possible between different packages
-  in the same namespace.  This would allow the namespace to change without
-  having to change all the code.
+	Note that relative imports are also possible between different packages
+	in the same namespace.  This would allow the namespace to change without
+	having to change all the code.
 
-  in namespace:
-    __init__.py:
-      from pkgutil import extend_path
-      __path__ = extend_path(__path__, __name__)
+	in namespace:
+		__init__.py:
+			from pkgutil import extend_path
+			__path__ = extend_path(__path__, __name__)
 
-  recommended to have structure:
-    setup.py
-    root_package_or_namespace
-      subpackages
-      ...
-  (pip install -e seems to require this structure)
+	recommended to have structure:
+		setup.py
+		root_package_or_namespace
+			subpackages
+			...
+	(pip install -e seems to require this structure)
 
-  sidenotes:
-    if python2, then namespace packages require that __init__.py
-    which imports from pkgutil. However, because pip installs
-    it all into the same dir, the __init__.py can clash.  The result
-    is uninstalling one of the packages removes the __init__.py
-    that makes the namespace into a namespace package.  As a result
-    all the other things cannot be used anymore.
-    eg:
-      dir1
-        namespace
-          __init__.py
-          pkg1
-            __init__.py
-            f1.py
-      dir2
-        namespace
-          __init__.py
-          pkg2
-            __init__.py
-            f2.py
+	sidenotes:
+		if python2, then namespace packages require that __init__.py
+		which imports from pkgutil. However, because pip installs
+		it all into the same dir, the __init__.py can clash.  The result
+		is uninstalling one of the packages removes the __init__.py
+		that makes the namespace into a namespace package.  As a result
+		all the other things cannot be used anymore.
+		eg:
+			dir1
+				namespace
+					__init__.py
+					pkg1
+						__init__.py
+						f1.py
+			dir2
+				namespace
+					__init__.py
+					pkg2
+						__init__.py
+						f2.py
 
-      when installing as wheel, namespace will be installed as the
-      same directory., dir1/namespace/__init__.py clashes with
-      dir2/namespace/__init__.py.  As a result, if install dir1 and dir2
-      and then uninstall any of them, namespace/__init__.py will be removed.
-      As a result, the one that is still installed can no longer be used.
+			when installing as wheel, namespace will be installed as the
+			same directory., dir1/namespace/__init__.py clashes with
+			dir2/namespace/__init__.py.  As a result, if install dir1 and dir2
+			and then uninstall any of them, namespace/__init__.py will be removed.
+			As a result, the one that is still installed can no longer be used.
 
-    Because of this, for python < 3.3 namespace packages, I'd probably recommend
-    doing python setup.py install (uses egg, so each dist gets own dir).
-    This allows them all to be independently installed.
-    for python>=3.3, using pip is fine thanks to implicit namespace packages
+		Because of this, for python < 3.3 namespace packages, I'd probably recommend
+		doing python setup.py install (uses egg, so each dist gets own dir).
+		This allows them all to be independently installed.
+		for python>=3.3, using pip is fine thanks to implicit namespace packages
 
 ______________________________
 -7- repositories
-  simplest repo:
-    /reporoot
-      /normalized-name-of-package
-        /somewheelfiles.whl
-        /sometarfiles.tar.gz
-      /normalized-name-of-package-2
-        /somewheelfiles.whl
-        /sometarfiles.tar.gz
-  cd reporoot
-  py -m http.server <port>
-    Note that PEP503 says https, but http seems to work fine...
-    also "SHOULD give a hash" but seems unnecessary
+	simplest repo:
+		/reporoot
+			/normalized-name-of-package
+				/somewheelfiles.whl
+				/sometarfiles.tar.gz
+			/normalized-name-of-package-2
+				/somewheelfiles.whl
+				/sometarfiles.tar.gz
+	cd reporoot
+	py -m http.server <port>
+		Note that PEP503 says https, but http seems to work fine...
+		also "SHOULD give a hash" but seems unnecessary
 
-  now you can:
-    py -m pip install normalized-name-of-package \
-      --extra-index-url 'http://localhost:<port>'
+	now you can:
+		py -m pip install normalized-name-of-package \
+			--extra-index-url 'http://localhost:<port>'
 
-  ______________________________
-  repo structure notes
-    package directories must be normalized names (PEP503):
-      all lowercase, any run of -_. replaced with single -
-      ie:
-        original name: some----____.._.--..__.-package
-        normalized name: some-package
-    package files:
-      Files within the package directory don't need to use the
-      normalized name.  They can be generated with:
-        py -m pip wheel -w /reporoot/normalized-name
+	______________________________
+	repo structure notes
+		package directories must be normalized names (PEP503):
+			all lowercase, any run of -_. replaced with single -
+			ie:
+				original name: some----____.._.--..__.-package
+				normalized name: some-package
+		package files:
+			Files within the package directory don't need to use the
+			normalized name.  They can be generated with:
+				py -m pip wheel -w /reporoot/normalized-name
 
-      If the directory does not exist, it will be created.
+			If the directory does not exist, it will be created.
 
-    If you change a package name (in setup.py), make sure you:
-      update any install_requires of dependent packages.
-      uninstall/delete any alternative names/build products
+		If you change a package name (in setup.py), make sure you:
+			update any install_requires of dependent packages.
+			uninstall/delete any alternative names/build products
 
 ______________________________
 -8- pip
-  pip install -e <identifier> installs in editable mode.
-  for vcs (git, etc), it will download and install it 
-  into cwd/src/project or venvpath/src/project
-  This path can be changed with --src.  Otherwise, build in
-  a temp dir and install it normally
+	pip install -e <identifier> installs in editable mode.
+	for vcs (git, etc), it will download and install it
+	into cwd/src/project or venvpath/src/project
+	This path can be changed with --src.  Otherwise, build in
+	a temp dir and install it normally
 
 ______________________________
 -9- extensions
@@ -356,7 +356,7 @@ ______________________________
 		undef_macros:["macroname"...]
 		library_dirs: ["dirs"...]
 		libraries: ["libnames (not path/file)"...]
-	
+
 	NOTE:
 		If a module is precompiled, you cannot install it
 		by py_modules.  You must use package_data.

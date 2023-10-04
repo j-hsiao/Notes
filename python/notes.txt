@@ -16,7 +16,7 @@ interpreter:
 
 
 pip install -e = install as links to the source code
-  (can edit source code and import without having to reinstall)
+	(can edit source code and import without having to reinstall)
 
 Tkinter
 blah
@@ -24,30 +24,30 @@ blah
 ------------------------------
 -0- general
 ------------------------------
-  help(something): display help on that something
-    (docstrings)
-  dir(something): display variables/methods, etc
-  vars(something): display variables (something.__dict__)
+	help(something): display help on that something
+		(docstrings)
+	dir(something): display variables/methods, etc
+	vars(something): display variables (something.__dict__)
 
 ------------------------------
 -1- modules
 ------------------------------
 modules contain __init__.py
 imports can be relative
-  from . import something
-  from .. import something
+	from . import something
+	from .. import something
 
 note, for runtime imports, use __import__:
-  __import__(name, globals={}, locals={}, fromlist=[], level=-1):
-    globals: determine context (subpackages etc)
-    locals: unused
-    fromlist: list of names (emulate from name import ...)
-              or empty list (import name)
-              NOTE: should be list with empty name: ['']
-                if want to import something like 'mod.rt'
-    level: -1: both relative and absolute
-            0: absolute
-           >0: # of parent directories to search relative to cur mod
+	__import__(name, globals={}, locals={}, fromlist=[], level=-1):
+		globals: determine context (subpackages etc)
+		locals: unused
+		fromlist: list of names (emulate from name import ...)
+		          or empty list (import name)
+		          NOTE: should be list with empty name: ['']
+		            if want to import something like 'mod.rt'
+		level: -1: both relative and absolute
+		        0: absolute
+		       >0: # of parent directories to search relative to cur mod
 
 
 for running files inside a module (might use absolute imports)
@@ -56,17 +56,17 @@ ex:
 workingdir = /home
 
 /home
-        /mymod
-                /submodir
-                    bar.py
-                foo.py
+	/mymod
+		/submodir
+			bar.py
+		foo.py
 want to run  mymod/foo.py
 
 in foo.py:
-    from mymod.submodir import bar
+	from mymod.submodir import bar
 
 python mymod/foo.py => error, no module named mymod
-    (because import dir for foo.py is then set to its dir)
+	(because import dir for foo.py is then set to its dir)
 
 instead run:
 python -m mymod.foo
@@ -77,316 +77,316 @@ python -m mymod.foo
 used in with statement
 should have __enter__() and __exit__(exceptionType, exceptionValue, traceback)
 
-    __enter__():
-        return an item to be bound by the with statement
-        with manager as f:   ->    f = manager.__enter__()
-    __exit__(exceptionType, exceptionValue, traceback):
-        all None if no exception
-        return a Truthy value to indicate exception was handled and should not be raised
+	__enter__():
+		return an item to be bound by the with statement
+		with manager as f:   ->    f = manager.__enter__()
+	__exit__(exceptionType, exceptionValue, traceback):
+		all None if no exception
+		return a Truthy value to indicate exception was handled and should not be raised
 ------------------------------
 -3- closure
 ------------------------------
 closures:
-    define functions within a function
-    and call the outer function to get the inner function
-    the inner function has access to variables
-    from within the outer function
-    (but anything else cannot access them directly anyways)
+	define functions within a function
+	and call the outer function to get the inner function
+	the inner function has access to variables
+	from within the outer function
+	(but anything else cannot access them directly anyways)
 
 uses:
-    make things more "private" within python
-    speed
-        speed increases are cited as:
-            no "bound method" creation
-            closure locals access is faster than self
-            no dict access (have to hash keys etc)
+	make things more "private" within python
+	speed
+		speed increases are cited as:
+			no "bound method" creation
+			closure locals access is faster than self
+			no dict access (have to hash keys etc)
 
-        testing results:
+		testing results:
 
-        using simple class with an accessor method times are:
-        (repeat 100, number 100)
-        class implementation
-                class                       closure
+		using simple class with an accessor method times are:
+		(repeat 100, number 100)
+		class implementation
+		        class                       closure
 
-            __init__(self, value):      __init__(self, value):
-                self._x = value             self.x = self.closure(value)
-            def x(self):                def closure(self, value):
-                return self._x              return lambda : value
-
-
-        ______________________________
-        python2
-                                class               closure
-        loading                 0.0004201           0.0004189
-        instantiation           1.5974e-05          3.7909e-05
-        calls                   7.8678e-06          6.9141e-06
+		    __init__(self, value):      __init__(self, value):
+		        self._x = value             self.x = self.closure(value)
+		    def x(self):                def closure(self, value):
+		        return self._x              return lambda : value
 
 
-        analysis:
-            (load is just a 1-time thing across all objects so it is ignored)
-            instantiation:      -2.2e-05
-            calls:              +0.95e-6
+		______________________________
+		python2
+		                        class               closure
+		loading                 0.0004201           0.0004189
+		instantiation           1.5974e-05          3.7909e-05
+		calls                   7.8678e-06          6.9141e-06
 
-            break-even:         ~23.15 accesses??
 
-        conclusion:
-            if object accesses self < 23 (very short-lived), using normal class with self is faster
-            if object accesses self > 23 (long-lived), wrapping internals in closures is faster
+		analysis:
+			(load is just a 1-time thing across all objects so it is ignored)
+			instantiation:      -2.2e-05
+			calls:              +0.95e-6
 
-        ______________________________
-        python3
-                                class               closure
-        loading                 0.0004818           0.0004904
-        instantiation           2.1878e-05          4.5595e-05
-        calls                   1.0176e-05          8.9500e-06
+			break-even:         ~23.15 accesses??
 
-        analysis:
-            (load is just a 1-time thing across all objects so it is ignored)
-            instantiation:      -2.37e-05
-            calls:              +1.06e-06
+		conclusion:
+			if object accesses self < 23 (very short-lived), using normal class with self is faster
+			if object accesses self > 23 (long-lived), wrapping internals in closures is faster
 
-            break-even:         ~22.35 accesses
-        conclusion:
-            same conclusion as above
-    NOTES:
-        loading: creation of the class (importing a file)
-        instantiation: creating an instance of the class
-        calls: calling functions/accessing members of the class
+		______________________________
+		python3
+		                        class               closure
+		loading                 0.0004818           0.0004904
+		instantiation           2.1878e-05          4.5595e-05
+		calls                   1.0176e-05          8.9500e-06
+
+		analysis:
+			(load is just a 1-time thing across all objects so it is ignored)
+			instantiation:      -2.37e-05
+			calls:              +1.06e-06
+
+			break-even:         ~22.35 accesses
+		conclusion:
+			same conclusion as above
+	NOTES:
+		loading: creation of the class (importing a file)
+		instantiation: creating an instance of the class
+		calls: calling functions/accessing members of the class
 
 summary, closure compared to object classes:
                     python2                     python3
-    memory:         closure uses more           closure uses less
-    loading:        closure is slower           closure is faster
-    instantiation   closure is slower           closure is slower
-    calls           closure is faster           closure is faster
+	memory:         closure uses more           closure uses less
+	loading:        closure is slower           closure is faster
+	instantiation   closure is slower           closure is slower
+	calls           closure is faster           closure is faster
 
-    if object is instantiated and then tossed without much use,
-    use object class, otherwise wrapping class internals
-    in closures is faster
+	if object is instantiated and then tossed without much use,
+	use object class, otherwise wrapping class internals
+	in closures is faster
 
-    memory use is about the same, but if a large number of objects are being created,
-    python3 closures are more memory efficient, but python2, closures are less memory efficient
+	memory use is about the same, but if a large number of objects are being created,
+	python3 closures are more memory efficient, but python2, closures are less memory efficient
 
 
 ______________________________
 -4- memoryview
-    memoryview: view of memory without copies
-                much more efficient
-                bytes-like
-                has some issues between python2/3
+	memoryview: view of memory without copies
+	            much more efficient
+	            bytes-like
+	            has some issues between python2/3
 
-                                                    python2             python3
-    b''.join()                                      X                   O
-    memoryview(nparray)                             O                   O
-    np.frombuffer                                   X                   O
-    np.fromstring                                   X                   X
-    memoryview(b'hi')[0]                            b'h'                104
-    memoryview(b'hi') == b'hi'                      O                   O
-    memoryview(b'hi') == bytearray(b'hi')           O                   O
+	                                                python2             python3
+	b''.join()                                      X                   O
+	memoryview(nparray)                             O                   O
+	np.frombuffer                                   X                   O
+	np.fromstring                                   X                   X
+	memoryview(b'hi')[0]                            b'h'                104
+	memoryview(b'hi') == b'hi'                      O                   O
+	memoryview(b'hi') == bytearray(b'hi')           O                   O
 
 ______________________________
 -5- decorator
 
-    decorator: take a func
-        return a new func
+	decorator: take a func
+		return a new func
 
-    functools.wraps
-        adds the original function's docstrings to the wrapped function
+	functools.wraps
+		adds the original function's docstrings to the wrapped function
 
-    class can have a decorator as a method
-    but decorator can't be called directly
-    ie:
-        class name(super):
-            def decorator(func):
-                def decorated(self, *args, **kwargs):
-                    do stuff
-                return decorated
-                
-            @decorator
-            def func(self, stuff):
-                do stuff
+	class can have a decorator as a method
+	but decorator can't be called directly
+	ie:
+		class name(super):
+			def decorator(func):
+			    def decorated(self, *args, **kwargs):
+			        do stuff
+			    return decorated
+
+			@decorator
+			def func(self, stuff):
+			    do stuff
 
 
-    examples:
-        ____________________
-        example1:
-            def bye(func):
-                @wraps(func)
-                def f(*args, **kwargs):
-                    return func(*args, **kwargs) + ', bye.'
-                return f
+	examples:
+		____________________
+		example1:
+			def bye(func):
+			    @wraps(func)
+			    def f(*args, **kwargs):
+			        return func(*args, **kwargs) + ', bye.'
+			    return f
 
-            @bye
-            def somefunc(name):
-                return 'hello {}'.format(name)
+			@bye
+			def somefunc(name):
+			    return 'hello {}'.format(name)
 
-        ____________________
-        example2: decorator just needs to be a function, can be the return of a function call
-            def appender(text):
-                def dec(func):
-                    def decorated(*args, **kwargs):
-                        return ', '.join([func(*args, **kwargs), text])
+		____________________
+		example2: decorator just needs to be a function, can be the return of a function call
+			def appender(text):
+			    def dec(func):
+			        def decorated(*args, **kwargs):
+			            return ', '.join([func(*args, **kwargs), text])
 
-            @appender('bye')
-            def somefunc(name):
-                return 'hello {}'.format(name)
-            
-        ____________________
-        example 3: conditional decorator
-            def conditional_decorate(decorator, boo):
-                return lambda func : decorator(func) if boo else func
+			@appender('bye')
+			def somefunc(name):
+			    return 'hello {}'.format(name)
 
-            @conditional_decorator(bye, True)
-            def somefunc(arg):
-                return arg
-            
+		____________________
+		example 3: conditional decorator
+			def conditional_decorate(decorator, boo):
+			    return lambda func : decorator(func) if boo else func
+
+			@conditional_decorator(bye, True)
+			def somefunc(arg):
+			    return arg
+
 ______________________________
 -6- super
-  super can be used to reach the next class in MRO of self
-  NOTE: super does not necessarily imply inherited class:
-  class a(object):
-    pass
-  class b(object):
-    pass
-  class c(a, b):
-    pass
+	super can be used to reach the next class in MRO of self
+	NOTE: super does not necessarily imply inherited class:
+	class a(object):
+	    pass
+	class b(object):
+	    pass
+	class c(a, b):
+	    pass
 
-  MRO = c, a, b, object
+	MRO = c, a, b, object
 
-  in a, super could be object (if runtime-type is a) or b(if runtime type is c)
-  so if whatever function you are accessing via super takes different args
-  there will be an error
-  ie:
-    a.__init__(self, arg1, arg2):
-      super(a, self).__init__() # might or might not be object.__init__
-    b.__init__(self, arg1):
-      pass
+	in a, super could be object (if runtime-type is a) or b(if runtime type is c)
+	so if whatever function you are accessing via super takes different args
+	there will be an error
+	ie:
+		a.__init__(self, arg1, arg2):
+			super(a, self).__init__() # might or might not be object.__init__
+		b.__init__(self, arg1):
+			pass
 
-    if isinstance(self, c), then the super call in a WILL error out
+		if isinstance(self, c), then the super call in a WILL error out
 
-  that's why:
-    when using super:
-      all functions must have same signature:
-      (generally take only kwargs, kwargs should be mutually exclusive)
+	that's why:
+		when using super:
+			all functions must have same signature:
+			(generally take only kwargs, kwargs should be mutually exclusive)
 
-  super is only helpful in diamond problem
-    in this example, if both a and b call object.__init__
-    then c calls a.__init__ and b.__init__ directly,
-    object.__init__ is called twice
-    note: object.__init__ does nothing so in this case not important
-    but if object was some other class, then it's significant
+	super is only helpful in diamond problem
+		in this example, if both a and b call object.__init__
+		then c calls a.__init__ and b.__init__ directly,
+		object.__init__ is called twice
+		note: object.__init__ does nothing so in this case not important
+		but if object was some other class, then it's significant
 
-  using super will only call each __init__ once
-    but a class cannot assume which class's __init__ is being called
+	using super will only call each __init__ once
+		but a class cannot assume which class's __init__ is being called
 
-  side remark:
-    this is why MixIns generally inherit from object only
-      no diamond problem, (object doesn't really count)
+	side remark:
+		this is why MixIns generally inherit from object only
+			no diamond problem, (object doesn't really count)
 
 ______________________________
 -7- style
-  multiline for:
-    for a in (
-        some super duper wuper kuper fuper long long long
-        long long long long expression):
+	multiline for:
+		for a in (
+		    some super duper wuper kuper fuper long long long
+		    long long long long expression):
 
-        do_some_stuff
+		    do_some_stuff
 
-    for a in (
-            some super duper wuper kuper fuper long long long
-            long long long long expression):
-        do_some_stuff
+		for a in (
+		        some super duper wuper kuper fuper long long long
+		        long long long long expression):
+		    do_some_stuff
 
-    for a in (
-        some super duper wuper kuper fuper long long long
-        long long long long expression
-    ):
-        do_some_stuff
+		for a in (
+		    some super duper wuper kuper fuper long long long
+		    long long long long expression
+		):
+		    do_some_stuff
 
-    for a in (
-        some super duper wuper kuper fuper long long long
-        long long long long expression
-        ):
-        do_some_stuff
+		for a in (
+		    some super duper wuper kuper fuper long long long
+		    long long long long expression
+		    ):
+		    do_some_stuff
 
-    Convention seems to be a, but I think b is actually more readable
-    to me.
-    Argument for A was something like indentation.  de-indent not block, weird
+		Convention seems to be a, but I think b is actually more readable
+		to me.
+		Argument for A was something like indentation.  de-indent not block, weird
 
 
 ______________________________
 -8- zipfile
-  python zipfile module handles zip files.
-  Generally, use zipfile.ZipFile or zipfile.ZipInfo
-  NOTE:
-    ZipFile is a contextmanager
+	python zipfile module handles zip files.
+	Generally, use zipfile.ZipFile or zipfile.ZipInfo
+	NOTE:
+		ZipFile is a contextmanager
 
-  ZipFiles:
-    open a file:
-      zipfile.ZipFile('name/of/zip/file.zip', 'w', ...)
-      zipfile.ZipFile('name/of/zip/file.zip', 'r', ...)
-        compression=[ ZIP_STORED | ZIP_DEFLATED | ZIP_BZIP2 | ZIP_LZMA ]
-          lzma, bz2, or zlib modules must be available for the corresponding
-          compression method.
-        compresslevel
-          0-9 for DEFLATED
-          1-9 for BZIP2
-          otherwise ignored.
-        allowZip64: allow large files.
+	ZipFiles:
+		open a file:
+			zipfile.ZipFile('name/of/zip/file.zip', 'w', ...)
+			zipfile.ZipFile('name/of/zip/file.zip', 'r', ...)
+				compression=[ ZIP_STORED | ZIP_DEFLATED | ZIP_BZIP2 | ZIP_LZMA ]
+					lzma, bz2, or zlib modules must be available for the corresponding
+					compression method.
+				compresslevel
+					0-9 for DEFLATED
+					1-9 for BZIP2
+					otherwise ignored.
+				allowZip64: allow large files.
 
-    add a file to the zip:
-      ZipFile.write('actual/file/on/harddisk', 'name/of/file/in/archive', compress_type=None, compress_level=None)
-      ZipFile.writestr('name/of/file/in/archive', 'data', compress_type=None, compress_level=None)
+		add a file to the zip:
+			ZipFile.write('actual/file/on/harddisk', 'name/of/file/in/archive', compress_type=None, compress_level=None)
+			ZipFile.writestr('name/of/file/in/archive', 'data', compress_type=None, compress_level=None)
 
-      NOTE:
-        directories are just empty "files" whose archive name ends with os.sep
+			NOTE:
+				directories are just empty "files" whose archive name ends with os.sep
 
-      python3:
-        ZipFile.open('file/in/archive', 'w', pwd=None, force_zip64=False)
-          force_zip64 must be True if the data will exceed 2GiB.  If the size
-          is unknown but possibility exists, use True.
-          NOTE:
-            If 'file/in/archive' already exists, then it ADDS a NEW file with
-            the same name (duplicated name).  It DOES NOT edit the already
-            existing file.
+			python3:
+				ZipFile.open('file/in/archive', 'w', pwd=None, force_zip64=False)
+					force_zip64 must be True if the data will exceed 2GiB.  If the size
+					is unknown but possibility exists, use True.
+					NOTE:
+						If 'file/in/archive' already exists, then it ADDS a NEW file with
+						the same name (duplicated name).  It DOES NOT edit the already
+						existing file.
 
-    traverse contents:
-      ZipFile.namelist()
-      ZipFile.infolist()
+		traverse contents:
+			ZipFile.namelist()
+			ZipFile.infolist()
 
-      Zipfiles do not actually have "directories" so everything will be
-      returned in the list regardless of "directory" or not, and not
-      necessarily in directory traversal order.
+			Zipfiles do not actually have "directories" so everything will be
+			returned in the list regardless of "directory" or not, and not
+			necessarily in directory traversal order.
 
-    read a file:
-      with ZipFile.open('file/in/archive', 'r') as f:
-        ...
-      data = ZipFile.read('file/in/archive', pwd=None)
+		read a file:
+			with ZipFile.open('file/in/archive', 'r') as f:
+				...
+			data = ZipFile.read('file/in/archive', pwd=None)
 
-    passwords:
-      ZipFile.setpassword(pwd)
-      password for READING.
+		passwords:
+			ZipFile.setpassword(pwd)
+			password for READING.
 
-    close the file:
-      ZipFile.close()
+		close the file:
+			ZipFile.close()
 
-  ZipInfo:
-    generally received from ZipFile.infolist()
-    attributes:
-      filename: name
-      date_time: datetime tuple
-      compress_type: type of compression
-      comment: ...
-      compress_size: compressed size
-      file_size: uncompressed size
+	ZipInfo:
+		generally received from ZipFile.infolist()
+		attributes:
+			filename: name
+			date_time: datetime tuple
+			compress_type: type of compression
+			comment: ...
+			compress_size: compressed size
+			file_size: uncompressed size
 
-      others...
+			others...
 ______________________________
 -9- python3 differeces
-  python2                       python3
-    str: text and binary        bytes: binary only
-    unicode: explicit text      str: text only
+	python2                       python3
+		str: text and binary        bytes: binary only
+		unicode: explicit text      str: text only
 
-    imports:
-      relative imports are      implicit relative imports are not
-      implicit                  done.
+		imports:
+			relative imports are      implicit relative imports are not
+			implicit                  done.

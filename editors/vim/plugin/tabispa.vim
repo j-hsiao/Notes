@@ -215,15 +215,6 @@ function! s:TabToCol(line, col, ws, txt)
 	endif
 endfunction
 
-" TODO implement a function that
-" converts spaces to tabs
-" 1. use ts value to determine number of spaces to convert to tab
-" 2. Generally speaking, at most 1 unindent or 1 indent between
-"    consecutive lines.  If ts=4, and 4 space indent is followed by N>4
-"    and N!=8, then the spaces after the first 4 spaces are likely
-"    aligning spaces...
-" 3. No need for tabs->spaces because tabs generally wouldn't be placed
-"    on an unaligned column.  The tabs can just be directly replaced.
 function! s:Tabify() range
 	let curline = a:firstline
 	let ws = indent(curline)
@@ -240,11 +231,16 @@ function! s:Tabify() range
 			endif
 		elseif ws == previndent
 			call s:TabToCol(curline, previndent, ws, txt)
-		elseif ws > previndent && ws == previndent + &l:ts || ws < previndent && ws == previndent - &l:ts
+		elseif ws > previndent && ws == previndent + &l:ts || ws < previndent && ws % &l:ts == 0
 			call s:TabToCol(curline, ws, ws, txt)
 			let previndent = ws
 		else
-			call s:TabToCol(curline, previndent, ws, txt)
+			if previndent < ws
+				call s:TabToCol(curline, previndent, ws, txt)
+			else
+				echo "Bad line " . curline . ". Unindented to a non-tabstop (" . ws . ' spaces, ts=' . &l:ts . ')'
+				return
+			endif
 		endif
 		let curline += 1
 	endwhile

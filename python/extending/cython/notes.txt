@@ -1,8 +1,8 @@
 python extension modules:
 options:
-  ctypes
-  cython
-  raw c/c++
+	ctypes
+	cython
+	raw c/c++
 
 http://cython.readthedocs.io/en/latest/src/quickstart/index.html
 http://cython.readthedocs.io/en/latest/src/tutorial/cython_tutorial.html
@@ -83,7 +83,7 @@ ______________________________
 		args:
 			extension name	= 'name_of_extension'
 			source files list = ['file1', 'file2', 'file3'...]
-		kwargs:		 
+		kwargs:
 			swig_opts			= ['opt1', 'opt2'...]
 			include_dirs	= ['dir1', 'dir2'...]
 			define_marcos = [('mac1', v1)...]
@@ -102,10 +102,10 @@ ______________________________
 		its slower with separate files (~60 times slower...)
 		(make sub so don't have to double pointer = ~30x slower... wut)
 	NOTE3:
-		use include "blah.pyx" to get rid of the 30x slower 
+		use include "blah.pyx" to get rid of the 30x slower
 			because different files from NOTE2
 	NOTE4:
-		use cimport instead of import helps a TON for NOTE 2 to 
+		use cimport instead of import helps a TON for NOTE 2 to
 		NOTE3 is still faster than cimport though (but separate files = more
 		maintainability instead of hundreds of thousands of line in a single file)
 		also shorter compile times, don't need to compile everything if make a single
@@ -141,7 +141,7 @@ ______________________________
 		write setup.py with distutils (most common)
 		use pyximport to import .pyx and distutils to compile and build
 		run cython command-line to make .c and then compile
-		
+
 	distutils method:
 		______________________________
 		hello.pyx:
@@ -174,7 +174,7 @@ ______________________________
 ______________________________
 -2.1.3- static typing (c type variables)
 	NOTE: adding typing = harder to read, only use if
-				really going to affect performance
+	      really going to affect performance
 	ex:
 		def f(x):
 		    return x**2 - x
@@ -234,7 +234,7 @@ type-ing process
 	2. check translation
 	   cython -a
 	3. checks:
-	   some defs unnecessary 
+	   some defs unnecessary
 	     (infered based on function return type etc)
 	   integer arithmetic
 	     (in case of overflow, falls back to python big nums)
@@ -276,7 +276,7 @@ ______________________________
 			                         sources=["f1.pyx"]
 			                         libraries=["m"])]
 			setup(ext_modules=cythonize(ext_modules))
-	
+
 ______________________________
 -2.1.6.2- external declarations:
 	if not in a .pxd file, must write it myself:
@@ -285,9 +285,9 @@ ______________________________
 		    double sin(double x)
 		    double e
 		    double cos(double x)
-		    cpdef double acosh(double x) except -1 
+		    cpdef double acosh(double x) except -1
 		    ...
-	
+
 ______________________________
 -2.1.6.3- naming parameters
 cdef extern from "string.h":
@@ -355,7 +355,7 @@ ______________________________
 				cinit:                      init:
 				always called               maybe called
 				self doesn't exist yet      self exists already
-				(so only assign 
+				(so only assign
 				 to cdef fields)
 
 		NOTE2:
@@ -411,8 +411,8 @@ ______________________________
 		add:
 			except [?] val
 	except: exception may happen(only for cdef functions)
-	[?]		: add a ? if val might also be a valid value
-	val		: the value to return to the python caller
+	[?]   : add a ? if val might also be a valid value
+	val   : the value to return to the python caller
 	        as in: if this cdef function errors, immediately return
 	          the exception value (no ?, implies this value is ALWAYS an error when seen by python caller)
 	          when ? is present, then the val MIGHT be a valid value:
@@ -464,7 +464,7 @@ ______________________________
 		cdef class SinOfSquareFunction(Function):
 		    cpdef double evaluate(self, double x) except *:
 		        return sin(x**2)
-	
+
 		def integrate(Function f, double a, double b, int N):
 		    cdef int i
 		    cdef double dx, s = 0
@@ -475,13 +475,13 @@ ______________________________
 		        s += f.evaluate(a+i*dx)
 		    return s * dx
 		print (integrate(SinOfSquareFunction(), 0, 1, 10000))
-	
+
 		def class PyFunction(Function):
 		    def evaluate(self, x):
 		        return 2*x*x + 3*x - 10
-	
+
 		print (integrate(SinOfSquareFunction(), 0, 1, 10000))
-		
+
 	NOTE1:
 		evaluate is called fast only because Function has an evaluate method
 		function in integrate, f: typed so faster
@@ -505,7 +505,7 @@ ______________________________
 	NOTE2:
 		cdef quirks:
 			all attributes must be pre-declared
-			accessible only from cython 
+			accessible only from cython
 			can be exposed to python
 ______________________________
 -2.1.8- pxd files: like c headers
@@ -542,14 +542,14 @@ ______________________________
 		per function:
 			cimport cython
 			@cython.profile(True/False)
-	
+
 	use the cProfile module
-	
+
 	______________________________
 	tracing:
 		in files:
 			# cython: linetrace=True
-		in setup.py:	
+		in setup.py:
 			# distutils: define_macros=CYTHON_TRACE=1
 				or
 			# distutils: define_macros=CYTHON_TRACE_NOGIL=1
@@ -594,7 +594,7 @@ ______________________________
 	______________________________
 	C strings are costly
 		(len is not cached)
-	
+
 	______________________________
 	auto-casting:
 		cdef char* c_string = c_call_returning_a_c_string()
@@ -614,7 +614,7 @@ ______________________________
 			wrap in try-finally
 		NOTE2:
 			assigning pystring to char* points to pystring buffer
-			make sure pystring is not garbage collected or 
+			make sure pystring is not garbage collected or
 				data corruption/crashes may occur
 
 	______________________________
@@ -659,9 +659,9 @@ ______________________________
 			const unsigned char* look_up_cached_string(const unsigned char* key);
 
 			cdef extern from "someheader.h":
-					ctypedef const char specialChar
-					int process_string(const char* s)
-					const unsigned char* look_up_cached_string(const unsigned char* key)
+			    ctypedef const char specialChar
+			    int process_string(const char* s)
+			    const unsigned char* look_up_cached_string(const unsigned char* key)
 
 			note: generally can just ignore const in api functions
 			use libc.string types:
@@ -680,14 +680,14 @@ ______________________________
 
 		ex:
 			from libc.stdlib cimport free
-			
+
 			cdef unicode tounicode(char* s):
 			    return s.decode('UTF-8', 'strict')
-			
+
 			cdef unicode tounicode_with_length(
 			        char* s, size_t length):
 			    return s[:length].decode('UTF-8', 'strict')
-			
+
 			cdef unicode tounicode_with_length_and_free(
 			        char* s, size_t length):
 			    try:
@@ -729,7 +729,7 @@ ______________________________
 		char by default goes to an int
 		want 1-char string, must cast to <bytes>
 	______________________________
-	need be careful if narrow unicode 
+	need be careful if narrow unicode
 		(16-bits, some unicode require more than 16 bites)
 		... don't think I'll ever use this so I'm going to skip
 
@@ -836,7 +836,7 @@ ______________________________
 			    def foo(self, x):
 			        print x + _helper(1.0)
 		______________________________
-		file.pxd				
+		file.pxd
 			cpdef int myfunction(int x, int y=*)
 			cdef double _helper(double a)
 
@@ -1037,7 +1037,7 @@ ______________________________
 			# extend a with b, resize as needed
 			array.extend(a, b)
 			# resize a, leaving just original three elements
-			array.resize(a, len(a) - len(b))		
+			array.resize(a, len(a) - len(b))
 	______________________________
 	reference::
 		______________________________

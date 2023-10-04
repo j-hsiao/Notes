@@ -3,313 +3,313 @@ https://slurm.schedmd.com/quickstart_admin.html
 must upgrade slurmdbd first (it must support updates for others to udpate/communicate)
 
 contents:
-=1= general
-=2= design/architecture
-=3= commands
-=4= install
-=5= configuration
-=6= slurmdb
+-1- general
+-2- design/architecture
+-3- commands
+-4- install
+-5- configuration
+-6- slurmdb
 
 ______________________________
-=1= general
-  parts:
-    ______________________________
-    resource manager
-      allocate resources to parallel jobs
-      comms usually by mpi
-        resources:
-          ram (share too)
-          switch/interconnects
-          sockets, cores, hyperthreads, gpus
-          licenses
-    ______________________________
-    job scheduler
-      schedule jobs if more jobs than resources can support
+-1- general
+	parts:
+		______________________________
+		resource manager
+			allocate resources to parallel jobs
+			comms usually by mpi
+				resources:
+					ram (share too)
+					switch/interconnects
+					sockets, cores, hyperthreads, gpus
+					licenses
+		______________________________
+		job scheduler
+			schedule jobs if more jobs than resources can support
 ______________________________
-=2= design/architecture
-  plugin building blocks customize behavior (like dlls)
+-2- design/architecture
+	plugin building blocks customize behavior (like dlls)
 
-  plugin types:
-    job submit: when job is submitted or modified
-    resource selection:
-      resource allocation per job
-        can be by node, by hyperthread, by core, etc
-  entities:
-    jobs: resource requests
-    job steps: parallel tasks
-    partitions: job queues w/ limits/access controls
-    nodes:
-      sockets
-        cores
-          hyperthreads
-      memory
-      gpus
-      other resources
-  nodes:
-    sockets, cores, threads
-    cpus
-    memory size
-    tmp disk space
-    features (os version etc)
-    weight (job priority for this node)
-    boot time
-    state (down, drain, etc)
-      reason, time, uid
-      idle->allocated->completing
-      down: crashed/shut down
-      drained: not doing anything and accepting no more work
-      draining: not accepting more work but still doing something
-  queue/partition
-    associated with set of nodes
-    jobsize, time limits
-    access control list
-    preemption rules
-    state info
-    over-subscription, gang scheduling rules
-  job: (group of processes running something)
-    id
-    name
-    time limit
-    size (resource limits/needs)
-    nodes (include/exclude)
-    dependency (order etc)
-    account name
-    qos
-    state
-      pending
-      configuring
-      running/resizing/suspended
-      completing
-      cancelled, completed, failed, timed out, nodefail, preempted
-  job steps (a single process running in a set of procs which is a job)
-    jobid.stepid
-    name
-    time
-    size
-    nodes
-  daemons
-    slurmctld(controllers)
-      1 per cluster
-      monitors everything (resources, jobs, allocation, etc)
-    slurmd
-      launch tasks per node
-    slurmdbd
-      collects accounting info
-      uploads configs
-      1 per "enterprise"
-    mysql: configs etc
-      accounting info
-      fair-share of allocations, etc
-    slurmstepd
-      started by slurmd per job step
-      shepherd a job step
-    commandlines:
-      -c: clear/reset
-      -D: run in foreground, log to stdout
-      -v: verbose
-        add v for more and more verbose
-      --help
-      --usage
-      
-    other:
-      short: sep by space
-      long form: use an =
-      time: days-hours:minutes:seconds
+	plugin types:
+		job submit: when job is submitted or modified
+		resource selection:
+			resource allocation per job
+				can be by node, by hyperthread, by core, etc
+	entities:
+		jobs: resource requests
+		job steps: parallel tasks
+		partitions: job queues w/ limits/access controls
+		nodes:
+			sockets
+				cores
+					hyperthreads
+			memory
+			gpus
+			other resources
+	nodes:
+		sockets, cores, threads
+		cpus
+		memory size
+		tmp disk space
+		features (os version etc)
+		weight (job priority for this node)
+		boot time
+		state (down, drain, etc)
+			reason, time, uid
+			idle->allocated->completing
+			down: crashed/shut down
+			drained: not doing anything and accepting no more work
+			draining: not accepting more work but still doing something
+	queue/partition
+		associated with set of nodes
+		jobsize, time limits
+		access control list
+		preemption rules
+		state info
+		over-subscription, gang scheduling rules
+	job: (group of processes running something)
+		id
+		name
+		time limit
+		size (resource limits/needs)
+		nodes (include/exclude)
+		dependency (order etc)
+		account name
+		qos
+		state
+			pending
+			configuring
+			running/resizing/suspended
+			completing
+			cancelled, completed, failed, timed out, nodefail, preempted
+	job steps (a single process running in a set of procs which is a job)
+		jobid.stepid
+		name
+		time
+		size
+		nodes
+	daemons
+		slurmctld(controllers)
+			1 per cluster
+			monitors everything (resources, jobs, allocation, etc)
+		slurmd
+			launch tasks per node
+		slurmdbd
+			collects accounting info
+			uploads configs
+			1 per "enterprise"
+		mysql: configs etc
+			accounting info
+			fair-share of allocations, etc
+		slurmstepd
+			started by slurmd per job step
+			shepherd a job step
+		commandlines:
+			-c: clear/reset
+			-D: run in foreground, log to stdout
+			-v: verbose
+				add v for more and more verbose
+			--help
+			--usage
+
+		other:
+			short: sep by space
+			long form: use an =
+			time: days-hours:minutes:seconds
 ______________________________
-=3= commands
-  sbatch:
-    submit for execution
-    commands in commandline or jobscript (comments)
-    example:
-        -H: hold (submit but don't run)
-        -N node
-        -n task
-        --mem-per-cpu=XXXM
-        -tHH:MM:SS (time limit)
-        --qos=test (queue to run faster...? how related to partitions?)
-        scriptToRun
-    output:
-        job id
-        file: slurm-jobid.out
-    script: add #SBATCH comments to add args as commandline parameters
+-3- commands
+	sbatch:
+		submit for execution
+		commands in commandline or jobscript (comments)
+		example:
+		    -H: hold (submit but don't run)
+		    -N node
+		    -n task
+		    --mem-per-cpu=XXXM
+		    -tHH:MM:SS (time limit)
+		    --qos=test (queue to run faster...? how related to partitions?)
+		    scriptToRun
+		output:
+		    job id
+		    file: slurm-jobid.out
+		script: add #SBATCH comments to add args as commandline parameters
 
-        #SBATCH options
-        #SBATCH options
+		    #SBATCH options
+		    #SBATCH options
 
-  salloc:
-    resource allocation and start a shell
-    (interactive method)
-  srun: 
-    create job allocation and launch job step
-    can also take a configuration file with --multi-prog
-    for dif args per program
-      format:
-        #taskID program   arguments
-        0       master
-        1-4     slave     --rank=%o
-      srun --ntasks=5 --multi-prog configfile
-  sattach: attach terminal to existing job/jobstep
+	salloc:
+		resource allocation and start a shell
+		(interactive method)
+	srun:
+		create job allocation and launch job step
+		can also take a configuration file with --multi-prog
+		for dif args per program
+			format:
+				#taskID program   arguments
+				0       master
+				1-4     slave     --rank=%o
+			srun --ntasks=5 --multi-prog configfile
+	sattach: attach terminal to existing job/jobstep
 
-  sinfo: system status
-  squeue: job and step status
-    squeue -u $USER
-        ST: state (PD=pending, R=running)
-        PARTITION: potential nodes to run on
-  smap: gui version of above
-  sview: better gui of above
-  scontrol: view/update partitionsjobs, steps, etc
-    show job <jobid>
+	sinfo: system status
+	squeue: job and step status
+		squeue -u $USER
+		    ST: state (PD=pending, R=running)
+		    PARTITION: potential nodes to run on
+	smap: gui version of above
+	sview: better gui of above
+	scontrol: view/update partitionsjobs, steps, etc
+		show job <jobid>
 
-  sacct: accounting info by job/step
-  sstat: current jobs/steps
-  sreport: resource by cluster/partition/user/account, etc
+	sacct: accounting info by job/step
+	sstat: current jobs/steps
+	sreport: resource by cluster/partition/user/account, etc
 
-  sacctmgr: db management (accounts, resource limits, etc
-  sprio: job priority
-  sshare: fair-share info
-  sdiag: scheduling
+	sacctmgr: db management (accounts, resource limits, etc
+	sprio: job priority
+	sshare: fair-share info
+	sdiag: scheduling
 
-  scancel: cancel jobs
-    scancel jobid jobid jobid ...
-  sbcast: file transfer to allocated nodes
-  srun_cr: support berkeley checkpoint/restart
-  strigger: event trigger tool
-    run something when event happens
+	scancel: cancel jobs
+		scancel jobid jobid jobid ...
+	sbcast: file transfer to allocated nodes
+	srun_cr: support berkeley checkpoint/restart
+	strigger: event trigger tool
+		run something when event happens
 
 
-  examples:
-    sbatch -ntasks=128 -time=60 --depend=12341234 command.sh
+	examples:
+		sbatch -ntasks=128 -time=60 --depend=12341234 command.sh
 
-    srun --ntasks=2 --label hostname --exclusive
+		srun --ntasks=2 --label hostname --exclusive
 
-    salloc --ntasks=8 --time=10 bash
+		salloc --ntasks=8 --time=10 bash
 
-  launch sequence:
-    srun <-> slurmctld
-      1. send request, get allocation and details
-      2. step request, get step credential (key to requested resources)
-      3. connect to slurmd on allocated nodes and give key
-      4. request forwarded to other allocated nodes
-      5. start up stepd
-      6. stepd runs steps
-      7. finishes, notify srun
-      8. srun notifies slrumctld
-      9. resources released
-    
-______________________________
-=4= install/
-  install options:
-    sudo apt-get install slurm-wlm
-    download tarball
-    github
-      mkdir build && cd build
-      unzippedslurm[version]/configure --prefix=dir --sysconfdir=dir --enable-debug
-      make
-      make install
-
-    use rpm
-      rpmbuild -ta slurm-2.3.1.tar.bz2
-      rpm --install <rpm files>
-      slurm-blahsomestuffversio-rpm
-
-  mkdir /tmp/slurm -> configuration dir
-  cd build_<your platform here>
-  ./config_<your platform here>
-
-  slurm/install_linux/etc/slurm.conf
-    sample slurm file
-    change things
-    (user name (slurmuser), hostname, ...)
-
-  install_linux/sbin:
-    ./slurmctld -Dcv
-    ./slrumd -Dcv
-
-  add bin to search path
+	launch sequence:
+		srun <-> slurmctld
+			1. send request, get allocation and details
+			2. step request, get step credential (key to requested resources)
+			3. connect to slurmd on allocated nodes and give key
+			4. request forwarded to other allocated nodes
+			5. start up stepd
+			6. stepd runs steps
+			7. finishes, notify srun
+			8. srun notifies slrumctld
+			9. resources released
 
 ______________________________
-=5= configuration
-  slurmd -C
-    print system info (for slurm config file)
-    ex:
-      slurmd -C
-      NodeName=jette CPUs=6 Sockets=1 CoresPerSocket=6 ThreadsPerCore=1
-          RealMemory=8000 TmpDisk=930837
-  
-  tool ( download the zipped code or git repo ):
-    doc/html/configurator.html
+-4- install/
+	install options:
+		sudo apt-get install slurm-wlm
+		download tarball
+		github
+			mkdir build && cd build
+			unzippedslurm[version]/configure --prefix=dir --sysconfdir=dir --enable-debug
+			make
+			make install
 
-  minimum requirements:
-    nodes in cluster, partitions
+		use rpm
+			rpmbuild -ta slurm-2.3.1.tar.bz2
+			rpm --install <rpm files>
+			slurm-blahsomestuffversio-rpm
 
-  example:
-    ControlMachine=(hostname)
-    AuthType=auth/munge
-    CacheGroups0
-    CryptoType=crypto/munge
-    NodeName=linux[1-32] CPUs=1 State=UNKNOWN
-    PartitionName=debug Nodes=linux[1-32] Default=YES MaxTime=INFINITE State=UP
+	mkdir /tmp/slurm -> configuration dir
+	cd build_<your platform here>
+	./config_<your platform here>
 
-    ClusterName=name (lowercase)
-    JobAcctGatherType=jobacct_gather/linux
-    AccountingStorageType=accounting_storage/slurmdbd
-    JobCompType=jobcomp_none
+	slurm/install_linux/etc/slurm.conf
+		sample slurm file
+		change things
+		(user name (slurmuser), hostname, ...)
 
-    AccountingStorageEnforce=...
-      associations (require valid db entry)
-      limits
-      qos (quality of service)
+	install_linux/sbin:
+		./slurmctld -Dcv
+		./slrumd -Dcv
 
-    slurmdbd.conf
-      AuthType=auth/munge
-      StorageType=accounting_storage/mysql
-      StorageUser=...
-      StoragePass=...
-      PrivateData=...
-      PurgeJobAfter=... (data expiration)
-      PurgeStepAfter=... (data expiration
-      StoragePass=...
+	add bin to search path
 
-  configs: requires auth (install munge first)
-  nodes must have a munge key and running daemons
-
-  credentials include:
-    user id
-    group id
-    time stamp
-    other things:
-      allocated nodes
-      cpus per node, job/step, memory, gpus, etc
-
-  ______________________________
-  verify configuration/operation
-    testsuite/expect
-    create globals.locals w/ info:
-      set slurm_dir "/path/to/slurm/install.linux"
-      set build_dir "/path/to/slurm/build.linux"
-      set src_dir "/path/to/slurm.git"
-    run individual tests or run "regression" for all tests
-    regression > file
-    stderr: pass/fail etc, check file for any fail details
 ______________________________
-=6= slurmdb
-    single db is recommended (easier to administer)
-    data maintained by username (all nodes should have same corresponding users)
+-5- configuration
+	slurmd -C
+		print system info (for slurm config file)
+		ex:
+			slurmd -C
+			NodeName=jette CPUs=6 Sockets=1 CoresPerSocket=6 ThreadsPerCore=1
+			    RealMemory=8000 TmpDisk=930837
 
-    slurmdbd: database daemon
-        uses database for users
-        push update info to slurmctld
-        slurmctld will cache data if dbd not responding
-    association
-        (cluster, acct, user, partition, etc...)
-        have associated resources/limits
-        accounts must be unique
-    coordinator:
-        manage user accounts
-    sacctmgr:
-        view/modify database
-        add clusters
-        add/del accounts, change limits, etc
-    sacct: info
-    sreport: summarize/process sacct output
-    sstat: detailed processing of sacct
+	tool ( download the zipped code or git repo ):
+		doc/html/configurator.html
+
+	minimum requirements:
+		nodes in cluster, partitions
+
+	example:
+		ControlMachine=(hostname)
+		AuthType=auth/munge
+		CacheGroups0
+		CryptoType=crypto/munge
+		NodeName=linux[1-32] CPUs=1 State=UNKNOWN
+		PartitionName=debug Nodes=linux[1-32] Default=YES MaxTime=INFINITE State=UP
+
+		ClusterName=name (lowercase)
+		JobAcctGatherType=jobacct_gather/linux
+		AccountingStorageType=accounting_storage/slurmdbd
+		JobCompType=jobcomp_none
+
+		AccountingStorageEnforce=...
+			associations (require valid db entry)
+			limits
+			qos (quality of service)
+
+		slurmdbd.conf
+			AuthType=auth/munge
+			StorageType=accounting_storage/mysql
+			StorageUser=...
+			StoragePass=...
+			PrivateData=...
+			PurgeJobAfter=... (data expiration)
+			PurgeStepAfter=... (data expiration
+			StoragePass=...
+
+	configs: requires auth (install munge first)
+	nodes must have a munge key and running daemons
+
+	credentials include:
+		user id
+		group id
+		time stamp
+		other things:
+			allocated nodes
+			cpus per node, job/step, memory, gpus, etc
+
+	______________________________
+	verify configuration/operation
+		testsuite/expect
+		create globals.locals w/ info:
+			set slurm_dir "/path/to/slurm/install.linux"
+			set build_dir "/path/to/slurm/build.linux"
+			set src_dir "/path/to/slurm.git"
+		run individual tests or run "regression" for all tests
+		regression > file
+		stderr: pass/fail etc, check file for any fail details
+______________________________
+-6- slurmdb
+	single db is recommended (easier to administer)
+	data maintained by username (all nodes should have same corresponding users)
+
+	slurmdbd: database daemon
+		uses database for users
+		push update info to slurmctld
+		slurmctld will cache data if dbd not responding
+	association
+		(cluster, acct, user, partition, etc...)
+		have associated resources/limits
+		accounts must be unique
+	coordinator:
+		manage user accounts
+	sacctmgr:
+		view/modify database
+		add clusters
+		add/del accounts, change limits, etc
+	sacct: info
+	sreport: summarize/process sacct output
+	sstat: detailed processing of sacct
