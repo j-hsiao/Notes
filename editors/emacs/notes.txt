@@ -16,7 +16,7 @@ contents:
 ------------------------------
 -0- general
 	C-<key> = ctrl + key
-	M-<key> = meta (esc) + key, alto works too 
+	M-<key> = meta (esc) + key, alto works too
 	*NOTE: C-[ also works as meta key
 
 	C-u [digits]  numeric argument for command
@@ -45,7 +45,7 @@ contents:
 	command       description
 	C-v           scroll down       numeric argument: scroll x lines
 	M-v           scroll up         numeric argument: scroll x lines
-	C-l           move line with cursor to middle, top, bottom in cycle 
+	C-l           move line with cursor to middle, top, bottom in cycle
 
 	C-M-v         scroll other window
 
@@ -77,7 +77,7 @@ contents:
 	C-/           undo
 
 	C-w           cut (kill)
-	M-w           copy 
+	M-w           copy
 	C-y           paste (yank)
 
 ------------------------------

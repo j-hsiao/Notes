@@ -961,7 +961,7 @@ ______________________________
 			                            "#rrggbb" (hex)
 			match         mat     define a match pattern
 			                      mat {group} /pattern/
-			colorscheme   
+			colorscheme
 		______________________________
 		miscellaneous
 			nohlsearch    noh     stop search highlighting
@@ -1243,7 +1243,7 @@ ______________________________
 			abort: auto-abort on error
 			range: will handle range arguments itself, otherwise called on
 			       each line
-			dict: must be called through dict funcref. 
+			dict: must be called through dict funcref.
 			... = var args
 			      a:1, a:2... = extra args
 			      a:0 = num extra args

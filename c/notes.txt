@@ -429,7 +429,7 @@ ______________________________
 		steps:
 			1. function definition
 			2. end paramlist with int, ...
-			   int: length of lists, 
+			   int: length of lists,
 			   ...: the items
 			3. create a va_list
 			4. use int and va_start to initialize list

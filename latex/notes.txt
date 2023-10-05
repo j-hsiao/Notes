@@ -1,4 +1,4 @@
-install: 
+install:
 miktex
 
 ##############################
@@ -66,7 +66,7 @@ contents
 	\usepackage[args]{pkg}
 	ex:
 		\usepackage[margin=1in]{geometry}		margins
-		\usepackage{amsfonts, amsmath, amssymb}		
+		\usepackage{amsfonts, amsmath, amssymb}
 		\usepackage[none]{hyphenat}			hyphenated words
 		\usepackage{fancyhdr}				fancy title/headers/footer
 			\pagestyle{fancy}

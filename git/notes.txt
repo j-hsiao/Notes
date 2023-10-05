@@ -3,16 +3,16 @@ contents
 ------------------------------
 -1- spec
 -2- basics
-  -2.1- reference syntax
+	-2.1- reference syntax
 -3- rebase
 -4- history
-  -4.1- reflog
-  -4.2- log
+	-4.1- reflog
+	-4.2- log
 -5- alias
 -6- miscellaneous
-  -6.1- line endings
-  -6.2- gitignore
-  -6.3- ssh
+	-6.1- line endings
+	-6.2- gitignore
+	-6.3- ssh
 -7- usage notes
 -8- authorization
 -9- config
@@ -29,60 +29,60 @@ contents
 ------------------------------
 ______________________________
 pathspecs
-    rules
-        paths match itself
-        scope is limited to directory up to the last slash
-        rest of pathspec = for pattern matching
+	rules
+		paths match itself
+		scope is limited to directory up to the last slash
+		rest of pathspec = for pattern matching
 
 
-        examples:
-            d1/*.jpg
-                any .jpg under d1 directory tree
-                including:
-                    d1/im1.jpg
-                    d1/d2/im2.jpg
+		examples:
+			d1/*.jpg
+				any .jpg under d1 directory tree
+				including:
+					d1/im1.jpg
+					d1/d2/im2.jpg
 
-        magic signature
-            short:
-                :sig:pathmatcher
-            long:
-                :(magic,words,comma,delimited)pathmatcher
+		magic signature
+			short:
+				:sig:pathmatcher
+			long:
+				:(magic,words,comma,delimited)pathmatcher
 
-            ______________________________
-            terms:
-                top      (/), pathspec is from top of git tree
-                exclude  (^ or !), ignore paths
-                literal  treat * and ? as literal
-                icase    case insensitive
+			______________________________
+			terms:
+				top      (/), pathspec is from top of git tree
+				exclude  (^ or !), ignore paths
+				literal  treat * and ? as literal
+				icase    case insensitive
 
 
-        notes:
-            generally can add -- to delimit the start of pathspecs
+		notes:
+			generally can add -- to delimit the start of pathspecs
 ______________________________
 refspecs
-    format:
-        [+]<src>:<dst>
-        
-        +: update even if not fast-forward
-        src: source file
-        dst: local file path
-    example:
-        git push origin master:refs/heads/master
-            push local master to origin master
+	format:
+		[+]<src>:<dst>
 
-        git push origin :refs/heads/master
-            push nothing (delete) origin master
+		+: update even if not fast-forward
+		src: source file
+		dst: local file path
+	example:
+		git push origin master:refs/heads/master
+			push local master to origin master
+
+		git push origin :refs/heads/master
+			push nothing (delete) origin master
 
 ______________________________
 other
-    tags:
-        refs/tags/<tagname>
-    heads:
-        refs/heads/<headname>
+	tags:
+		refs/tags/<tagname>
+	heads:
+		refs/heads/<headname>
 
-    relative:
-      HEAD~n  (go back n commits)
-      HEAD^n  (go to nth parent (if merge, multiple parents))
+	relative:
+	  HEAD~n  (go back n commits)
+	  HEAD^n  (go to nth parent (if merge, multiple parents))
 
 
 
@@ -90,169 +90,169 @@ other
 ------------------------------
 -2- basics
 ------------------------------
-  clone a repo
-      git clone uri
+	clone a repo
+		git clone uri
 
-  add
-      git add <files>
+	add
+		git add <files>
 
-  commit
-      git commit -m 'message'
+	commit
+		git commit -m 'message'
 
-      git commit --fixup <commit>
-        fix the commit and keep its message
-      git commit --squash <commit>
-        merge commits into a single commit and specify final message after merge with rebase -i
+		git commit --fixup <commit>
+			fix the commit and keep its message
+		git commit --squash <commit>
+			merge commits into a single commit and specify final message after merge with rebase -i
 
-      protip:
-        use HEAD for commit
+		protip:
+			use HEAD for commit
 
-  checkout
-      git checkout [branchname]
-          checkout branch from repo (use git branch -a to see repo branches too)
-      git checkout -b [newbranch]
-          create/checkout branch
-      git checkout [branchname] -- [path-to-filename]
-          checkout file
+	checkout
+		git checkout [branchname]
+			checkout branch from repo (use git branch -a to see repo branches too)
+		git checkout -b [newbranch]
+			create/checkout branch
+		git checkout [branchname] -- [path-to-filename]
+			checkout file
 
-  branch
-      git branch -a:
-          display all branches
-      git branch -d [name]
-          delete branch
-      
-  diff
-      git diff -- [path-to-file]
-          difference between file current and since last stage
-          (so git reset if want to see dif since last commit)
-      git diff --cached [commit] [--] [path]
-          diff between staged changes for next commit and [commit] (defaults to head)
-      git diff commit -- path
-          dif between cur state and commit (not staged necessarily)
-      git diff commit commit -- path
-          dif between path for the two commits
+	branch
+		git branch -a:
+			display all branches
+		git branch -d [name]
+			delete branch
 
-  reflog:
-      shows hashes for previous commits/checkouts etc
+	diff
+		git diff -- [path-to-file]
+			difference between file current and since last stage
+			(so git reset if want to see dif since last commit)
+		git diff --cached [commit] [--] [path]
+			diff between staged changes for next commit and [commit] (defaults to head)
+		git diff commit -- path
+			dif between cur state and commit (not staged necessarily)
+		git diff commit commit -- path
+			dif between path for the two commits
 
-  reset:
-      (reset current branch (if applicable) to the ref)
-      NOTE: reflog may still point to commits so will not be able to prune
-      git reset --hard 'hash/string_thing'
-          reset all files to state from corresponding commit (delete files too)
-      git reset
-          unstage commits (keep files the same)
+	reflog:
+		shows hashes for previous commits/checkouts etc
 
-  pull changes from repo (fetch & merge)
-      git pull [remote] [local]
-      
-  push changes to repo
-      git push [remote] [local]
+	reset:
+		(reset current branch (if applicable) to the ref)
+		NOTE: reflog may still point to commits so will not be able to prune
+		git reset --hard 'hash/string_thing'
+			reset all files to state from corresponding commit (delete files too)
+		git reset
+			unstage commits (keep files the same)
 
-  tags:
-      creation:
-        git tag -a <tagname> -m 'tag message/description'
-        (add -f to change tag commit if already exist)
-      deletion:
-        local:
-          git tag -d <tagname>
-        remote:
-          git push origin :tagname
-          git push origin :refs/tags/tagname
-          git push origin --delete <tagname>
-      display:
-        git tag
-        git tag -n
-      pull tags:
-        git fetch --tags
-      push tags:
-        git push origin --tags
-        git push origin <tagname>
+	pull changes from repo (fetch & merge)
+		git pull [remote] [local]
 
-  ------------------------------
-  -2.1- reference syntax
-  ------------------------------
-    <sha1>    the sha1 (eg. from git log) or unique leading substring
-    <refname> [refs/][heads/|tags/|remotes/]<branch/tagname>
-    <refname>[@{date|index}|^]
-              date:
-                blank: pick HEAD
-                yesterday
-                N month N weeks N days N hour N second ago
-                YYYY-mm-dd HH:MM:SS
-              index:
-                indexth prior reference
-                if refname is empty, use current branch
-                If negative, indicate prior checked-out commit
-              ^n
-                n defaults to 1 if absent.
-                Take the nth parent (merges, have multiple parents)
-              ~n
-                n defaults to 1 if absent
-                go back n generations, choosing the 1st parent
+	push changes to repo
+		git push [remote] [local]
+
+	tags:
+		creation:
+			git tag -a <tagname> -m 'tag message/description'
+			(add -f to change tag commit if already exist)
+		deletion:
+			local:
+				git tag -d <tagname>
+			remote:
+				git push origin :tagname
+				git push origin :refs/tags/tagname
+				git push origin --delete <tagname>
+		display:
+			git tag
+			git tag -n
+		pull tags:
+			git fetch --tags
+		push tags:
+			git push origin --tags
+			git push origin <tagname>
+
+	------------------------------
+	-2.1- reference syntax
+	------------------------------
+		<sha1>    the sha1 (eg. from git log) or unique leading substring
+		<refname> [refs/][heads/|tags/|remotes/]<branch/tagname>
+		<refname>[@{date|index}|^]
+		          date:
+		            blank: pick HEAD
+		            yesterday
+		            N month N weeks N days N hour N second ago
+		            YYYY-mm-dd HH:MM:SS
+		          index:
+		            indexth prior reference
+		            if refname is empty, use current branch
+		            If negative, indicate prior checked-out commit
+		          ^n
+		            n defaults to 1 if absent.
+		            Take the nth parent (merges, have multiple parents)
+		          ~n
+		            n defaults to 1 if absent
+		            go back n generations, choosing the 1st parent
 ------------------------------
 -3- rebase
 ------------------------------
-  "reapply commits on top of another base tip"
+	"reapply commits on top of another base tip"
 
-  git rebase [--onto commit] <upstream> [branch]
+	git rebase [--onto commit] <upstream> [branch]
 
-    branch: git checkout branch if given before rebase
-    upstream: indicate the commits to transplant (from HEAD to intersection with upstream, does not the intersection)
+		branch: git checkout branch if given before rebase
+		upstream: indicate the commits to transplant (from HEAD to intersection with upstream, does not the intersection)
 
-      example:
-        if upstream == HEAD~2, then this indicates HEAD~1 and HEAD
-
-
-    onto: location to plop commits onto (defaults to upstream)
+			example:
+				if upstream == HEAD~2, then this indicates HEAD~1 and HEAD
 
 
+		onto: location to plop commits onto (defaults to upstream)
 
-  example:
-    first-----a-----b-------c master
-     \
-      d-----e feature
 
-    git checkout feature
-    git rebase master
 
-    first-----a-----b-------c master
-                             \
-                              d-----e feature
+	example:
+		first-----a-----b-------c master
+		 \
+		  d-----e feature
 
-  if conflict, can git rebase --abort to cancel rebase
+		git checkout feature
+		git rebase master
 
-  interactive rebase
-    pick commits to rebase and fixup, squash, or pick
+		first-----a-----b-------c master
+		                         \
+		                          d-----e feature
+
+	if conflict, can git rebase --abort to cancel rebase
+
+	interactive rebase
+		pick commits to rebase and fixup, squash, or pick
 
 ------------------------------
 -4- history
 ------------------------------
-  -4.1- git reflog: history of what actually happened
-              (includes reset, rebase, etc)
+	-4.1- git reflog: history of what actually happened
+	            (includes reset, rebase, etc)
 
-      expire: expire reflog entries (dangling commits will then be able to be pruned)
-        --expire-unreachable=<time> 
-        --expire=<time>
-          (can use "now" for time)
+		expire: expire reflog entries (dangling commits will then be able to be pruned)
+			--expire-unreachable=<time>
+			--expire=<time>
+				(can use "now" for time)
 
-        --all
-          (dunno bout this, but need this to cause reflogs to dangling commits to be removed)
+			--all
+				(dunno bout this, but need this to cause reflogs to dangling commits to be removed)
 
-  -4.2- git log: history traversing parent commits
-    general tips:
-      git log --all --decorate --oneline --graph
-        (adog)
+	-4.2- git log: history traversing parent commits
+		general tips:
+			git log --all --decorate --oneline --graph
+				(adog)
 
-    options:
-      <paths>                           show commits that modified the <paths> given
-      --all                             use all /refs and HEAD
-      --decorate[=short|full|auto|no]   show ref names (branches, tags, etc), defaults to short
-      -<number> | -n <number>           limit to <number> commits
-      -[after|before]=<date>            after or before the date
-      --abbrev-commit                   show unique part of commit SHAs
-      --oneline                         same as --pretty=oneline --abbrev-commit
-      --graph                           draw graph
+		options:
+			<paths>                           show commits that modified the <paths> given
+			--all                             use all /refs and HEAD
+			--decorate[=short|full|auto|no]   show ref names (branches, tags, etc), defaults to short
+			-<number> | -n <number>           limit to <number> commits
+			-[after|before]=<date>            after or before the date
+			--abbrev-commit                   show unique part of commit SHAs
+			--oneline                         same as --pretty=oneline --abbrev-commit
+			--graph                           draw graph
 
 ------------------------------
 -5- alias
@@ -261,8 +261,8 @@ other
 git config [--global | --local] alias.<aliascommand> "command and args"
 
 example:
-  git config --local alias.graph "log --all --decorate --oneline --graph"
-  git config --local --unset alias.graph
+	git config --local alias.graph "log --all --decorate --oneline --graph"
+	git config --local --unset alias.graph
 
 ------------------------------
 -6- miscellaneous
@@ -311,19 +311,19 @@ example:
 			**/: in all directories
 			/**: everything inside dir (infinite depth)
 			a/**/b: any b under some ancestor a
-  ------------------------------
-  -6.3- ssh
-  ------------------------------
-  See remotehost/ssh/notes.txt for key generation, git prefers ed25519 type?
-  put .pub file contents onto git account
-  edit ${HOME}/.ssh/config
-    HOST host-to-use-on-command-line
-    	HOSTNAME actual-host-name-eg-github.com
-    	USER git
-    	IDENTITYFILE path/to/private/key
-    	IDENTITIESONLY yes
-  git clone host-to-use-on-command-line:<git-user>/<reponame>.git
-  (uses ~/.ssh/config to choose private key)
+	------------------------------
+	-6.3- ssh
+	------------------------------
+	See remotehost/ssh/notes.txt for key generation, git prefers ed25519 type?
+	put .pub file contents onto git account
+	edit ${HOME}/.ssh/config
+	  HOST host-to-use-on-command-line
+	    HOSTNAME actual-host-name-eg-github.com
+	    USER git
+	    IDENTITYFILE path/to/private/key
+	    IDENTITIESONLY yes
+	git clone host-to-use-on-command-line:<git-user>/<reponame>.git
+	(uses ~/.ssh/config to choose private key)
 
 
 ------------------------------
@@ -333,203 +333,203 @@ usage method one:
 
 features:
 
-  master     a-b-c          h
-                   \       / \
-  feature 1         d-e-f-g  feature2 ...
-                          |
-                       deleted
-  code:
-    git init
-    git checkout -b feature1
-    ...work on feature1...
-    git checkout master
-    git merge --squash feature1
-    git branch -d feature1
-    git checkout -b feature2
-    ...work on feature2...
+	master     a-b-c          h
+	                 \       / \
+	feature 1         d-e-f-g  feature2 ...
+	                        |
+	                     deleted
+	code:
+		git init
+		git checkout -b feature1
+		...work on feature1...
+		git checkout master
+		git merge --squash feature1
+		git branch -d feature1
+		git checkout -b feature2
+		...work on feature2...
 
 
 dev branch
-  master     a         f
-              \       / \
-  dev          b c d e   g
+	master     a         f
+	            \       / \
+	dev          b c d e   g
 
-  code:
-    git init
-    git checkout -b dev
-    ...work on dev...
-    git checkout master
-    git merge dev --squash??
-    git checkout dev
-    git merge master
-    ...continue working on dev...
+	code:
+		git init
+		git checkout -b dev
+		...work on dev...
+		git checkout master
+		git merge dev --squash??
+		git checkout dev
+		git merge master
+		...continue working on dev...
 
 
 features: useful for cleaner history
 dev: separte from master features/versions
-  ...although...
-  can just git tag instead of have master branch with only versions...
-  (in other words, dev branch is useless?)
+	...although...
+	can just git tag instead of have master branch with only versions...
+	(in other words, dev branch is useless?)
 git tags = your "main" branch with only fully functioning versions
 
 overall usage probably like this:
 master: version X.X...
-  squash merge dev branch followed by merge master back into dev to sync the branches
+	squash merge dev branch followed by merge master back into dev to sync the branches
 dev: branch off "feature" branches
-  feature branches get merged (squash? maybe maybe not) into dev
-  delete (or maybe not?) the feature branch
+	feature branches get merged (squash? maybe maybe not) into dev
+	delete (or maybe not?) the feature branch
 
 saw a note that seems agreeable:
-  if release are always chronological, master branch is fine
-  if not, (ie 1.0.1 can come after 1.1.0), then tagging may be a better approach
-  or maybe separate release branches per version...
+	if release are always chronological, master branch is fine
+	if not, (ie 1.0.1 can come after 1.1.0), then tagging may be a better approach
+	or maybe separate release branches per version...
 ------------------------------
 -8- authorization
 ------------------------------
 git and bitbucket do not allow username/password anymore:
-  bitbucket:
-    OAuth2: see bboauth.py for bitbucket oauth method.
-    app password:
-      go to personal settings, app passwords
-      create an app password (only shown 1 time, select permissions, etc)
-      when using app password, use the username, NOT EMAIL
-      username is under general->account settings
-  git: create a token and use that as password instead
+	bitbucket:
+		OAuth2: see bboauth.py for bitbucket oauth method.
+		app password:
+			go to personal settings, app passwords
+			create an app password (only shown 1 time, select permissions, etc)
+			when using app password, use the username, NOT EMAIL
+			username is under general->account settings
+	git: create a token and use that as password instead
 
 ------------------------------
 -9- config
 ------------------------------
 general usage:
 git config [--system | --global | --local] [-e | [--unset] <name> [value] | --list ]
-  system: all repos for all users
-  global: all repos for (current user only) (${HOME}/.gitconfig)
-  local: current repo only
+	system: all repos for all users
+	global: all repos for (current user only) (${HOME}/.gitconfig)
+	local: current repo only
 
-  use the settings from the most specific scope
+	use the settings from the most specific scope
 
-  -e: edit the config file
-  --unset: remove the variable
-  --list: list all variables in the config file for corresponding scope
-  <name>: print the current value
-  <name> <value>: set the current value
+	-e: edit the config file
+	--unset: remove the variable
+	--list: list all variables in the config file for corresponding scope
+	<name>: print the current value
+	<name> <value>: set the current value
 
-  list all possible config keys:
-    git help [--config|-c]
+	list all possible config keys:
+		git help [--config|-c]
 
-  useful settings:
-    core.attributesFile
-      path to global gitattributes file
-    core.autocrlf:
-      auto conversion between crlf and lf on windows (always lf on unix)
-    core.safecrlf:
-      checks that conversion between crlf/lf is reversible (if file has both
-      then not reversible)
-    credential.helper
-      name is "credential-<name>"
-      git config value is just '<name> [options]'
-      list all helpers installed:
-        git help -a | grep credential-
-      builtin helpers:
-        cache: cache for short period of time
-          options:
-            --timeout seconds
-            --socket path
-          other:
-            git credential-cache exit: clear cache(close daemon)
-        store: store forever
-        manager-core: opensource builtin to git for windows
+	useful settings:
+		core.attributesFile
+			path to global gitattributes file
+		core.autocrlf:
+			auto conversion between crlf and lf on windows (always lf on unix)
+		core.safecrlf:
+			checks that conversion between crlf/lf is reversible (if file has both
+			then not reversible)
+		credential.helper
+			name is "credential-<name>"
+			git config value is just '<name> [options]'
+			list all helpers installed:
+				git help -a | grep credential-
+			builtin helpers:
+				cache: cache for short period of time
+					options:
+						--timeout seconds
+						--socket path
+					other:
+						git credential-cache exit: clear cache(close daemon)
+				store: store forever
+				manager-core: opensource builtin to git for windows
 ------------------------------
 -10- stash
-  git stash [push]
-    temporary save changes but no commits
-    useful options (requires push to be present, otherwise no args allowed (except -p)):
-      -u  include untracked files
-      -a  all
-      -m  message
-  git stash list:
-    show current stashes
-  git stash show:
-    show changes
-  git pop
-    pop a stash state and apply it
-  git stash apply
-    apply changes
-  git stash branch <branchname>
-    makes a branch identical to state when git stash was created
-  git stash clear
-    remove all stash entries
-  git stash create
-    create a stash entry
+	git stash [push]
+		temporary save changes but no commits
+		useful options (requires push to be present, otherwise no args allowed (except -p)):
+			-u  include untracked files
+			-a  all
+			-m  message
+	git stash list:
+		show current stashes
+	git stash show:
+		show changes
+	git pop
+		pop a stash state and apply it
+	git stash apply
+		apply changes
+	git stash branch <branchname>
+		makes a branch identical to state when git stash was created
+	git stash clear
+		remove all stash entries
+	git stash create
+		create a stash entry
 ------------------------------
 -11- clean
-  git clean
-    removes any untracked files (like build products etc)
-  -d: also check untracked directories
-  -f: force (like rm -f)
-  -i: interactive (like rm -i)
-  -n|--dry-run: just list what would be removed
-  -x: include files that were .gitignored
-  -X: ONLY include files that were .gitignored
+	git clean
+		removes any untracked files (like build products etc)
+	-d: also check untracked directories
+	-f: force (like rm -f)
+	-i: interactive (like rm -i)
+	-n|--dry-run: just list what would be removed
+	-x: include files that were .gitignored
+	-X: ONLY include files that were .gitignored
 ------------------------------
 -12- show
-  shows objects
-  show:
-    tag: tag message and obj
-    trees: names
-    blobs(files): contents
-      branch/commit:filepath
+	shows objects
+	show:
+		tag: tag message and obj
+		trees: names
+		blobs(files): contents
+			branch/commit:filepath
 ------------------------------
 -13- remote
-  show remotes
-  git remote set-url --push: add a separate push remote
-    (no command to separately set a pull url)
+	show remotes
+	git remote set-url --push: add a separate push remote
+		(no command to separately set a pull url)
 -------------------------------
 -14- submodule
-  sub git directories.
-  git submodule [cmd]
-    add <repo> [path]
-    init [path]
-    deinit (--all| <path>)
-    update [path]
-      NOTE: for initial update on windows (git submodule init; git
-        submodule update) if the submodule requires a password, you need
-        to use git-bash or it will error saying permission denied.  An
-        alternative is to just git clone directly into the submodule dir
-        and then use absorbgitdirs
-    foreach <command>
-      available vars:
-        $name             name of submodule
-        $sm_path          path from root git dir
-        $displaypath      relative path
-        $sha1             sha1 of submodule
-        $toplevel         abs path to root git dir
-      command should be a single bash command line.
-      (even on windows, since it uses git-bash)
-      -q will prevent the "Entering $displaypath" message per submodule.
-    absorbgitdirs [path...]
-      move submodule .git directories into root git dir's .git/modules
-      and replace submodule .git with a file pointing to corresponding
-      dir.
+	sub git directories.
+	git submodule [cmd]
+		add <repo> [path]
+		init [path]
+		deinit (--all| <path>)
+		update [path]
+			NOTE: for initial update on windows (git submodule init; git
+				submodule update) if the submodule requires a password, you need
+				to use git-bash or it will error saying permission denied.  An
+				alternative is to just git clone directly into the submodule dir
+				and then use absorbgitdirs
+		foreach <command>
+			available vars:
+				$name             name of submodule
+				$sm_path          path from root git dir
+				$displaypath      relative path
+				$sha1             sha1 of submodule
+				$toplevel         abs path to root git dir
+			command should be a single bash command line.
+			(even on windows, since it uses git-bash)
+			-q will prevent the "Entering $displaypath" message per submodule.
+		absorbgitdirs [path...]
+			move submodule .git directories into root git dir's .git/modules
+			and replace submodule .git with a file pointing to corresponding
+			dir.
 -------------------------------
 -15- server
-  simple serve git repos:
-    bare repo:
-      cd /root
-      git clone --bare <project>
-      cd <project>
-      git --bare update-server-info
-      mv hooks/post-update.sample .git/hooks/post-update
-      start a server at /root
+	simple serve git repos:
+		bare repo:
+			cd /root
+			git clone --bare <project>
+			cd <project>
+			git --bare update-server-info
+			mv hooks/post-update.sample .git/hooks/post-update
+			start a server at /root
 
-    non-bare repo:
-      same steps as bare
-      except remove --bare tag
-      start server IN THE REPO DIR
-      you will need to pull .git and rename it.
-      eg:
-        git clone project
-        cd project
-        git update-server-info
-        cp .git/hooks/post-update.sample .git/hooks/post-update
-        py -m http.server
-        git clone http://localhost:8000/.git project
+		non-bare repo:
+			same steps as bare
+			except remove --bare tag
+			start server IN THE REPO DIR
+			you will need to pull .git and rename it.
+			eg:
+				git clone project
+				cd project
+				git update-server-info
+				cp .git/hooks/post-update.sample .git/hooks/post-update
+				py -m http.server
+				git clone http://localhost:8000/.git project

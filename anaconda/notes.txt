@@ -2,83 +2,83 @@ tutorial: https://conda.io/projects/conda/en/latest/user-guide/getting-started.h
 
 contents:
 -1- conda
-    -1.1- environments
-    -1.2- packages
+	-1.1- environments
+	-1.2- packages
 
 
 
 ______________________________
 -1- conda
-    conda is an "environment manager" or whatever
-    keeps envs separate so they don't step over each other
-    with incompatible dependencies and what not
+	conda is an "environment manager" or whatever
+	keeps envs separate so they don't step over each other
+	with incompatible dependencies and what not
 
-    ------------------------------
-    -1.1- environments
-        conda activate [name]
-            (like starting a new bash)
-            if given, use that name
-            else use base
-            
-            (older versions:
-                windows:
-                    activate name
-                linux:
-                    source activate name
+	------------------------------
+	-1.1- environments
+		conda activate [name]
+			(like starting a new bash)
+			if given, use that name
+			else use base
 
-        conda deactivate
-            deactivate an env
+			(older versions:
+				windows:
+					activate name
+				linux:
+					source activate name
 
-        conda create opts packages
-            create environment
-            opts:
-                --name [name of new env]
-                --clone [name of source env]
-                python=[desired version]
-                --file file from conda list --explicit
-            packages: see package section
+		conda deactivate
+			deactivate an env
 
-
-
-        conda create --clone SOURCE --name NEW
-            copy an environment
-
-        export env for import elsewhere:
-            conda env export --name ENVNAME > smthin.yml
-
-        from yml:
-            conda env create
-
-        remove env
-            conda remove --name ENVNAME --all
-
-    ------------------------------
-    -1.2- packages
-        conda install packages
-            arguments:
-                "package[version='v1|v2|v3']"
-                "package[version='>=v1,<v2']"
-                "package>v1,<v2"
-                package==v1
+		conda create opts packages
+			create environment
+			opts:
+				--name [name of new env]
+				--clone [name of source env]
+				python=[desired version]
+				--file file from conda list --explicit
+			packages: see package section
 
 
-        conda info: info about conda
-            --envs: current environments
 
-        conda search packagename    ("search configured channels")
-        anaconda search packagename ("search all channels")
+		conda create --clone SOURCE --name NEW
+			copy an environment
+
+		export env for import elsewhere:
+			conda env export --name ENVNAME > smthin.yml
+
+		from yml:
+			conda env create
+
+		remove env
+			conda remove --name ENVNAME --all
+
+	------------------------------
+	-1.2- packages
+		conda install packages
+			arguments:
+				"package[version='v1|v2|v3']"
+				"package[version='>=v1,<v2']"
+				"package>v1,<v2"
+				package==v1
 
 
-        conda list
-            list packages
-            --explicit          add version numbers
-            --name ENVNAME      use named environment
-            --revisions         show revisions
-            --yes               automatic yes
+		conda info: info about conda
+			--envs: current environments
 
-        conda uninstall packages
-            --name          envname
+		conda search packagename    ("search configured channels")
+		anaconda search packagename ("search all channels")
 
-        conda update
-            --all
-            --name          envname
+
+		conda list
+			list packages
+			--explicit          add version numbers
+			--name ENVNAME      use named environment
+			--revisions         show revisions
+			--yes               automatic yes
+
+		conda uninstall packages
+			--name          envname
+
+		conda update
+			--all
+			--name          envname

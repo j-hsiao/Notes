@@ -1,8 +1,8 @@
 contents
-  -1- general
-  -2- stream selelction
-  -3- other
-  -4- filters
+	-1- general
+	-2- stream selelction
+	-3- other
+	-4- filters
 
 ______________________________
 -1-general
@@ -21,157 +21,157 @@ copying: use -codec copy: only perform mux/demux, no decode/encode
 
 ______________________________
 -2-stream selection
-    -vn/ -an / -sn / -dn
-    skips video, audio, subtitle, data streams
+	-vn/ -an / -sn / -dn
+	skips video, audio, subtitle, data streams
 
-    option 1: automatic
-        pick 1 stream from all inputs with priorties:
-            highest resolution (video)
-            most channels (audio)
-            first matching subtitle encoder type (text vs image based)
+	option 1: automatic
+		pick 1 stream from all inputs with priorties:
+			highest resolution (video)
+			most channels (audio)
+			first matching subtitle encoder type (text vs image based)
 
-    option 2: manual
-        use -map option on an output file
-        example:
-            -map 1:a -c:a copy
-                selects audio stream from file 1 and copies it
+	option 2: manual
+		use -map option on an output file
+		example:
+			-map 1:a -c:a copy
+				selects audio stream from file 1 and copies it
 ______________________________
 -3-options
-    numerical options:
-        all numerical options can accept a suffix of the units
-        ie :
-            K, M, G
-            Ki, Mi, Gi
-            add a B to indicate bytes instead of bits
-    boolean options
-        when present, set the value to True
-        can be prefixed with "no" to make it false
-        ex:
-            -foo: foo is True
-            -nofoo: foo is False
-    stream specifiers:
-        use a stream specifier to indicate 
-        which stream the option applies to
-        if absent, matches all streams
+	numerical options:
+		all numerical options can accept a suffix of the units
+		ie :
+			K, M, G
+			Ki, Mi, Gi
+			add a B to indicate bytes instead of bits
+	boolean options
+		when present, set the value to True
+		can be prefixed with "no" to make it false
+		ex:
+			-foo: foo is True
+			-nofoo: foo is False
+	stream specifiers:
+		use a stream specifier to indicate
+		which stream the option applies to
+		if absent, matches all streams
 
 queries:
-    -pix_fmts: list pixel formats
-    -formats : list valid formats
-    -codecs  : list valid codecs
-    -encoders: list encoders
-    -decoders: list decoders
-    -colors  : color names
-    -sources : list autodetected sources
+	-pix_fmts: list pixel formats
+	-formats : list valid formats
+	-codecs  : list valid codecs
+	-encoders: list encoders
+	-decoders: list decoders
+	-colors  : color names
+	-sources : list autodetected sources
 
 useful global options:
-    -y       : overwrite output without asking
-    -n       : no overwrite: exit instead
-    -sinks   : autodetect sinks
-    -v       : loglevel:
-                quiet: no logging
-                error: errors
-                warning: warnings and errors
+	-y       : overwrite output without asking
+	-n       : no overwrite: exit instead
+	-sinks   : autodetect sinks
+	-v       : loglevel:
+	            quiet: no logging
+	            error: errors
+	            warning: warnings and errors
 
 argument formats:
-    time:
-        [-][HH:]MM:SS[.m...]
-        [-]S+[.m...]
-        - indicating negative duration
-    resolution:
-        [width]x[height]
-    date:
-        YYYYMMDD or YYYY-MM-DD
-        for a date range, add a 'T' or 't' between the two dates
-        Z at the end to indicate UTC otherwise local
-        can also indicate now
+	time:
+		[-][HH:]MM:SS[.m...]
+		[-]S+[.m...]
+		- indicating negative duration
+	resolution:
+		[width]x[height]
+	date:
+		YYYYMMDD or YYYY-MM-DD
+		for a date range, add a 'T' or 't' between the two dates
+		Z at the end to indicate UTC otherwise local
+		can also indicate now
 AV options:
-    -f fmt
-    -i input
-    -stream_loop number   : 0: no loop
-                            -1: infinite
-    -c/-codec[:stream] codec
-        copy for copy, otherwise codec
-    -t duration
-        for input: read this much
-        for output: write this much
-    -fs size
-        filesize limit for output, stop writing once reached
-    -ss pos
-        for input: seek to position (closest point before position)
-        for output: discard output until reach pos
-    -sseof pos
-        same as -ss except from eof (0 is at end, -HH:MM:SS before the end)
-    -itsoffset offset
-        add offset to input file timestamp (add positive offset for delay)
-    -timestamp date
-        recording timestamp
-    -stdin
-        allow stdin interaction
-        boolean
+	-f fmt
+	-i input
+	-stream_loop number   : 0: no loop
+	                        -1: infinite
+	-c/-codec[:stream] codec
+		copy for copy, otherwise codec
+	-t duration
+		for input: read this much
+		for output: write this much
+	-fs size
+		filesize limit for output, stop writing once reached
+	-ss pos
+		for input: seek to position (closest point before position)
+		for output: discard output until reach pos
+	-sseof pos
+		same as -ss except from eof (0 is at end, -HH:MM:SS before the end)
+	-itsoffset offset
+		add offset to input file timestamp (add positive offset for delay)
+	-timestamp date
+		recording timestamp
+	-stdin
+		allow stdin interaction
+		boolean
 V options:
-    -frames number
-        # of frames for output
-    -r[stream] fps
-        framerate (hertz, fraction, abbreviation)
-    -video_size size
-        [width]x[height]
-    -vcodec
-        video codec, alias for -codec:v
-    -pixel_format[stream]
-        pixel formats
-    -aspect aspectratio
-        a float (1.333)
-        a ratio (4:3) (w:h)
+	-frames number
+		# of frames for output
+	-r[stream] fps
+		framerate (hertz, fraction, abbreviation)
+	-video_size size
+		[width]x[height]
+	-vcodec
+		video codec, alias for -codec:v
+	-pixel_format[stream]
+		pixel formats
+	-aspect aspectratio
+		a float (1.333)
+		a ratio (4:3) (w:h)
 
-    input:
-        -framerate input framerate when framerate unavailable like image sequence
+	input:
+		-framerate input framerate when framerate unavailable like image sequence
 
 
 Video Segmentation:
-        output format: segment
-        useful:
+	output format: segment
+	useful:
 
-        segment format:
-                segment_atclocktime             0/1 start at the specified interval
-                strftime                        output name is a strftime format string
-                segment_time                    the duration of segment
-                segment_clocktime_offset        offset from 00 
-                                                (every segment_time timeunit starting at segment_clocktime_offset)
-                reset_timestamps                0/1 reset start time of each segment to 0
-        encoder:
-                -g, -keyint_min -> frames (seconds * fps)
-                this should divide the segment interval for more accurate
-                video segments.
+	segment format:
+		segment_atclocktime             0/1 start at the specified interval
+		strftime                        output name is a strftime format string
+		segment_time                    the duration of segment
+		segment_clocktime_offset        offset from 00
+		                                (every segment_time timeunit starting at segment_clocktime_offset)
+		reset_timestamps                0/1 reset start time of each segment to 0
+	encoder:
+		-g, -keyint_min -> frames (seconds * fps)
+		this should divide the segment interval for more accurate
+		video segments.
 
 
 ______________________________
 -3-other
 webcam:
-    ffmpeg -f v4l2 -input_format h264 -video_size [width]x[height] -framerate fps -i /dev/video[x] [typical output stuffs]
-    ffmpeg -f v4l2 -list_formats all -i /dev/video[x]
+	ffmpeg -f v4l2 -input_format h264 -video_size [width]x[height] -framerate fps -i /dev/video[x] [typical output stuffs]
+	ffmpeg -f v4l2 -list_formats all -i /dev/video[x]
 
-    ffmpeg -v error
+	ffmpeg -v error
 
-    ffprobe -v error -show_entries stream=width,height -of csv=s=x:p=0 -i input
+	ffprobe -v error -show_entries stream=width,height -of csv=s=x:p=0 -i input
 
-    ffmpeg -f dshow -list_devices true -i dummy
-    ffmpeg -f dshow -list_options true -i video="name of webcam"
+	ffmpeg -f dshow -list_devices true -i dummy
+	ffmpeg -f dshow -list_options true -i video="name of webcam"
 
 ffplay:
-    -window_title title
-    -seek_interval seconds      seconds to seek when left/right arrow
+	-window_title title
+	-seek_interval seconds      seconds to seek when left/right arrow
 
 ______________________________
 -4- filters
-  -vf               simple filter: 1 input, 1 output
-  -filter_complex   complex filter: multiple inputs/outputs
+	-vf               simple filter: 1 input, 1 output
+	-filter_complex   complex filter: multiple inputs/outputs
 
-  filterchain: separated by ',' 1in, 1out chained together
-  filtergraph: multiple filter chains interconnected, separated by ';'
-  filter: a single filter
-    [in1][in2]...filter_class_name@idnickname=arguments[out1][out2]...
-    arguments:
-      explicit values: argname1=val1:argname2=val2:...
-      implicit values: val1:val2:val3...
-        (1 to 1 mapping with declared arguments of the filter (read docs for order))
-      implicit values must come before explicit.
+	filterchain: separated by ',' 1in, 1out chained together
+	filtergraph: multiple filter chains interconnected, separated by ';'
+	filter: a single filter
+		[in1][in2]...filter_class_name@idnickname=arguments[out1][out2]...
+		arguments:
+			explicit values: argname1=val1:argname2=val2:...
+			implicit values: val1:val2:val3...
+				(1 to 1 mapping with declared arguments of the filter (read docs for order))
+			implicit values must come before explicit.

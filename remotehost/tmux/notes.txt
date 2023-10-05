@@ -16,7 +16,7 @@ ______________________________
 	C-b is the default prefix key
 	In the notes below, C-b is omitted for brevity.
 
-	basic controls 
+	basic controls
 		d   detach
 		]   paste copied text from copy mode.
 		[   copy mode (use this for scrolling too, q to exit)

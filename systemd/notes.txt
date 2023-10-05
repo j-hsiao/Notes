@@ -1,9 +1,9 @@
 systemd service
 -0- example
 -1- options
-  -1.1- Unit
-  -1.2- Service
-  -1.3- Install
+	-1.1- Unit
+	-1.2- Service
+	-1.3- Install
 -2- systemctl
 
 
@@ -14,19 +14,19 @@ ______________________________
 place file: /etc/systemd/system/<servicename>.service
 example:
 
-  [Unit]
-  Description=some description
-  StartLimitIntervalSec=0
+	[Unit]
+	Description=some description
+	StartLimitIntervalSec=0
 
-  [Service]
-  Type=simple
-  Restart=always
-  RestartSec=1
-  User=<user>
-  ExecStart=<commandline>
+	[Service]
+	Type=simple
+	Restart=always
+	RestartSec=1
+	User=<user>
+	ExecStart=<commandline>
 
-  [Install]
-  WantedBy=target (probably multi-user.target)
+	[Install]
+	WantedBy=target (probably multi-user.target)
 ______________________________
 -1- options:
 	______________________________
@@ -38,7 +38,7 @@ ______________________________
 		After                   begin after the corresponding item
 	______________________________
 	-1.2- Service
-		Type                    
+		Type
 		RestartSec              restart after seconds if ends
 	______________________________
 	-1.3- Install

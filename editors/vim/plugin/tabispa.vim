@@ -221,12 +221,16 @@ function! s:TabToCol(line, col, ws, txt)
 	endif
 endfunction
 
+"Smart retabbing, generally space->tabs
+"Assumptions:
+"       1. indentation is always by tabspace (check value of &l:ts)
+"       2. Any increase in indent() not equal to &l:ts is alignment
+"       3. Decrease indentation that is a multiple of &l:ts is indentation
 function! s:Tabify() range
 	let curline = a:firstline
 	let ws = indent(curline)
 	let previndent = ws - ws % &l:ts
 	call s:TabToCol(curline, previndent, ws, getline(curline))
-	let bufend = line('$')
 	let curline += 1
 	while curline <= a:lastline
 		let txt = getline(curline)
@@ -252,5 +256,31 @@ function! s:Tabify() range
 	endwhile
 endfunction
 
-nnoremap <C-K><C-K><C-K><Tab> :call <SID>Tabify()<CR>
+nnoremap <silent> <C-K><C-K><C-K><Tab> :<C-U>call <SID>Tabify()<CR>
 vnoremap <C-K><Tab> :call <SID>Tabify()<CR>
+
+"Fixed indent to a level (number of tabs)
+"Mostly useful if Tabify() can't distinguish between indent and align
+"because alignment is also a multiple of &l:ts
+function! s:FixedIndent(indent) range
+	let curline = a:firstline
+	let icol = a:indent * &l:ts
+	while curline <= a:lastline
+		let ws = indent(curline)
+		let txt = getline(curline)
+		if ws == strdisplaywidth(txt)
+			if ws
+				call setline(curline, '')
+			endif
+		else
+			if ws < icol
+				let ws = icol
+			endif
+			call s:TabToCol(curline, icol, ws, txt)
+		endif
+		let curline += 1
+	endwhile
+endfunction
+nnoremap <silent> <C-K><Bslash> :<C-U>call <SID>FixedIndent(v:count)<CR>
+vnoremap <C-K><Bslash> :call <SID>FixedIndent(v:count)<CR>
+

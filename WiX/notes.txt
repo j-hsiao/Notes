@@ -2,749 +2,735 @@ WiX: installers
 commandline or from IDE like msvs
 
 -0- general
-  -0.1- toolset
-  -0.2- guids
-  -0.3- logging and msiexec
-  -0.4- escapes
-  -0.5- outline
-  -0.6- media
+	-0.1- toolset
+	-0.2- guids
+	-0.3- logging and msiexec
+	-0.4- escapes
+	-0.5- outline
+	-0.6- media
 -1- files
-  -1.1- directories
-  -1.2- components
-    -1.2.1- files
-      -1.2.1.1- shortcuts
-    -1.2.2- RemoveFolder
-    -1.2.3- RegistryValue
-    -1.2.4- Environment
+	-1.1- directories
+	-1.2- components
+		-1.2.1- files
+			-1.2.1.1- shortcuts
+		-1.2.2- RemoveFolder
+		-1.2.3- RegistryValue
+		-1.2.4- Environment
 -2- features
 -3- icons
 -4- conditions
 -5- properties
 -6- ui
 -7- events/actions
-  -7.1- custom actions
-  -7.2- dlls
+	-7.1- custom actions
+	-7.2- dlls
 -8- upgrades
-  -8.1- upgrade tag
-  -8.2- patching
-  -8.3- fragments
-  -8.4- merge modules
+	-8.1- upgrade tag
+	-8.2- patching
+	-8.3- fragments
+	-8.4- merge modules
 -9- bundles
-  -9.1- elements
-    -9.1.1- BootstrapperApplicationRef
-      -9.1.1.1- payloads
-    -9.1.2- Chain
-      -9.1.2.1- MsiPackage
-      -9.1.2.2- ExePackage 
-      -9.1.2.3- MspPackage
-      -9.1.2.4- MsUPackage
-      -9.1.2.5- PackageGroupRef
+	-9.1- elements
+		-9.1.1- BootstrapperApplicationRef
+			-9.1.1.1- payloads
+		-9.1.2- Chain
+			-9.1.2.1- MsiPackage
+			-9.1.2.2- ExePackage
+			-9.1.2.3- MspPackage
+			-9.1.2.4- MsUPackage
+			-9.1.2.5- PackageGroupRef
 
 
 ------------------------------
 -0- general
-  ------------------------------
-  -0.1- toolset
-    msi:
-      candle.exe xxx.wxs
-        creates .wixobj
-      light.exe xxx.wixobj -out output
-        creates xxx.msi
+------------------------------
+	-0.1- toolset
+		msi:
+			candle.exe xxx.wxs
+				creates .wixobj
+			light.exe xxx.wixobj -out output
+				creates xxx.msi
 
-    patch:
-      after using light to make the independent msi:
+		patch:
+			after using light to make the independent msi:
 
-      torch -p -xi original.wixpdb new.wixpdb -out patch.wixmst
+			torch -p -xi original.wixpdb new.wixpdb -out patch.wixmst
 
-      candle patch.wxs
-      light patch.wixobj
+			candle patch.wxs
+			light patch.wixobj
 
-      pyro patch.wixmsp -out patch.msp -t PatchBaselineID patch.wixmst
-           (from light)                   (see -8.2-)     (output from torch)
+			pyro patch.wixmsp -out patch.msp -t PatchBaselineID patch.wixmst
+			     (from light)                   (see -8.2-)     (output from torch)
 
 
-    harvest tool (recursive auto-gen fragments)
-      heat <type> name options
-        type:
-          dir
-          file
-          project
-          website
-          perf
-          reg
+		harvest tool (recursive auto-gen fragments)
+			heat <type> name options
+				type:
+					dir
+					file
+					project
+					website
+					perf
+					reg
 
-        notable options:
-          -ag: Guid for each Component per file to "*"
-          -cg <ComponentGroupName>: put all the files into a single component group
-          -srd: skip root dir (example dir bin, but only want wat is inside bin, not bin itself)
-          -var var.FragDir change SourceDir in file Source property to $(var.FragDir)
-                then when compile with candle, add -dFragDir=dirname to commandline
-          -sfrag: no fragments
-          -out: output file (.wxs)
-          -dr: parent directory reference ID for this fragment/group thing
+				notable options:
+					-ag: Guid for each Component per file to "*"
+					-cg <ComponentGroupName>: put all the files into a single component group
+					-srd: skip root dir (example dir bin, but only want wat is inside bin, not bin itself)
+					-var var.FragDir change SourceDir in file Source property to $(var.FragDir)
+					      then when compile with candle, add -dFragDir=dirname to commandline
+					-sfrag: no fragments
+					-out: output file (.wxs)
+					-dr: parent directory reference ID for this fragment/group thing
 
-      candle -dFragDir=dirname output_of_heat
+			candle -dFragDir=dirname output_of_heat
 
-    ------------------------------
-    -0.1.1- candle
-      like a compiler
-      use -dVAR=VAL on commandline to add preprocessor definitions
-      "$(var.VAR)" will be replaced with VAL in passed wxs files
+		------------------------------
+		-0.1.1- candle
+			like a compiler
+			use -dVAR=VAL on commandline to add preprocessor definitions
+			"$(var.VAR)" will be replaced with VAL in passed wxs files
 
-      example:
-        <?if $(var.DOTHIS) = 1 ?>
-          wxs code when DOTHIS is 1
-        <?endif ?>
+			example:
+				<?if $(var.DOTHIS) = 1 ?>
+					wxs code when DOTHIS is 1
+				<?endif ?>
 
-  ------------------------------
-  -0.2- guids
-    each component needs a guid
-    must be caps
+	------------------------------
+	-0.2- guids
+		each component needs a guid
+		must be caps
 
-    things that need guid:
-      product (what you are installing) (must be same?)
-      package (the msi) (unique to each package)
-      UpgradeCode (must be same?)
+		things that need guid:
+			product (what you are installing) (must be same?)
+			package (the msi) (unique to each package)
+			UpgradeCode (must be same?)
 
-  ------------------------------
-  -0.3- logging and msiexec
-    msiexec /i msifilename /l*v output.log
-  ------------------------------
-  -0.4- escapes
-    <![CDATA[expression]]>
-      allows escaping a condition containg < or > (less/greater than)
-  ------------------------------
-  -0.5- outline
+	------------------------------
+	-0.3- logging and msiexec
+		msiexec /i msifilename /l*v output.log
+	------------------------------
+	-0.4- escapes
+		<![CDATA[expression]]>
+			allows escaping a condition containg < or > (less/greater than)
+	------------------------------
+	-0.5- outline
 <?xml version='1.0' encoding='windows-1252'?>
 <?xml version='1.0' encoding='utf-8'?>
 <Wix xmlns='http://schemas.microsoft.com/wix/2006/wi'>
-  <Product Name='Foobar 1.0' Id='YOURGUID-86C7-4D14-AEC0-86416A69ABDE' UpgradeCode='YOURGUID-7349-453F-94F6-BCB5110BA4FD'
-    Language='1033' Codepage='1252' Version='1.0.0' Manufacturer='Acme Ltd.'>
+	<Product Name='Foobar 1.0' Id='YOURGUID-86C7-4D14-AEC0-86416A69ABDE' UpgradeCode='YOURGUID-7349-453F-94F6-BCB5110BA4FD'
+		Language='1033' Codepage='1252' Version='1.0.0' Manufacturer='Acme Ltd.'>
 
-    <Package Id='*' Keywords='Installer' Description="Acme's Foobar 1.0 Installer"
-      Comments='Foobar is a registered trademark of Acme Ltd.' Manufacturer='Acme Ltd.'
-      InstallerVersion='100' Languages='1033' Compressed='yes' SummaryCodepage='1252' />
+		<Package Id='*' Keywords='Installer' Description="Acme's Foobar 1.0 Installer"
+			Comments='Foobar is a registered trademark of Acme Ltd.' Manufacturer='Acme Ltd.'
+			InstallerVersion='100' Languages='1033' Compressed='yes' SummaryCodepage='1252' />
 
-    <Media Id='1' Cabinet='Sample.cab' EmbedCab='yes' DiskPrompt="CD-ROM #1" />
-    <Property Id='DiskPrompt' Value="Acme's Foobar 1.0 Installation [1]" />
+		<Media Id='1' Cabinet='Sample.cab' EmbedCab='yes' DiskPrompt="CD-ROM #1" />
+		<Property Id='DiskPrompt' Value="Acme's Foobar 1.0 Installation [1]" />
 
 
-    ------------------------------
-    all else goes here
-    ------------------------------
+		------------------------------
+		all else goes here
+		------------------------------
 
-  </Product>
+	</Product>
 </Wix>
 
-  ------------------------------
-  -0.6- media
-    media: a "media" for installation like disk, cd, usb, etc
-    <
-      Media
-      Id="id for media"
-      Cabinet="cab file name"
-      EmbedCab='yes/no'
-      DiskPrompt="some prompt name for disk (must define a DiskPrompt property) and replaces [1]"
-    >
-    (diskprompt: see above Property Id='DiskPrompt')
+	------------------------------
+	-0.6- media
+		media: a "media" for installation like disk, cd, usb, etc
+		<
+			Media
+			Id="id for media"
+			Cabinet="cab file name"
+			EmbedCab='yes/no'
+			DiskPrompt="some prompt name for disk (must define a DiskPrompt property) and replaces [1]"
+		>
+		(diskprompt: see above Property Id='DiskPrompt')
 
-    components, files, etc can have DiskID=media id
-    puts the things onto the corresponding media
+		components, files, etc can have DiskID=media id
+		puts the things onto the corresponding media
 
-    <MediaTemplate/>
-    template for media mutually exclusive from <Media>
+		<MediaTemplate/>
+		template for media mutually exclusive from <Media>
 
-      CompressionLevel          high low medium mszip(this is default) none 
-      DiskPrompt                disk name
-      EmbedCab                  embed cab into msi (yes/no)
-
-
-
-
-
-
-
+			CompressionLevel          high low medium mszip(this is default) none
+			DiskPrompt                disk name
+			EmbedCab                  embed cab into msi (yes/no)
 
 ------------------------------
 -1- files
-  ------------------------------
-  -1.1- directories
-    <Directory Id='TARGETDIR' Name='SourceDir'>
-      TARGETDIR and SourceDir are predefined
-      This represents the root of installation
+------------------------------
+	-1.1- directories
+		<Directory Id='TARGETDIR' Name='SourceDir'>
+			TARGETDIR and SourceDir are predefined
+			This represents the root of installation
 
-      NOTE: TARGETDIR = root of most space (C:)
-      SourceDir = dir of msi
+			NOTE: TARGETDIR = root of most space (C:)
+			SourceDir = dir of msi
 
-    predefined names:
-      https://msdn.microsoft.com/en-us/library/aa372057.aspx
-      ProgramFilesFolder
-      ProgramMenuFolder
-      DesktopFolder
+		predefined names:
+			https://msdn.microsoft.com/en-us/library/aa372057.aspx
+			ProgramFilesFolder
+			ProgramMenuFolder
+			DesktopFolder
 
-    example:
-      <Directory Id='ProgramFilesFolder' Name='wut'>
-        <Directory Id='Acme' Name = 'huh?'>
-          <Directory Id='INSTALLDIR' Name='clueless'>
+		example:
+			<Directory Id='ProgramFilesFolder' Name='wut'>
+				<Directory Id='Acme' Name = 'huh?'>
+					<Directory Id='INSTALLDIR' Name='clueless'>
 
-      Id can be: 
-        name
-        predefined name
-        property name
-  ------------------------------
-  -1.2- components
-    atomic unit of installation
-      1 file = 1 component
-      but component can have multiple files
-      must ALWAYS be installed together
+			Id can be:
+				name
+				predefined name
+				property name
+	------------------------------
+	-1.2- components
+		atomic unit of installation
+			1 file = 1 component
+			but component can have multiple files
+			must ALWAYS be installed together
 
-    <Component Id='name of component' Guid='GUID for this component'>
-      NOTE: different version = keep the GUID
-      change location/name = new GUID? (a "new" component)
+		<Component Id='name of component' Guid='GUID for this component'>
+			NOTE: different version = keep the GUID
+			change location/name = new GUID? (a "new" component)
 
-    ------------------------------
-    -1.2.1- files
-      <
-        File
-        Id='some identifier'
-        Name='name of file, actual path calculated by looking at containing Directory elements or Source and output name?'
-        DiskId='1'
-        Source='explicit path to file'
-        KeyPath='yes/no'          (all components must have a keypath)
-        Vital='yes/no'
-        ReadOnly='yes/no'
-        Hidden='yes/no'
-        System='yes/no'
-      >
+		------------------------------
+		-1.2.1- files
+			<
+				File
+				Id='some identifier'
+				Name='name of file, actual path calculated by looking at containing Directory elements or Source and output name?'
+				DiskId='1'
+				Source='explicit path to file'
+				KeyPath='yes/no'          (all components must have a keypath)
+				Vital='yes/no'
+				ReadOnly='yes/no'
+				Hidden='yes/no'
+				System='yes/no'
+			>
 
-      ------------------------------
-      -1.2.1.1- shortcuts: nested under a File
-        <
-          Shortcut
-          Id='id'
-          Directory='shortcut install location'
-          Name='name of shortcut'
-          WorkingDirectory='working dir of shortcut'
-          Icon='some.exe'
-          IconIndex='0'
-          Advertise='yes'
-        />
-    ------------------------------
-    -1.2.2- RemoveFolder
-      when to remove a folder
-      <RemoveFolder Id='ProgramMenuDir' On='uninstall/install/both'>
+			------------------------------
+			-1.2.1.1- shortcuts: nested under a File
+				<
+					Shortcut
+					Id='id'
+					Directory='shortcut install location'
+					Name='name of shortcut'
+					WorkingDirectory='working dir of shortcut'
+					Icon='some.exe'
+					IconIndex='0'
+					Advertise='yes'
+				/>
+		------------------------------
+		-1.2.2- RemoveFolder
+			when to remove a folder
+			<RemoveFolder Id='ProgramMenuDir' On='uninstall/install/both'>
 
-    ------------------------------
-    -1.2.3- RegistryValue
-      <
-        RegistryValue
-        Root='HKCU'
-        Key='Software\[Manufacturer]\[ProductName]'
-        Type='string'
-        Value=''
-        KeyPath='yes'
-      />
+		------------------------------
+		-1.2.3- RegistryValue
+			<
+				RegistryValue
+				Root='HKCU'
+				Key='Software\[Manufacturer]\[ProductName]'
+				Type='string'
+				Value=''
+				KeyPath='yes'
+			/>
 
-    ------------------------------
-    -1.2.4- Environment
-      <Environment
-        Id='id'
-        Action='create/set/remove'
-        Name='NameOfEnvironmentVar'
-        Part='first/last/all'
-        Permanent='yes/no'      (if no, remove on uninstall)
-        Separator=';'           (default is ;)
-        System='yes/no'         add to system or user only
-        Value='value to set to'
-        />
+		------------------------------
+		-1.2.4- Environment
+			<Environment
+				Id='id'
+				Action='create/set/remove'
+				Name='NameOfEnvironmentVar'
+				Part='first/last/all'
+				Permanent='yes/no'      (if no, remove on uninstall)
+				Separator=';'           (default is ;)
+				System='yes/no'         add to system or user only
+				Value='value to set to'
+				/>
 
 
 ------------------------------
 -2- features
-  INSTALLLEVEL is a value when running installer
-  [1, 32767]
-  if Level <= INSTALLLEVEL, then will add feature
-  <
-    Feature
-    Id='feature'
-    Title='title to display in ui (tree view)'
-    Description='description'
-    Display='expand/collapse/hidden'
-    Level='1'
-    ConfigurableDirectory='INSTALLDIR(a directory id)'  
-  >
+	INSTALLLEVEL is a value when running installer
+	[1, 32767]
+	if Level <= INSTALLLEVEL, then will add feature
+	<
+		Feature
+		Id='feature'
+		Title='title to display in ui (tree view)'
+		Description='description'
+		Display='expand/collapse/hidden'
+		Level='1'
+		ConfigurableDirectory='INSTALLDIR(a directory id)'
+	>
 
-    <ComponentRef Id='componentID'/>
+		<ComponentRef Id='componentID'/>
 
-  </Feature>
+	</Feature>
 
 ------------------------------
 -3- icons
-  <Icon Id="blah.exe" SourceFile="blah.exe"/>
-    Id must have same extension as target file
+	<Icon Id="blah.exe" SourceFile="blah.exe"/>
+		Id must have same extension as target file
 
 ------------------------------
 -4- conditions
-  <Condition Message="message">
-    prop AND prop = fjweoifjsoidf AND...
-  </Condition>
-  props:
-    Priveleged
-    AdminUser
-    VersionNT64
-    VersionNT
-    ...
-    http://msdn.microsoft.com/en-us/library/aa370905(VS.85).aspx#operating_system_properties
+	<Condition Message="message">
+		prop AND prop = fjweoifjsoidf AND...
+	</Condition>
+	props:
+		Priveleged
+		AdminUser
+		VersionNT64
+		VersionNT
+		...
+		http://msdn.microsoft.com/en-us/library/aa370905(VS.85).aspx#operating_system_properties
 ------------------------------
 -5- properties
-  <Property Id="property id">
-    <
-      RegistrySearch
-      Id='SomeRegistry'
-      Type='Raw'
-      Root='HKLM'
-      Key='some path'
-      Name='InstallDir'
-    />
-  </Property>
+	<Property Id="property id">
+		<
+			RegistrySearch
+			Id='SomeRegistry'
+			Type='Raw'
+			Root='HKLM'
+			Key='some path'
+			Name='InstallDir'
+		/>
+	</Property>
 
-  public: name must be all caps
+	public: name must be all caps
 
 ------------------------------
 -6- ui
-  add -ext WixUIExtension to light.exe
+------------------------------
+	add -ext WixUIExtension to light.exe
 
-  predefined uis:
-    WixUI_Mondo
-    WixUI_FeatureTree
-    WixUI_InstallDir
-    WixUI_Minimal
-    WixUI_Advanced
+	predefined uis:
+		WixUI_Mondo
+		WixUI_FeatureTree
+		WixUI_InstallDir
+		WixUI_Minimal
+		WixUI_Advanced
 
-    add property
-      <property Id='WixUI_INSTALLDIR' Value='NAME_OF_DIR?'>
+		add property
+			<property Id='WixUI_INSTALLDIR' Value='NAME_OF_DIR?'>
 
-    add ui refs
-      <UIRef Id="WixUI_desired"/>
-      <UIRef Id="WixUI_ErrorProgressText" />
+		add ui refs
+			<UIRef Id="WixUI_desired"/>
+			<UIRef Id="WixUI_ErrorProgressText" />
 
-    <
-      WixVariable
-      Id=
-        WixUILicenseRtf
-        WixUIBannerBmp
-        WixUIDialogBmp
-        WixUIExclamationIco
-        WixUIInfoIco
-        WixUINewIco
-        WixUIUpIco
-      Value= path to thing
+		<
+			WixVariable
+			Id=
+				WixUILicenseRtf
+				WixUIBannerBmp
+				WixUIDialogBmp
+				WixUIExclamationIco
+				WixUIInfoIco
+				WixUINewIco
+				WixUIUpIco
+			Value= path to thing
 -------------------------------
 -7- events/actions
-
+------------------------------
 tags for reordering events:
-  AdminUISequence
-  InstallUISequence
-  AdminExecuteSequence
-  InstallExecuteSequence
+	AdminUISequence
+	InstallUISequence
+	AdminExecuteSequence
+	InstallExecuteSequence
 
 events:
-  AppSearch
-  LaunchConditions
-  ValidateProductIDCostInitialize
-  FileCost
-  CostFinalize
-  InstallValidate
-  InstallInitialize
-  ProcessComponents
-  UnpublishFeatures
-  RemoveShortcuts
-  RemoveFiles
-  InstallFiles
-  CreateShortcuts
-  RegisterUser
-  RegisterProduct
-  PublishFeatures
-  PublishProduct
-  InstallFinalize
-  RemoveExistingProducts
+	AppSearch
+	LaunchConditions
+	ValidateProductIDCostInitialize
+	FileCost
+	CostFinalize
+	InstallValidate
+	InstallInitialize
+	ProcessComponents
+	UnpublishFeatures
+	RemoveShortcuts
+	RemoveFiles
+	InstallFiles
+	CreateShortcuts
+	RegisterUser
+	RegisterProduct
+	PublishFeatures
+	PublishProduct
+	InstallFinalize
+	RemoveExistingProducts
 non-default:
-  ScheduleReboot
+	ScheduleReboot
 
 
 example:
-  <InstallUISequence>
-    <RegisterUser Before='InstallFiles' After='RemoveExistingProducts' Suppress='yes'/>
-    <ScheduleReboot After=InstallFinalize>Condition goes here</ScheduleReboot>
-  </InstallUISequence>
+	<InstallUISequence>
+		<RegisterUser Before='InstallFiles' After='RemoveExistingProducts' Suppress='yes'/>
+		<ScheduleReboot After=InstallFinalize>Condition goes here</ScheduleReboot>
+	</InstallUISequence>
 
-  ------------------------------
-  -7.1- custom actions
-    custom commandline to run
-    add a tag under Product
-    add a tag under InstallExecuteSequence or whatever is relevant
-    <Product...>
-      # run a file
-      <CustomAction Id='MyActionID' FileKey='ID of <File> to run' ExeCommand='command line (arguments?)' Return='asyncNoWait'/>
+	------------------------------
+	-7.1- custom actions
+		custom commandline to run
+		add a tag under Product
+		add a tag under InstallExecuteSequence or whatever is relevant
+		<Product...>
+			# run a file
+			<CustomAction Id='MyActionID' FileKey='ID of <File> to run' ExeCommand='command line (arguments?)' Return='asyncNoWait'/>
 
-      # run a binary (not installed but included by package like readme
-      <CustomAction Id='MyActionID' BinaryKey='ID of <Binary> to run' ExeCommand='command line' Return='asyncNoWait'/>
+			# run a binary (not installed but included by package like readme
+			<CustomAction Id='MyActionID' BinaryKey='ID of <Binary> to run' ExeCommand='command line' Return='asyncNoWait'/>
 
-      #run some program on installation machine
-      <Property Id='PROPERTY_ID'>NAME_OF_EXECUTABLE</Property>
-      <CustomAction Id='MyActionID' Property='PROPERTY_ID' ExeCommand='commandline arguments? like "[SourceDir]filename"' Return='asyncNoWait | check | ignore | asyncWait'/>
+			#run some program on installation machine
+			<Property Id='PROPERTY_ID'>NAME_OF_EXECUTABLE</Property>
+			<CustomAction Id='MyActionID' Property='PROPERTY_ID' ExeCommand='commandline arguments? like "[SourceDir]filename"' Return='asyncNoWait | check | ignore | asyncWait'/>
 
-      #set some property
-      <Property Id='Name'>some application</Property>
-      <Property Id='Extension'>.exe</Property>
-      <Property Id='ExeName'/>
-      <CustomAction Id='SetExeName' Property='ExeName' Value='[Name].[Extension]'/>
+			#set some property
+			<Property Id='Name'>some application</Property>
+			<Property Id='Extension'>.exe</Property>
+			<Property Id='ExeName'/>
+			<CustomAction Id='SetExeName' Property='ExeName' Value='[Name].[Extension]'/>
 
-      #set a directory
-      <CustomAction Id='SetDirName' Directory='DirID' Value='some\dir\path'/>
-    </Product>
+			#set a directory
+			<CustomAction Id='SetDirName' Directory='DirID' Value='some\dir\path'/>
+		</Product>
 
-    Return:
-    asyncNoWait: run and detach
-    check: run and join immediately, check exit code
-    ignore: run and join immediately, ignore exit code
-    syncWait: run and join at end
+		Return:
+		asyncNoWait: run and detach
+		check: run and join immediately, check exit code
+		ignore: run and join immediately, ignore exit code
+		syncWait: run and join at end
 
-    <XXXSequence>
-      <Custom Action='MyActionID' After='InstallFinalize'>NOT Installed</Custom>
-    </XXXSequence>
-  ------------------------------
-  -7.2- dlls
-    c++:
-      make a dll
-        #include <windows.h>
-        #include <msi.h>
-        #include <msiquery.h>
+		<XXXSequence>
+			<Custom Action='MyActionID' After='InstallFinalize'>NOT Installed</Custom>
+		</XXXSequence>
+	------------------------------
+	-7.2- dlls
+		c++:
+			make a dll
+				#include <windows.h>
+				#include <msi.h>
+				#include <msiquery.h>
 
-        #pragma comment(linker, "/EXPORT:CheckPID=_CheckPID@4")
-        extern "C" UINT __stdcall CheckPID(MSIHANDLE hInstall)
-        {
-          char Pid[MAX_PATH];
-          DWORD PidLen = MAX_PATH;
-          //does this actually ask user for input?
-          MsiGetProperty(hInstall, "PIDKEY", Pid, &PidLen);
-          MsiSetProperty(hInstall, "PIDACCEPTED", Pid[0] == '1' ? "1" : "0");
-          return ERROR_SUCCESS
-        }
+				#pragma comment(linker, "/EXPORT:CheckPID=_CheckPID@4")
+				extern "C" UINT __stdcall CheckPID(MSIHANDLE hInstall)
+				{
+					char Pid[MAX_PATH];
+					DWORD PidLen = MAX_PATH;
+					//does this actually ask user for input?
+					MsiGetProperty(hInstall, "PIDKEY", Pid, &PidLen);
+					MsiSetProperty(hInstall, "PIDACCEPTED", Pid[0] == '1' ? "1" : "0");
+					return ERROR_SUCCESS
+				}
 
-      link against msi.lib
+			link against msi.lib
 
-    in wxs:
-      <CustomAction Id='DllCall' BinaryKey='CheckPID(binary id)' DLLEntry='CheckPID(method?)'/>
-      <CustomAction Id='RefusePID' Error='Invalid key. Installation aborted.'/>
+		in wxs:
+			<CustomAction Id='DllCall' BinaryKey='CheckPID(binary id)' DLLEntry='CheckPID(method?)'/>
+			<CustomAction Id='RefusePID' Error='Invalid key. Installation aborted.'/>
 
-      <InstallExecuteSequence>
-        <Custom Action='DllCall' After='someevent'/>
-        <Custom Action='RefusePID' After='DllCall'>PIDACCEPTED = "0" AND NOT Installed</Custom>
-      </InstallExecuteSequence>
+			<InstallExecuteSequence>
+				<Custom Action='DllCall' After='someevent'/>
+				<Custom Action='RefusePID' After='DllCall'>PIDACCEPTED = "0" AND NOT Installed</Custom>
+			</InstallExecuteSequence>
 
-      <Binary Id='CheckPID' SourceFile='CheckPID.dll'>
+			<Binary Id='CheckPID' SourceFile='CheckPID.dll'>
 
-    property names must be all caps (public) to pass to/from dll
+		property names must be all caps (public) to pass to/from dll
 
 ------------------------------
 -8- upgrades
-  small updates: just a few files, no product version change
-  minor upgrades: product version change
-    change Version for Product tag
-  Major upgrade: change everything
+	small updates: just a few files, no product version change
+	minor upgrades: product version change
+		change Version for Product tag
+	Major upgrade: change everything
 
-  https://docs.microsoft.com/en-us/windows/win32/msi/changing-the-product-code?redirectedfrom=MSDN 
+	https://docs.microsoft.com/en-us/windows/win32/msi/changing-the-product-code?redirectedfrom=MSDN
 
-  product GUID must change when:
-    expect coexistence between different versions
-    change .msi file name
-    change GUID of any existing Component
-    removing components/features (includes renaming/moving to other location)
-    (no changing feature tree hierarchy, if remove parent, all children must be removed too)
+	product GUID must change when:
+		expect coexistence between different versions
+		change .msi file name
+		change GUID of any existing Component
+		removing components/features (includes renaming/moving to other location)
+		(no changing feature tree hierarchy, if remove parent, all children must be removed too)
 
-  so okay:
-    add new component
-    add new feature (without shared components)
+	so okay:
+		add new component
+		add new feature (without shared components)
 
-    add/remove/modify files, registry keys, shortcuts of unshared components
-
-
-  note: keep track of product GUIDs
-
-  UpgradeCode: same version (1.xxx, 2.xxx)
-
-  experimentation notes:
-    1. if product Id remains the same, you cannot just run another msi installer
-      (it says already installed)
-      if Product Id='*', then you can directly run msiinstaller and it'll overwrite 
-      any with same upgradecode
+		add/remove/modify files, registry keys, shortcuts of unshared components
 
 
+	note: keep track of product GUIDs
+
+	UpgradeCode: same version (1.xxx, 2.xxx)
+
+	experimentation notes:
+		1. if product Id remains the same, you cannot just run another msi installer
+			(it says already installed)
+			if Product Id='*', then you can directly run msiinstaller and it'll overwrite
+			any with same upgradecode
+
+	------------------------------
+	-8.1- upgrade tag
+		<Upgrade Id='UpgradeCode goes here'>
+			<
+				UpgradeVersion
+				OnlyDetect='yes'
+				Property='SELFFOUND'
+				Minimum='1.0.1' IncludeMinimum='yes'
+				Maximum='1.0.1' IncludeMaximum='yes'
+				Language='1252'
+			/>
+			<
+				UpgradeVersion
+				OnlyDetect='yes'
+				Property='NEWERFOUND'
+				Minimum='1.0.1' IncludeMinimum='no'
+			/>
+			<
+				UpgradeVersion
+				OnlyDetect='no'
+				Property='OLDFOUND'
+				Maximum='1.0.1' IncludeMaximum='no'
+			/>
+		</Upgrade>
+			NOTES:
+				OnlyDetect='no' = remove old version
+
+				UPGRADINGPRODUCTCODE condition for actions
 
 
-  ------------------------------
-  -8.1- upgrade tag
-    <Upgrade Id='UpgradeCode goes here'>
-      <
-        UpgradeVersion
-        OnlyDetect='yes'
-        Property='SELFFOUND'
-        Minimum='1.0.1' IncludeMinimum='yes'
-        Maximum='1.0.1' IncludeMaximum='yes'
-        Language='1252'
-      />
-      <
-        UpgradeVersion
-        OnlyDetect='yes'
-        Property='NEWERFOUND'
-        Minimum='1.0.1' IncludeMinimum='no'
-      />
-      <
-        UpgradeVersion
-        OnlyDetect='no'
-        Property='OLDFOUND'
-        Maximum='1.0.1' IncludeMaximum='no'
-      />
-    </Upgrade>
-      NOTES:
-        OnlyDetect='no' = remove old version
+		<CustomAction Id='AlreadyUpdated' Error='current already installed'/>
+		<CustomAction Id='NoDowngrade' Error='A newer version is installed'/>
 
-        UPGRADINGPRODUCTCODE condition for actions
-      
+		<InstallExecuteSequence>
+			<Custom Action='AlreadyUpdated' After='FindRelatedProducts'>SELFFOUND</Custom>
+			<Custom Action='AlreadyUpdated' After='FindRelatedProducts'>NEWERFOUND</Custom>
+		</InstallExecuteSequence>
 
+		alternative mutually exclusive method:
+			<MajorUpgrade
+				AllowDowngrades
+				AllowSameVersionUpgrades
+				Disallow
+				DowngradeErrorMessage (required unless downgrade is allowed)
+			/>
 
-    <CustomAction Id='AlreadyUpdated' Error='current already installed'/>
-    <CustomAction Id='NoDowngrade' Error='A newer version is installed'/>
+	------------------------------
+	-8.2- patching
+		.msp file, contains only diffs
 
-    <InstallExecuteSequence>
-      <Custom Action='AlreadyUpdated' After='FindRelatedProducts'>SELFFOUND</Custom>
-      <Custom Action='AlreadyUpdated' After='FindRelatedProducts'>NEWERFOUND</Custom>
-    </InstallExecuteSequence>
+		<Wix...>
+			<
+				Patch
+				AllowRemoval='yes'
+				Manufacturer='company'
+				MoreInfoURL='www.acmefoobar.com'
+				DisplayName='Foobar 1.0.1 Patch'
+				Description='fix something'
+				Classification='Update'
+			>
+				<Media Id='5000' Cabinet='Sample.cab'>
+					<PatchBaseline Id='Sample'/>
+				</Media>
 
-    alternative mutually exclusive method:
-      <MajorUpgrade
-        AllowDowngrades
-        AllowSameVersionUpgrades
-        Disallow
-        DowngradeErrorMessage (required unless downgrade is allowed)
-      />
+				<
+					PatchFamily
+					Id='SamplePatchFamily'
+					Version='1.0.0.0'
+					Supersede='yes'
+				>
+					<PropertyRef Id='ProductVersion'/>
+					<ComponentRef Id='MainExecutable'/>
+				</PatchFamily>
+			</Patch>
+		</Wix...>
 
-  ------------------------------
-  -8.2- patching
-    .msp file, contains only diffs
+		Notes:
+			1 need the PropertyRef to ProductVersion to update the product's version
 
-    <Wix...>
-      <
-        Patch
-        AllowRemoval='yes'
-        Manufacturer='company'
-        MoreInfoURL='www.acmefoobar.com'
-        DisplayName='Foobar 1.0.1 Patch'
-        Description='fix something'
-        Classification='Update'
-      >
-        <Media Id='5000' Cabinet='Sample.cab'>
-          <PatchBaseline Id='Sample'/>
-        </Media>
+			2 ComponentRef Id='MainExecutable' would make the MainExecutable component
+				updated by the patch
 
-        <
-          PatchFamily
-          Id='SamplePatchFamily'
-          Version='1.0.0.0'
-          Supersede='yes'
-        >
-          <PropertyRef Id='ProductVersion'/>
-          <ComponentRef Id='MainExecutable'/>
-        </PatchFamily>
-      </Patch>
-    </Wix...>
+			3 MediaTemplate not allowed
 
-    Notes:
-      1 need the PropertyRef to ProductVersion to update the product's version
-
-      2 ComponentRef Id='MainExecutable' would make the MainExecutable component
-        updated by the patch
-
-      3 MediaTemplate not allowed
-
-    to my understanding:
-      have some product P
-      a PatchFamily is a family of patches for particular file / set of files
-      these files are indicated by ComponentRef inside of PatchFamily
+		to my understanding:
+			have some product P
+			a PatchFamily is a family of patches for particular file / set of files
+			these files are indicated by ComponentRef inside of PatchFamily
 
 
-    Classification:
-      Hotfix
-      Security Rollup
-      Critical Update
-      Update
-      Server Pack
-      Update Rollup
+		Classification:
+			Hotfix
+			Security Rollup
+			Critical Update
+			Update
+			Server Pack
+			Update Rollup
 
-    AllowRemoval:
-      allow uninstalling the patch
+		AllowRemoval:
+			allow uninstalling the patch
 
-    Supersede:
-      supersede other patches in same family
+		Supersede:
+			supersede other patches in same family
 
-  ------------------------------
-  -8.3- fragments
-    in feature:
-      <ComponentRef Id='fragmentid'/>
-      (but fragmentid not in the same file)
-    in other file:
-      <Fragment Id='FragmentManual'>
-        <DirectoryRef Id='INSTALLDIR'>
-          <Component Id='Manual' Guid='GUID HERE'>
-            <File Id='Id' Name='manual.pdf' DiskID='1' Source='Manual.pdf' KeyPath='yes'>
-              <Shortcut Id='startmenuManual' Directory='ProgramMenuDir' Name='instruction manual' Advertise='yes'/>
-            </File>
-          </Component>
-        </DirectoryRef>
-      </Fragment>
+	------------------------------
+	-8.3- fragments
+		in feature:
+			<ComponentRef Id='fragmentid'/>
+			(but fragmentid not in the same file)
+		in other file:
+			<Fragment Id='FragmentManual'>
+				<DirectoryRef Id='INSTALLDIR'>
+					<Component Id='Manual' Guid='GUID HERE'>
+						<File Id='Id' Name='manual.pdf' DiskID='1' Source='Manual.pdf' KeyPath='yes'>
+							<Shortcut Id='startmenuManual' Directory='ProgramMenuDir' Name='instruction manual' Advertise='yes'/>
+						</File>
+					</Component>
+				</DirectoryRef>
+			</Fragment>
 
 
-    add fragment to candle and add all outputs to light
-    to compile
+		add fragment to candle and add all outputs to light
+		to compile
 
-  ------------------------------
-  -8.4- merge modules
-    like heavy-weight fragments
-    essentially msi for each module
-    and merge the msis together?
+	------------------------------
+	-8.4- merge modules
+		like heavy-weight fragments
+		essentially msi for each module
+		and merge the msis together?
 
 ------------------------------
 -9- bundles
 ------------------------------
 NOTE:
-  if signing a bundle, must use
-    wix insignia
-    insignia -ib [exe] -o [bootstrapperexe]
-    *sign the [bootstrapperexe]*
-    insignia -ab [signed bootstrapperexe] [original exe] -o [output name (can be same as [exe])]
-    *sign the output*
+	if signing a bundle, must use
+		wix insignia
+		insignia -ib [exe] -o [bootstrapperexe]
+		*sign the [bootstrapperexe]*
+		insignia -ab [signed bootstrapperexe] [original exe] -o [output name (can be same as [exe])]
+		*sign the output*
 
 
 bundles used to install multiple things together
-  multiple components in own msi
-  main product and its dependencies
-  etc
+	multiple components in own msi
+	main product and its dependencies
+	etc
 
-  skeleton:
-    <?xml version="1.0"?>
-    <Wix xmlns="http://schemas.microsoft.com/wix/2006/wi">
-      <Bundle>
-      </Bundle>
-    </Wix>
+	skeleton:
+		<?xml version="1.0"?>
+		<Wix xmlns="http://schemas.microsoft.com/wix/2006/wi">
+			<Bundle>
+			</Bundle>
+		</Wix>
 
-  Bundle:
-    Version='1.2.3.4'
-    UpgradeCode='guid'
-    Manufacturer='company'
-    Name='name to show in programs/features'
-    ParentName='name to show in updates, if given, do not show in programs/features'
+	Bundle:
+		Version='1.2.3.4'
+		UpgradeCode='guid'
+		Manufacturer='company'
+		Name='name to show in programs/features'
+		ParentName='name to show in updates, if given, do not show in programs/features'
 
-  ------------------------------
-  -9.1- elements
-    ------------------------------
-    -9.1.1- BootstrapperApplicationRef
-      <BootstrapperApplicationRef
-        Id="WixStandardBootstrapperApplication.RtfLicense"/>
-      <BootstrapperApplication                <- notice no Ref
-        SourceFile="PathToCustomBootStrapper.dll"/>
+	------------------------------
+	-9.1- elements
+		------------------------------
+		-9.1.1- BootstrapperApplicationRef
+			<BootstrapperApplicationRef
+				Id="WixStandardBootstrapperApplication.RtfLicense"/>
+			<BootstrapperApplication                <- notice no Ref
+				SourceFile="PathToCustomBootStrapper.dll"/>
 
-      builtin bootstrapper Ids:
-        WixStandardBootstrapperApplication.RtfLicense               display license in dialog
-        WixStandardBootstrapperApplication.HyperlinkLicense         link to license
-        WixStandardBootstrapperApplication.HyperlinkSidbarLicense   larger hyperlink, with image
-        WixStandardBootstrapperApplication.RtfLargeLicense          larger dialog, display version
-        WixSTandardBootstrapperApp;l;ication.HyperlinkLargeLicense  larger dialog, display version
+			builtin bootstrapper Ids:
+				WixStandardBootstrapperApplication.RtfLicense               display license in dialog
+				WixStandardBootstrapperApplication.HyperlinkLicense         link to license
+				WixStandardBootstrapperApplication.HyperlinkSidbarLicense   larger hyperlink, with image
+				WixStandardBootstrapperApplication.RtfLargeLicense          larger dialog, display version
+				WixSTandardBootstrapperApp;l;ication.HyperlinkLargeLicense  larger dialog, display version
 
-      <bal:WixStandardBootstrapperApplication
-        LicenseFile="path to license.rtf"
-        LicenseUrl='url to license'
-        ShowVersion="yes/no"
-        LogoFile='file.png'
-        LogoSideFile='logo.png'
-        />
-      NOTE1:
-        add this:
-          xmlns:bal="http://schemas.microsoft.com/wix/BalExtension"
-        to <Wix> element to use bal:blahblahblah
-      NOTE2:
-        or can supply WixStdbaLicenseUrl or WixStdbaLicenseFile to light through -d
-
-
-      build with candle and light
-      (must add "-ext WixBalExtension" to both)
+			<bal:WixStandardBootstrapperApplication
+				LicenseFile="path to license.rtf"
+				LicenseUrl='url to license'
+				ShowVersion="yes/no"
+				LogoFile='file.png'
+				LogoSideFile='logo.png'
+				/>
+			NOTE1:
+				add this:
+					xmlns:bal="http://schemas.microsoft.com/wix/BalExtension"
+				to <Wix> element to use bal:blahblahblah
+			NOTE2:
+				or can supply WixStdbaLicenseUrl or WixStdbaLicenseFile to light through -d
 
 
-      ------------------------------
-      -9.1.1.1- payloads
-        extra payload files (required by installers? never really explains what exactly these are)
-        <Payload SourceFile="path to file"/>
-        <PayloadGroupRef Id="ResourceGroupoForSomething"/>
-
-        can put this under the corresponding Package (MsiPackage, ExePackage, ...)
-        if those require these extra "external" files
+			build with candle and light
+			(must add "-ext WixBalExtension" to both)
 
 
-        https://stackoverflow.com/questions/26982208/bundle-multiple-support-files-for-wix-burn
+			------------------------------
+			-9.1.1.1- payloads
+				extra payload files (required by installers? never really explains what exactly these are)
+				<Payload SourceFile="path to file"/>
+				<PayloadGroupRef Id="ResourceGroupoForSomething"/>
+
+				can put this under the corresponding Package (MsiPackage, ExePackage, ...)
+				if those require these extra "external" files
 
 
+				https://stackoverflow.com/questions/26982208/bundle-multiple-support-files-for-wix-burn
 
-      
-    ------------------------------
-    -9.1.2- Chain
-      a chain of packages
-      use PackageGroupRef if the package definition is in a fragment
+		------------------------------
+		-9.1.2- Chain
+			a chain of packages
+			use PackageGroupRef if the package definition is in a fragment
 
-      ------------------------------
-      -9.1.2.1- MsiPackage
-        DisplayInternalUI='yes/no'
-        EnableFeatureSelection='yes/no'
-        ForcePerMachine='yes/no'
+			------------------------------
+			-9.1.2.1- MsiPackage
+				DisplayInternalUI='yes/no'
+				EnableFeatureSelection='yes/no'
+				ForcePerMachine='yes/no'
 
 
-      ------------------------------
-      -9.1.2.2- ExePackage 
-        <ExePackage
-          SourceFile="[sources]\packages\shared\MyPackage.exe"
-          DetectCondition="ExeDetectedVariable"
-          DownloadUrl="http://example.com/?mypackage.exe"
-          InstallCommand="/q /ACTION=Install"
-          RepairCommand="/q ACTION=Repair /hideconsole"
-          UninstallCommand="/q ACTION=Uninstall /hideconsole" 
-          InstallCondition="not installed" />
-        (see -4- conditions)
+			------------------------------
+			-9.1.2.2- ExePackage
+				<ExePackage
+					SourceFile="[sources]\packages\shared\MyPackage.exe"
+					DetectCondition="ExeDetectedVariable"
+					DownloadUrl="http://example.com/?mypackage.exe"
+					InstallCommand="/q /ACTION=Install"
+					RepairCommand="/q ACTION=Repair /hideconsole"
+					UninstallCommand="/q ACTION=Uninstall /hideconsole"
+					InstallCondition="not installed" />
+				(see -4- conditions)
 
-          DetectCondition='condition'   (see -4-)
-      ------------------------------
-      -9.1.2.3- MspPackage
-      ------------------------------
-      -9.1.2.4- MsUPackage
+					DetectCondition='condition'   (see -4-)
+			------------------------------
+			-9.1.2.3- MspPackage
+			------------------------------
+			-9.1.2.4- MsUPackage
 
-      ------------------------------
-      -9.1.2.5-
-        general properties:
-          After='id'
-          Cache='yes/no'
-          CacheId='cache id'
-          Compressed='yes/no' (embed or not)
-          Description='desc'
-          DisplayName='name'
-          DownloadUrl='url to download'
-            {0} = package id
-            {1} = payload id
-            {2} = payload file name
-          Id='id'
-          InstallCondition='Condition' (see -4-)
-          InstallSize
-          Name='extracted name'
-          PerMachine='yes/no'   (requires elevated?)
-          Permanent='yes/no'    (can be uninstalled?)
-          SourceFile="path to file"
-          Visible='yes/no'
-          Vital='yes/no'        (stop if fail?')
-
+			------------------------------
+			-9.1.2.5-
+				general properties:
+					After='id'
+					Cache='yes/no'
+					CacheId='cache id'
+					Compressed='yes/no' (embed or not)
+					Description='desc'
+					DisplayName='name'
+					DownloadUrl='url to download'
+						{0} = package id
+						{1} = payload id
+						{2} = payload file name
+					Id='id'
+					InstallCondition='Condition' (see -4-)
+					InstallSize
+					Name='extracted name'
+					PerMachine='yes/no'   (requires elevated?)
+					Permanent='yes/no'    (can be uninstalled?)
+					SourceFile="path to file"
+					Visible='yes/no'
+					Vital='yes/no'        (stop if fail?')

@@ -15,7 +15,7 @@ contents:
 	-2.1- set
 	-2.2- set_property
 	-2.3- install
-	-2.4- add_library 
+	-2.4- add_library
 	-2.5- add_executable
 -3- cmake variables
 -4- commandline
@@ -113,7 +113,7 @@ contents:
 				USAGE
 				PROPERTIES
 				PASS_REGULAR_EXPRESSION
-				<regex>) 
+				<regex>)
 
 		functions
 			function(name <arg> <arg> <arg>)
@@ -172,19 +172,6 @@ contents:
 			make package
 
 		if mixing shared/static libraries, static libraries will need to be built with POSITION_INDEPENDENT_CODE ON
-			
-
-
-
-
-			
-				
-
-
-
-
-
-
 	______________________________
 	-0.2- generator expressions
 		syntax:
@@ -240,7 +227,6 @@ contents:
 					$<TARGET_FILE:tgt>
 					$<TARGET_PROPERTY:tgt,prop>
 					$<TARGET_OBJECTS:objlib>
-				
 
 
 
@@ -248,7 +234,6 @@ contents:
 		LINK_LIBRARIES
 		INCLUDE_DIRECTORIES
 		COMPILE_DEFINITIONS
-		
 
 ------------------------------
 -1- syntax
@@ -261,7 +246,7 @@ bools: ON or OFF
 	-1.1- variables
 		use set() function
 		(see functions)
-		dereference: 
+		dereference:
 			normal: ${VARIABLENAME}
 			environment variable: $ENV{NAME}
 
@@ -339,7 +324,7 @@ cmake_minimum_required (VERSION <version>)
 
 
 		general options
-			DESTINATION 
+			DESTINATION
 				dst
 				relative paths are relative to CMAKE_INSTALL_PREFIX
 			PERMISSIONS
@@ -371,20 +356,7 @@ cmake_minimum_required (VERSION <version>)
 	-2.5- add_executable
 		adds an executable target
 
-
-
-
-
-			
-
-
-
-
 	execute_process
-
-
-
-
 
 ------------------------------
 -3- cmake variables
@@ -395,13 +367,13 @@ use set function to set the values
 ______________________________
   -3.1- CMAKE_* variables
 
-    CMAKE_BUILD_TYPE: < Release | RelWithDebInfo | Debug >
-    CMAKE_CXX_STANDARD : c++ standard (11 for c++11)
-    CMAKE_CXX_STANDARD_REQUIRED: bool, on or off
-    CMAKE_CXX_FLAGS "-std=c++11 ${CMAKE_CXX_FLAGS}"
-    CMAKE_BINARY_DIR
-    CMAKE_REQUIRED_LIBRARIES
-    CMAKE_INSTALL_PREFIX
+	CMAKE_BUILD_TYPE: < Release | RelWithDebInfo | Debug >
+	CMAKE_CXX_STANDARD : c++ standard (11 for c++11)
+	CMAKE_CXX_STANDARD_REQUIRED: bool, on or off
+	CMAKE_CXX_FLAGS "-std=c++11 ${CMAKE_CXX_FLAGS}"
+	CMAKE_BINARY_DIR
+	CMAKE_REQUIRED_LIBRARIES
+	CMAKE_INSTALL_PREFIX
 
 PROJECT_BINARY_DIR
 PROJECT_SOURCE_DIR
@@ -438,7 +410,7 @@ command line options
 	--build <dir>
 		call build in build directory
 
-	--install 
+	--install
 
 	--prefix <prefix>
 		used with --install, the installation dir
@@ -459,7 +431,7 @@ ctest: run tests from add_test
 		run individual test:
 			ctest -R <regexp matching test names>
 		list tests
-			ctest -N 
+			ctest -N
 
 		Tests pass if:
 			1. executable was found
@@ -531,7 +503,7 @@ ctest: run tests from add_test
 				instead of just @varname@ and the values
 				will be auto-calculated as relative to install dir
 				to make a "relocatable" package
-		
+
 	ConfigVersion.cmake
 		This tells the version of the package and the policy.
 		CMakePackageConfigHelpers:
@@ -555,7 +527,7 @@ ctest: run tests from add_test
 				DESTINATION <dst dir>
 				NAMESPACE <namespace
 			)
-			<exportname> should match the 
+			<exportname> should match the
 			install for the targets etc
 			when install(TARGETS targets... EXPORT <exportname> otherargs...)
 

@@ -93,7 +93,7 @@ ______________________________
 ______________________________
 -3- bindings
 	display bindings:
-		bind -p 
+		bind -p
 	https://www.gnu.org/software/bash/manual/html_node/Bindable-Readline-Commands.html
 	useful commands over defaults
 		backward-kill-word

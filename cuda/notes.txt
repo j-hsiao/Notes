@@ -179,7 +179,7 @@ ______________________________
 				pitch
 			};
 			cudaErr_t cudaMalloc3D(cudaPitchedPtr *ret, cudaExtent)
-				allocates as CHW, alignment only affects W so still a single 
+				allocates as CHW, alignment only affects W so still a single
 				stride ("pitch")
 			cudaErr_t cudaMemcpy2D()
 			cudaErr_t cudaMemcpy3D()
@@ -486,68 +486,68 @@ ______________________________
 //OLD        			a source file that can be compiled (eg. with gcc)
 //OLD        			OR
 //OLD        			object file (nvcc would just use the compiler for you)
-//OLD        
+//OLD
 //OLD        	device: the acceleration device like a gpu
 //OLD        	host: the computer (standard cpu)
-//OLD        
+//OLD
 //OLD        	files have .cu extension
-//OLD        
+//OLD
 //OLD        	declarations:
 //OLD        		__global__  declare a cuda kernel (add to beginning of func signature)
 //OLD        		__shared__  declare shared memory buffer.
 //OLD        		__device__  a gpu function callable from a kernel.
-//OLD        
-//OLD        
+//OLD
+//OLD
 //OLD        	memory:
 //OLD        		cudaMallocManaged(**ptr, nbytes)
 //OLD        			compiler magic to access same pointer from both CPU and GPU.
 //OLD        			ptr: address of a pointer variable to hold resulting address
 //OLD        		CudaFree()
-//OLD        
+//OLD
 //OLD        		transfer between memory(if not used cudaMallocManaged):
 //OLD        			use cudaMemcpy(
 //OLD        				dst, src, nbytes, cudaMemcpy[HostToDevice|DeviceToHost]);
-//OLD        
+//OLD
 //OLD        	calling kernels:
 //OLD        		function<<<gpuargs...>>>(func args...)
 //OLD        			gpuargs
 //OLD        		NOTE: calls are asynchronous. call cudaDeviceSynchronize()
 //OLD        		to sync data
-//OLD        
+//OLD
 //OLD        	synchronization:
 //OLD        		__syncthreads()
 //OLD        		wait for threads to all reach same point before continuing
-//OLD        
+//OLD
 //OLD        	pointer attributes:
 //OLD        		cudaPointerGetAttributes()
 //OLD        			isManaged
-//OLD        
+//OLD
 //OLD        	______________________________
 //OLD        	-1.1- capabilities
 //OLD        		Compute capabilities determine what cuda features can be used.
 //OLD        		They can be queried by
 //OLD        			cudaError_t cudaGetDeviceProperties(cudaDeviceProp *prop, int dev);
 //OLD        			cudaError_t cudaDeviceGetAttribute(int *ret, cudaDeviceAttr attr, int dev);
-//OLD        
+//OLD
 //OLD        		capability          capability      property                    attribute
 //OLD        		managed memory      3.0             managedMemory               cudaDevAttrManagedMemory
 //OLD        		concurrent mmem     6.0             concurrentManagedAccess
-//OLD        
+//OLD
 //OLD        ______________________________
 //OLD        -2- execution configurations
 //OLD        	execution is multidimensional:
 //OLD        		<<<nblocks, threadsperblock>>>
-//OLD        
+//OLD
 //OLD        	grid: 1,2, or 3d grid of blocks
 //OLD        	blocks: 1, 2 or 3d "array" of threads
 //OLD        	threads: do 1 task
 //OLD        	warp: group of 32 threads (the reason why threads per block must be a
 //OLD        		multiple of 32)
-//OLD        
+//OLD
 //OLD        	blocks MUST EXECUTE INDEPENDENTLY
-//OLD        
+//OLD
 //OLD        	Each block is a multiple of 32 threads
-//OLD        
+//OLD
 //OLD        	Access info via:
 //OLD        		indexes:
 //OLD        			threadIdx.x:  thread index within the block in x direction
@@ -555,21 +555,21 @@ ______________________________
 //OLD        		sizes:
 //OLD        			blockDim.x:   number of threads in block in x direction
 //OLD        			gridDim.x:    number of blocks
-//OLD        
+//OLD
 //OLD        	generally:
 //OLD        		1. each "individual" calculation should be done by a single thread
 //OLD        		2. pick a threads per block and calculate number of blocks(round up)
 //OLD        		3. use result in <<<>>> call
-//OLD        
+//OLD
 //OLD        	example:
 //OLD        		__global__ void function(int *idata, int *odata, int width):
 //OLD        			int y = threadIdx.y;
 //OLD        			int x = threadIdx.x;
 //OLD        			idata[y*width + x] = odata[y*width + x]
-//OLD        
+//OLD
 //OLD        		function<<<32,32>>>(idata, odata, width);
-//OLD        
-//OLD        
+//OLD
+//OLD
 //OLD        ______________________________
 //OLD        -3- optimization
 //OLD        	______________________________
@@ -581,7 +581,7 @@ ______________________________
 //OLD        		dimension.  For c style 2d array, within a thread, iterate on rows
 //OLD        		instead of columns.  This is because each thread will then access
 //OLD        		contiguous memory, so TEMPORALLY, the accesses are contiguous.
-//OLD        
+//OLD
 //OLD        	______________________________
 //OLD        	-3.2- shared memory
 //OLD        		shared memory is allocated per thread-block

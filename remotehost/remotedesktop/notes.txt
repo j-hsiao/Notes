@@ -1,79 +1,79 @@
 various vnc server types:
-  xvnc
-  vino
-  tigervnc
-  tightvnc
+	xvnc
+	vino
+	tigervnc
+	tightvnc
 
 
 
 tigervnc
-  (Use f8 for context menu to fullscreen etc)
+	(Use f8 for context menu to fullscreen etc)
 
-  tigervnc [options...] [user[@host]:display]
-  -localhost <yes|no>
-    only allow connections from localhost. The connection to remote
-    would then be handled by ssh or something like that.
-    (see ssh/notes -1.3- forwarding)
+	tigervnc [options...] [user[@host]:display]
+	-localhost <yes|no>
+		only allow connections from localhost. The connection to remote
+		would then be handled by ssh or something like that.
+		(see ssh/notes -1.3- forwarding)
 
-    (newest versions seem to default to yes)
-  -NeverShared
-    do not share screen (you can know if someone else logged in)
-  -kill [[user@]host][:display#|:*]
-    kills desktop
-  -clean
-    also removes logfile for that display
-  -list
-    list running tigervnc displays
+		(newest versions seem to default to yes)
+	-NeverShared
+		do not share screen (you can know if someone else logged in)
+	-kill [[user@]host][:display#|:*]
+		kills desktop
+	-clean
+		also removes logfile for that display
+	-list
+		list running tigervnc displays
 
-  NOTE: sometimes, starting a vncserver and connecting to it will just
-    result in a blank screen. In this case, xfce4 seems to have good
-    success rate:
-    apt install xfce4-session.  Then add/edit the file:
-      ~/.vnc/xstartup: uncomment the lines for "normal desktop"
-        instead of xinitrc, replace with startxfce4
-        ie:
+	NOTE: sometimes, starting a vncserver and connecting to it will just
+		result in a blank screen. In this case, xfce4 seems to have good
+		success rate:
+		apt install xfce4-session.  Then add/edit the file:
+			~/.vnc/xstartup: uncomment the lines for "normal desktop"
+				instead of xinitrc, replace with startxfce4
+				ie:
 
-          # Uncomment the following two lines for normal desktop:
-          #unset SESSION_MANAGER
-          #exec /etc/X11/xinit/xinitrc
+					# Uncomment the following two lines for normal desktop:
+					#unset SESSION_MANAGER
+					#exec /etc/X11/xinit/xinitrc
 
-          becomes
+					becomes
 
-          # Uncomment the following two lines for normal desktop:
-          unset SESSION_MANAGER
-          #exec /etc/X11/xinit/xinitrc
-          startxfce4
+					# Uncomment the following two lines for normal desktop:
+					unset SESSION_MANAGER
+					#exec /etc/X11/xinit/xinitrc
+					startxfce4
 
-    install xfce4 xfce4-terminal
-    (gnome-terminal ignores :display and puts window in wrong x server)
+		install xfce4 xfce4-terminal
+		(gnome-terminal ignores :display and puts window in wrong x server)
 
-  set password:
-    vncpasswd
+	set password:
+		vncpasswd
 
-  connect to display:
-    vncviewer <:display#> options
+	connect to display:
+		vncviewer <:display#> options
 
-  ------------------------------
-  summary:
-  ------------------------------
-    on host:
-      sudo apt install xfce4-session tigervnc-standalone-server
-      edit ~/.vnc/xstartup:
-        unset SESSION_MANAGER
-        startxfce4
-      vncserver -localhost -NeverShared
-        (may need to add a password first)
-    on client:
-      sudo apt install tigervnc-viewer
-      vncviewer host:port -passwd pathtofile
+	------------------------------
+	summary:
+	------------------------------
+		on host:
+			sudo apt install xfce4-session tigervnc-standalone-server
+			edit ~/.vnc/xstartup:
+				unset SESSION_MANAGER
+				startxfce4
+			vncserver -localhost -NeverShared
+				(may need to add a password first)
+		on client:
+			sudo apt install tigervnc-viewer
+			vncviewer host:port -passwd pathtofile
 
 
 xrdp
-  windows can connect via "remote destop connection" (no extra installs)
-  (xrdp apparently wraps vnc... so same gnome-terminal issue exists with
-  same solution)  This uses the computer's user/password combo
+	windows can connect via "remote destop connection" (no extra installs)
+	(xrdp apparently wraps vnc... so same gnome-terminal issue exists with
+	same solution)  This uses the computer's user/password combo
 
-  add startxfce4 in /etc/xrdp/startwm.sh before xsession:
-    + startxfce4
-      test -x /etc/X11/Xsession && exec /etc/X11/Xsession
-      exec /bin/sh /etc/X11/Xsession
+	add startxfce4 in /etc/xrdp/startwm.sh before xsession:
+		+ startxfce4
+			test -x /etc/X11/Xsession && exec /etc/X11/Xsession
+			exec /bin/sh /etc/X11/Xsession
