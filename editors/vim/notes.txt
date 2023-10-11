@@ -419,6 +419,7 @@ ______________________________
 	C-i           tab
 	C-<p|n>       autocompletion with words before/after cursor
 	C-r <reg>     insert register
+	C-r =         Evaluate a vim expression and insert it
 	C-v key       literal key
 	C-[ | <Esc>   exit insert mode
 
