@@ -1,0 +1,50 @@
+Get IP for directly connected device
+option 1: run a dhcp server
+	linux:
+		isc-dhcp-server
+			------------------------------
+			install:
+				sudo apt-get install isc-dhcp-server
+				change ip for the corresponding interface to X.X.X.1
+			------------------------------
+			config files:
+				/etc/default/isc-dhcp-server
+					INTERFACESv4="iface1 iface2 iface3..."
+					INTERFACESv6="iface1 iface2 iface3..."
+
+				/etc/dhcp/dhcp.conf
+					comments with #
+					sample:
+						default-lease-time 600;
+						max-lease-time 7200;
+						option subnet-mask 255.255.255.0;
+						option broadcast-address 192.168.1.255;
+						option routers 192.168.1.254;
+						option domain-name-servers 192.168.1.1, 192.168.1.2;
+						option domain-name "mydomain.example";
+
+						subnet 192.168.1.0 netmask 255.255.255.0 {
+						range 192.168.1.10 192.168.1.100;
+						range 192.168.1.150 192.168.1.200;
+						}
+
+					notes:
+						routers option is actually gateway
+						routers, domain-name-servers, domain-name are not actually
+							needed and can be omitted
+						mentions to check /etc/ltsp/dhcpd.conf, will use that if it
+							exists
+
+			------------------------------
+			manage service
+				sudo service isc-dhcp-server restart/start/stop/status
+			------------------------------
+			determine the current ips:
+				option 1:
+					sudo service isc-dhcp-server status -> read logs
+				option 2:
+					cat /var/lib/dhcp/dhcpd.leases
+
+
+		isc-kea (23.04+)
+			???
