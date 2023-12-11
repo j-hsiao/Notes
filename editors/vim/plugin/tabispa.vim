@@ -136,32 +136,20 @@ function! s:RmIndent()
 	endif
 endfunction
 
-function! s:IndentPrefix()
-	if v:version > 801 && 0
-		return "\<Cmd>call " . expand('<SID>')
-	else
-		return " \<BS>\<C-O>:call " . expand('<SID>')
-	endif
-endfunction
-
-function! s:IndentPrefix2()
-	if v:version > 801 && 0
-		return "\<Cmd>"
-	else
-		"If autoindented, <C-O> will delete all indentation
-		"use ' <BS>' to prevent that.
-		return " \<BS>\<C-O>:"
-	endif
-endfunction
-
 " realign current line
 nnoremap <C-K>a :call <SID>Realign()<CR>
 " Realign last visual selection
 nnoremap <C-K>A :'<lt>,'>call <SID>Realign()<CR>'<lt>
 
-inoremap <expr> <C-T> <SID>IndentPrefix() . "AddIndent()\<CR>"
-inoremap <expr> <C-D> <SID>IndentPrefix() . "RmIndent()\<CR>"
-
+if v:version > 801
+	inoremap <expr> <C-T> <Cmd>call<Space><SID>AddIndent()<CR>
+	inoremap <expr> <C-D> <Cmd>call<Space><SID>RmIndent()<CR>
+else
+	"If autoindented, <C-O> will delete all indentation
+	"use '<Space><BS>' to prevent that.
+	inoremap <C-T> <Space><BS><C-O>:call<Space><SID>AddIndent()<CR>
+	inoremap <C-D> <Space><BS><C-O>:call<Space><SID>RmIndent()<CR>
+endif
 
 function! s:SelectBlock()
 	"If no indentation, then break at blank lines (lines with only
