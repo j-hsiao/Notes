@@ -142,8 +142,8 @@ nnoremap <C-K>a :call <SID>Realign()<CR>
 nnoremap <C-K>A :'<lt>,'>call <SID>Realign()<CR>'<lt>
 
 if v:version > 801
-	inoremap <expr> <C-T> <Cmd>call<Space><SID>AddIndent()<CR>
-	inoremap <expr> <C-D> <Cmd>call<Space><SID>RmIndent()<CR>
+	inoremap <C-T> <Cmd>call<Space><SID>AddIndent()<CR>
+	inoremap <C-D> <Cmd>call<Space><SID>RmIndent()<CR>
 else
 	"If autoindented, <C-O> will delete all indentation
 	"use '<Space><BS>' to prevent that.
