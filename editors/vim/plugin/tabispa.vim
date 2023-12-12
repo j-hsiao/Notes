@@ -42,7 +42,7 @@ endfunction
 
 function! s:AddAlignment()
 	"Add spaces to next soft tabstop for alignment
-	let curpos = strdisplaywidth(slice(getline('.'), 0, charcol('.')-1))
+	let curpos = strdisplaywidth(slice(getline('.'), 0, getcharpos('.')[2]-1))
 	let step = s:GetSTS()
 	return repeat(' ', step-(curpos%step))
 endfunction
@@ -54,7 +54,7 @@ function! s:RemoveAlignment()
 	"Remove spaces to next tabstop for alignment
 	"only spaces, if any other characters, then only
 	"remove a single character.
-	let prestr = slice(getline('.'), 0, charcol('.')-1)
+	let prestr = slice(getline('.'), 0, getcharpos('.')[2]-1)
 	let curpos = strdisplaywidth(prestr)
 	let step = s:GetSTS()
 	let to_remove = curpos % step
