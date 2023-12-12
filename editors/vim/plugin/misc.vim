@@ -82,5 +82,10 @@ inoremap <expr> <C-K>- repeat('-', 30)
 inoremap <expr> <C-K>= repeat('=', 30)
 inoremap <expr> <C-K>_ repeat('_', 30)
 
+"<C-O> that insert text but end back up in insert mode instead of
+"normal mode
+inoremap <C-K><C-O> <C-O>:norm<Space>
+inoremap <C-K>o <C-O>:norm<Space>
+
 inorea Inp Inputs<CR>======
 inorea Outp Outputs<CR>=======
