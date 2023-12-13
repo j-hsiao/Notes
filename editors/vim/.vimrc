@@ -41,6 +41,9 @@ set nowrap number relativenumber ruler incsearch autoindent copyindent preservei
 	\ ignorecase smartcase hlsearch
 	\ hidden belloff=all scrolloff=0 list
 	\ formatoptions+=roj
+	\ listchars=eol:$,tab:.\ ,trail:_
+	\ wmnu wim=list:longest,list:full wic
+	\ ls=2 stl=%<%n\ %f\ %h%m%r%=%l(%p%%),%c%V
 
 "Note: one maybe large benefit of ftplugin over autocmd is that
 "the ftplugin has its own file-type identification that can be
