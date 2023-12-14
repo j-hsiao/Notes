@@ -765,7 +765,7 @@ ______________________________
 				<nowait>        don't wait for more characters to be typed
 				<silent>        don't echo to command line
 				<special>       ??
-				<script>        ??
+				<script>        Only remap mappings local to the script.
 				<expr>          Use rhs as an expression.  This is useful because you
 				                don't have to exit insert mode (doesn't break change seq
 				                and becomes more . repeatable)
@@ -1231,7 +1231,7 @@ ______________________________
 			prefixing its name).
 		<Plug> "is a special code never produced by a keyboard" ??
 			Use this on the function name (usually <Plug>ScriptnameFunctionname(...))
-			to make some unique?? name??
+			to make some unique?? name?? (see writing plugins)
 
 
 		ONLY script-local or non-local
@@ -1358,3 +1358,31 @@ ______________________________
 					:setlocal ...
 				for mappings:
 					:[invc...][nore]map <buffer> ...
+		______________________________
+		-5.6.1- writing plugins
+			0. use vim9s at beginning of script to use vim9script
+				effects:
+					1. functions are local by default
+					2. ???
+					...
+			1. have a guard
+				if exists("g:loaded_<plugin name>")
+					finish
+				endif
+				g:loaded_<plugin name> = 1
+
+			2. mappings: use <Plug> and <Leader>
+				if !hasmapto('<Plug>Funcname;')
+					map <unique> <Leader>bindings <Plug>Funcname;
+				endif
+
+			3. <Plug>
+				<Plug> is a key that no key maps to.  The point of these mappings
+				is so that the user can decide what keys to use.
+
+				eg:
+					inside plugin file:
+						nnoremap <script> <Plugin>
+
+				Recommendation is use <Plug><Scriptname><Mapname>;
+
