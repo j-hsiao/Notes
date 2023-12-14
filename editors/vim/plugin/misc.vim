@@ -1,58 +1,80 @@
 "Miscellaneous mappings and settings
-"These usually begin with C-K
+"These usually begin with <Leader>
 "
-"toggling common settings:
-"  <C-K>
-"       l: list
-"       p: paste
-"       n: number
-"       r: relative number
-"       tab: expandtab
+"normal  mode mappings
+"  <Leader>?: print out nmaps starting with <Leader>
+"  <C-[><C-[>: :nohl
+"  <Leader>b: open a scratch buffer
 "
-"Setting common settings:
-"  <C-K><C-K>
-"       >: shiftwidth
-"       shift+tab: softtabstop
-"       tab: tabstop
-"others
-"  <C-K>
-"       b: Change current frame to new scratch buffer
-"       k: original <C-K>
-"       -: 30 - separator
-"       =: 30 = separator
-"       _: 30 _ separator
+"insert mode mappings
+"  ;l -> <Esc>
+"  <C-L>: <Del>
+"  <Leader><Leader>: original <Leader> key
+"  <Leader>r: prompt to repeat a char by N times
 "
 "Abbreviations:
 "  Inp:  Inputs header
 "  Outp: Outputs header
 
+if exists("g:loaded_misc")
+	finish
+endif
+let g:loaded_misc = 1
+
+if !exists('g:mapleader')
+	let g:mapleader = "\<C-K>"
+endif
+
 "basic options
-nnoremap <C-K>? :nnoremap <lt>C-K><CR>
+if maparg(g:mapleader . '?', 'n') == ''
+	nnoremap <Leader>? :exec 'nnoremap ' . g:mapleader<CR>
+endif
 
 "counterpart to <C-H>
-inoremap <silent> <C-L> <Del>
+if maparg("\<C-L>", 'i') == ''
+	inoremap <silent> <C-L> <Del>
+endif
 
 "cancel search highlights
-nnoremap <silent> <C-[><C-[> :nohl<CR>
+if maparg("\<C-[>\<C-[>", 'n') == ''
+	nnoremap <silent> <C-[><C-[> :nohl<CR>
+endif
 
 "scratch buffer
-nnoremap <C-K>b :enew<CR>:setlocal buftype=nofile bufhidden=hide noswapfile<CR>
+if maparg(g:mapleader . 'b', 'n') == ''
+	nnoremap <Leader>b :enew<CR>:setlocal buftype=nofile bufhidden=hide noswapfile<CR>
+endif
 
 "Easier escape
-inoremap ;l <Esc>
+if maparg(';l', 'i') == ''
+	inoremap ;l <Esc>
+endif
 
-"Preserve a mapping to original <C-K>
-inoremap <C-K>k <C-K>
+"Preserve a mapping to original <Leader>
+if maparg(g:mapleader . g:mapleader, 'i') == ''
+	inoremap <Leader><Leader> <Leader>
+endif
 
 "Sectioning
-inoremap <expr> <C-K>- repeat('-', 30)
-inoremap <expr> <C-K>= repeat('=', 30)
-inoremap <expr> <C-K>_ repeat('_', 30)
 
-"<C-O> that insert text but end back up in insert mode instead of
-"normal mode
-inoremap <C-K><C-O> <C-O>:norm<Space>
-inoremap <C-K>o <C-O>:norm<Space>
+function! s:IRepeatChar()
+	let resp = input('repeat [count]char: ')
+	if strlen(resp)
+		let repeat = strpart(resp, 0, strlen(resp)-1)
+		if repeat == ''
+			let repeat = 30
+		endif
+		return repeat(strpart(resp, strlen(resp)-1), repeat)
+	endif
+	return ''
+endfunction
 
-inorea Inp Inputs<CR>======
-inorea Outp Outputs<CR>=======
+if maparg(g:mapleader . 'r', 'i') == ''
+	inoremap <expr> <Leader>r <SID>IRepeatChar()
+endif
+
+for val in ['In', 'Out']
+	if maparg(val . 'p', 'i', 1) == ''
+		execute 'inorea ' . val . 'p ' . val . 'puts<CR>' . repeat('=', strlen(val) + 4)
+	endif
+endfor
