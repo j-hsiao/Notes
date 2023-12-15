@@ -51,7 +51,7 @@ function! s:RmBracket()
 	if len(curline) && idx > 0
 		let check = curline[idx-1:idx]
 		if check == '[]' || check == '()' || check == '{}'
-			return "\<Del>\<BS>"
+			return "\<BS>\<Del>"
 		endif
 	endif
 	return "\<BS>"
