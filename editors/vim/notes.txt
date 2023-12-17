@@ -41,6 +41,7 @@ contents:
 	-5.4- user defined functions
 	-5.5- builtin functions
 	-5.6- plugins
+		-5.6.1- writing plugins
 
 quick topics:
 	registers, macros       -1.5-
@@ -743,6 +744,10 @@ ______________________________
 		nore = no recursive map (don't need to worry if other mappings
 			would affect what the mapping does)
 
+		NOTE: mappings are always non-recursive if prefixed.
+			ie: [i|n|...]map asdf asdfmorestuff
+			LHS is a prefix of RHS which means it will become non-recursive.
+
 		mode:
 			n         normal
 			i         insert
@@ -1380,9 +1385,18 @@ ______________________________
 				<Plug> is a key that no key maps to.  The point of these mappings
 				is so that the user can decide what keys to use.
 
+				<Plug>SomeName is a keysequence that is never actually typeable.
+				Instead user can use this as RHS with their own desired LHS in a
+				mapping command.
+
 				eg:
 					inside plugin file:
 						nnoremap <script> <Plugin>
 
 				Recommendation is use <Plug><Scriptname><Mapname>;
 
+			4. Pay attention to recursivity.
+				If you name something as <Plug>SomeName
+				and map it into <Plug>SomeNameAction1, it will become literally
+				<Plug>SomeNameAction1 instead of activating another mapping because
+				LHS is a prefix of RHS (This still applies even if <expr>)
