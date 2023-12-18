@@ -91,22 +91,27 @@ endfunction
 function CreateFallback(name, k, mode)
 	let dct = maparg(a:k, a:mode, v:false, v:true)
 	if len(dct)
-"		let mpcmd = a:mode
-"		if dct['noremap']
-"			let mpcmd = mpcmd . 'nore'
-"		endif
-"		let mpcmd = mpcmd . 'map '
-"		if dct['expr']
-"			let mpcmd = mpcmd . '<expr> '
-"		endif
-"		let rhs = substitute(dct['rhs'], '<sid>', '<SNR>' . dct['sid'] . '_', 'g')
-"		let mpcmd = mpcmd . a:name . ' ' . rhs
-"		execute mpcmd
-
-		let dct['lhs'] = a:name
-		execute "let dct['lhsraw'] = \"" . escape(a:name, '"<\') . '"'
-		let dct['rhs'] = substitute(dct['rhs'], '<SID>', '<SNR>' . dct['sid'] . '_', 'g')
-		call mapset('i', v:false, dct)
+		if exists('*mapset')
+			let dct['lhs'] = a:name
+			execute "let dct['lhsraw'] = \"" . escape(a:name, '"<\') . '"'
+			let dct['rhs'] = substitute(dct['rhs'], '<SID>', '<SNR>' . dct['sid'] . '_', 'g')
+			call mapset('i', v:false, dct)
+		else
+			let mpcmd = a:mode
+			if dct['noremap']
+				let mpcmd = mpcmd . 'nore'
+				if dct['script']
+					echo 'Warning, nonrecursive script binding being replicated in another script.'
+				endif
+			endif
+			let mpcmd = mpcmd . 'map '
+			if dct['expr']
+				let mpcmd = mpcmd . '<expr> '
+			endif
+			let rhs = substitute(dct['rhs'], '<sid>', '<SNR>' . dct['sid'] . '_', 'g')
+			let mpcmd = mpcmd . a:name . ' ' . rhs
+			execute mpcmd
+		endif
 	else
 		" no prior mapping, just map to the key itself.
 		execute 'inoremap ' . name . ' ' . a:k
@@ -120,15 +125,15 @@ function s:IRemovePairDispatch()
 		let curpair = strpart(getline('.'), col('.') - 2, 2)
 		for item in s:pairs
 			if item == curpair
-				return "\<Plug>\<Plug>AutopairIRemovePairAction"
+				return "\<Plug>_AutopairIRemovePairAction"
 			endif
 		endfor
 	endif
-	return "\<Plug>\<Plug>AutopairIRemovePairFallback"
+	return "\<Plug>_AutopairIRemovePairFallback"
 endfunction
 
-call CreateFallback('<Plug><Plug>AutopairIRemovePairFallback', '<BS>', 'i')
-inoremap <Plug><Plug>AutopairIRemovePairAction <BS><Del>
+call CreateFallback('<Plug>_AutopairIRemovePairFallback', '<BS>', 'i')
+inoremap <Plug>_AutopairIRemovePairAction <BS><Del>
 imap <expr> <Plug>AutopairIRemovePair <SID>IRemovePairDispatch()
 imap <BS> <Plug>AutopairIRemovePair
 imap <C-H> <Plug>AutopairIRemovePair
