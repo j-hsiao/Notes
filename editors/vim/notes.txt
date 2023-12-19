@@ -236,6 +236,7 @@ ______________________________
 
 		other:
 			J         join current and next N>2 lines
+			gq<move>  format text to fit within textwidth
 
 	______________________________
 	-1.4- jumps

@@ -16,6 +16,7 @@ settings=(
 	"text ts=2 sts=4 sw=2 noexpandtab"
 	"bash ts=4 sts=0 sw=0 noexpandtab"
 	"cuda ts=2 sts=0 sw=0 noexpandtab"
+	"vim ts=4 sts=0 sw=0 noexpandtab"
 )
 
 for info in "${settings[@]}"

@@ -9,11 +9,10 @@
 "Pairing can be explicitly avoided by using <C-V><char> where char is
 "the opening char of the pair.
 
-"if exists("g:loaded_autopair")
-"	finish
-"endif
-"let g:loaded_autopair = 1
-
+if get(g:, 'loaded_autopair', 0)
+	finish
+endif
+let g:loaded_autopair = 1
 
 "Save whether or not to complete pairs per buffer.
 let s:complete_pair = {}
@@ -100,9 +99,9 @@ function CreateFallback(name, k, mode)
 			let mpcmd = a:mode
 			if dct['noremap']
 				let mpcmd = mpcmd . 'nore'
-				if dct['script']
-					echo 'Warning, nonrecursive script binding being replicated in another script.'
-				endif
+			endif
+			if dct['script']
+				echo 'Warning, <script> mapping being replicated in a different script.'
 			endif
 			let mpcmd = mpcmd . 'map '
 			if dct['expr']
@@ -114,7 +113,7 @@ function CreateFallback(name, k, mode)
 		endif
 	else
 		" no prior mapping, just map to the key itself.
-		execute 'inoremap ' . name . ' ' . a:k
+		execute 'inoremap ' . a:name . ' ' . a:k
 	endif
 endfunction
 

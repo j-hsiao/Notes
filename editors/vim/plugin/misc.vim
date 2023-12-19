@@ -16,7 +16,7 @@
 "  Inp:  Inputs header
 "  Outp: Outputs header
 
-if exists("g:loaded_misc")
+if get(g:, 'loaded_misc', 0)
 	finish
 endif
 let g:loaded_misc = 1
@@ -78,3 +78,14 @@ for val in ['In', 'Out']
 		execute 'inorea ' . val . 'p ' . val . 'puts<CR>' . repeat('=', strlen(val) + 4)
 	endif
 endfor
+
+"gq uses textwidth but textwidth also has the possibly undesired effect
+"of forcing newline when reaching the column.  This allows using a
+"prefix count to gq to specify the width
+function! s:FitWidth(width)
+	execute 'autocmd CursorMoved <buffer> ++once :setlocal textwidth=' . &l:textwidth
+	execute 'setlocal textwidth=' . a:width
+	return 'gq'
+endfunction
+
+nnoremap <expr> gq <SID>FitWidth(v:count)

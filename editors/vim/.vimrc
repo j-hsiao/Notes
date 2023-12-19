@@ -41,10 +41,12 @@ set nowrap number relativenumber ruler incsearch autoindent copyindent preservei
 	\ ignorecase smartcase hlsearch
 	\ hidden belloff=all scrolloff=0 list
 	\ formatoptions+=roj
-	\ listchars=eol:$,tab:.\ ,trail:_
+	\ listchars=eol:$,tab:.\ ,trail:_,lead:_,extends:>
 	\ wmnu wim=list:longest,list:full wic
 	\ ls=2 stl=%<%n\ %f\ %h%m%r%=%l(%p%%),%c%V
 	\ backspace=indent,eol,start
+	\ showbreak=L\ 
+
 let g:mapleader = "\<C-K>"
 
 "Note: one maybe large benefit of ftplugin over autocmd is that
