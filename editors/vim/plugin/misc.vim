@@ -82,10 +82,19 @@ endfor
 "gq uses textwidth but textwidth also has the possibly undesired effect
 "of forcing newline when reaching the column.  This allows using a
 "prefix count to gq to specify the width
-function! s:FitWidth(width)
+function! s:FitWidth()
 	execute 'autocmd CursorMoved <buffer> ++once :setlocal textwidth=' . &l:textwidth
-	execute 'setlocal textwidth=' . a:width
-	return 'gq'
+	let width = v:count
+	if v:count != v:count1
+		if &l:textwidth
+			let width = &l:textwidth
+		else
+			let width = 72
+		endif
+	endif
+	execute 'setlocal textwidth=' . width
+	" escape to consume the v:count if any
+	return "\<Esc>gq"
 endfunction
 
-nnoremap <expr> gq <SID>FitWidth(v:count)
+nnoremap <expr> gq <SID>FitWidth()
