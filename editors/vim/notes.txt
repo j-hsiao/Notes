@@ -42,6 +42,7 @@ contents:
 	-5.5- builtin functions
 	-5.6- plugins
 		-5.6.1- writing plugins
+		-5.6.2- autoload
 
 quick topics:
 	registers, macros       -1.5-
@@ -679,6 +680,10 @@ ______________________________
 		au[tocmd]! <group> <events> <pattern>               clear commands
 		do[autocmd] [group] <event> [fname]                 run the commands on fname (default current fname)
 
+		other options:
+			++once: one-shot command.  Removed after next run.
+			<buffer>: only run for current buffer
+
 		augroup <group>     add an autocmd group
 			autocmd
 
@@ -687,6 +692,8 @@ ______________________________
 			ever has 1 copy). Groups are case-sensitive
 
 		events: comma-delimited list of events and case is ignored
+			:h autocmd-events
+
 			pre = before event, post = after
 			*                 all events
 			reading
@@ -707,6 +714,11 @@ ______________________________
 				bufwin[enter|leave] after buffer is displayed/removed from window
 				bufunload           unload buffer
 				bufhidden           hide buffer
+			other useful:
+				CursorHold
+				CursorMoved
+				TextChanged
+				etc
 		pattern: comma-delimited filename pattern matching
 			*: any sequence
 			?: any single char
@@ -1401,3 +1413,8 @@ ______________________________
 				and map it into <Plug>SomeNameAction1, it will become literally
 				<Plug>SomeNameAction1 instead of activating another mapping because
 				LHS is a prefix of RHS (This still applies even if <expr>)
+		______________________________
+		-5.6.2- autoload
+			Vim checks files in 'runtimepath'/autoload.
+			autoload functions are [dirnames]#fname#funcname()
+			and need to be defined as fname#funcname()
