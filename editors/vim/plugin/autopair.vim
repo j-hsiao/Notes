@@ -87,55 +87,29 @@ function s:SamePair(char)
 	return a:char
 endfunction
 
-function CreateFallback(name, k, mode)
-	let dct = maparg(a:k, a:mode, v:false, v:true)
-	if len(dct)
-		if exists('*mapset')
-			let dct['lhs'] = a:name
-			execute "let dct['lhsraw'] = \"" . escape(a:name, '"<\') . '"'
-			let dct['rhs'] = substitute(dct['rhs'], '<SID>', '<SNR>' . dct['sid'] . '_', 'g')
-			call mapset('i', v:false, dct)
-		else
-			let mpcmd = a:mode
-			if dct['noremap']
-				let mpcmd = mpcmd . 'nore'
-			endif
-			if dct['script']
-				echo 'Warning, <script> mapping being replicated in a different script.'
-			endif
-			let mpcmd = mpcmd . 'map '
-			if dct['expr']
-				let mpcmd = mpcmd . '<expr> '
-			endif
-			let rhs = substitute(dct['rhs'], '<sid>', '<SNR>' . dct['sid'] . '_', 'g')
-			let mpcmd = mpcmd . a:name . ' ' . rhs
-			execute mpcmd
-		endif
-	else
-		" no prior mapping, just map to the key itself.
-		execute 'inoremap ' . a:name . ' ' . a:k
-	endif
-endfunction
 
 let s:pairs = []
-function s:IRemovePairDispatch()
+function s:IRemovePairDispatch(key)
 	if get(s:complete_pair, bufnr(), 1)
 		let curidx = col('.') - 1
 		let curpair = strpart(getline('.'), col('.') - 2, 2)
 		for item in s:pairs
 			if item == curpair
-				return "\<Plug>_AutopairIRemovePairAction"
+				return "\<Plug>AutopairIRemovePairAction;"
 			endif
 		endfor
 	endif
-	return "\<Plug>_AutopairIRemovePairFallback"
+	return "\<Plug>AutopairIRemovePair" . a:key . "Fallback;"
 endfunction
 
-call CreateFallback('<Plug>_AutopairIRemovePairFallback', '<BS>', 'i')
-inoremap <Plug>_AutopairIRemovePairAction <BS><Del>
-imap <expr> <Plug>AutopairIRemovePair <SID>IRemovePairDispatch()
-imap <BS> <Plug>AutopairIRemovePair
-imap <C-H> <Plug>AutopairIRemovePair
+execute mapfallback#CreateFallback(
+	\ '<Plug>AutopairIRemovePairBSFallback;', '<BS>', 'i')
+execute mapfallback#CreateFallback(
+	\ '<Plug>AutopairIRemovePairCHFallback;', '<C-H>', 'i')
+inoremap <Plug>AutopairIRemovePairAction; <BS><Del>
+imap <expr> <Plug>AutopairIRemovePair; <SID>IRemovePairDispatch('BS')
+imap <expr> <BS> <SID>IRemovePairDispatch('BS')
+imap <expr> <C-H> <SID>IRemovePairDispatch('CH')
 
 "Convert a string to a quoted str.
 "ex: 'a' -> "'a'"
@@ -180,10 +154,10 @@ function s:ToggleCompletePair()
 	return ''
 endfunction
 
-inoremap <expr> <Plug>AutopairToggleCompletePair <SID>ToggleCompletePair()
-if !hasmapto('<Plug>AutopairToggleCompletePair', 'i')
+inoremap <expr> <Plug>AutopairToggleCompletePair; <SID>ToggleCompletePair()
+if !hasmapto('<Plug>AutopairToggleCompletePair;', 'i')
 		\ && maparg('<Leader>]', 'i') == ''
-	imap <Leader>] <Plug>AutopairToggleCompletePair
+	imap <Leader>] <Plug>AutopairToggleCompletePair;
 endif
 
 
