@@ -42,7 +42,7 @@ contents:
 	-5.5- builtin functions
 	-5.6- plugins
 		-5.6.1- writing plugins
-		-5.6.2- autoload
+		-5.6.3- autoload
 
 quick topics:
 	registers, macros       -1.5-
@@ -1414,7 +1414,18 @@ ______________________________
 				<Plug>SomeNameAction1 instead of activating another mapping because
 				LHS is a prefix of RHS (This still applies even if <expr>)
 		______________________________
-		-5.6.2- autoload
+		-5.6.2- :help docs
+			put plugin in 'doc' dir somewhere in 'runtimepath'
+			run helptags command with doc dir (only need to run this once)
+			help file syntax:
+				1st line must be:
+					*tag*   description
+				and will be added to local-additions
+				The rest of the file is plain text though you can have
+				|links| or other *tags*
+
+		______________________________
+		-5.6.3- autoload
 			Vim checks files in 'runtimepath'/autoload.
 			autoload functions are [dirnames]#fname#funcname()
 			and need to be defined as fname#funcname()

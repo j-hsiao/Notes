@@ -28,16 +28,29 @@
 "
 "  . does not repeat an entire mapping so just add realignment hotkeys.
 
+if get(g:, 'loaded_tabispa', 0)
+	finish
+endif
+let g:loaded_tabispa = 1
+
 se preserveindent
+" calculate the soft tabstop width
+" 0 -> off
+" <0 -> use shiftwidth
+"
+" shiftwidth
+" 0 -> ts
 function! s:GetSTS()
 	let step = &l:sts
-	if step < 0
-		let step = &l:sw
+	if &l:sts < 0
+		if &l:sw == 0
+			return &l:ts
+		return &l:sw
+	elseif &l:sts == 0
+		return &l:ts
+	else
+		return &l:sts
 	endif
-	if step == 0
-		let step = &l:ts
-	endif
-	return step
 endfunction
 
 function! s:AddAlignment()
@@ -46,14 +59,20 @@ function! s:AddAlignment()
 	let step = s:GetSTS()
 	return repeat(' ', step-(curpos%step))
 endfunction
-inoremap <expr> <silent> <Tab> <SID>AddAlignment()
+
+inoremap <expr> <Plug>TabispaAddAlignment; <SID>AddAlignment()
+
+if maparg('<Tab>', 'i') == '' && !hasmapto('<Plug>TabispaAddAlignment;')
+	imap <Tab> <Plug>TabispaAddAlignment;
+endif
 "Easier to add multiple literal tabs
-inoremap <S-Tab> <C-V><Tab>
+
+if maparg('<S-Tab>', 'i') == ''
+	inoremap <S-Tab> <C-V><Tab>
+endif
 
 function! s:RemoveAlignment()
-	"Remove spaces to next tabstop for alignment
-	"only spaces, if any other characters, then only
-	"remove a single character.
+	"Remove multiple spaces until next tabstop or fallback to <BS>
 	let prestr = strpart(getline('.'), 0, col('.')-1)
 	let curpos = strdisplaywidth(prestr)
 	let step = s:GetSTS()
@@ -64,7 +83,21 @@ function! s:RemoveAlignment()
 	let nspaces = len(matchstr(prestr, '\m \{1,' . to_remove . '}$'))
 	return ' ' . repeat("\<BS>", (nspaces ? nspaces : 1)+1)
 endfunction
-inoremap <expr> <silent> <C-H> <SID>RemoveAlignment()
+function! s:RemoveAlignmentDispatch(key)
+	if getline('.')[col('.')-1] == ' '
+		return "\<Plug>RemoveAlignmentAction;"
+	else
+		return "\<Plug>RemoveAlignmentFallback" . a:key . ';'
+	endif
+endfunction
+
+inoremap <expr> <Plug>RemoveAlignmentAction <SID>RemoveAlignment()
+execute mapfallback#CreateFallback('<Plug>RemoveAlignmentFallbackBS;', '<BS>', 'i')
+execute mapfallback#CreateFallback('<Plug>RemoveAlignmentFallbackCH;', '<C-H>', 'i')
+
+imap <Plug>Autopair
+imap <BS> <SID>RemoveAlignmentDispatch('BS')
+imap <C-H> <SID>RemoveAlignmentDispatch('CH')
 
 function! s:Realign()
 	"Rearrange all leading spaces/tabs to be tabs first then spaces
