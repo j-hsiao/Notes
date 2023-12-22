@@ -4,7 +4,7 @@
 "with ] when indexing or ( is usually paired with ).  Automatically
 "adding the second pair character can be useful to help reduce
 "mismatched pairs.  However, always adding the pair might not be very
-"useful.  Some characters are paired identically like " or '.
+"useful.  Some characters are paired identically like quotes.
 "
 "Pairing can be explicitly avoided by using <C-V><char> where char is
 "the opening char of the pair.
@@ -70,16 +70,16 @@ function s:SamePair(char)
 	if !get(s:complete_pair, bufnr(), 1)
 		return a:char
 	endif
-	let [before, after] = s:CursorSplit(2)
+	let [before, after] = s:CursorSplit(3)
 	if after[0] == a:char
 		return "\<Right>"
-	elseif after == '' || after !~ '\w'
-		if before == repeat(a:char, 2)
-			"python """ or '''
+	elseif after == '' || after[0] !~ '\w'
+		if strpart(before, strlen(before)-2, 2) == repeat(a:char, 2)
+			\ && strpart(before, 0, strlen(before)-2) !~ '\S'
+			" python docstring using double or single quotes.
 			return repeat(a:char, 4) . repeat("\<Left>", 3)
 		else
-			let before = strpart(before, strlen(before)-1, 1)
-			if before == '' || before !~ '\w'
+			if strpart(before, strlen(before)-1, 1) !~ '\w'
 				return a:char . a:char . "\<Left>"
 			endif
 		endif
@@ -95,6 +95,9 @@ function s:IRemovePairDispatch(key)
 		let curpair = strpart(getline('.'), col('.') - 2, 2)
 		for item in s:pairs
 			if item == curpair
+				if item[0] == item[1] && strpart(getline('.'), col('.') - 4, 6) == repeat(item[0], 6)
+					return repeat("\<Plug>AutopairIRemovePairAction;", 3)
+				endif
 				return "\<Plug>AutopairIRemovePairAction;"
 			endif
 		endfor
