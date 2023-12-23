@@ -26,8 +26,8 @@ if !exists('g:mapleader')
 endif
 
 "basic options
-if maparg(g:mapleader . '?', 'n') == ''
-	nnoremap <Leader>? :exec 'nnoremap ' . g:mapleader<CR>
+if maparg('<Leader>?', 'n') == ''
+	nnoremap <Leader>? :exec 'nnoremap ' . <lt>Leader><CR>
 endif
 
 "counterpart to <C-H>
@@ -41,7 +41,7 @@ if maparg("\<C-[>\<C-[>", 'n') == ''
 endif
 
 "scratch buffer
-if maparg(g:mapleader . 'b', 'n') == ''
+if maparg('<Leader>b', 'n') == ''
 	nnoremap <Leader>b :enew<CR>:setlocal buftype=nofile bufhidden=hide noswapfile<CR>
 endif
 
@@ -51,7 +51,7 @@ if maparg(';l', 'i') == ''
 endif
 
 "Preserve a mapping to original <Leader>
-if maparg(g:mapleader . g:mapleader, 'i') == ''
+if maparg('<Leader><Leader>', 'i') == ''
 	inoremap <Leader><Leader> <Leader>
 endif
 
@@ -69,12 +69,12 @@ function! s:IRepeatChar()
 	return ''
 endfunction
 
-if maparg(g:mapleader . 'r', 'i') == ''
+if maparg('<Leader>r', 'i') == ''
 	inoremap <expr> <Leader>r <SID>IRepeatChar()
 endif
 
 for val in ['In', 'Out']
-	if maparg(val . 'p', 'i', 1) == ''
+	if maparg(val . 'p', 'i', v:true) == ''
 		execute 'inorea ' . val . 'p ' . val . 'puts<CR>' . repeat('=', strlen(val) + 4)
 	endif
 endfor

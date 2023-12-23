@@ -42,6 +42,7 @@ contents:
 	-5.5- builtin functions
 	-5.6- plugins
 		-5.6.1- writing plugins
+		-5.6.2- :help docs
 		-5.6.3- autoload
 
 quick topics:
@@ -1415,15 +1416,36 @@ ______________________________
 				LHS is a prefix of RHS (This still applies even if <expr>)
 		______________________________
 		-5.6.2- :help docs
+			:h help-writing
 			put plugin in 'doc' dir somewhere in 'runtimepath'
 			run helptags command with doc dir (only need to run this once)
-			help file syntax:
-				1st line must be:
-					*tag*   description
-				and will be added to local-additions
-				The rest of the file is plain text though you can have
-				|links| or other *tags*
+			help file syntax: (:e $VIMRUNTIME/syntax/help.vim)
+				*tag*       a tag, searched when :h tag
+				|link|      link to a tag
+				`:command`  link to a command
+				'option'    an option (:set)
+				header~     create a column heading
+				===.*===    break section, optional name (at least 3 on either side)
+				---.*---    same as =
+				>           code block
+					codestuff
+				<
+				<key>       key notation
+				Note        highlighted words
+				Notes
+				*Todo
+				*Error
+			tag: :h <tag> will go to the tag
+			link: can use <C-]> to go to link
+			format:
+				*plugin_name.txt*<Tab>description
+				...whatever descriptions etc...
+				modeline
 
+				The first line will be added to local-additions.
+				The rest of the file is whatever help info there is.
+				modeline would be something like
+					" vim: ts=8 sw=2, set display settings
 		______________________________
 		-5.6.3- autoload
 			Vim checks files in 'runtimepath'/autoload.

@@ -1,0 +1,25 @@
+*misc.txt*	Plugin with miscellaneous settings.
+
+===bindings===
+<C-L>       delete to the right
+<C-[><C-[>  :nohl
+;l          <Esc> without having to reach for ctrl
+gq          wrap base gq to allow a count specifying width.
+
+
+These mappings generally begin with <Leader> which will be set to <C-K>
+if unset.  In normal mode, <C-K> has no binding and in insert mode,
+<C-K> is probably less often used.
+
+<Leader><Leader>    The original <Leader>
+<Leader>b           Create a scratch buffer.
+<Leader>r           repeat a character
+
+===abbreviations===
+Inp         Inputs
+            ======
+Outp        Outputs
+            =======
+
+
+" vim: ts=8 sw=2 tw=72
