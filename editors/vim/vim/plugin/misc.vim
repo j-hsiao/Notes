@@ -21,18 +21,16 @@ if get(g:, 'loaded_misc', 0)
 endif
 let g:loaded_misc = 1
 
-if !exists('g:mapleader')
-	let g:mapleader = "\<C-K>"
-endif
-
 "basic options
 if maparg('<Leader>?', 'n') == ''
-	nnoremap <Leader>? :exec 'nnoremap ' . <lt>Leader><CR>
+	nnoremap <Leader>? :nnoremap <lt>Leader><CR>
 endif
-
-"counterpart to <C-H>
-if maparg("\<C-L>", 'i') == ''
-	inoremap <silent> <C-L> <Del>
+if maparg('<Leader>?', 'i') == ''
+	if strlen("\<Cmd>") == strlen("<Cmd>")
+		inoremap <Leader>? <Cmd>inoremap <lt>Leader><CR>
+	else
+		inoremap <Leader>? <C-O>:inoremap <lt>Leader><CR>
+	endif
 endif
 
 "cancel search highlights
@@ -45,6 +43,11 @@ if maparg('<Leader>b', 'n') == ''
 	nnoremap <Leader>b :enew<CR>:setlocal buftype=nofile bufhidden=hide noswapfile<CR>
 endif
 
+"counterpart to <C-H>
+if maparg("\<C-L>", 'i') == ''
+	inoremap <silent> <C-L> <Del>
+endif
+
 "Easier escape
 if maparg(';l', 'i') == ''
 	inoremap ;l <Esc>
@@ -52,13 +55,14 @@ endif
 
 "Preserve a mapping to original <Leader>
 if maparg('<Leader><Leader>', 'i') == ''
-	inoremap <Leader><Leader> <Leader>
+	execute mapfallback#CreateFallback('<Leader><Leader>', '<Leader>', 'i')
 endif
 
 "Sectioning
-
 function! s:IRepeatChar()
+	call inputsave()
 	let resp = input('repeat [count]char: ')
+	call inputrestore()
 	if strlen(resp)
 		let repeat = strpart(resp, 0, strlen(resp)-1)
 		if repeat == ''

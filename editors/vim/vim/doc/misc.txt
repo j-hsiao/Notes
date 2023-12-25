@@ -1,25 +1,26 @@
 *misc.txt*	Plugin with miscellaneous settings.
 
-===bindings===
-<C-L>       delete to the right
-<C-[><C-[>  :nohl
-;l          <Esc> without having to reach for ctrl
-gq          wrap base gq to allow a count specifying width.
+Miscellaneous key bindings and settings.  If keys are already bound,
+then the mappings will not be made.
 
+===normal bindings===
+<Leader>?	normal mode leader bindings
+<C-[><C-[>	:nohl
+<Leader>b	create a scratch buffer
+gq	wrap base gq to allow a count specifying width.
 
-These mappings generally begin with <Leader> which will be set to <C-K>
-if unset.  In normal mode, <C-K> has no binding and in insert mode,
-<C-K> is probably less often used.
-
-<Leader><Leader>    The original <Leader>
-<Leader>b           Create a scratch buffer.
-<Leader>r           repeat a character
+===insert bindings===
+<Leader>?	insert mode leader bindings
+<Leader><Leader>	original <Leader> binding/key
+<Leader>r	repeat a character
+<C-L>	delete to the right
+;l	<Esc> without having to reach for ctrl
 
 ===abbreviations===
-Inp         Inputs
-            ======
-Outp        Outputs
-            =======
+Inp	Inputs
+	======
+Outp	Outputs
+	=======
 
 
-" vim: ts=8 sw=2 tw=72
+" vim: ts=20 sw=2 tw=72

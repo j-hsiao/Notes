@@ -45,6 +45,7 @@ function! s:GetSTS()
 	if &l:sts < 0
 		if &l:sw == 0
 			return &l:ts
+		endif
 		return &l:sw
 	elseif &l:sts == 0
 		return &l:ts
@@ -84,20 +85,19 @@ function! s:RemoveAlignment()
 	return ' ' . repeat("\<BS>", (nspaces ? nspaces : 1)+1)
 endfunction
 function! s:RemoveAlignmentDispatch(key)
-	if getline('.')[col('.')-1] == ' '
+	if getline('.')[col('.')-2] == ' '
 		return "\<Plug>RemoveAlignmentAction;"
 	else
 		return "\<Plug>RemoveAlignmentFallback" . a:key . ';'
 	endif
 endfunction
 
-inoremap <expr> <Plug>RemoveAlignmentAction <SID>RemoveAlignment()
+inoremap <expr> <Plug>RemoveAlignmentAction; <SID>RemoveAlignment()
 execute mapfallback#CreateFallback('<Plug>RemoveAlignmentFallbackBS;', '<BS>', 'i')
 execute mapfallback#CreateFallback('<Plug>RemoveAlignmentFallbackCH;', '<C-H>', 'i')
 
-imap <Plug>Autopair
-imap <BS> <SID>RemoveAlignmentDispatch('BS')
-imap <C-H> <SID>RemoveAlignmentDispatch('CH')
+imap <expr> <BS> <SID>RemoveAlignmentDispatch('BS')
+imap <expr> <C-H> <SID>RemoveAlignmentDispatch('CH')
 
 function! s:Realign()
 	"Rearrange all leading spaces/tabs to be tabs first then spaces
