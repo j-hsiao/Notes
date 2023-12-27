@@ -28,6 +28,15 @@ function s:CursorSplit(length)
 	endif
 endfunction
 
+function s:IsCloser(char)
+	for item in s:pairs
+		if item[0] != item[1] && item[1] == a:char
+			return v:true
+		endif
+	endfor
+	return v:false
+endfunction
+
 "Insert opening character with [], {}, () in mind.
 "These would usually be inserted at end of line or
 "when there are no word-like characters right after.
@@ -36,7 +45,7 @@ function s:OpenPair(char1, char2)
 		return a:char1
 	endif
 	let [before, after] = s:CursorSplit(1)
-	if after == '' || after !~ '\w'
+	if after == '' || after =~ '\s' || s:IsCloser(after)
 		return a:char1 . a:char2 . "\<Left>"
 	else
 		return a:char1
