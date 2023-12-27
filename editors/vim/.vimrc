@@ -43,14 +43,11 @@ set nowrap number relativenumber ruler incsearch autoindent copyindent preservei
 	\ formatoptions+=roj
 	\ wmnu wim=list:longest,list:full wic
 	\ ls=2 stl=%<%n\ %f\ %h%m%r%=%l(%p%%),%c%V
+	\ listchars=eol:$,tab:.\ ,trail:_,extends:>
 	\ backspace=indent,eol,start
 	\ showbreak=\\_
 
-try
-	set listchars=eol:$,tab:.\ ,trail:_,lead:_,extends:>
-catch
-	set listchars=eol:$,tab:.\ ,trail:_,extends:>
-endtry
+
 
 let g:mapleader = "\<C-K>"
 
