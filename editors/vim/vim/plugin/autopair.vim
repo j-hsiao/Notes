@@ -28,7 +28,8 @@ function s:CursorSplit(length)
 	endif
 endfunction
 
-function s:IsCloser(char)
+let s:pairs = []
+function s:IsClosingChar(char)
 	for item in s:pairs
 		if item[0] != item[1] && item[1] == a:char
 			return v:true
@@ -45,7 +46,7 @@ function s:OpenPair(char1, char2)
 		return a:char1
 	endif
 	let [before, after] = s:CursorSplit(1)
-	if after == '' || after =~ '\s' || s:IsCloser(after)
+	if after == '' || after =~ '\s' || s:IsClosingChar(after)
 		return a:char1 . a:char2 . "\<Left>"
 	else
 		return a:char1
@@ -96,32 +97,41 @@ function s:SamePair(char)
 	return a:char
 endfunction
 
-
-let s:pairs = []
-function s:IRemovePairDispatch(key)
-	if get(s:complete_pair, bufnr(), 1)
-		let curidx = col('.') - 1
-		let curpair = strpart(getline('.'), col('.') - 2, 2)
-		for item in s:pairs
-			if item == curpair
-				if item[0] == item[1] && strpart(getline('.'), col('.') - 4, 6) == repeat(item[0], 6)
-					return repeat("\<Plug>AutopairIRemovePairAction;", 3)
-				endif
-				return "\<Plug>AutopairIRemovePairAction;"
-			endif
-		endfor
-	endif
-	return "\<Plug>AutopairIRemovePair" . a:key . "Fallback;"
+"Add fixing up autopairs after a deletion key
+function! s:AutopairPreRm(key)
+	let s:hold = [line('.'), strpart(getline('.'), 0, col('.')-1)]
+	call feedkeys("\<Plug>AutopairPostRm;", 'i')
+	return a:key
 endfunction
 
-execute mapfallback#CreateFallback(
-	\ '<Plug>AutopairIRemovePairBSFallback;', '<BS>', 'i')
-execute mapfallback#CreateFallback(
-	\ '<Plug>AutopairIRemovePairCHFallback;', '<C-H>', 'i')
-inoremap <Plug>AutopairIRemovePairAction; <BS><Del>
-imap <expr> <Plug>AutopairIRemovePair; <SID>IRemovePairDispatch('BS')
-imap <expr> <BS> <SID>IRemovePairDispatch('BS')
-imap <expr> <C-H> <SID>IRemovePairDispatch('CH')
+function! s:AutopairPostRm()
+	let [lnum, prestr] = s:hold
+	if line('.') == lnum
+		let curline = getline('.')
+		let curpre = strpart(curline, 0, col('.')-1)
+		let curpost = strpart(curline, col('.')-1)
+		let idx = strlen(prestr)-1
+		let endidx = strlen(curpre)-1
+		let dcount = 0
+		while endidx < idx
+			let curchar = strpart(prestr, idx, 1)
+			for pair in s:pairs
+				if curchar == pair[0]
+					\ && strpart(curpost, dcount, 1) == pair[1]
+					let dcount += 1
+					break
+				endif
+			endfor
+			let idx -= 1
+		endwhile
+		return repeat("\<Del>", dcount)
+	endif
+	return ''
+endfunction
+inoremap <expr> <Plug>AutopairPostRm; <SID>AutopairPostRm()
+imap <expr> <C-H> <SID>AutopairPreRm("\<C-H>")
+imap <expr> <C-W> <SID>AutopairPreRm("\<C-W>")
+imap <expr> <C-U> <SID>AutopairPreRm("\<C-U>")
 
 "Convert a string to a quoted str.
 "ex: 'a' -> "'a'"
@@ -171,5 +181,3 @@ if !hasmapto('<Plug>AutopairToggleCompletePair;', 'i')
 		\ && maparg('<Leader>]', 'i') == ''
 	imap <Leader>] <Plug>AutopairToggleCompletePair;
 endif
-
-
