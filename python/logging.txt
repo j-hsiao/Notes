@@ -1,3 +1,169 @@
+https://docs.python.org/3/howto/logging.html#logging-basic-tutorial
+https://docs.python.org/3/library/logging.html
+
+contents
+-0- general
+-1- loggers
+-2- handlers
+-3- Formatters
+-4- configs
+
+______________________________
+-0- general
+	logging module has 4 general classes:
+		logrecords  : the actual log obj.
+		loggers     : interface to log
+		handlers    : log to certain destinations
+		filters     : filter log outputs
+		formatters  : layout
+
+	______________________________
+	flow
+		logmethod called
+		if methodlevel < loglevel -> stop
+		create log record
+		filter log record
+		handle log record
+			if methodledvel < handlerlevel -> stop
+			handler filters on log record
+			emit+formatting
+		propagate log record if applicable
+
+	generic log levels:
+		logging.NOTSET      0
+		logging.DEBUG       10
+		logging.INFO        20
+		logging.WARNING     30
+		logging.ERROR       40
+		logging.CRITICAL    50
+
+	settings:
+		logging.basicConfig(
+			filename=...
+			encoding=... (3.9+)
+			level=...
+			format=...
+		)
+
+______________________________
+-1- loggers
+	Loggers are identified with a .-delimited name, much like python packages.
+	Recommendation is:
+		logger = logging.getLogger(__name__)
+	The root logger name is ''.  The module-level logging methods use the
+	root logger.
+
+	Child loggers inherit loglevel from parents by default.
+	Logrecords are propgated to parents by default as well.
+
+	common methods:
+		debug|info|warning|error|critical()
+		setLevel(lvl: int)
+		[add|remove]*:
+			Handler()
+			Filter()
+
+	others:
+		exception(): error() but also adds trace
+		log(): also takes expliit loglevel
+		isEnabledFor(lvl: int)
+		getEffectiveLevel()->int
+		getChild(suffix: str)->Logger (3.2+)
+
+	log method args:
+		formatstr: str
+		*args: args for formatstr
+		**kwargs:
+			exc_info     add exc info to msg
+			stack_info   add stack info
+			stacklevel   stack level to use for computing position(file, lineno, etc), default 1
+			             (the place where logger.logmethod() is called)
+			extra        dict of extra attrs for LogRecord
+
+
+	attrs:
+		propagate: propagate to parent loggers.
+		           NOTE: propagated handlers are used directly.  There is no
+		           extra checking of loglevels or filters.
+
+______________________________
+-2- handlers
+	common methods:
+		setLevel()
+		setFormatter()
+		[add|remove]*:
+			Filter()
+
+	best practices:
+		do not add handlers in libraries, only in clients.
+		can add a NullHandler though to not print if no configuration.
+
+	If no handlers found, use logging.lastResort
+
+	methods:
+		emit()
+
+	builtins:
+		logging:
+			NullHandler (3.1+)
+			StreamHandler
+			FileHandler
+
+		logging.handlers:
+			BaseRotatingHandler
+			RotatingFileHandler
+			TimedRotatingFileHandler
+			SocketHandler
+			DatagramHandler
+			SMTPHandler
+			SysLogHandler
+			NTEventLogHandler
+			MemoryHandler
+			HTTPHandler
+			WatchedFileHandler
+			QueueHandler (3.2+)
+
+______________________________
+-3- Formatters
+	__init__(fmt=None, datefmt='%Y-%m-%d %H:%M:%S', style='%')
+
+		style: (3.2+)
+			%: %(<dictkey>)
+			{: {<dictkey>:formatopts}
+			$: string.Template.substitute()?
+
+	attrs:
+		converter: defaults to time.localtime()
+		           set class attr to set for all instances
+______________________________
+-4- configs
+	1. create everything explicitly
+	2. create a config file: fileConfig()
+	3. use a dict: dictConfig()
+
+	{
+		formatters: {
+			name: {attr:val},
+			...
+		},
+		handlers: {
+			name: {attr:val},
+			...
+		}
+		loggers: {
+			name: {attr:val},
+			...
+		}
+		root: {
+			attr:val,
+			...
+		}
+	}
+
+
+
+
+
 https://docs.python.org/2/library/logging.html
 
 logging module
