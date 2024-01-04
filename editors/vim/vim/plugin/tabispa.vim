@@ -84,6 +84,7 @@ function! s:RemoveAlignment()
 	let nspaces = len(matchstr(prestr, '\m \{1,' . to_remove . '}$'))
 	return ' ' . repeat("\<BS>", (nspaces ? nspaces : 1)+1)
 endfunction
+
 function! s:RemoveAlignmentDispatch(key)
 	if getline('.')[col('.')-2] == ' '
 		return "\<Plug>RemoveAlignmentAction;"
@@ -93,10 +94,11 @@ function! s:RemoveAlignmentDispatch(key)
 endfunction
 
 inoremap <expr> <Plug>RemoveAlignmentAction; <SID>RemoveAlignment()
-execute mapfallback#CreateFallback('<Plug>RemoveAlignmentFallbackBS;', '<BS>', 'i')
-execute mapfallback#CreateFallback('<Plug>RemoveAlignmentFallbackCH;', '<C-H>', 'i')
 
-imap <expr> <BS> <SID>RemoveAlignmentDispatch('BS')
+"execute mapfallback#CreateFallback('<Plug>RemoveAlignmentFallbackBS;', '<BS>', 'i')
+"imap <expr> <BS> <SID>RemoveAlignmentDispatch('BS')
+
+execute mapfallback#CreateFallback('<Plug>RemoveAlignmentFallbackCH;', '<C-H>', 'i')
 imap <expr> <C-H> <SID>RemoveAlignmentDispatch('CH')
 
 function! s:Realign()
