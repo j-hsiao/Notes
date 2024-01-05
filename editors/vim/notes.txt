@@ -788,6 +788,14 @@ ______________________________
 				<expr>          Use rhs as an expression.  This is useful because you
 				                don't have to exit insert mode (doesn't break change seq
 				                and becomes more . repeatable)
+				                NOTE: this is still parsed the same as non-<expr> mappings
+				                eg.
+				                  map <expr> <C-a> func("<C-a>")
+				                    func will be called with a 1-char string
+				                    because <C-a>, is still expanded as usual
+				                    despite being inside quotes.
+				                  map <expr> <C-a> func("<lt>C-a>")
+				                    func will be called with a 5-char string.
 				<unique>        fail if already exists
 
 			rhs can also take special <Cmd>commandlinestuffs<CR> which can run

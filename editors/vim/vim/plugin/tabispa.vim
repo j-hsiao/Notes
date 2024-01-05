@@ -28,6 +28,10 @@
 "
 "  . does not repeat an entire mapping so just add realignment hotkeys.
 
+"TODO indent->add tab to beginning
+"     align->add spaces before first non-white-space
+"     corresponding opposites
+
 if get(g:, 'loaded_tabispa', 0)
 	finish
 endif
