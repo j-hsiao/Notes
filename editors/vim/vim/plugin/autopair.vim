@@ -101,7 +101,9 @@ endfunction
 function! s:AutopairPreRm(key)
 	let s:hold = [line('.'), strpart(getline('.'), 0, col('.')-1)]
 	call feedkeys("\<Plug>AutopairPostRm;", 'i')
-	return a:key
+	execute substitute(
+		\ 'return "<Plug>AutopairPreFallback' . a:key . ';"',
+		\ '<', '\\<', 'g')
 endfunction
 
 function! s:AutopairPostRm()
@@ -129,9 +131,13 @@ function! s:AutopairPostRm()
 	return ''
 endfunction
 inoremap <expr> <Plug>AutopairPostRm; <SID>AutopairPostRm()
-imap <expr> <C-H> <SID>AutopairPreRm("\<C-H>")
-imap <expr> <C-W> <SID>AutopairPreRm("\<C-W>")
-imap <expr> <C-U> <SID>AutopairPreRm("\<C-U>")
+
+execute mapfallback#CreateFallback('<Plug>AutopairPreFallback<C-H>;', '<C-H>', 'i')
+execute mapfallback#CreateFallback('<Plug>AutopairPreFallback<C-W>;', '<C-W>', 'i')
+execute mapfallback#CreateFallback('<Plug>AutopairPreFallback<C-U>;', '<C-U>', 'i')
+imap <expr> <C-H> <SID>AutopairPreRm("<lt>C-H>")
+imap <expr> <C-W> <SID>AutopairPreRm("<lt>C-W>")
+imap <expr> <C-U> <SID>AutopairPreRm("<lt>C-U>")
 
 "Convert a string to a quoted str.
 "ex: 'a' -> "'a'"
