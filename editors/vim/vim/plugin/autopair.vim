@@ -28,15 +28,8 @@ function s:CursorSplit(length)
 	endif
 endfunction
 
-let s:pairs = []
-function s:IsClosingChar(char)
-	for item in s:pairs
-		if item[0] != item[1] && item[1] == a:char
-			return v:true
-		endif
-	endfor
-	return v:false
-endfunction
+let s:pairs = {}
+let s:rpairs = {}
 
 "Insert opening character with [], {}, () in mind.
 "These would usually be inserted at end of line or
@@ -46,7 +39,7 @@ function s:OpenPair(char1, char2)
 		return a:char1
 	endif
 	let [before, after] = s:CursorSplit(1)
-	if after == '' || after =~ '\s' || s:IsClosingChar(after)
+	if after !~ '\w' || get(s:rpairs, after, '') != ''
 		return a:char1 . a:char2 . "\<Left>"
 	else
 		return a:char1
@@ -88,21 +81,19 @@ function s:SamePair(char)
 			\ && strpart(before, 0, strlen(before)-2) !~ '\S'
 			" python docstring using double or single quotes.
 			return repeat(a:char, 4) . repeat("\<Left>", 3)
-		else
-			if strpart(before, strlen(before)-1, 1) !~ '\w'
-				return a:char . a:char . "\<Left>"
-			endif
+		elseif strpart(before, strlen(before)-1, 1) !~ '\w'
+			return a:char . a:char . "\<Left>"
 		endif
 	endif
 	return a:char
 endfunction
 
-"Add fixing up autopairs after a deletion key
+"Save current state to analyze after a change.
+"key should be a string representing the key to press <> notation
 function! s:AutopairPreRm(key)
 	let s:hold = [line('.'), strpart(getline('.'), 0, col('.')-1)]
-	call feedkeys("\<Plug>AutopairPostRm;", 'i')
 	execute substitute(
-		\ 'return "<Plug>AutopairPreFallback' . a:key . ';"',
+		\ 'return "<Plug>AutopairPreFallback' . a:key . ';<Plug>AutopairPostRm;"',
 		\ '<', '\\<', 'g')
 endfunction
 
