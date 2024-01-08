@@ -1,4 +1,7 @@
-"tabispa: TABIndentSPaceAlignment
+" tabispa: TABIndentSPaceAlignment
+"Use tabs for indentation.  Use spaces for alignment.
+"Alignment is always after indentation.
+"Used options:
 "	'ts' indicates indentation
 "	'sts' indicates alignment
 "	'sw' should be same as 'ts'
@@ -58,25 +61,29 @@ function! s:GetSTS()
 	endif
 endfunction
 
-function! s:AddAlignment()
+"Insert spaces at current cursor position until next
+"soft tabstop column
+function! s:InsertAlignment()
 	"Add spaces to next soft tabstop for alignment
 	let curpos = strdisplaywidth(strpart(getline('.'), 0, col('.')-1))
 	let step = s:GetSTS()
 	return repeat(' ', step-(curpos%step))
 endfunction
 
-inoremap <expr> <Plug>TabispaAddAlignment; <SID>AddAlignment()
+inoremap <expr> <Plug>TabispaInsertAlignment; <SID>InsertAlignment()
 
-if maparg('<Tab>', 'i') == '' && !hasmapto('<Plug>TabispaAddAlignment;')
-	imap <Tab> <Plug>TabispaAddAlignment;
+if maparg('<Tab>', 'i') == '' && !hasmapto('<Plug>TabispaInsertAlignment;')
+	imap <Tab> <Plug>TabispaInsertAlignment;
 endif
 "Easier to add multiple literal tabs
 
-if maparg('<S-Tab>', 'i') == ''
-	inoremap <S-Tab> <C-V><Tab>
+inoremap <Plug>TabispaInsertTab; <C-V><Tab>
+if maparg('<S-Tab>', 'i') == '' && !hasmapto('<Plug>TabispaInsertTab;')
+	inoremap <S-Tab> <Plug>TabispaInsertTab;
 endif
 
-function! s:RemoveAlignment()
+"Remove spaces until softtabstop col to the left
+function! s:LRMAlignment()
 	"Remove multiple spaces until next tabstop or fallback to <BS>
 	let prestr = strpart(getline('.'), 0, col('.')-1)
 	let curpos = strdisplaywidth(prestr)
@@ -86,24 +93,24 @@ function! s:RemoveAlignment()
 		let to_remove = step
 	endif
 	let nspaces = len(matchstr(prestr, '\m \{1,' . to_remove . '}$'))
+	"space+BS to ensure removing single chars even if after
 	return ' ' . repeat("\<BS>", (nspaces ? nspaces : 1)+1)
 endfunction
+inoremap <expr> <Plug>LRMAlignmentAction; <SID>LRMAlignment()
 
-function! s:RemoveAlignmentDispatch(key)
+function! s:LRMAlignmentDispatch(key)
 	if getline('.')[col('.')-2] == ' '
-		return "\<Plug>RemoveAlignmentAction;"
+		return "\<Plug>LRMAlignmentAction;"
 	else
-		return "\<Plug>RemoveAlignmentFallback" . a:key . ';'
+		return "\<Plug>LRMAlignmentFallback" . a:key . ';'
 	endif
 endfunction
 
-inoremap <expr> <Plug>RemoveAlignmentAction; <SID>RemoveAlignment()
+"execute mapfallback#CreateFallback('<Plug>LRMAlignmentFallbackBS;', '<BS>', 'i')
+"imap <expr> <BS> <SID>LRMAlignmentDispatch('BS')
 
-"execute mapfallback#CreateFallback('<Plug>RemoveAlignmentFallbackBS;', '<BS>', 'i')
-"imap <expr> <BS> <SID>RemoveAlignmentDispatch('BS')
-
-execute mapfallback#CreateFallback('<Plug>RemoveAlignmentFallbackCH;', '<C-H>', 'i')
-imap <expr> <C-H> <SID>RemoveAlignmentDispatch('CH')
+execute mapfallback#CreateFallback('<Plug>LRMAlignmentFallbackCH;', '<C-H>', 'i')
+imap <expr> <C-H> <SID>LRMAlignmentDispatch('CH')
 
 function! s:Realign()
 	"Rearrange all leading spaces/tabs to be tabs first then spaces
@@ -135,179 +142,179 @@ function! s:Realign()
 		call cursor(0, curpos + padspace - nspace)
 	endif
 endfunction
-
-function! s:AddIndent()
-	"Insert a tab character at beginning of line
-	let curpos = col('.')
-	if &l:et
-		call setline('.', repeat(' ', &l:ts) . getline('.'))
-		call cursor(0, curpos+&l:ts)
-	else
-		call setline('.', "\t" . getline('.'))
-		call cursor(0, curpos+1)
-	endif
-endfunction
-
-function! s:RmIndent()
-	"Remove a tab from beginning of line.  If spaces, then remove ts
-	"worth of spaces.  (Realigns first)  ts is used because
-	"this function is supposed to remove indentation.
-	"Tabs represent indentation, so use ts instead of sts
-	let curline = getline('.')
-	if len(curline)
-		let nremoved = 0
-		if curline[0] == "\t"
-			let nremoved = 1
-		elseif curline[0] == ' '
-			while nremoved < &l:ts
-				if curline[nremoved] == ' '
-					let nremoved += 1
-				else
-					break
-				endif
-			endwhile
-		endif
-		if nremoved
-			let curcol = col('.')
-			call setline('.', curline[nremoved:])
-			call cursor(0, curcol-nremoved)
-		endif
-	endif
-endfunction
-
-" realign current line
-nnoremap <C-K>a :call <SID>Realign()<CR>
-" Realign last visual selection
-nnoremap <C-K>A :'<lt>,'>call <SID>Realign()<CR>'<lt>
-
-if v:version > 801
-	inoremap <C-T> <Cmd>call<Space><SID>AddIndent()<CR>
-	inoremap <C-D> <Cmd>call<Space><SID>RmIndent()<CR>
-else
-	"If autoindented, <C-O> will delete all indentation
-	"use '<Space><BS>' to prevent that.
-	inoremap <C-T> <Space><BS><C-O>:call<Space><SID>AddIndent()<CR>
-	inoremap <C-D> <Space><BS><C-O>:call<Space><SID>RmIndent()<CR>
-endif
-
-function! s:SelectBlock()
-	"If no indentation, then break at blank lines (lines with only
-	"space/tab) otherwise include them.
-	let lineno = line('.')
-	let ind = matchstr(getline('.'), '^\m[\t ]*')
-	let firstline = lineno - 1
-	let lastline = lineno + 1
-	while firstline > 0
-		let check = getline(firstline)
-		let sameindent = !len(ind) || check[:len(ind)-1] == ind
-		let blank = match(check, '\m[ \t]*$') == 0
-		if (len(ind) && (sameindent || blank)) || (!len(ind) && !blank)
-			let firstline -= 1
-		else
-			break
-		endif
-	endwhile
-	let nlines = line('$')
-	let wtf = ''
-	while lastline <= nlines
-		let check = getline(lastline)
-		let sameindent = !len(ind) || check[:len(ind)-1] == ind
-		let blank = match(check, '\m[ \t]*$') == 0
-		let wtf .= lastline . ',' . blank . ','
-		if (len(ind) && (sameindent || blank)) || (!len(ind) && !blank)
-			let lastline += 1
-		else
-			break
-		endif
-	endwhile
-"	echo len(ind) . ',' . firstline . ',' . lastline . '|' . wtf
-"	return ""
-	return (firstline+1) . 'GV' . (lastline-1) . 'G'
-endfunction
-
-nnoremap <expr> <C-K>s <SID>SelectBlock()
-
-
-" Convert space/tabs up to col into all tabs
-" any remaining whitespace is converted to spaces.
-" col and ws should be virtual columns (0-based)
-function! s:TabToCol(line, col, ws, txt)
-	let tabend = a:col / &l:ts
-	let tabs = repeat("\t", tabend)
-	let align = repeat(' ', a:ws - a:col)
-	let txtidx = 0
-	for char in a:txt
-		if char != ' ' && char != "\t"
-			break
-		endif
-		let txtidx += 1
-	endfor
-	let txt = a:txt[txtidx:]
-	if strcharpart(a:txt, 0, tabend) != tabs || strcharpart(a:txt, tabend, a:ws-a:col) != align
-		call setline(a:line, tabs . align . txt)
-	endif
-endfunction
-
-"Smart retabbing, generally space->tabs
-"Assumptions:
-"       1. indentation is always by tabspace (check value of &l:ts)
-"       2. Any increase in indent() not equal to &l:ts is alignment
-"       3. Decrease indentation that is a multiple of &l:ts is indentation
-function! s:Tabify() range
-	let curline = a:firstline
-	let ws = indent(curline)
-	let previndent = ws - ws % &l:ts
-	call s:TabToCol(curline, previndent, ws, getline(curline))
-	let curline += 1
-	while curline <= a:lastline
-		let txt = getline(curline)
-		let ws = indent(curline)
-		if ws == strdisplaywidth(txt)
-			if ws
-				call setline(curline, "")
-			endif
-		elseif ws == previndent
-			call s:TabToCol(curline, previndent, ws, txt)
-		elseif ws > previndent && ws == previndent + &l:ts || ws < previndent && ws % &l:ts == 0
-			call s:TabToCol(curline, ws, ws, txt)
-			let previndent = ws
-		else
-			if previndent < ws
-				call s:TabToCol(curline, previndent, ws, txt)
-			else
-				echo "Bad line " . curline . ". Unindented to a non-tabstop (" . ws . ' spaces, ts=' . &l:ts . ')'
-				return
-			endif
-		endif
-		let curline += 1
-	endwhile
-endfunction
-
-nnoremap <silent> <C-K><C-K><C-K><Tab> :<C-U>call <SID>Tabify()<CR>
-vnoremap <C-K><Tab> :call <SID>Tabify()<CR>
-
-"Fixed indent to a level (number of tabs)
-"Mostly useful if Tabify() can't distinguish between indent and align
-"because alignment is also a multiple of &l:ts
-function! s:FixedIndent(indent) range
-	let curline = a:firstline
-	let icol = a:indent * &l:ts
-	while curline <= a:lastline
-		let ws = indent(curline)
-		let txt = getline(curline)
-		if ws == strdisplaywidth(txt)
-			if ws
-				call setline(curline, '')
-			endif
-		else
-			if ws < icol
-				let ws = icol
-			endif
-			call s:TabToCol(curline, icol, ws, txt)
-		endif
-		let curline += 1
-	endwhile
-endfunction
-nnoremap <silent> <C-K><Bslash> :<C-U>call <SID>FixedIndent(v:count)<CR>
-vnoremap <C-K><Bslash> :call <SID>FixedIndent(v:count)<CR>
-
+"
+"function! s:AddIndent()
+"	"Insert a tab character at beginning of line
+"	let curpos = col('.')
+"	if &l:et
+"		call setline('.', repeat(' ', &l:ts) . getline('.'))
+"		call cursor(0, curpos+&l:ts)
+"	else
+"		call setline('.', "\t" . getline('.'))
+"		call cursor(0, curpos+1)
+"	endif
+"endfunction
+"
+"function! s:RmIndent()
+"	"Remove a tab from beginning of line.  If spaces, then remove ts
+"	"worth of spaces.  (Realigns first)  ts is used because
+"	"this function is supposed to remove indentation.
+"	"Tabs represent indentation, so use ts instead of sts
+"	let curline = getline('.')
+"	if len(curline)
+"		let nremoved = 0
+"		if curline[0] == "\t"
+"			let nremoved = 1
+"		elseif curline[0] == ' '
+"			while nremoved < &l:ts
+"				if curline[nremoved] == ' '
+"					let nremoved += 1
+"				else
+"					break
+"				endif
+"			endwhile
+"		endif
+"		if nremoved
+"			let curcol = col('.')
+"			call setline('.', curline[nremoved:])
+"			call cursor(0, curcol-nremoved)
+"		endif
+"	endif
+"endfunction
+"
+"" realign current line
+"nnoremap <C-K>a :call <SID>Realign()<CR>
+"" Realign last visual selection
+"nnoremap <C-K>A :'<lt>,'>call <SID>Realign()<CR>'<lt>
+"
+"if v:version > 801
+"	inoremap <C-T> <Cmd>call<Space><SID>AddIndent()<CR>
+"	inoremap <C-D> <Cmd>call<Space><SID>RmIndent()<CR>
+"else
+"	"If autoindented, <C-O> will delete all indentation
+"	"use '<Space><BS>' to prevent that.
+"	inoremap <C-T> <Space><BS><C-O>:call<Space><SID>AddIndent()<CR>
+"	inoremap <C-D> <Space><BS><C-O>:call<Space><SID>RmIndent()<CR>
+"endif
+"
+"function! s:SelectBlock()
+"	"If no indentation, then break at blank lines (lines with only
+"	"space/tab) otherwise include them.
+"	let lineno = line('.')
+"	let ind = matchstr(getline('.'), '^\m[\t ]*')
+"	let firstline = lineno - 1
+"	let lastline = lineno + 1
+"	while firstline > 0
+"		let check = getline(firstline)
+"		let sameindent = !len(ind) || check[:len(ind)-1] == ind
+"		let blank = match(check, '\m[ \t]*$') == 0
+"		if (len(ind) && (sameindent || blank)) || (!len(ind) && !blank)
+"			let firstline -= 1
+"		else
+"			break
+"		endif
+"	endwhile
+"	let nlines = line('$')
+"	let wtf = ''
+"	while lastline <= nlines
+"		let check = getline(lastline)
+"		let sameindent = !len(ind) || check[:len(ind)-1] == ind
+"		let blank = match(check, '\m[ \t]*$') == 0
+"		let wtf .= lastline . ',' . blank . ','
+"		if (len(ind) && (sameindent || blank)) || (!len(ind) && !blank)
+"			let lastline += 1
+"		else
+"			break
+"		endif
+"	endwhile
+""	echo len(ind) . ',' . firstline . ',' . lastline . '|' . wtf
+""	return ""
+"	return (firstline+1) . 'GV' . (lastline-1) . 'G'
+"endfunction
+"
+"nnoremap <expr> <C-K>s <SID>SelectBlock()
+"
+"
+"" Convert space/tabs up to col into all tabs
+"" any remaining whitespace is converted to spaces.
+"" col and ws should be virtual columns (0-based)
+"function! s:TabToCol(line, col, ws, txt)
+"	let tabend = a:col / &l:ts
+"	let tabs = repeat("\t", tabend)
+"	let align = repeat(' ', a:ws - a:col)
+"	let txtidx = 0
+"	for char in a:txt
+"		if char != ' ' && char != "\t"
+"			break
+"		endif
+"		let txtidx += 1
+"	endfor
+"	let txt = a:txt[txtidx:]
+"	if strcharpart(a:txt, 0, tabend) != tabs || strcharpart(a:txt, tabend, a:ws-a:col) != align
+"		call setline(a:line, tabs . align . txt)
+"	endif
+"endfunction
+"
+""Smart retabbing, generally space->tabs
+""Assumptions:
+""       1. indentation is always by tabspace (check value of &l:ts)
+""       2. Any increase in indent() not equal to &l:ts is alignment
+""       3. Decrease indentation that is a multiple of &l:ts is indentation
+"function! s:Tabify() range
+"	let curline = a:firstline
+"	let ws = indent(curline)
+"	let previndent = ws - ws % &l:ts
+"	call s:TabToCol(curline, previndent, ws, getline(curline))
+"	let curline += 1
+"	while curline <= a:lastline
+"		let txt = getline(curline)
+"		let ws = indent(curline)
+"		if ws == strdisplaywidth(txt)
+"			if ws
+"				call setline(curline, "")
+"			endif
+"		elseif ws == previndent
+"			call s:TabToCol(curline, previndent, ws, txt)
+"		elseif ws > previndent && ws == previndent + &l:ts || ws < previndent && ws % &l:ts == 0
+"			call s:TabToCol(curline, ws, ws, txt)
+"			let previndent = ws
+"		else
+"			if previndent < ws
+"				call s:TabToCol(curline, previndent, ws, txt)
+"			else
+"				echo "Bad line " . curline . ". Unindented to a non-tabstop (" . ws . ' spaces, ts=' . &l:ts . ')'
+"				return
+"			endif
+"		endif
+"		let curline += 1
+"	endwhile
+"endfunction
+"
+"nnoremap <silent> <C-K><C-K><C-K><Tab> :<C-U>call <SID>Tabify()<CR>
+"vnoremap <C-K><Tab> :call <SID>Tabify()<CR>
+"
+""Fixed indent to a level (number of tabs)
+""Mostly useful if Tabify() can't distinguish between indent and align
+""because alignment is also a multiple of &l:ts
+"function! s:FixedIndent(indent) range
+"	let curline = a:firstline
+"	let icol = a:indent * &l:ts
+"	while curline <= a:lastline
+"		let ws = indent(curline)
+"		let txt = getline(curline)
+"		if ws == strdisplaywidth(txt)
+"			if ws
+"				call setline(curline, '')
+"			endif
+"		else
+"			if ws < icol
+"				let ws = icol
+"			endif
+"			call s:TabToCol(curline, icol, ws, txt)
+"		endif
+"		let curline += 1
+"	endwhile
+"endfunction
+"nnoremap <silent> <C-K><Bslash> :<C-U>call <SID>FixedIndent(v:count)<CR>
+"vnoremap <C-K><Bslash> :call <SID>FixedIndent(v:count)<CR>
+"
