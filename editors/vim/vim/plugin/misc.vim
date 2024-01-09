@@ -103,97 +103,96 @@ endfunction
 
 nnoremap <expr> gq <SID>FitWidth()
 
-"Add comment string to lines
-"function! s:AddComment(mode) range
-"	let pre = split(&l:commentstring, '%s')[0]
-"	let check = substitute(pre, '\m\s*$', '', '')
-"	if a:mode == 'v'
-"		let firstline = a:firstline
-"		while firstline <= a:lastline
-"			if getline(firstline) !~ '\m^\s*' . check && getline(firstline) !~ '\m^\s*$'
-"				call setline(firstline, substitute(getline(firstline), '\m^\(\s*\)', '\1' . pre, ''))
-"			endif
-"			let firstline += 1
-"		endwhile
-"	else
-"		if getline('.') =~ '\m^\s*' . pre
-"			return ''
-"		endif
-"		let prespaces = matchstr(getline('.'), '\m^\s*')
-"		let motion = col('.') . '|'
-"		if col('.')-1 > strlen(prespaces)
-"			let motion = (col('.') + strlen(pre)) . '|'
-"		endif
-"		if a:mode == 'i'
-"			return "\<C-O>I" . pre . "\<C-O>" . motion
-"		elseif a:mode == 'n'
-"			return 'I' . pre . "\<Esc>" . motion
-"		endif
-"	endif
-"endfunction
-"
-"inoremap <expr> <Plug>MiscAddComment; <SID>AddComment('i')
-"nnoremap <expr> <Plug>MiscAddComment; <SID>AddComment('n')
-"vnoremap <Plug>MiscAddComment; :call<SID>AddComment('v')<CR>
-"
-"if maparg('<C-K>/', 'i') == ''
-"	imap <C-K>/ <Plug>MiscAddComment;
-"endif
-"if maparg('<C-K>/', 'n') == ''
-"	nmap <C-K>/ <Plug>MiscAddComment;
-"endif
-"if maparg('<C-K>/', 'v') == ''
-"	vmap <C-K>/ <Plug>MiscAddComment;
-"endif
+"Comment current line(s)
+function! s:AddComment(mode) range
+	let pre = split(&l:commentstring, '%s')[0]
+	let check = substitute(pre, '\m\s*$', '', '')
+	if a:mode == 'v'
+		let firstline = a:firstline
+		while firstline <= a:lastline
+			if getline(firstline) !~ '\m^\s*' . check && getline(firstline) !~ '\m^\s*$'
+				call setline(firstline, substitute(getline(firstline), '\m^\(\s*\)', '\1' . pre, ''))
+			endif
+			let firstline += 1
+		endwhile
+	else
+		if getline('.') =~ '\m^\s*' . pre
+			return ''
+		endif
+		let prespaces = matchstr(getline('.'), '\m^\s*')
+		let motion = col('.') . '|'
+		if col('.')-1 > strlen(prespaces)
+			let motion = (col('.') + strlen(pre)) . '|'
+		endif
+		if a:mode == 'i'
+			return "\<C-O>I" . pre . "\<C-O>" . motion
+		elseif a:mode == 'n'
+			return 'I' . pre . "\<Esc>" . motion
+		endif
+	endif
+endfunction
 
+inoremap <expr> <Plug>MiscAddComment; <SID>AddComment('i')
+nnoremap <expr> <Plug>MiscAddComment; <SID>AddComment('n')
+vnoremap <Plug>MiscAddComment; :call<SID>AddComment('v')<CR>
 
-"function! s:RmComment(mode) range
-"	let pre = split(&l:commentstring, '%s')[0]
-"	let check = substitute(pre, '\m\s*$', '', '')
-"	if a:mode == 'v'
-"		let firstline = a:firstline
-"		while firstline <= a:lastline
-"			if getline(firstline) =~ '\m^\s*' . pre
-"				call setline(firstline, substitute(getline(firstline), '\m^\(\s*\)' . pre, '\1', ''))
-"			elseif getline(firstline) =~ '\m^\s*' . check
-"				call setline(firstline, substitute(getline(firstline), '\m^\(\s*\)' . check, '\1', ''))
-"			endif
-"			let firstline += 1
-"		endwhile
-"	else
-"		if getline('.') !~ '\m^\s*' . check
-"			return ''
-"		endif
-"		let prespaces = matchstr(getline('.'), '\m^\s*')
-"		let ndel = strlen(check)
-"		if getline('.') =~ '\m^\s*' . pre
-"			let ndel = strlen(pre)
-"		endif
-"
-"		let motion = col('.') . '|'
-"		if strlen(prespaces) + ndel < col('.')
-"			let motion = (col('.') - ndel) . '|'
-"		elseif strlen(prespaces) < col('.')
-"			let motion = (strlen(prespaces)) . '|'
-"		endif
-"
-"		if a:mode == 'i'
-"			let ndel = strlen(check)
-"			if getline('.') =~ '\m^\s*' . pre
-"				let ndel = strlen(pre)
-"			endif
-"			let prespace = matchstr(getline('.'), '\m^\s*')
-"			return "\<C-O>_" . repeat("\<Del>", ndel) . repeat("\<Right>", col('.') - 1 - (ndel + strlen(prespace)))
-"		elseif a:mode == 'n'
-"			let ndel = strlen(check)
-"			if getline('.') =~ '\m^\s*'.pre
-"				let ndel = strlen(pre)
-"			endif
-"			return '_' . ndel . 'x' . (col('.')-ndel) . '|'
-"		endif
-"	endif
-"endfunction
-"
-"inoremap <expr> <C-K>' <SID>RmComment('i')
-"nnoremap <expr> <C-K>' <SID>RmComment('n')
-"vnoremap <C-K>' :call<SID>RmComment('v')<CR>
+"Uncomment current line(s)
+function! s:RmComment(mode) range
+	let pre = split(&l:commentstring, '%s')[0]
+	let check = substitute(pre, '\m\s*$', '', '')
+	if a:mode == 'v'
+		let firstline = a:firstline
+		while firstline <= a:lastline
+			if getline(firstline) =~ '\m^\s*' . pre
+				call setline(firstline, substitute(getline(firstline), '\m^\(\s*\)' . pre, '\1', ''))
+			elseif getline(firstline) =~ '\m^\s*' . check
+				call setline(firstline, substitute(getline(firstline), '\m^\(\s*\)' . check, '\1', ''))
+			endif
+			let firstline += 1
+		endwhile
+	else
+		if getline('.') !~ '\m^\s*' . check
+			return ''
+		endif
+		let prespaces = matchstr(getline('.'), '\m^\s*')
+		let ndel = strlen(check)
+		if getline('.') =~ '\m^\s*' . pre
+			let ndel = strlen(pre)
+		endif
+
+		let motion = col('.') . '|'
+		if strlen(prespaces) + ndel < col('.')
+			let motion = (col('.') - ndel) . '|'
+		elseif strlen(prespaces) < col('.')
+			let motion = (strlen(prespaces)) . '|'
+		endif
+
+		if a:mode == 'i'
+			let ndel = strlen(check)
+			if getline('.') =~ '\m^\s*' . pre
+				let ndel = strlen(pre)
+			endif
+			let prespace = matchstr(getline('.'), '\m^\s*')
+			return "\<C-O>_" . repeat("\<Del>", ndel) . repeat("\<Right>", col('.') - 1 - (ndel + strlen(prespace)))
+		elseif a:mode == 'n'
+			let ndel = strlen(check)
+			if getline('.') =~ '\m^\s*'.pre
+				let ndel = strlen(pre)
+			endif
+			return '_' . ndel . 'x' . (col('.')-ndel) . '|'
+		endif
+	endif
+endfunction
+
+inoremap <expr> <Plug>MiscRmComment; <SID>RmComment('i')
+nnoremap <expr> <Plug>MiscRmComment; <SID>RmComment('n')
+vnoremap <Plug>MiscRmComment; :call<SID>RmComment('v')<CR>
+
+for mode in 'inv'
+	if maparg('<C-K>/', mode) == ''
+		execute mode . 'map <C-K>/ <Plug>MiscAddComment;'
+	endif
+	if maparg("<C-K><C-K>/", mode) == ''
+		execute mode . "map <C-K><C-K>/ <Plug>MiscRmComment;"
+	endif
+endfor

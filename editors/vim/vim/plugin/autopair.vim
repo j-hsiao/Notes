@@ -117,7 +117,8 @@ function! s:AutopairPostRmL()
 			endwhile
 			return repeat("\<Del>", postidx)
 		endif
-		return ''
+	endif
+	return ''
 endfunction
 inoremap <expr> <Plug>AutopairPostRmL; <SID>AutopairPostRmL()
 
