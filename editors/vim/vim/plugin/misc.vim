@@ -103,6 +103,9 @@ endfunction
 
 nnoremap <expr> gq <SID>FitWidth()
 
+"Future work: maybe consider indentation/alignment to determine
+"if any trailing spaces from splitting &l:cms should be removed
+"as well.
 "Comment current line(s)
 function! s:AddComment(mode) range
 	let pre = split(&l:commentstring, '%s')[0]
@@ -154,32 +157,30 @@ function! s:RmComment(mode) range
 		if getline('.') !~ '\m^\s*' . check
 			return ''
 		endif
-		let prespaces = matchstr(getline('.'), '\m^\s*')
+		let prespaces = strlen(matchstr(getline('.'), '\m^\s*'))
 		let ndel = strlen(check)
 		if getline('.') =~ '\m^\s*' . pre
 			let ndel = strlen(pre)
 		endif
-
-		let motion = col('.') . '|'
-		if strlen(prespaces) + ndel < col('.')
-			let motion = (col('.') - ndel) . '|'
-		elseif strlen(prespaces) < col('.')
-			let motion = (strlen(prespaces)) . '|'
-		endif
-
+		let npos = col('.')-1
 		if a:mode == 'i'
-			let ndel = strlen(check)
-			if getline('.') =~ '\m^\s*' . pre
-				let ndel = strlen(pre)
+			let cmd = "\<C-O>_" . repeat("\<Del>", ndel)
+			if npos < prespaces
+				return cmd . repeat("\<Left>", prespaces - npos)
+			elseif prespaces + ndel < npos
+				return cmd . repeat("\<Right>", npos - (prespaces + ndel))
+			else
+				return cmd
 			endif
-			let prespace = matchstr(getline('.'), '\m^\s*')
-			return "\<C-O>_" . repeat("\<Del>", ndel) . repeat("\<Right>", col('.') - 1 - (ndel + strlen(prespace)))
 		elseif a:mode == 'n'
-			let ndel = strlen(check)
-			if getline('.') =~ '\m^\s*'.pre
-				let ndel = strlen(pre)
+			let cmd = '_' . ndel . 'x'
+			if npos < prespaces
+				return cmd . (prespaces-npos) . 'h'
+			elseif prespaces + ndel < npos
+				return cmd . (npos - (prespaces + ndel)) . 'l'
+			else
+				return cmd
 			endif
-			return '_' . ndel . 'x' . (col('.')-ndel) . '|'
 		endif
 	endif
 endfunction
