@@ -1,0 +1,53 @@
+vi: ts=2 sts=4 sw=2 noet
+contents
+-0- general
+-1- tensors
+-2- hashmap
+
+
+______________________________
+-0- general
+	Importing:
+		import open3d as o3d
+		import open3d.core as o3c
+
+	pip install open3d
+		Try to use o3d.t.geometry instead of o3d.geometry
+		(.t is tensor based, newer)
+
+	generally, numpy arrays can be passed in as arguments where o3c
+	Tensors are expected
+
+______________________________
+-1- tensors
+	Create tensors by using o3c.Tensor
+	general methods:
+		o3c.Tensor(np.ndarray)
+			copy a numpy array
+		o3c.Tensor.from_numpy(np.ndarray)
+			share a numpy array
+______________________________
+-2- hashmap
+	o3d.core.HashMap(initial, o3d.core.type, dim, o3d.core.type, dim, o3d.core.Device(...))
+
+	activate(keys):
+		Returns indices and mask.
+			indices = index into hash map where key was added (0 otherwise)
+			mask: True if added, False otherwise
+		NOTE: duplicates in `keys` will be False in mask and 0 index (only 1
+		is activated)
+
+	find(keys):
+		Returns indices, mask.
+			indices = index into hashmap where key was found (0 otherwise)
+			mask: True if found, False otherwise
+		NOTE: duplicates in `keys` all have the same value.
+
+	insert(keys, vals):
+		Returns indices, mask.
+			indices = index where value was inserted (0 otherwise)
+			mask: True if inserted, else False
+		NOTE1: duplicates in `keys` will be marked as not inserted. (only 1
+			is inserted)
+		NOTE2: vals does NOT have broadcasting and must be a matching shape.
+		NOTE3: vals MUST be contiguous.  Get errors otherwise
