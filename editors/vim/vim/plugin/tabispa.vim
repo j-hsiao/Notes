@@ -47,6 +47,8 @@ se preserveindent
 "
 " shiftwidth
 " 0 -> ts
+" < 0 -> sw
+"   sw == 0 -> ts
 function! s:GetSTS()
 	let step = &l:sts
 	if &l:sts < 0
@@ -69,17 +71,24 @@ function! s:InsertAlignment()
 	let step = s:GetSTS()
 	return repeat(' ', step-(curpos%step))
 endfunction
+inoremap <expr> <Plug>TabispaTabAction; <SID>InsertAlignment()
 
-inoremap <expr> <Plug>TabispaInsertAlignment; <SID>InsertAlignment()
-
-if maparg('<Tab>', 'i') == '' && !hasmapto('<Plug>TabispaInsertAlignment;')
+function! s:InsertAlignmentDispatch()
+	if &l:et
+		return "\<Plug>TabispaTabFallback;"
+	else
+		return "\<Plug>TabispaTabAction;"
+	endif
+endfunction
+execute mapfallback#CreateFallback('<Plug>TabispaTabFallback;', '<Tab>', 'i')
+imap <expr> <Plug>TabispaInsertAlignment; <SID>InsertAlignmentDispatch()
+if !hasmapto('<Plug>TabispaInsertAlignment;')
 	imap <Tab> <Plug>TabispaInsertAlignment;
 endif
-"Easier to add multiple literal tabs
 
-inoremap <Plug>TabispaInsertTab; <C-V><Tab>
-if maparg('<S-Tab>', 'i') == '' && !hasmapto('<Plug>TabispaInsertTab;')
-	inoremap <S-Tab> <Plug>TabispaInsertTab;
+"Easier to add multiple literal tabs
+if maparg('<S-Tab>', 'i') == ''
+	inoremap <S-Tab> <C-V><Tab>
 endif
 
 "Remove spaces until softtabstop col to the left
@@ -93,24 +102,76 @@ function! s:LRMAlignment()
 		let to_remove = step
 	endif
 	let nspaces = len(matchstr(prestr, '\m \{1,' . to_remove . '}$'))
-	"space+BS to ensure removing single chars even if after
-	return ' ' . repeat("\<BS>", (nspaces ? nspaces : 1)+1)
+	"space+BS to ensure removing single chars even if after shifting
+	return ' ' . repeat("\<BS>", nspaces+1)
 endfunction
 inoremap <expr> <Plug>LRMAlignmentAction; <SID>LRMAlignment()
 
 function! s:LRMAlignmentDispatch(key)
-	if getline('.')[col('.')-2] == ' '
+	if strpart(getline('.'), col('.')-2, 1) == ' '
 		return "\<Plug>LRMAlignmentAction;"
 	else
 		return "\<Plug>LRMAlignmentFallback" . a:key . ';'
 	endif
 endfunction
 
-"execute mapfallback#CreateFallback('<Plug>LRMAlignmentFallbackBS;', '<BS>', 'i')
-"imap <expr> <BS> <SID>LRMAlignmentDispatch('BS')
-
 execute mapfallback#CreateFallback('<Plug>LRMAlignmentFallbackCH;', '<C-H>', 'i')
 imap <expr> <C-H> <SID>LRMAlignmentDispatch('CH')
+
+"               indentation     alignment
+"insert mode:   <C-T><C-D>      <C-K>-><C-L>/<C-J>
+"normal mode:   >> <<           <C-K>-><C-L>/<C-J>
+"visual mode:   ?????????????????????????????
+"     original = >, <, but after doing this, visual mode is exited
+"     . will only redo the last change (insert mode)
+"     range function call will not be repeated by .
+"     block insert and delete are . redoable, works for addindent
+"     but what if different indent levels? how to handle alignment?
+"     works for add indent
+"
+"
+"
+"
+"Insert a tab at the beginning
+"function! s:AddIndent(mode) range
+	"if a:mode == 'v'
+		"let curline = a:firstline
+		"while curline <= a:lastline
+			"call setline(curline, "\<Tab>" . getline(curline))
+			"let curline += 1
+		"endwhile
+	"else
+		"if a:mode == 'i'
+			"if 1 || "\<Cmd>" == '<Cmd>'
+				"return "\<C-O>0\<C-V>\<Tab>" . repeat("\<Right>", col('.')-1)
+			"else
+				"return "\<Cmd>" . 'call setline(".", "\<Tab>" . getline("."))' . "\<CR>\<Right>"
+			"endif
+		"elseif a:mode == 'n'
+			"return "0i\<C-V>\<Tab>\<Esc>"
+		"else
+			"return ""
+		"endif
+	"endif
+"endfunction
+
+"inoremap <expr> <Plug>TabispaAddIndentAction; <SID>AddIndent('i')
+"nnoremap <expr> <Plug>TabispaAddIndentAction; <SID>AddIndent('n')
+
+"nnoremap <Plug>TabispaAddIndentActionv; :'<lt>'>call <SID>AddIndent('v')<CR>
+"vnoremap <Plug>TabispaAddIndentAction; :call <SID>AddIndent('v')<CR>
+
+"inoremap <expr> <C-T> <SID>AddIndent('i')
+"nnoremap <expr> >> <SID>AddIndent('n')
+
+"nmap <C-K><C-L> 
+"vmap <C-K><C-L> :call <SID>AddIndent('v')<CR>
+		"whatever
+		"whatever
+		"whatever
+		"whatever
+		"whatever
+		"whatever
 
 function! s:Realign()
 	"Rearrange all leading spaces/tabs to be tabs first then spaces
