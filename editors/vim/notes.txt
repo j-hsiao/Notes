@@ -112,8 +112,7 @@ ______________________________
 			            causes literal character or regex meaning
 			            (magic = .->any char, nomagic = \.->any char)
 
-
-		character classes
+		character-classes
 			invert letter case to invert match
 			ie: \s = whitespace, \S = not whitespace
 				\s      whitespace
@@ -500,6 +499,7 @@ ______________________________
 				c_      command mode
 				'       :set option
 				:       command
+				/       regexp pattern eg. /[]
 			postfixes
 				()      builtin function
 			useful searches
@@ -507,7 +507,7 @@ ______________________________
 				key-notation    notation for special keys
 				quote-expr      vimscript special keys as string
 		C-]         jump to link
-		C-t         previous topic
+		C-t         previous topic (can also use <C-O>)
 	______________________________
 	-4.2- :set
 		syntax:

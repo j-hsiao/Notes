@@ -78,17 +78,14 @@ function s:SamePair(char)
 		return "\<Right>"
 	elseif after !~ '\w'
 		if strpart(curline, curcol-3, 2) == repeat(a:char, 2)
-			\ && strpart(curline, curcol-4, 1) !~ '\S'
-			return repeat(a:char, 4) . repeat("\<Left>", 3)
-		else
-			let before = strpart(curline, curcol-2, 1)
-			let surround = strpart(curline, curcol-2, 2)
-			if before !~ '\w'
-				\ && before != a:char
-				\ && surround != "''"
-				\ && surround != '""'
-				return a:char . a:char . "\<Left>"
+			let before = strpart(curline, curcol-4, 1)
+			if before !~ '[^({[[:space:]=,]' && after !~ '[^\])},[:space:]]'
+				return repeat(a:char, 4) . repeat("\<Left>", 3)
 			endif
+		endif
+		let before = strpart(curline, curcol-2, 1)
+		if before !~ '[^({[[:space:]=,]' && after !~ '[^\])},[:space:]]'
+			return a:char . a:char . "\<Left>"
 		endif
 	endif
 	return a:char
