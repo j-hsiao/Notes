@@ -85,22 +85,29 @@ endfor
 
 "gq uses textwidth but textwidth also has the possibly undesired effect
 "of forcing newline when reaching the column.  This allows using a
-"prefix count to gq to specify the width
-function! s:FitWidth()
-	execute 'autocmd CursorMoved <buffer> ++once :setlocal textwidth=' . &l:textwidth
-	let width = v:count
-	if v:count != v:count1
-		if &l:textwidth
-			let width = &l:textwidth
+"prefix count to gq to specify the textwidth for the gq command.
+"restore textwidth afterwards
+let s:gqwidth = 0
+function! s:FitWidth(...)
+	if a:0
+		call feedkeys(":setl textwidth=" . s:gqwidth .  "\<CR>'[gq']:setl textwidth=" . &l:textwidth . "\<CR>", 'n')
+	else
+		if v:count != v:count1
+			if &l:textwidth
+				let s:gqwidth = &l:textwidth
+			else
+				let s:gqwidth = 72
+			endif
 		else
-			let width = 72
+			let s:gqwidth = v:count
 		endif
+		setl opfunc=s:FitWidth
+		"normally count before and after operator will be multiplied.
+		"eg. 2d3w = d6w, but here, we want the counts to be separate.
+		"Use <Esc> to clear the 1st count.
+		return "\<Esc>g@"
 	endif
-	execute 'setlocal textwidth=' . width
-	" escape to consume the v:count if any
-	return "\<Esc>gq"
 endfunction
-
 nnoremap <expr> gq <SID>FitWidth()
 
 "Future work: maybe consider indentation/alignment to determine
@@ -113,9 +120,10 @@ function! s:AddComment(mode) range
 	if a:mode == 'v'
 		let firstline = a:firstline
 		while firstline <= a:lastline
-			if getline(firstline) !~ '\m^\s*' . check && getline(firstline) !~ '\m^\s*$'
-				call setline(firstline, substitute(getline(firstline), '\m^\(\s*\)', '\1' . pre, ''))
-			endif
+			call setline(firstline, substitute(getline(firstline), '\m^\(\s*\)', '\1' . pre, ''))
+			"if getline(firstline) !~ '\m^\s*' . check && getline(firstline) !~ '\m^\s*$'
+			"	call setline(firstline, substitute(getline(firstline), '\m^\(\s*\)', '\1' . pre, ''))
+			"endif
 			let firstline += 1
 		endwhile
 	else
