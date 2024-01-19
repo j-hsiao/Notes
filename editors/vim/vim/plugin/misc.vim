@@ -90,7 +90,9 @@ endfor
 let s:gqwidth = 0
 function! s:FitWidth(...)
 	if a:0
-		call feedkeys(":setl textwidth=" . s:gqwidth .  "\<CR>'[gq']:setl textwidth=" . &l:textwidth . "\<CR>", 'n')
+		call feedkeys(
+			\ ":setl textwidth=" . s:gqwidth . "\<CR>'[gq']:setl textwidth="
+			\ . &l:textwidth . "\<CR>", 'n')
 	else
 		if v:count != v:count1
 			if &l:textwidth
@@ -101,14 +103,10 @@ function! s:FitWidth(...)
 		else
 			let s:gqwidth = v:count
 		endif
-		setl opfunc=s:FitWidth
-		"normally count before and after operator will be multiplied.
-		"eg. 2d3w = d6w, but here, we want the counts to be separate.
-		"Use <Esc> to clear the 1st count.
-		return "\<Esc>g@"
+		return 'g@'
 	endif
 endfunction
-nnoremap <expr> gq <SID>FitWidth()
+nnoremap <expr> gq ":<Bslash><lt>C-U>setl<Space>opfunc=<SID>FitWidth<Bslash><lt>CR>" . <SID>FitWidth()
 
 "Future work: maybe consider indentation/alignment to determine
 "if any trailing spaces from splitting &l:cms should be removed
@@ -197,7 +195,7 @@ inoremap <expr> <Plug>MiscRmComment; <SID>RmComment('i')
 nnoremap <expr> <Plug>MiscRmComment; <SID>RmComment('n')
 vnoremap <Plug>MiscRmComment; :call<SID>RmComment('v')<CR>
 
-for mode in 'inv'
+for mode in ['i', 'n', 'v']
 	if maparg('<C-K>/', mode) == ''
 		execute mode . 'map <C-K>/ <Plug>MiscAddComment;'
 	endif

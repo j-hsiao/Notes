@@ -35,7 +35,7 @@ let s:rpairs = {}
 "These are inserted when following characters are non-words
 "or non-existent
 function s:OpenPair(char1, char2)
-	if !get(s:complete_pair, bufnr(), 1)
+	if !get(s:complete_pair, bufnr('%'), 1)
 		return a:char1
 	endif
 	if strpart(getline('.'), col('.')-1, 1) !~ '\w'
@@ -49,7 +49,7 @@ endfunction
 "It would be possible to search before to see if there's a corresponding
 "starting char but I think too much hassle, not enough worth.
 function s:ClosePair(char)
-	if !get(s:complete_pair, bufnr(), 1)
+	if !get(s:complete_pair, bufnr('%'), 1)
 		return a:char
 	endif
 	if strpart(getline('.'), col('.')-1, 1) == a:char
@@ -68,7 +68,7 @@ endfunction
 " call(|)   -> paired
 " mydict[|] -> paired
 function s:SamePair(char)
-	if !get(s:complete_pair, bufnr(), 1)
+	if !get(s:complete_pair, bufnr('%'), 1)
 		return a:char
 	endif
 	let curline = getline('.')
@@ -160,8 +160,8 @@ RegisterPair " "
 RegisterPair ' '
 
 function s:ToggleCompletePair()
-	let newval = 1 - get(s:complete_pair, bufnr(), 1)
-	let s:complete_pair[bufnr()] = newval
+	let newval = 1 - get(s:complete_pair, bufnr('%'), 1)
+	let s:complete_pair[bufnr('%')] = newval
 	echo "Complete pairs: " . newval
 	return ''
 endfunction

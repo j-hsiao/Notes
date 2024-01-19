@@ -19,7 +19,7 @@ function mapfallback#CreateFallback(name, k, mode)
 			if dct['noremap']
 				let mpcmd = mpcmd . 'nore'
 			endif
-			if dct['script']
+			if get(dct, 'script', 0)
 				echo 'Warning, <script> mapping being replicated in a different script.'
 			endif
 			let mpcmd = mpcmd . 'map '

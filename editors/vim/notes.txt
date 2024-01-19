@@ -779,6 +779,10 @@ ______________________________
 			                          key-sequence
 			:unmap lhs                unmap a sequence
 
+			NOTE: 'cpoptions' / 'cpo' with B flag affects how backslashes
+			are used in mappings.  Just never use backslash in rhs and
+			you should be fine (use <Bslash> if need a literal backslash)
+
 			map can also take special arguments:
 				<buffer>        current buffer only
 				<nowait>        don't wait for more characters to be typed
