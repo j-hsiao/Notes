@@ -70,5 +70,5 @@ function! crepeat#CharRepeatedCmds(cmd, repkey)
 		\ join([
 			\ mpmode.'map <expr> <special>', repname,
 			\ 'getchar(1) == 0 ? "' . s:nop . repname . '" : ""'], ' '))
-	return mappings
+	return join(mappings, '|')
 endfunction

@@ -1,6 +1,10 @@
 " tabispa: TABIndentSPaceAlignment
 "Use tabs for indentation.  Use spaces for alignment.
 "Alignment is always after indentation.
+"
+"In the case of comments, indentation/alignment are handled separately before
+"and after the comment char
+"
 "Used options:
 "	'ts' indicates indentation
 "	'sts' indicates alignment
@@ -40,6 +44,11 @@ if get(g:, 'loaded_tabispa', 0)
 endif
 let g:loaded_tabispa = 1
 
+function! s:CommentPrefix()
+	return matchstr(split(&l:cms, '%s')[0], '\m\S\+')
+endfunction
+
+
 se preserveindent
 " calculate the soft tabstop width
 " 0 -> off
@@ -49,7 +58,7 @@ se preserveindent
 " 0 -> ts
 " < 0 -> sw
 "   sw == 0 -> ts
-function! s:GetSTS()
+function! s:STS()
 	let step = &l:sts
 	if &l:sts < 0
 		if &l:sw == 0
@@ -68,7 +77,7 @@ endfunction
 function! s:InsertAlignment()
 	"Add spaces to next soft tabstop for alignment
 	let curpos = strdisplaywidth(strpart(getline('.'), 0, col('.')-1))
-	let step = s:GetSTS()
+	let step = s:STS()
 	return repeat(' ', step-(curpos%step))
 endfunction
 inoremap <expr> <Plug>TabispaTabAction; <SID>InsertAlignment()
@@ -96,7 +105,7 @@ function! s:LRMAlignment()
 	"Remove multiple spaces until next tabstop or fallback to <BS>
 	let prestr = strpart(getline('.'), 0, col('.')-1)
 	let curpos = strdisplaywidth(prestr)
-	let step = s:GetSTS()
+	let step = s:STS()
 	let to_remove = curpos % step
 	if to_remove == 0
 		let to_remove = step
@@ -121,7 +130,7 @@ imap <expr> <C-H> <SID>LRMAlignmentDispatch('CH')
 "               indentation     alignment
 "insert mode:   <C-T><C-D>      <C-K>-><C-L>/<C-J>
 "normal mode:   >> <<           <C-K>-><C-L>/<C-J>
-"visual mode:   ?????????????????????????????
+"visual mode:   > <             <C-K>-><C-L>/<C-J>
 "     original = >, <, but after doing this, visual mode is exited
 "     . will only redo the last change (insert mode)
 "     range function call will not be repeated by .
