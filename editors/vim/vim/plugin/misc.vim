@@ -116,8 +116,9 @@ function! s:AddComment(mode) range
 	let pre = split(&l:commentstring, '%s')[0]
 	let check = substitute(pre, '\m\s*$', '', '')
 	if a:mode == 'v'
-		let firstline = a:firstline
-		while firstline <= a:lastline
+		let firstline = line("'<")
+		let lastline = line("'>")
+		while firstline <= lastline
 			call setline(firstline, substitute(getline(firstline), '\m^\(\s*\)', '\1' . pre, ''))
 			"if getline(firstline) !~ '\m^\s*' . check && getline(firstline) !~ '\m^\s*$'
 			"	call setline(firstline, substitute(getline(firstline), '\m^\(\s*\)', '\1' . pre, ''))
@@ -125,18 +126,15 @@ function! s:AddComment(mode) range
 			let firstline += 1
 		endwhile
 	else
-		if getline('.') =~ '\m^\s*' . pre
-			return ''
-		endif
 		let prespaces = matchstr(getline('.'), '\m^\s*')
-		let motion = col('.') . '|'
-		if col('.')-1 > strlen(prespaces)
-			let motion = (col('.') + strlen(pre)) . '|'
+		let charskip = (col('.')-1)
+		if charskip >= strlen(prespaces)
+			let charskip += strlen(pre)
 		endif
 		if a:mode == 'i'
-			return "\<C-O>I" . pre . "\<C-O>" . motion
+			return "\<C-O>I" . pre . "\<C-O>0" . repeat("\<Right>", charskip)
 		elseif a:mode == 'n'
-			return 'I' . pre . "\<Esc>" . motion
+			return 'I' . pre . "\<Esc>0" . charskip . 'l'
 		endif
 	endif
 endfunction
@@ -165,7 +163,7 @@ function! s:RmComment(mode) range
 		endif
 		let prespaces = strlen(matchstr(getline('.'), '\m^\s*'))
 		let ndel = strlen(check)
-		if getline('.') =~ '\m^\s*' . pre
+		if getline('.') =~ '\m^\s*' . pre && getline('.') !~'\m^\s*' . pre . '\s'
 			let ndel = strlen(pre)
 		endif
 		let npos = col('.')-1
@@ -196,10 +194,11 @@ nnoremap <expr> <Plug>MiscRmComment; <SID>RmComment('n')
 vnoremap <Plug>MiscRmComment; :call<SID>RmComment('v')<CR>
 
 for mode in ['i', 'n', 'v']
+	let after = mode == 'v' ? 'n' : mode
 	if maparg('<C-K>/', mode) == ''
-		execute mode . 'map <C-K>/ <Plug>MiscAddComment;'
+		execute crepeat#CharRepeatedCmds(mode . 'map <C-K>/ <Plug>MiscAddComment;', '/', after)
 	endif
 	if maparg("<C-K><C-K>/", mode) == ''
-		execute mode . "map <C-K><C-K>/ <Plug>MiscRmComment;"
+		execute crepeat#CharRepeatedCmds(mode . 'map <C-K><C-K>/ <Plug>MiscRmComment;', '/', after)
 	endif
 endfor

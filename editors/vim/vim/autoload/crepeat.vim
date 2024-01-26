@@ -34,7 +34,10 @@ let s:special = ['<expr>', '<buffer>', '<nowait>', '<silent>', '<special>', '<sc
 "lhs: lhs of command
 "rhs: rhs of command
 "key: key to use for repeat
-function! crepeat#CharRepeatedCmds(cmd, repkey)
+"
+"TODO: visual mapping might end up exiting visual mode.  This means that the
+"key binding for repeating the visual mode binding must be in normal mode.
+function! crepeat#CharRepeatedCmds(cmd, repkey, ...)
 	let parts = split(a:cmd, ' ')
 	let mpcmd = parts[0]
 	let idx = 1
@@ -51,8 +54,11 @@ function! crepeat#CharRepeatedCmds(cmd, repkey)
 	let idx += 1
 	let rhs = join(parts[idx:], ' ')
 	let mpmode = mpcmd[:0]
-
-	let repname = '<Plug>crepeatAmbigufy' . lhs . ';'
+	let after = mpmode
+	if a:0
+		let after = a:1
+	endif
+	let repname = '<Plug>crepeatAmbigufy' . mpmode . lhs . ';'
 	let mappings = []
 	if isexpr
 		let basecmd = [mpcmd]
@@ -63,12 +69,15 @@ function! crepeat#CharRepeatedCmds(cmd, repkey)
 	else
 		call add(mappings, a:cmd . repname)
 	endif
-	call add(mappings, join([mpmode . 'map <special>', repname . a:repkey, lhs], ' '))
-
+	if mpmode == 'v'
+		call add(mappings, join([after . 'map <special>', repname . a:repkey, "'<lt>v'>" . lhs], ' '))
+	else
+		call add(mappings, join([after . 'map <special>', repname . a:repkey, lhs], ' '))
+	endif
 	call add(
 		\ mappings,
 		\ join([
-			\ mpmode.'map <expr> <special>', repname,
+			\ after.'map <expr> <special>', repname,
 			\ 'getchar(1) == 0 ? "' . s:nop . repname . '" : ""'], ' '))
 	return join(mappings, '|')
 endfunction
