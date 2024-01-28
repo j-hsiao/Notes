@@ -44,11 +44,6 @@ if get(g:, 'loaded_tabispa', 0)
 endif
 let g:loaded_tabispa = 1
 
-function! s:CommentPrefix()
-	return matchstr(split(&l:cms, '%s')[0], '\m\S\+')
-endfunction
-
-
 se preserveindent
 " calculate the soft tabstop width
 " 0 -> off
@@ -137,10 +132,47 @@ imap <expr> <C-H> <SID>LRMAlignmentDispatch('CH')
 "     block insert and delete are . redoable, works for addindent
 "     but what if different indent levels? how to handle alignment?
 "     works for add indent
+"Return information about the current line.
+"indentation/alignment insertion points.
+"For comments, indentation/alignment is added after the comment chars
+"any trailing whitespace in the 'commentstring' will be preserved.
+"normal line:
+"indent insertion point
+"|                       |alignment insertion point
+"<Tab><Tab><Space><Space>text
+"comment line:
+"                                     indent insertion point
+"                                     |                       |alignment insertion point
+"<Tab><Tab><Space><Space><comentchars><Tab><Tab><Space><Space>text
 "
+"eg. commentstring = '// %s'
 "
-"
-"
+"                           indent insertion point
+"                           |                       |alignment insertion point
+"<Tab><Tab><Space><Space>// <Tab><Tab><Space><Space>text
+function! s:IndentInfo(line)
+	let cmprefix = split(&l:cms, '%s')[0]
+	let cmprechar = matchstr(cmprefix, '\m\S\+')
+	if a:line =~ '\m\s*' . cmprechar
+		if cmprefix != cmprechar && a:line =~ '\m\s*' . cmprefix
+		else
+		endif
+
+
+		'\m' . cmprechar . '\s*'
+
+		a:line =~ 
+
+		let indentation = matchstr(a:line, '\m^\s*')
+	else
+		let indentation = matchstr(a:line, '\m^\s*')
+		let indent = 0
+		let align = strlen(indentation)
+	endif
+	return ''
+endfunction
+nnoremap <expr> <C-K><C-L> <SID>IndentInfo(getline('.'))
+
 "Insert a tab at the beginning
 "function! s:AddIndent(mode) range
 	"if a:mode == 'v'
