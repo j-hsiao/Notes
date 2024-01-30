@@ -190,6 +190,9 @@ ______________________________
 		-               first non-whitespace char on previous line
 		+               first non-whitespace char on next line
 
+		There are also special motions that can be used after an operator (like d)
+			:h object-select
+			i(            delete within parentheses
 	______________________________
 	-1.2- scrolling
 		C-f|C-d|C-e     down 1-screen|half-screen|1-line
