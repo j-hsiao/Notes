@@ -112,19 +112,41 @@ nnoremap <expr> gq ":<Bslash><lt>C-U>setl<Space>opfunc=<SID>FitWidth<Bslash><lt>
 "if any trailing spaces from splitting &l:cms should be removed
 "as well.
 "Comment current line(s)
-function! s:AddComment(mode) range
+function! s:AddComment(mode)
 	let pre = split(&l:commentstring, '%s')[0]
 	let check = substitute(pre, '\m\s*$', '', '')
 	if a:mode == 'v'
 		let firstline = line("'<")
+		if firstline == 0
+			return ":\<Esc>'<V'>\<Plug>MiscAddComment;"
+		endif
 		let lastline = line("'>")
+		echom firstline . " to " . lastline
+		let ccol = -1
+		echom 'wtf'
 		while firstline <= lastline
-			call setline(firstline, substitute(getline(firstline), '\m^\(\s*\)', '\1' . pre, ''))
-			"if getline(firstline) !~ '\m^\s*' . check && getline(firstline) !~ '\m^\s*$'
-			"	call setline(firstline, substitute(getline(firstline), '\m^\(\s*\)', '\1' . pre, ''))
-			"endif
+			let curcol = strdisplaywidth(matchstr(getline(firstline), '\m^\s*'))
+			echom firstline . ', ' . curcol
+			if curcol < ccol || ccol < 0
+				let ccol = curcol
+			endif
 			let firstline += 1
 		endwhile
+		if ccol < 0
+			return ''
+		endif
+
+		let ccol += 1
+		return ":\<Esc>'<" . ccol . "|\<C-V>'>" . ccol . '|I' . pre . "\<Esc>"
+		# let firstline = line("'<")
+		# let lastline = line("'>")
+		# while firstline <= lastline
+		# 	call setline(firstline, substitute(getline(firstline), '\m^\(\s*\)', '\1' . pre, ''))
+		# 	"if getline(firstline) !~ '\m^\s*' . check && getline(firstline) !~ '\m^\s*$'
+		# 	"	call setline(firstline, substitute(getline(firstline), '\m^\(\s*\)', '\1' . pre, ''))
+		# 	"endif
+		# 	let firstline += 1
+		# endwhile
 	else
 		let prespaces = matchstr(getline('.'), '\m^\s*')
 		let charskip = (col('.')-1)
@@ -141,7 +163,7 @@ endfunction
 
 inoremap <expr> <Plug>MiscAddComment; <SID>AddComment('i')
 nnoremap <expr> <Plug>MiscAddComment; <SID>AddComment('n')
-vnoremap <Plug>MiscAddComment; :call<SID>AddComment('v')<CR>
+vnoremap <expr> <Plug>MiscAddComment; <SID>AddComment('v')
 
 "Uncomment current line(s)
 function! s:RmComment(mode) range
