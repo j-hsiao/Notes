@@ -116,37 +116,39 @@ function! s:AddComment(mode)
 	let pre = split(&l:commentstring, '%s')[0]
 	let check = substitute(pre, '\m\s*$', '', '')
 	if a:mode == 'v'
-		let firstline = line("'<")
-		if firstline == 0
-			return ":\<Esc>'<V'>\<Plug>MiscAddComment;"
+		if line('v') < line('.')
+			let firstline = line('v')
+			let lastline = line('.')
+		else
+			let firstline = line('.')
+			let lastline = line('v')
 		endif
-		let lastline = line("'>")
-		echom firstline . " to " . lastline
-		let ccol = -1
-		echom 'wtf'
-		while firstline <= lastline
-			let curcol = strdisplaywidth(matchstr(getline(firstline), '\m^\s*'))
-			echom firstline . ', ' . curcol
-			if curcol < ccol || ccol < 0
-				let ccol = curcol
+		let commentcol = -1
+		let curline = firstline
+		while curline <= lastline
+			if getline(curline) !~ '\m^\s*$'
+				let curcol = indent(curline)
+				if curcol < commentcol || commentcol < 0
+					let commentcol = curcol
+				endif
 			endif
-			let firstline += 1
+			let curline += 1
 		endwhile
-		if ccol < 0
-			return ''
-		endif
-
-		let ccol += 1
-		return ":\<Esc>'<" . ccol . "|\<C-V>'>" . ccol . '|I' . pre . "\<Esc>"
-		# let firstline = line("'<")
-		# let lastline = line("'>")
-		# while firstline <= lastline
-		# 	call setline(firstline, substitute(getline(firstline), '\m^\(\s*\)', '\1' . pre, ''))
-		# 	"if getline(firstline) !~ '\m^\s*' . check && getline(firstline) !~ '\m^\s*$'
-		# 	"	call setline(firstline, substitute(getline(firstline), '\m^\(\s*\)', '\1' . pre, ''))
-		# 	"endif
-		# 	let firstline += 1
-		# endwhile
+		let curline = firstline
+		let start = -1
+		let stop = -1
+		while curline <= lastline
+			if indent(curline) >= commentcol
+				if start < 0
+					let start = curline
+				endif
+				let stop = curline
+			endif
+			let curline += 1
+		endwhile
+		let commentcol += 1
+		return "\<Esc>" . start . 'gg' . commentcol . "|\<C-V>"
+			\ . stop . 'gg$' . commentcol . '|I' . pre . "\<Esc>"
 	else
 		let prespaces = matchstr(getline('.'), '\m^\s*')
 		let charskip = (col('.')-1)
