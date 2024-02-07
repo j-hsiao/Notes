@@ -159,9 +159,9 @@ function! s:IndentInfo(line)
 		endif
 
 
-		'\m' . cmprechar . '\s*'
+		"'\m' . cmprechar . '\s*'
 
-		a:line =~ 
+		"a:line =~ 
 
 		let indentation = matchstr(a:line, '\m^\s*')
 	else

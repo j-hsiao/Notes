@@ -108,47 +108,46 @@ function! s:FitWidth(...)
 endfunction
 nnoremap <expr> gq ":<Bslash><lt>C-U>setl<Space>opfunc=<SID>FitWidth<Bslash><lt>CR>" . <SID>FitWidth()
 
-"Future work: maybe consider indentation/alignment to determine
-"if any trailing spaces from splitting &l:cms should be removed
-"as well.
 "Comment current line(s)
+"visual mode:
+"	strip trailing whitespace
+"	add comment to left-most non-white-space col of the selected lines
+"normal mode:
+"	todo: change to operator-func mapping?
+"insert mode:
+"	current line is purely whitespace, add coment char in current position
+"	otherwise, add comment char to first non-white-space char of the
+"	current line.
 function! s:AddComment(mode)
 	let pre = split(&l:commentstring, '%s')[0]
 	let check = substitute(pre, '\m\s*$', '', '')
 	if a:mode == 'v'
-		if line('v') < line('.')
-			let firstline = line('v')
-			let lastline = line('.')
+		let firstline = line("'<")
+		let lastline = line("'>")
+		let commentcol = v:maxcol
+		"If the selection starts on a blank line, then using <C-V>
+		"for lazy comment might not work.  startline is not necessarily
+		"the same as the '< mark.  Likewise, same for stopline and '>
+		let startline = -1
+		let stopline = 0
+		while firstline <= lastline
+			if getline(firstline) !~ '\m^\s*$'
+				let commentcol = min([commentcol, indent(firstline)])
+				if startline < 0
+					let startline = firstline
+				endif
+				let stopline = firstline
+			endif
+			let firstline += 1
+		endwhile
+		if startline < 0
+			return ''
+		elseif commentcol == 0
+			return ":'<,'>" . 's/^\(.\)/' . escape(pre, '\') . '\1/' . "\<CR>:nohl\<CR>"
 		else
-			let firstline = line('.')
-			let lastline = line('v')
+			return startline . 'gg' . (commentcol+1) . "|\<C-V>"
+				\ . stopline . 'gg$I' . pre . "\<Esc>"
 		endif
-		let commentcol = -1
-		let curline = firstline
-		while curline <= lastline
-			if getline(curline) !~ '\m^\s*$'
-				let curcol = indent(curline)
-				if curcol < commentcol || commentcol < 0
-					let commentcol = curcol
-				endif
-			endif
-			let curline += 1
-		endwhile
-		let curline = firstline
-		let start = -1
-		let stop = -1
-		while curline <= lastline
-			if indent(curline) >= commentcol
-				if start < 0
-					let start = curline
-				endif
-				let stop = curline
-			endif
-			let curline += 1
-		endwhile
-		let commentcol += 1
-		return "\<Esc>" . start . 'gg' . commentcol . "|\<C-V>"
-			\ . stop . 'gg$' . commentcol . '|I' . pre . "\<Esc>"
 	else
 		let prespaces = matchstr(getline('.'), '\m^\s*')
 		let charskip = (col('.')-1)
@@ -165,7 +164,8 @@ endfunction
 
 inoremap <expr> <Plug>MiscAddComment; <SID>AddComment('i')
 nnoremap <expr> <Plug>MiscAddComment; <SID>AddComment('n')
-vnoremap <expr> <Plug>MiscAddComment; <SID>AddComment('v')
+nnoremap <expr> <Plug>MiscAddCommentVHelp; <SID>AddComment('v')
+vmap <Plug>MiscAddComment; :s/<Bslash>s*$//<CR>:nohl<CR><Plug>MiscAddCommentVHelp;
 
 "Uncomment current line(s)
 function! s:RmComment(mode) range
