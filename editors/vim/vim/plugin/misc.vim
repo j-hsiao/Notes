@@ -113,59 +113,87 @@ nnoremap <expr> gq ":<Bslash><lt>C-U>setl<Space>opfunc=<SID>FitWidth<Bslash><lt>
 "	strip trailing whitespace
 "	add comment to left-most non-white-space col of the selected lines
 "normal mode:
-"	todo: change to operator-func mapping?
+"	operator-func comment traversed lines
 "insert mode:
 "	current line is purely whitespace, add coment char in current position
 "	otherwise, add comment char to first non-white-space char of the
 "	current line.
-function! s:AddComment(mode)
+function! s:RmTrailSpace() range
+	let curline = a:firstline
+	while curline <= a:lastline
+		call setline(curline, matchstr(getline(curline), '\m^.*\S'))
+		let curline += 1
+	endwhile
+endfunction
+
+function! s:AddCommentV()
 	let pre = split(&l:commentstring, '%s')[0]
-	let check = substitute(pre, '\m\s*$', '', '')
-	if a:mode == 'v'
-		let firstline = line("'<")
-		let lastline = line("'>")
-		let commentcol = v:maxcol
-		"If the selection starts on a blank line, then using <C-V>
-		"for lazy comment might not work.  startline is not necessarily
-		"the same as the '< mark.  Likewise, same for stopline and '>
-		let startline = -1
-		let stopline = 0
-		while firstline <= lastline
-			if getline(firstline) !~ '\m^\s*$'
-				let commentcol = min([commentcol, indent(firstline)])
-				if startline < 0
-					let startline = firstline
-				endif
-				let stopline = firstline
+	let firstline = line("'<")
+	let lastline = line("'>")
+	let commentcol = v:maxcol
+	"If the selection starts on a blank line, then using <C-V>
+	"for lazy comment might not work.  startline is not necessarily
+	"the same as the '< mark.  Same for stopline and '>
+	let startline = -1
+	let stopline = 0
+	while firstline <= lastline
+		if getline(firstline) !~ '\m^\s*$'
+			let commentcol = min([commentcol, indent(firstline)])
+			if startline < 0
+				let startline = firstline
 			endif
-			let firstline += 1
+			let stopline = firstline
+		endif
+		let firstline += 1
+	endwhile
+	if startline < 0
+		return ''
+	elseif commentcol == 0
+		let cmd = [startline . 'gg']
+		while startline <= stopline
+			if getline(startline) =~ '\m^\s*\S'
+				call add(cmd, '0i' . pre . "\<Esc>")
+			endif
+			if startline != stopline
+				call add(cmd, 'j')
+			endif
+			let startline += 1
 		endwhile
-		if startline < 0
-			return ''
-		elseif commentcol == 0
-			return ":'<,'>" . 's/^\(.\)/' . escape(pre, '\') . '\1/' . "\<CR>:nohl\<CR>"
-		else
-			return startline . 'gg' . (commentcol+1) . "|\<C-V>"
-				\ . stopline . 'gg$I' . pre . "\<Esc>"
-		endif
+		call add(cmd, "'<")
+		return join(cmd, '')
 	else
-		let prespaces = matchstr(getline('.'), '\m^\s*')
-		let charskip = (col('.')-1)
-		if charskip >= strlen(prespaces)
-			let charskip += strlen(pre)
-		endif
-		if a:mode == 'i'
-			return "\<C-O>I" . pre . "\<C-O>0" . repeat("\<Right>", charskip)
-		elseif a:mode == 'n'
-			return 'I' . pre . "\<Esc>0" . charskip . 'l'
-		endif
+		return startline . 'gg' . (commentcol+1) . "|\<C-V>"
+			\ . stopline . 'gg$I' . pre . "\<Esc>"
 	endif
 endfunction
 
-inoremap <expr> <Plug>MiscAddComment; <SID>AddComment('i')
-nnoremap <expr> <Plug>MiscAddComment; <SID>AddComment('n')
-nnoremap <expr> <Plug>MiscAddCommentVHelp; <SID>AddComment('v')
-vmap <Plug>MiscAddComment; :s/<Bslash>s*$//<CR>:nohl<CR><Plug>MiscAddCommentVHelp;
+function! s:AddCommentI()
+	let pre = split(&l:commentstring, '%s')[0]
+	let prespaces = matchstr(getline('.'), '\m^\s*')
+	let charskip = col('.')-1
+	if charskip >= strlen(prespaces)
+		let charskip += strlen(pre)
+	endif
+	if getline('.') =~ '\m^\s\+$'
+		return pre
+	else
+		return "\<C-O>I" . pre . "\<C-O>0" . repeat("\<Right>", charskip)
+	endif
+endfunction
+
+function! s:AddCommentN(...)
+	if a:0
+		execute "norm '[v']\<Plug>MiscAddComment;"
+	else
+		let &l:operatorfunc=function("s:AddCommentN")
+		return 'g@'
+	endif
+endfunction
+
+inoremap <expr> <Plug>MiscAddComment; <SID>AddCommentI()
+nnoremap <expr> <Plug>MiscAddComment; <SID>AddCommentN()
+nnoremap <expr> <Plug>MiscAddCommentVHelp; <SID>AddCommentV()
+vmap <Plug>MiscAddComment; :call <SID>RmTrailSpace()<CR><Plug>MiscAddCommentVHelp;
 
 "Uncomment current line(s)
 function! s:RmComment(mode) range
