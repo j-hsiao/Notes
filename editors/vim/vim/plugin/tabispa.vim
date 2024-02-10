@@ -84,7 +84,7 @@ function! s:InsertAlignmentDispatch()
 		return "\<Plug>TabispaTabAction;"
 	endif
 endfunction
-execute mapfallback#CreateFallback('<Plug>TabispaTabFallback;', '<Tab>', 'i')
+execute jhsiaomapfallback#CreateFallback('<Plug>TabispaTabFallback;', '<Tab>', 'i')
 imap <expr> <Plug>TabispaInsertAlignment; <SID>InsertAlignmentDispatch()
 if !hasmapto('<Plug>TabispaInsertAlignment;')
 	imap <Tab> <Plug>TabispaInsertAlignment;
@@ -119,7 +119,7 @@ function! s:LRMAlignmentDispatch(key)
 	endif
 endfunction
 
-execute mapfallback#CreateFallback('<Plug>LRMAlignmentFallbackCH;', '<C-H>', 'i')
+execute jhsiaomapfallback#CreateFallback('<Plug>LRMAlignmentFallbackCH;', '<C-H>', 'i')
 imap <expr> <C-H> <SID>LRMAlignmentDispatch('CH')
 
 "               indentation     alignment

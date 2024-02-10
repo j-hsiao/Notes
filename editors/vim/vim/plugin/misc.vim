@@ -55,7 +55,7 @@ endif
 
 "Preserve a mapping to original <Leader>
 if maparg('<Leader><Leader>', 'i') == ''
-	execute mapfallback#CreateFallback('<Leader><Leader>', '<Leader>', 'i')
+	execute jhsiaomapfallback#CreateFallback('<Leader><Leader>', '<Leader>', 'i')
 endif
 
 "Sectioning
@@ -248,9 +248,9 @@ vnoremap <Plug>MiscRmComment; :call<SID>RmComment('v')<CR>
 for mode in ['i', 'n', 'v']
 	let after = mode == 'v' ? 'n' : mode
 	if maparg('<C-K>/', mode) == ''
-		execute crepeat#CharRepeatedCmds(mode . 'map <C-K>/ <Plug>MiscAddComment;', '/', after)
+		execute jhsiaocrepeat#CharRepeatedCmds(mode . 'map <C-K>/ <Plug>MiscAddComment;', '/', after)
 	endif
 	if maparg("<C-K><C-K>/", mode) == ''
-		execute crepeat#CharRepeatedCmds(mode . 'map <C-K><C-K>/ <Plug>MiscRmComment;', '/', after)
+		execute jhsiaocrepeat#CharRepeatedCmds(mode . 'map <C-K><C-K>/ <Plug>MiscRmComment;', '/', after)
 	endif
 endfor
