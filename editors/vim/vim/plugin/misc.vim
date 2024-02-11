@@ -127,7 +127,11 @@ function! s:RmTrailSpace() range
 endfunction
 
 function! s:AddCommentV()
-	let pre = split(&l:commentstring, '%s')[0]
+	let parts = split(&l:commentstring, '%s')
+	if len(parts) > 1
+		"TODO commentstring has trailing info...
+	endif
+	let pre = parts[0]
 	let firstline = line("'<")
 	let lastline = line("'>")
 	let commentcol = v:maxcol
@@ -168,17 +172,14 @@ function! s:AddCommentV()
 endfunction
 
 function! s:AddCommentI()
-	let pre = split(&l:commentstring, '%s')[0]
+	let parts = split(&l:commentstring, '%s')
+	if len(parts) > 1
+		"TODO commentstring has trailing info...
+	endif
+	let pre = parts[0]
 	let prespaces = matchstr(getline('.'), '\m^\s*')
-	let charskip = col('.')-1
-	if charskip >= strlen(prespaces)
-		let charskip += strlen(pre)
-	endif
-	if getline('.') =~ '\m^\s\+$'
-		return pre
-	else
-		return "\<C-O>I" . pre . "\<C-O>0" . repeat("\<Right>", charskip)
-	endif
+	jhsiaoinsert#InsertText(pre, strlen(prespaces))
+	return ''
 endfunction
 
 function! s:AddCommentN(...)
@@ -190,60 +191,69 @@ function! s:AddCommentN(...)
 	endif
 endfunction
 
-inoremap <expr> <Plug>MiscAddComment; <SID>AddCommentI()
+inoremap <Plug>MiscAddComment; <C-R>=<SID>AddCommentI()<CR>
 nnoremap <expr> <Plug>MiscAddComment; <SID>AddCommentN()
 nnoremap <expr> <Plug>MiscAddCommentVHelp; <SID>AddCommentV()
 vmap <Plug>MiscAddComment; :call <SID>RmTrailSpace()<CR><Plug>MiscAddCommentVHelp;
 
 "Uncomment current line(s)
-function! s:RmComment(mode) range
-	let pre = split(&l:commentstring, '%s')[0]
-	let check = substitute(pre, '\m\s*$', '', '')
-	if a:mode == 'v'
-		let firstline = a:firstline
-		while firstline <= a:lastline
-			if getline(firstline) =~ '\m^\s*' . pre
-				call setline(firstline, substitute(getline(firstline), '\m^\(\s*\)' . pre, '\1', ''))
-			elseif getline(firstline) =~ '\m^\s*' . check
-				call setline(firstline, substitute(getline(firstline), '\m^\(\s*\)' . check, '\1', ''))
+function! s:RmCommentV() range
+	let parts = split(&l:commentstring, '%s')
+	if len(parts) > 1
+		"TODO commentstring has trailing info...
+	endif
+	let fullpat = '\m^\(\s*\)' . parts[0]
+	let strippedpat = substitute(fullpat, '\m\s*$', '', '')
+	let curline = a:firstline
+	while curline <= a:lastline
+		let curtext = getline(curline)
+		let result = substitute(curtext, fullpat, '\1', '')
+		if result != curtext
+			call setline(curline, result)
+		else
+			let result = substitute(curtext, strippedpat, '\1', '')
+			if result != curtext
+				call setline(curline, result)
 			endif
-			let firstline += 1
-		endwhile
+		endif
+		let curline += 1
+	endwhile
+endfunction
+
+function! s:RmCommentI()
+	let parts = split(&l:commentstring, '%s')
+	if len(parts) > 1
+		"TODO commentstring has trailing info...
+	endif
+	let fullpat = '\m^\s*' . parts[0]
+	let curtext = getline('.')
+	if curtext =~ fullpat
+		call jhsiaoinsert#DeleteText(
+			\ strlen(parts[0]),
+			\ strlen(matchstr(curtext, '\m^\s*')))
 	else
-		if getline('.') !~ '\m^\s*' . check
-			return ''
+		let strippedpat = substitute(fullpat, '\m\s*$', '', '')
+		if curtext =~ strippedpat
+			call jhsiaoinsert#DeleteText(
+				\ strlen(substitute(parts[0], '\m\s*$', '', '')),
+				\ strlen(matchstr(curtext, '\m^\s*')))
 		endif
-		let prespaces = strlen(matchstr(getline('.'), '\m^\s*'))
-		let ndel = strlen(check)
-		if getline('.') =~ '\m^\s*' . pre && getline('.') !~'\m^\s*' . pre . '\s'
-			let ndel = strlen(pre)
-		endif
-		let npos = col('.')-1
-		if a:mode == 'i'
-			let cmd = "\<C-O>_" . repeat("\<Del>", ndel)
-			if npos < prespaces
-				return cmd . repeat("\<Left>", prespaces - npos)
-			elseif prespaces + ndel < npos
-				return cmd . repeat("\<Right>", npos - (prespaces + ndel))
-			else
-				return cmd
-			endif
-		elseif a:mode == 'n'
-			let cmd = '_' . ndel . 'x'
-			if npos < prespaces
-				return cmd . (prespaces-npos) . 'h'
-			elseif prespaces + ndel < npos
-				return cmd . (npos - (prespaces + ndel)) . 'l'
-			else
-				return cmd
-			endif
-		endif
+	endif
+	return ''
+endfunction
+
+function! s:RmCommentN(...)
+	if a:0
+		execute "norm '[v']\<Plug>MiscRmComment;"
+	else
+		let &l:operatorfunc=function("s:RmCommentN")
+		return 'g@'
 	endif
 endfunction
 
-inoremap <expr> <Plug>MiscRmComment; <SID>RmComment('i')
-nnoremap <expr> <Plug>MiscRmComment; <SID>RmComment('n')
-vnoremap <Plug>MiscRmComment; :call<SID>RmComment('v')<CR>
+inoremap <Plug>MiscRmComment; <C-R>=<SID>RmCommentI()<CR>
+nnoremap <expr> <Plug>MiscRmComment; <SID>RmCommentN()
+vnoremap <Plug>MiscRmComment; :call <SID>RmCommentV()<CR>
 
 for mode in ['i', 'n', 'v']
 	let after = mode == 'v' ? 'n' : mode
