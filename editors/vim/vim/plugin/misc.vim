@@ -178,21 +178,12 @@ function! s:AddCommentI()
 	endif
 	let pre = parts[0]
 	let prespaces = matchstr(getline('.'), '\m^\s*')
-	jhsiaoinsert#InsertText(pre, strlen(prespaces))
+	call jhsiaoinsert#InsertText(pre, strlen(prespaces))
 	return ''
 endfunction
 
-function! s:AddCommentN(...)
-	if a:0
-		execute "norm '[v']\<Plug>MiscAddComment;"
-	else
-		let &l:operatorfunc=function("s:AddCommentN")
-		return 'g@'
-	endif
-endfunction
-
 inoremap <Plug>MiscAddComment; <C-R>=<SID>AddCommentI()<CR>
-nnoremap <expr> <Plug>MiscAddComment; <SID>AddCommentN()
+nmap <Plug>MiscAddComment; V<Plug>MiscAddComment;
 nnoremap <expr> <Plug>MiscAddCommentVHelp; <SID>AddCommentV()
 vmap <Plug>MiscAddComment; :call <SID>RmTrailSpace()<CR><Plug>MiscAddCommentVHelp;
 
@@ -242,17 +233,8 @@ function! s:RmCommentI()
 	return ''
 endfunction
 
-function! s:RmCommentN(...)
-	if a:0
-		execute "norm '[v']\<Plug>MiscRmComment;"
-	else
-		let &l:operatorfunc=function("s:RmCommentN")
-		return 'g@'
-	endif
-endfunction
-
 inoremap <Plug>MiscRmComment; <C-R>=<SID>RmCommentI()<CR>
-nnoremap <expr> <Plug>MiscRmComment; <SID>RmCommentN()
+nmap <Plug>MiscRmComment; V<Plug>MiscRmComment;
 vnoremap <Plug>MiscRmComment; :call <SID>RmCommentV()<CR>
 
 for mode in ['i', 'n', 'v']

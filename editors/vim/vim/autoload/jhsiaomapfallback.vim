@@ -1,12 +1,12 @@
-if get(g:, 'loaded_mapfallback', 0)
+if get(g:, 'loaded_jhsiaomapfallback', 0)
 	finish
 endif
-let g:loaded_mapfallback = 1
+let g:loaded_jhsiaomapfallback = 1
 
 "Creating the map inside the function would result in the
 "function being considered as created in this script instead
 "of the calling script.
-function mapfallback#CreateFallback(name, k, mode)
+function jhsiaomapfallback#CreateFallback(name, k, mode)
 	let dct = maparg(a:k, a:mode, v:false, v:true)
 	if len(dct)
 		if exists('*mapset')

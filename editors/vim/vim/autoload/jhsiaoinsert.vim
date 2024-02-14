@@ -4,6 +4,11 @@
 "result in incorrect cursor placement after the <C-O> command is
 "finished.
 
+if get(g:, 'loaded_jhsiaoinsert', 0)
+	finish
+endif
+let g:loaded_jhsiaoinsert = 1
+
 "Insert text in current line while keeping cursor in same position
 function! jhsiaoinsert#InsertText(text, bytepos)
 	let curline = getline('.')
