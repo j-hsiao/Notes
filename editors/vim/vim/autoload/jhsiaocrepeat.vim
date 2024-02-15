@@ -27,11 +27,10 @@ if get(g:, 'loaded_jhsiaocrepeat', 0)
 endif
 let g:loaded_jhsiaocrepeat = 1
 
-if strlen("\<Ignore>") == strlen('<Ignore>')
-	let s:nop = 'a<BS>'
-else
-	let s:nop = '<Ignore>'
-endif
+for prefix in ['', 'l', 't']
+	execute prefix . 'map <Plug>jhsiaocrepeatNop; <Nop>'
+endfor
+map <Plug>jhsiaocrepeatNop; <Nop>
 
 let s:special = [
 	\ '<expr>', '<buffer>', '<nowait>', '<silent>',
@@ -64,13 +63,16 @@ endfunction
 
 "Return a list of mapping commands that can be executed to create
 "the desired repeatable mapping.
-"
+"Mappings should have <special> or < not in cpoptions
 "cmd: map command
 "repkey: key to press to repeat the mapping.
 "extra arg:
 "	ending mode, mostly for visual mode which may end in normal mode.
 function! jhsiaocrepeat#CharRepeatedCmds(cmd, repkey, ...)
 	let mapinfo = s:ParseMapCommand(a:cmd)
+	if !get(mapinfo, '<special>', v:false) && match(&l:cpoptions, '<') >= 0
+		echom 'Warning: "," in cpoptions but <special> not specified in jhsiaocrepeat#CharRepeatedCmds cmd argument.'
+	endif
 	let after = mapinfo['mode']
 	if a:0
 		let after = a:1
@@ -84,26 +86,25 @@ function! jhsiaocrepeat#CharRepeatedCmds(cmd, repkey, ...)
 			\ '%s %s %s (%s) . "%s"',
 			\ mapinfo['mpcmd'], join(mapinfo['opts'], ' '),
 			\ mapinfo['lhs'], mapinfo['rhs'], repname)
-		call add(mappings, basecmd)
 	else
-		call add(mappings, a:cmd . repname)
+		let basecmd = a:cmd . repname
 	endif
+	call add(mappings, basecmd)
 	"Repeat mapping
 	if mapinfo['mode'] == 'v'
 		let repeatmap = printf(
-			\ '%smap <special> %s%s `<lt>v`>%s',
+			\ '%smap <special> %s%s `<lt><Esc>v`>%s',
 			\ after, repname, a:repkey, mapinfo['lhs'])
-		call add(mappings, repeatmap)
 	else
 		let repeatmap = printf(
 			\ '%smap <special> %s%s %s',
 			\ after, repname, a:repkey, mapinfo['lhs'])
-		call add(mappings, repeatmap)
 	endif
+	call add(mappings, repeatmap)
 	"Wait mapping
 	let ambigmap = printf(
 		\ '%smap <expr> <special> %s getchar(1) == 0 ? "%s%s" : ""',
-		\ after, repname, s:nop, repname)
+		\ after, repname, '<Plug>jhsiaocrepeatNop;', repname)
 	call add(mappings, ambigmap)
 
 	"let parts = split(a:cmd, ' ')
