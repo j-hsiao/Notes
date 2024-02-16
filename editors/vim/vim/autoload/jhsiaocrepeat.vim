@@ -13,24 +13,47 @@
 "*map <expr> <Plug>Ambiglhs; getchar(1) == 0 ? <Plug>Ambiglhs; : ''
 "*map <Plug>ambiglhs;key -> lhs
 "
-"As writen above, this will fail because of some strange
-"recursive interaction that does not match :h recursive_mapping.
-"According to recursive_mapping, the <Plug>Ambiglhs; should not be
-"mapped again and so should fail.  Instead, it just causes instant
-"infinite recursion until the max recursion limit and errors out.
-"Something else is needed in front of it to avoid this recursive
-"behavior.  <Ignore> is used if available.  <Nop> does not work.
-"If anything comes after it, then 5 chars <Nop> are added.
-
+"https://vi.stackexchange.com/questions/13862/using-a-no-op-key-in-insert-mode-cant-use-key-after-using-no-op-mapping
+"As writen above, this will fail.  From reading, it seems on a timeout, vim
+"will expand the longest complete mapping up to that point.  This might
+"explain why in a prefix recursive mapping, a timeout will nearly instantly
+"reach the recursion limit.  Adding some no-op prefix will seem to prevent
+"this.  However, the no-op must not expand to nothing.  ie, using <Plug>MyNop;
+"as prefix with *map <Plug>MyNop; <Nop> will still result in instantly
+"hitting the recursion limit.
+"
+"Furthermore, returning '' in the mapping and not consuming the next key seems
+"to have a strange outcome where the next key does not get remapped.  However,
+"if consuming it via getchar() and then returning the result, it will
+"ex. if <C-K>/ is the target insert mode lhs, <C-K>/<C-K>/ will result in
+"triggering the mapping once and then the non-mapped <C-K> followed by a /.
+"Using getchar() to consume the <C-K> and then returning the result will
+"result in activating the mapping twice.
+"
 if get(g:, 'loaded_jhsiaocrepeat', 0)
 	finish
 endif
 let g:loaded_jhsiaocrepeat = 1
 
-for cmd in ['noremap', 'noremap!', 'tnoremap', 'lnoremap']
-	execute cmd . ' <Plug>jhsiaocrepeatNop; <Nop>'
-endfor
-map <Plug>jhsiaocrepeatNop; <Nop>
+"Return a nop key sequence
+"Must have some kind of key sequence to prevent recursive mapping
+"from breaking down due to timeout.
+if "\<Ignore>" == "<Ignore>"
+	function! jhsiaocrepeat#Nop()
+		let curmode = mode()
+		if curmode == 'i'
+			return "\<C-R>=''\<CR>"
+		elseif curmode == 'n'
+			return "a\<Esc>"
+		else
+			throw 'nop unsupported for mode "' . curmode . '"'
+		endif
+	endfunction
+else
+	function! jhsiaocrepeat#Nop()
+		return "\<Ignore>"
+	endfunction
+endif
 
 let s:special = [
 	\ '<expr>', '<buffer>', '<nowait>', '<silent>',
@@ -117,50 +140,8 @@ function! jhsiaocrepeat#CharRepeatedCmds(cmd, repkey, ...)
 	call add(mappings, repeatmap)
 	"Wait mapping
 	let ambigmap = printf(
-		\ '%smap <expr> <special> %s getchar(1) == 0 ? "%s%s" : jhsiaocrepeat#NextCharStr()',
-		\ after, repname, '<Plug>jhsiaocrepeatNop;', repname)
+		\ '%smap <expr> <special> %s getchar(1) == 0 ? jhsiaocrepeat#Nop() . "%s" : jhsiaocrepeat#NextCharStr()',
+		\ after, repname, repname)
 	call add(mappings, ambigmap)
-
-	"let parts = split(a:cmd, ' ')
-	"let mpcmd = parts[0]
-	"let idx = 1
-	"let opts = []
-	"let isexpr = 0
-	"while idx < len(parts) && index(s:special, parts[idx]) >= 0
-	"	call add(opts, parts[idx])
-	"	if parts[idx] == s:special[0]
-	"		let isexpr = 1
-	"	endif
-	"	let idx += 1
-	"endwhile
-	"let lhs = parts[idx]
-	"let idx += 1
-	"let rhs = join(parts[idx:], ' ')
-	"let mpmode = mpcmd[:0]
-	"let after = mpmode
-	"if a:0
-	"	let after = a:1
-	"endif
-	"let repname = '<Plug>jhsiaocrepeatAmbigufy' . mpmode . lhs . ';'
-	"let mappings = []
-	"if isexpr
-	"	let basecmd = [mpcmd]
-	"	call extend(basecmd, opts)
-	"	call add(basecmd, lhs)
-	"	call add(basecmd, '(' . rhs . ')' . ' . "' . repname . '"')
-	"	call add(mappings, join(basecmd, ' '))
-	"else
-	"	call add(mappings, a:cmd . repname)
-	"endif
-	"if mpmode == 'v'
-	"	call add(mappings, join([after . 'map <special>', repname . a:repkey, "'<lt>v'>" . lhs], ' '))
-	"else
-	"	call add(mappings, join([after . 'map <special>', repname . a:repkey, lhs], ' '))
-	"endif
-	"call add(
-	"	\ mappings,
-	"	\ join([
-	"		\ after.'map <expr> <special>', repname,
-	"		\ 'getchar(1) == 0 ? "' . s:nop . repname . '" : ""'], ' '))
 	return join(mappings, '|')
 endfunction

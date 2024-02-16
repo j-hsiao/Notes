@@ -126,15 +126,29 @@ function! s:RmTrailSpace() range
 	endwhile
 endfunction
 
-function! s:AddCommentV()
+function! s:AddPostComment()
 	let parts = split(&l:commentstring, '%s')
-	if len(parts) > 1
-		"TODO commentstring has trailing info...
+	if len(parts) <= 1
+		return
 	endif
-	let pre = parts[0]
+	let pattern = substitute(escape(parts[0], '\'), '\m\s*\(\S.*\S\)\s*$', '\\m\\s*\\V\1', '')
 	let firstline = line("'<")
 	let lastline = line("'>")
-	let commentcol = v:maxcol
+	while firstline <= lastline
+		let txt = getline(firstline)
+		if txt =~ pattern
+			call setline(firstline, txt . parts[1])
+		endif
+		let firstline += 1
+	endwhile
+endfunction
+nmap <Plug>MiscAddPostComment; :call <SID>AddPostComment()<CR>
+
+function! s:AddCommentV()
+	let pre = split(&l:commentstring, '%s')[0]
+	let firstline = line("'<")
+	let lastline = line("'>")
+	let commentcol = -1
 	"If the selection starts on a blank line, then using <C-V>
 	"for lazy comment might not work.  startline is not necessarily
 	"the same as the '< mark.  Same for stopline and '>
@@ -142,7 +156,11 @@ function! s:AddCommentV()
 	let stopline = 0
 	while firstline <= lastline
 		if getline(firstline) !~ '\m^\s*$'
-			let commentcol = min([commentcol, indent(firstline)])
+			if commentcol < 0
+				let commentcol = indent(firstline)
+			else
+				let commentcol = min([commentcol, indent(firstline)])
+			endif
 			if startline < 0
 				let startline = firstline
 			endif
@@ -174,61 +192,50 @@ endfunction
 function! s:AddCommentI()
 	let parts = split(&l:commentstring, '%s')
 	if len(parts) > 1
-		"TODO commentstring has trailing info...
+		call setline('.', getline('.') . parts[1])
 	endif
-	let pre = parts[0]
 	let prespaces = matchstr(getline('.'), '\m^\s*')
-	call jhsiaoinsert#InsertText(pre, strlen(prespaces))
+	call jhsiaoinsert#InsertText(parts[0], strlen(prespaces))
 	return ''
 endfunction
 
 inoremap <Plug>MiscAddComment; <C-R>=<SID>AddCommentI()<CR>
 nmap <Plug>MiscAddComment; V<Plug>MiscAddComment;
 nnoremap <expr> <Plug>MiscAddCommentVHelp; <SID>AddCommentV()
-vmap <Plug>MiscAddComment; :call <SID>RmTrailSpace()<CR><Plug>MiscAddCommentVHelp;
+vmap <Plug>MiscAddComment; :call <SID>RmTrailSpace()<CR><Plug>MiscAddCommentVHelp;<Plug>MiscAddPostComment;
 
 "Uncomment current line(s)
 function! s:RmCommentV() range
-	let parts = split(&l:commentstring, '%s')
-	if len(parts) > 1
-		"TODO commentstring has trailing info...
-	endif
-	let fullpat = '\m^\(\s*\)' . parts[0]
-	let strippedpat = substitute(fullpat, '\m\s*$', '', '')
+	let pattern = substitute(
+		\ &l:cms,
+		\ '\m\(^.*\S\)\(\s*\)%s\(\s*\)\(.*\S\)\?$',
+		\ '\\m^\\(\\s*\\)\\V\1\\m\\(\2\\)\\?\\(.*\\)\\(\3\\)\\?\\V\4\\m\\s*',
+		\ ''
+	\ )
 	let curline = a:firstline
 	while curline <= a:lastline
-		let curtext = getline(curline)
-		let result = substitute(curtext, fullpat, '\1', '')
-		if result != curtext
-			call setline(curline, result)
-		else
-			let result = substitute(curtext, strippedpat, '\1', '')
-			if result != curtext
-				call setline(curline, result)
-			endif
+		let result = matchlist(getline(curline), pattern)
+		if len(result) > 0
+			call setline(curline, result[1] . result[3])
 		endif
 		let curline += 1
 	endwhile
 endfunction
 
 function! s:RmCommentI()
-	let parts = split(&l:commentstring, '%s')
-	if len(parts) > 1
-		"TODO commentstring has trailing info...
-	endif
-	let fullpat = '\m^\s*' . parts[0]
-	let curtext = getline('.')
-	if curtext =~ fullpat
-		call jhsiaoinsert#DeleteText(
-			\ strlen(parts[0]),
-			\ strlen(matchstr(curtext, '\m^\s*')))
-	else
-		let strippedpat = substitute(fullpat, '\m\s*$', '', '')
-		if curtext =~ strippedpat
-			call jhsiaoinsert#DeleteText(
-				\ strlen(substitute(parts[0], '\m\s*$', '', '')),
-				\ strlen(matchstr(curtext, '\m^\s*')))
+	let pattern = substitute(
+		\ &l:cms,
+		\ '\m\(^.*\S\)\(\s*\)%s\(\s*\)\(.*\S\)\?$',
+		\ '\\m^\\(\\s*\\)\\V\\(\1\\)\\m\\(\2\\)\\?\\(.*\\)\\(\3\\)\\?\\V\4\\m\\s*',
+		\ ''
+	\ )
+	let result = matchlist(getline('.'), pattern)
+	if len(result) > 0
+		if strlen(result[6])
+			call setline('.', join(result[1:4], ''))
 		endif
+		call jhsiaoinsert#DeleteText(
+			\ strlen(result[1]), strlen(result[2]) + strlen(result[3]))
 	endif
 	return ''
 endfunction
