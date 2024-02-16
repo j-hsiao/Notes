@@ -1,0 +1,6 @@
+"Change runtimepath to point to within this git directory instead of $HOME/.vim
+se nocp
+
+let s:dname = expand('<sfile>:p:h')
+let &rtp = substitute(&rtp, $HOME . '/.vim', s:dname . '/vim', 'g')
+exec printf('so %s/.vimrc', s:dname)

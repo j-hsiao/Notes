@@ -27,8 +27,8 @@ if get(g:, 'loaded_jhsiaocrepeat', 0)
 endif
 let g:loaded_jhsiaocrepeat = 1
 
-for prefix in ['', 'l', 't']
-	execute prefix . 'map <Plug>jhsiaocrepeatNop; <Nop>'
+for cmd in ['noremap', 'noremap!', 'tnoremap', 'lnoremap']
+	execute cmd . ' <Plug>jhsiaocrepeatNop; <Nop>'
 endfor
 map <Plug>jhsiaocrepeatNop; <Nop>
 
@@ -44,7 +44,11 @@ function! s:ParseMapCommand(cmd)
 	for item in split(a:cmd, ' ')
 		if stage == 'start'
 			let ret['mpcmd'] = item
-			let ret['mode'] = item[:0]
+			if item[:3] == 'nore' || item[:2] == 'map'
+				let ret['mode'] = ''
+			else
+				let ret['mode'] = item[0]
+			endif
 			let stage = 'special'
 		elseif stage == 'special'
 			if index(s:special, item) >= 0
@@ -59,6 +63,16 @@ function! s:ParseMapCommand(cmd)
 		endif
 	endfor
 	return ret
+endfunction
+
+"Get the next keypress as a string.
+function! jhsiaocrepeat#NextCharStr()
+	let thing = getchar()
+	if type(thing) == v:t_number
+		return nr2char(thing)
+	else
+		return thing
+	endif
 endfunction
 
 "Return a list of mapping commands that can be executed to create
@@ -103,7 +117,7 @@ function! jhsiaocrepeat#CharRepeatedCmds(cmd, repkey, ...)
 	call add(mappings, repeatmap)
 	"Wait mapping
 	let ambigmap = printf(
-		\ '%smap <expr> <special> %s getchar(1) == 0 ? "%s%s" : ""',
+		\ '%smap <expr> <special> %s getchar(1) == 0 ? "%s%s" : jhsiaocrepeat#NextCharStr()',
 		\ after, repname, '<Plug>jhsiaocrepeatNop;', repname)
 	call add(mappings, ambigmap)
 
