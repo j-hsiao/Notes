@@ -35,3 +35,28 @@ function! jhsiaoinsert#DeleteText(nbytes, bytepos)
 	endif
 	return ''
 endfunction
+
+"Return shift in position to maintain relative position.
+"position: position of change (in bytes, 0 indexed)
+"nbytes: number of bytes changed, >0 = added, <0 = removed
+"optional current cursor position (in bytes)
+function! jhsiaoinsert#CursorShift(position, nbyteschanged, ...)
+	if a:0
+		let curpos = a:1
+	else
+		let curpos = col('.') - 1
+	endif
+	if a:nbytes > 0
+		if curpos >= position
+			return nbyteschanged
+		else
+			return 0
+		endif
+	else
+		if curpos <= position
+			return 0
+		else
+			return -min([nbyteschanged, curpos-position])
+		endif
+	endif
+endfunction

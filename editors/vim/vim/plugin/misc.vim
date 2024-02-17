@@ -199,6 +199,8 @@ function! s:AddCommentI()
 	return ''
 endfunction
 
+
+
 inoremap <Plug>MiscAddComment; <C-R>=<SID>AddCommentI()<CR>
 nmap <Plug>MiscAddComment; V<Plug>MiscAddComment;
 nnoremap <expr> <Plug>MiscAddCommentVHelp; <SID>AddCommentV()
@@ -226,7 +228,7 @@ function! s:RmCommentI()
 	let pattern = substitute(
 		\ &l:cms,
 		\ '\m\(^.*\S\)\(\s*\)%s\(\s*\)\(.*\S\)\?$',
-		\ '\\m^\\(\\s*\\)\\V\\(\1\\)\\m\\(\2\\)\\?\\(.*\\)\\(\3\\)\\?\\V\4\\m\\s*',
+		\ '\\m^\\(\\s*\\)\\V\\(\1\\)\\m\\(\2\\)\\?\\(.*\\)\\(\3\\)\\?\\V\\(\4\\)\\m\\s*',
 		\ ''
 	\ )
 	let result = matchlist(getline('.'), pattern)
@@ -235,7 +237,7 @@ function! s:RmCommentI()
 			call setline('.', join(result[1:4], ''))
 		endif
 		call jhsiaoinsert#DeleteText(
-			\ strlen(result[1]), strlen(result[2]) + strlen(result[3]))
+			\ strlen(result[2]) + strlen(result[3]), strlen(result[1]))
 	endif
 	return ''
 endfunction
