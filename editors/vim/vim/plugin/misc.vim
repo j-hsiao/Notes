@@ -190,16 +190,13 @@ function! s:AddCommentV()
 endfunction
 
 function! s:AddCommentI()
-	let parts = split(&l:commentstring, '%s')
-	if len(parts) > 1
-		call setline('.', getline('.') . parts[1])
-	endif
-	let prespaces = matchstr(getline('.'), '\m^\s*')
-	call jhsiaoinsert#InsertText(parts[0], strlen(prespaces))
+	let parts = matchlist(&l:cms, '\m\(^.*\)%s\(.*\)\?$')
+	let lineparts = matchlist(getline('.'), '\m^\(\s*\)\(.*\)')
+	call setline(
+		\ '.', join([lineparts[1], parts[1], lineparts[2], parts[2]], ''))
+	call jhsiaoutil#CursorShift(strlen(lineparts[1]), strlen(parts[1]))
 	return ''
 endfunction
-
-
 
 inoremap <Plug>MiscAddComment; <C-R>=<SID>AddCommentI()<CR>
 nmap <Plug>MiscAddComment; V<Plug>MiscAddComment;
@@ -233,11 +230,9 @@ function! s:RmCommentI()
 	\ )
 	let result = matchlist(getline('.'), pattern)
 	if len(result) > 0
-		if strlen(result[6])
-			call setline('.', join(result[1:4], ''))
-		endif
-		call jhsiaoinsert#DeleteText(
-			\ strlen(result[2]) + strlen(result[3]), strlen(result[1]))
+		call setline('.', join([result[1], result[4]], ''))
+		call jhsiaoutil#CursorShift(
+			\ strlen(result[1]), -(strlen(result[2]) + strlen(result[3])))
 	endif
 	return ''
 endfunction
