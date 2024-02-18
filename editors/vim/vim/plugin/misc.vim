@@ -199,7 +199,7 @@ function! s:AddCommentI()
 endfunction
 
 inoremap <Plug>MiscAddComment; <C-R>=<SID>AddCommentI()<CR>
-nmap <Plug>MiscAddComment; V<Plug>MiscAddComment;
+nmap <Plug>MiscAddComment; :call <SID>AddCommentI()<CR>
 nnoremap <expr> <Plug>MiscAddCommentVHelp; <SID>AddCommentV()
 vmap <Plug>MiscAddComment; :call <SID>RmTrailSpace()<CR><Plug>MiscAddCommentVHelp;<Plug>MiscAddPostComment;
 
@@ -238,7 +238,7 @@ function! s:RmCommentI()
 endfunction
 
 inoremap <Plug>MiscRmComment; <C-R>=<SID>RmCommentI()<CR>
-nmap <Plug>MiscRmComment; V<Plug>MiscRmComment;
+nmap <Plug>MiscRmComment; :call <SID>RmCommentI()<CR>
 vnoremap <Plug>MiscRmComment; :call <SID>RmCommentV()<CR>
 
 for mode in ['i', 'n', 'v']
