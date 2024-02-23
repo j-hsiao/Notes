@@ -1,6 +1,16 @@
-" tabispa: TABIndentSPaceAlignment
-"Use tabs for indentation.  Use spaces for alignment.
-"Alignment is always after indentation.
+"tabispa: TABIndentSPaceAlignment
+"When expandtab, just default to normal behavior.
+"Otherwise:
+"   Use tabs for indentation.  Use spaces for alignment.
+"   alignment is always after indentation.
+"                   add align   rm alignment    indent  unindent
+"   normal mode:    <C-K><C-L>  <C-K><C-J>      >>      <<
+"   visual mode:    <C-K><C-L>  <C-K><C-J>      >       <
+"   insert mode:    <C-K><C-L>  <C-K><C-J>      <C-D>   <C-T>
+"
+"The number of spaces for alignment is determined by softtabstop.
+"
+"
 "
 "In the case of comments, indentation/alignment are handled separately before
 "and after the comment char
@@ -69,22 +79,22 @@ endfunction
 
 "Insert spaces at current cursor position until next
 "soft tabstop column
-function! s:InsertAlignment()
+function! s:InsertAlignmentAction()
 	"Add spaces to next soft tabstop for alignment
 	let curpos = strdisplaywidth(strpart(getline('.'), 0, col('.')-1))
 	let step = s:STS()
 	return repeat(' ', step-(curpos%step))
 endfunction
-inoremap <expr> <Plug>TabispaTabAction; <SID>InsertAlignment()
-
+inoremap <expr> <Plug>TabispaInsertAlignmentAction; <SID>InsertAlignmentAction()
 function! s:InsertAlignmentDispatch()
 	if &l:et
-		return "\<Plug>TabispaTabFallback;"
+		return "\<Plug>TabispaInsertAlignmentFallback;"
 	else
-		return "\<Plug>TabispaTabAction;"
+		return "\<Plug>TabispaInsertAlignmentAction;"
 	endif
 endfunction
-execute jhsiaomapfallback#CreateFallback('<Plug>TabispaTabFallback;', '<Tab>', 'i')
+execute jhsiaomapfallback#CreateFallback(
+	\ '<Plug>TabispaInsertAlignmentFallback;', '<Tab>', 'i')
 imap <expr> <Plug>TabispaInsertAlignment; <SID>InsertAlignmentDispatch()
 if !hasmapto('<Plug>TabispaInsertAlignment;')
 	imap <Tab> <Plug>TabispaInsertAlignment;
@@ -96,7 +106,7 @@ if maparg('<S-Tab>', 'i') == ''
 endif
 
 "Remove spaces until softtabstop col to the left
-function! s:LRMAlignment()
+function! s:BackspaceAlignmentAction()
 	"Remove multiple spaces until next tabstop or fallback to <BS>
 	let prestr = strpart(getline('.'), 0, col('.')-1)
 	let curpos = strdisplaywidth(prestr)
@@ -105,22 +115,50 @@ function! s:LRMAlignment()
 	if to_remove == 0
 		let to_remove = step
 	endif
-	let nspaces = len(matchstr(prestr, '\m \{1,' . to_remove . '}$'))
+	let nspaces = strlen(matchstr(prestr, '\m \{1,' . to_remove . '\}$'))
 	"space+BS to ensure removing single chars even if after shifting
 	return ' ' . repeat("\<BS>", nspaces+1)
 endfunction
-inoremap <expr> <Plug>LRMAlignmentAction; <SID>LRMAlignment()
+inoremap <expr> <Plug>TabispaBackspaceAlignmentAction; <SID>BackspaceAlignmentAction()
 
-function! s:LRMAlignmentDispatch(key)
+function! s:BackspaceAlignmentDispatch(key)
 	if strpart(getline('.'), col('.')-2, 1) == ' '
-		return "\<Plug>LRMAlignmentAction;"
+		return "\<Plug>TabispaBackspaceAlignmentAction;"
 	else
-		return "\<Plug>LRMAlignmentFallback" . a:key . ';'
+		return "\<Plug>TabispaBackspaceAlignmentFallback" . a:key . ';'
 	endif
 endfunction
 
-execute jhsiaomapfallback#CreateFallback('<Plug>LRMAlignmentFallbackCH;', '<C-H>', 'i')
-imap <expr> <C-H> <SID>LRMAlignmentDispatch('CH')
+execute jhsiaomapfallback#CreateFallback(
+	\ '<Plug>TabispaBackspaceAlignmentFallbackCH;', '<C-H>', 'i')
+imap <expr> <C-H> <SID>BackspaceAlignmentDispatch('CH')
+
+
+"Add indentation to a given text line.
+function! s:RawAddIndent(line)
+	return "\<Tab>" . a:line
+endfunction
+
+"Remove indentation from a given text line.
+function! s:RawRemoveIndent(line)
+	return substitute(a:line, '\m^\t', '', '')
+endfunction
+
+"Add alignment.  Return Add position and result.
+function! s:RawAddAlignment(line)
+	let parts = matchlist(a:line, '\m^\(\s*\)\(.*\)$')
+	let sts = s:STS()
+	return [strlen(parts[1]), parts[1] . repeat(' ', sts) . parts[2]]
+endfunction
+
+function! s:AddIndent(line)
+endfunction
+function! s:RemoveIndent(line)
+endfunction
+function! s:AddAlignment(line)
+endfunction
+function! s:RemoveAlignment(line)
+endfunction
 
 "               indentation     alignment
 "insert mode:   <C-T><C-D>      <C-K>-><C-L>/<C-J>

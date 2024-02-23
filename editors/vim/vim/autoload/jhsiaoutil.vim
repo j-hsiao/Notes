@@ -64,3 +64,27 @@ function! jhsiaoutil#CursorShift(position, nbyteschanged, ...)
 		endif
 	endif
 endfunction
+
+"Return a list:
+"[leading comment char(s), whitespace, whitespace, end comment char(s)]
+"The actual comment would go between the whitespace indices.
+function! jhsiaoutil#GetCMSParts()
+	return matchlist(&l:cms, '\m\(.*\S\)\(\s*\)\?%s\(\s*\)\?\(.*\)$')
+endfunction
+
+"Return pattern for comment string parts with groups:
+"1: starting whitespace
+"2: leading comment char
+"3: space between comment char and text?
+"4: text
+"5: post space?
+"6: post comment char?
+function! jhsiaoutil#GetCMSPattern(line)
+	let parts = jhsiaoutil#GetCMSParts()
+	return printf(
+		\ '\m^\(\s*\)\(%s\)\(%s\)\?\(.*\)\(%s\)\?\(%s\)',
+		\ escape(parts[1], '\'),
+		\ escape(parts[2], '\'),
+		\ escape(parts[3], '\'),
+		\ escape(parts[4], '\'))
+endfunction
