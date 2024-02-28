@@ -127,17 +127,18 @@ function! s:RmTrailSpace() range
 endfunction
 
 function! s:AddPostComment()
-	let parts = split(&l:commentstring, '%s')
+	let parts = jhsiaoutil#GetCMSParts()
 	if len(parts) <= 1
+		echom "comment string does not include \"%s\"!"
 		return
 	endif
-	let pattern = substitute(escape(parts[0], '\'), '\m\s*\(\S.*\S\)\s*$', '\\m\\s*\\V\1', '')
+	let pattern = printf('\m^\s*%s', escape(parts[0], '\'))
 	let firstline = line("'<")
 	let lastline = line("'>")
 	while firstline <= lastline
 		let txt = getline(firstline)
 		if txt =~ pattern
-			call setline(firstline, txt . parts[1])
+			call setline(firstline, join([txt, parts[2], parts[3]], ''))
 		endif
 		let firstline += 1
 	endwhile
@@ -189,7 +190,7 @@ function! s:AddCommentV()
 	endif
 endfunction
 
-function! s:AddCommentI()
+function! s:AddCommentLine()
 	let parts = matchlist(&l:cms, '\m\(^.*\)%s\(.*\)\?$')
 	let lineparts = matchlist(getline('.'), '\m^\(\s*\)\(.*\)')
 	call setline(
@@ -198,13 +199,14 @@ function! s:AddCommentI()
 	return ''
 endfunction
 
-inoremap <Plug>MiscAddComment; <C-R>=<SID>AddCommentI()<CR>
-nmap <Plug>MiscAddComment; :call <SID>AddCommentI()<CR>
+inoremap <Plug>MiscAddComment; <C-R>=<SID>AddCommentLine()<CR>
+nmap <Plug>MiscAddComment; :call <SID>AddCommentLine()<CR>
 nnoremap <expr> <Plug>MiscAddCommentVHelp; <SID>AddCommentV()
 vmap <Plug>MiscAddComment; :call <SID>RmTrailSpace()<CR><Plug>MiscAddCommentVHelp;<Plug>MiscAddPostComment;
 
 "Uncomment current line(s)
 function! s:RmCommentV() range
+	let pattern = jhsiaoutil#GetCMSPattern()
 	let pattern = substitute(
 		\ &l:cms,
 		\ '\m\(^.*\S\)\(\s*\)%s\(\s*\)\(.*\S\)\?$',
@@ -221,24 +223,19 @@ function! s:RmCommentV() range
 	endwhile
 endfunction
 
-function! s:RmCommentI()
-	let pattern = substitute(
-		\ &l:cms,
-		\ '\m\(^.*\S\)\(\s*\)%s\(\s*\)\(.*\S\)\?$',
-		\ '\\m^\\(\\s*\\)\\V\\(\1\\)\\m\\(\2\\)\\?\\(.*\\)\\(\3\\)\\?\\V\\(\4\\)\\m\\s*',
-		\ ''
-	\ )
+function! s:RmCommentLine()
+	let pattern = jhsiaoutil#GetCMSPattern()
 	let result = matchlist(getline('.'), pattern)
 	if len(result) > 0
-		call setline('.', join([result[1], result[4]], ''))
 		call jhsiaoutil#CursorShift(
 			\ strlen(result[1]), -(strlen(result[2]) + strlen(result[3])))
+		call setline('.', join([result[1], result[4]], ''))
 	endif
 	return ''
 endfunction
 
-inoremap <Plug>MiscRmComment; <C-R>=<SID>RmCommentI()<CR>
-nmap <Plug>MiscRmComment; :call <SID>RmCommentI()<CR>
+inoremap <Plug>MiscRmComment; <C-R>=<SID>RmCommentLine()<CR>
+nmap <Plug>MiscRmComment; :call <SID>RmCommentLine()<CR>
 vnoremap <Plug>MiscRmComment; :call <SID>RmCommentV()<CR>
 
 for mode in ['i', 'n', 'v']

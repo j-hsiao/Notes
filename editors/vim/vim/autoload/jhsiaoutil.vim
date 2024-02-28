@@ -40,6 +40,11 @@ endfunction
 "position: position of change (in bytes, 0 indexed)
 "nbytes: number of bytes changed, >0 = added, <0 = removed
 "optional current cursor position (in bytes, 0-indexed)
+"NOTE: if removing, then CursorShift should be called before
+"removal.  Otherwise, when the cursor is at the end, removal will
+"change the cursor position.  because it would have been past the end.
+"When adding, it should be called after the change.  Otherwise, the
+"CursorShift might try to move past the end of the current line.
 function! jhsiaoutil#CursorShift(position, nbyteschanged, ...)
 	if a:0
 		let curpos = a:1
@@ -79,10 +84,10 @@ endfunction
 "4: text
 "5: post space?
 "6: post comment char?
-function! jhsiaoutil#GetCMSPattern(line)
+function! jhsiaoutil#GetCMSPattern()
 	let parts = jhsiaoutil#GetCMSParts()
 	return printf(
-		\ '\m^\(\s*\)\(%s\)\(%s\)\?\(.*\)\(%s\)\?\(%s\)',
+		\ '\m^\(\s*\)\V\(%s\)\m\(%s\)\?\(.*\)\(%s\)\?\V\(%s\)',
 		\ escape(parts[1], '\'),
 		\ escape(parts[2], '\'),
 		\ escape(parts[3], '\'),
