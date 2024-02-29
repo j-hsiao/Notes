@@ -148,7 +148,17 @@ endfunction
 function! s:RawAddAlignment(line)
 	let parts = matchlist(a:line, '\m^\(\s*\)\(.*\)$')
 	let sts = s:STS()
-	return [strlen(parts[1]), parts[1] . repeat(' ', sts) . parts[2]]
+	return [
+		\ strlen(parts[1]),
+		\ join([parts[1], repeat(' ', sts), parts[2]], '')]
+endfunction
+
+"Remove alignment.  Return remove position and result.
+function! s:RawRemoveAlignment(line)
+	let parts = matchlist(a:line, '\m^\(\t*\)\( *\)\(.*\)$')
+	return [
+		\ strlen(parts[1]),
+		join([parts[1], strpart(parts[2], s:STS()), parts[3]], '')]
 endfunction
 
 function! s:AddIndent(line)
