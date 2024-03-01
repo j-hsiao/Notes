@@ -51,18 +51,14 @@ function! jhsiaoutil#CursorShift(position, nbyteschanged, ...)
 	else
 		let curpos = col('.')-1
 	endif
-	echom 'change position at ' . a:position
-	echom 'changed bytes: ' . a:nbyteschanged
 	if a:nbyteschanged > 0
 		if curpos >= a:position
-			echom 'inserted, need to go right by ' . a:nbyteschanged
 			let cur = getpos('.')
 			let cur[2] += a:nbyteschanged
 			call setpos('.', cur)
 		endif
 	else
 		if a:position <= curpos
-			echom 'deleted, need to go left by ' . max([a:nbyteschanged, a:position-curpos])
 			let cur = getpos('.')
 			let cur[2] += max([a:nbyteschanged, a:position-curpos])
 			call setpos('.', cur)

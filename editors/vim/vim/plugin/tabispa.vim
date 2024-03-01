@@ -1,53 +1,60 @@
 "tabispa: TABIndentSPaceAlignment
-"When expandtab, just default to normal behavior.
-"Otherwise:
-"   Use tabs for indentation.  Use spaces for alignment.
-"   alignment is always after indentation.
+"
+"Indentation is whitespace at the very beginning of the line.  Alignment
+"generally refers to any whitespace after indentation but before the
+"first non-whitespace character if any.
+"A line thus generally has 3 segments: |indentation|alignment|text|
+"Extra alignment may exist inside the text segment.
+"
+"------------------------------
+"Relevant options:
+"------------------------------
+"Regarding tabs/spaces/indentation, there are 3 settings
+"1. 'tabstop'
+"2. 'softtabstop'
+"3. 'shiftwidth'
+"
+"There is also a setting that controls whether tabs are used:
+"'expandtab'
+"
+"Under tabispa rules, there are 2 types of whitespace: indentation and
+"alignment which may be different sizes:
+"               expandtab       noexpandtab
+"indentation    shiftwidth      tabstop
+"alignment      softtabstop     softtabstop
+"
+"In general, 'shiftwidth' is the actual indentation amount.  However,
+"if <Tab> is used to represent indent, then the indentation amount must
+"be 'tabstop'.  Usually shiftwidth is effectively the same as tabstop
+"anyways.
+"
+"------------------------------
+"Adding Indentation/Alignment.
+"------------------------------
+"Alignment at current cursor position:
+"<Tab>: add alignment
+"<C-H>: remove alignment.
+"
+"Alignment/indentation at start of line:
 "                   add align   rm alignment    indent  unindent
 "   normal mode:    <C-K><C-L>  <C-K><C-J>      >>      <<
 "   visual mode:    <C-K><C-L>  <C-K><C-J>      >       <
 "   insert mode:    <C-K><C-L>  <C-K><C-J>      <C-D>   <C-T>
-"
-"The number of spaces for alignment is determined by softtabstop.
-"
-"
-"
-"In the case of comments, indentation/alignment are handled separately before
-"and after the comment char
-"
-"Used options:
-"	'ts' indicates indentation
-"	'sts' indicates alignment
-"	'sw' should be same as 'ts'
-"Usage:
-"	normal mode:
-"	  <C-K>a: realign current line (move tabs to beginning, maintain
-"	    indent/alignment level)
-"	  <C-K>A: Same as above, but apply to range '<,'>
-"	  <C-K>s: Select block with same indentation (exclude empty lines)
-"	insert mode:
-"	  <C-T>, <C-D>: Add/remove tabs at 0 position (if not et, else ts spaces)
-"	  <C-H>: delete like sts
-"	  <Tab>: add sts spaces
-"	  <S-Tab>: literal tab
-"
+
 "Observations:
 "	Insert mode <C-T>, <C-D> do NOT preserve the alignment level of the
 "	first non-indent character.
 "	Normal mode << and >> DO preserve the alignemnt level of the first
 "	non-indent character.
 "	eg.
+"	              line start
+"	              |
 "	start with    |  something
 "	after i_<C-T> |  [tabchar]something
 "	  again       |  [tabchar][tabchar  ]something
 "	after n_>>    |  [tabchar]  something
 "	  again       |  [tabchar]  [tabchar]  something
 "
-"  . does not repeat an entire mapping so just add realignment hotkeys.
-
-"TODO indent->add tab to beginning
-"     align->add spaces before first non-white-space
-"     corresponding opposites
 
 if get(g:, 'loaded_tabispa', 0)
 	finish
@@ -64,12 +71,8 @@ se preserveindent
 " < 0 -> sw
 "   sw == 0 -> ts
 function! s:STS()
-	let step = &l:sts
 	if &l:sts < 0
-		if &l:sw == 0
-			return &l:ts
-		endif
-		return &l:sw
+		return shiftwidth()
 	elseif &l:sts == 0
 		return &l:ts
 	else
@@ -115,7 +118,8 @@ function! s:BackspaceAlignmentAction()
 	if to_remove == 0
 		let to_remove = step
 	endif
-	let nspaces = strlen(matchstr(prestr, '\m \{1,' . to_remove . '\}$'))
+	let nspaces = strlen(matchstr(prestr, printf('\m \{1,%d\}', to_remove)))
+
 	"space+BS to ensure removing single chars even if after shifting
 	return ' ' . repeat("\<BS>", nspaces+1)
 endfunction
@@ -125,7 +129,7 @@ function! s:BackspaceAlignmentDispatch(key)
 	if strpart(getline('.'), col('.')-2, 1) == ' '
 		return "\<Plug>TabispaBackspaceAlignmentAction;"
 	else
-		return "\<Plug>TabispaBackspaceAlignmentFallback" . a:key . ';'
+		return printf("\<Plug>TabispaBackspaceAlignmentFallback%s;", a:key)
 	endif
 endfunction
 
@@ -133,134 +137,148 @@ execute jhsiaomapfallback#CreateFallback(
 	\ '<Plug>TabispaBackspaceAlignmentFallbackCH;', '<C-H>', 'i')
 imap <expr> <C-H> <SID>BackspaceAlignmentDispatch('CH')
 
-
-"Add indentation to a given text line.
-function! s:RawAddIndent(line)
-	return "\<Tab>" . a:line
-endfunction
-
-"Remove indentation from a given text line.
-function! s:RawRemoveIndent(line)
-	return substitute(a:line, '\m^\t', '', '')
-endfunction
-
 "Add alignment.  Return Add position and result.
-function! s:RawAddAlignment(line)
+function! s:RawAddAlignment(line, sts)
 	let parts = matchlist(a:line, '\m^\(\s*\)\(.*\)$')
-	let sts = s:STS()
 	return [
 		\ strlen(parts[1]),
-		\ join([parts[1], repeat(' ', sts), parts[2]], '')]
+		\ join([parts[1], repeat(' ', a:sts), parts[2]], '')]
 endfunction
 
 "Remove alignment.  Return remove position and result.
-function! s:RawRemoveAlignment(line)
+function! s:RawRemoveAlignment(line, sts)
 	let parts = matchlist(a:line, '\m^\(\t*\)\( *\)\(.*\)$')
 	return [
 		\ strlen(parts[1]),
-		join([parts[1], strpart(parts[2], s:STS()), parts[3]], '')]
+		join([parts[1], strpart(parts[2], a:sts), parts[3]], '')]
 endfunction
 
-function! s:AddIndent(line)
-endfunction
-function! s:RemoveIndent(line)
-endfunction
-function! s:AddAlignment(line)
-endfunction
-function! s:RemoveAlignment(line)
-endfunction
-
-"               indentation     alignment
-"insert mode:   <C-T><C-D>      <C-K>-><C-L>/<C-J>
-"normal mode:   >> <<           <C-K>-><C-L>/<C-J>
-"visual mode:   > <             <C-K>-><C-L>/<C-J>
-"     original = >, <, but after doing this, visual mode is exited
-"     . will only redo the last change (insert mode)
-"     range function call will not be repeated by .
-"     block insert and delete are . redoable, works for addindent
-"     but what if different indent levels? how to handle alignment?
-"     works for add indent
-"Return information about the current line.
-"indentation/alignment insertion points.
-"For comments, indentation/alignment is added after the comment chars
-"any trailing whitespace in the 'commentstring' will be preserved.
-"normal line:
-"indent insertion point
-"|                       |alignment insertion point
-"<Tab><Tab><Space><Space>text
-"comment line:
-"                                     indent insertion point
-"                                     |                       |alignment insertion point
-"<Tab><Tab><Space><Space><comentchars><Tab><Tab><Space><Space>text
-"
-"eg. commentstring = '// %s'
-"
-"                           indent insertion point
-"                           |                       |alignment insertion point
-"<Tab><Tab><Space><Space>// <Tab><Tab><Space><Space>text
-function! s:IndentInfo(line)
-	let cmprefix = split(&l:cms, '%s')[0]
-	let cmprechar = matchstr(cmprefix, '\m\S\+')
-	if a:line =~ '\m\s*' . cmprechar
-		if cmprefix != cmprechar && a:line =~ '\m\s*' . cmprefix
+function! s:ParseLineRanges(lst)
+	if len(a:lst)
+		if type(a:lst[0]) == v:t_number
+			let num = a:lst[0]
 		else
+			let num = line(a:lst[0])
 		endif
-
-
-		"'\m' . cmprechar . '\s*'
-
-		"a:line =~ 
-
-		let indentation = matchstr(a:line, '\m^\s*')
+		return [num, num]
 	else
-		let indentation = matchstr(a:line, '\m^\s*')
-		let indent = 0
-		let align = strlen(indentation)
+		let curno = line('v')
+		let lastline = line('.')
+		if lastline < curno
+			return [lastline, curno]
+		else
+			return [curno, lastline]
+		endif
 	endif
+endfunction
+
+function! s:AddIndent(...)
+	let [curno, lastline] = s:ParseLineRanges(a:000)
+	if &l:et
+		let pre = repeat(' ', shiftwidth())
+	else
+		let pre = "\<Tab>"
+	endif
+	let pattern = jhsiaoutil#GetCMSPattern()
+	while curno <= lastline
+		let curline = getline(curno)
+		let parts = matchlist(curline, pattern)
+		if len(parts)
+			let parts[0] = join(['%s%s%s', '%s%s%s'], pre)
+			call setline(curno, call('printf', parts[:6]))
+			if a:0
+				call jhsiaoutil#CursorShift(
+					\ strlen(join(parts[1:3], '')), strlen(pre))
+			endif
+		else
+			call setline(curno, join([pre, curline], ''))
+			if a:0
+				call jhsiaoutil#CursorShift(0, strlen(pre))
+			endif
+		endif
+		let curno += 1
+	endwhile
 	return ''
 endfunction
-nnoremap <expr> <C-K><C-L> <SID>IndentInfo(getline('.'))
+inoremap <Plug>TabispaAddIndent; <C-R>=<SID>AddIndent('.')<CR>
+inoremap <Plug>TabispaAddIndentOld; <C-T>
+nnoremap <Plug>TabispaAddIndent; :call <SID>AddIndent('.')<CR>
+nnoremap <Plug>TabispaAddIndentOld; >>
+vnoremap <Plug>TabispaAddIndent; :call <SID>AddIndent()<CR>'>
+vnoremap <Plug>TabispaAddIndentOld; >
+imap <C-T> <Plug>TabispaAddIndent;
+execute jhsiaocrepeat#CharRepeatedCmds(
+	\ 'imap <C-K><C-T> <Plug>TabispaAddIndentOld;', '<C-T>')
+execute jhsiaocrepeat#CharRepeatedCmds(
+	\ 'nmap >> <Plug>TabispaAddIndent;', '.')
+execute jhsiaocrepeat#CharRepeatedCmds(
+	\ 'nmap <C-K>> <Plug>TabispaAddIndentOld;', '.')
+execute jhsiaocrepeat#CharRepeatedCmds(
+	\ 'vmap > <Plug>TabispaAddIndent;', '.', 'n')
+execute jhsiaocrepeat#CharRepeatedCmds(
+	\ 'vmap <C-K>> <Plug>TabispaAddIndentOld;', '.', 'n')
 
-"Insert a tab at the beginning
-"function! s:AddIndent(mode) range
-	"if a:mode == 'v'
-		"let curline = a:firstline
-		"while curline <= a:lastline
-			"call setline(curline, "\<Tab>" . getline(curline))
-			"let curline += 1
-		"endwhile
-	"else
-		"if a:mode == 'i'
-			"if 1 || "\<Cmd>" == '<Cmd>'
-				"return "\<C-O>0\<C-V>\<Tab>" . repeat("\<Right>", col('.')-1)
-			"else
-				"return "\<Cmd>" . 'call setline(".", "\<Tab>" . getline("."))' . "\<CR>\<Right>"
-			"endif
-		"elseif a:mode == 'n'
-			"return "0i\<C-V>\<Tab>\<Esc>"
-		"else
-			"return ""
-		"endif
-	"endif
-"endfunction
+function! s:RemoveIndent(...)
+	let [curno, lastline] = s:ParseLineRanges(a:000)
+	let spacepat = printf('\m^\( \{1,%s\}\)\(.*\)', shiftwidth())
+	if &l:et
+		let pre = ' '
+		let prepat = spacepat
+	else
+		let pre = "\<Tab>"
+		let prepat = '\m^\(\t\)\(.*\)'
+	endif
+	let pattern = jhsiaoutil#GetCMSPattern()
+	while curno <= lastline
+		let curline = getline(curno)
+		let parts = matchlist(curline, pattern)
+		if len(parts)
+			let iparts = matchlist(parts[4], prepat)
+			if !len(iparts) && pre != ' '
+				let iparts = matchlist(parts[4], spacepat)
+			endif
+			if len(iparts)
+				let offset = strlen(join(parts[1:3], ''))
+				call jhsiaoutil#CursorShift(offset, -strlen(iparts[1]))
+				call setline(
+					\ curno,
+					\ strpart(curline, 0, offset)
+					\ . strpart(curline, offset + strlen(iparts[1])))
+			endif
+		else
+			let parts = matchlist(curline, prepat)
+			if !len(parts) && pre != ' '
+				let parts = matchlist(curline, spacepat)
+			endif
+			if len(parts)
+				call jhsiaoutil#CursorShift(0, -strlen(parts[1]))
+				call setline(curno, parts[2])
+			endif
+		endif
+		let curno += 1
+	endwhile
+	return ''
+endfunction
+inoremap <Plug>TabispaRemoveIndent; <C-R>=<SID>RemoveIndent('.')<CR>
+inoremap <Plug>TabispaRemoveIndentOld; <C-D>
+nnoremap <Plug>TabispaRemoveIndent; :call <SID>RemoveIndent('.')<CR>
+nnoremap <Plug>TabispaRemoveIndentOld; <lt><lt>
+vnoremap <Plug>TabispaRemoveIndent; :call <SID>RemoveIndent()<CR>'<lt>
+vnoremap <Plug>TabispaRemoveIndentOld; <lt>
+imap <C-D> <Plug>TabispaRemoveIndent;
+execute jhsiaocrepeat#CharRepeatedCmds(
+	\ 'imap <C-K><C-D> <Plug>TabispaRemoveIndentOld;', '<C-D>')
+execute jhsiaocrepeat#CharRepeatedCmds(
+	\ 'nmap <lt><lt> <Plug>TabispaRemoveIndent;', '.')
+execute jhsiaocrepeat#CharRepeatedCmds(
+	\ 'nmap <C-K><lt> <Plug>TabispaRemoveIndentOld;', '.')
+execute jhsiaocrepeat#CharRepeatedCmds(
+	\ 'vmap <lt> <Plug>TabispaRemoveIndent;', '.', 'n')
+execute jhsiaocrepeat#CharRepeatedCmds(
+	\ 'vmap <C-K><lt> <Plug>TabispaRemoveIndentOld;', '.', 'n')
 
-"inoremap <expr> <Plug>TabispaAddIndentAction; <SID>AddIndent('i')
-"nnoremap <expr> <Plug>TabispaAddIndentAction; <SID>AddIndent('n')
+"TODO: alignment
 
-"nnoremap <Plug>TabispaAddIndentActionv; :'<lt>'>call <SID>AddIndent('v')<CR>
-"vnoremap <Plug>TabispaAddIndentAction; :call <SID>AddIndent('v')<CR>
-
-"inoremap <expr> <C-T> <SID>AddIndent('i')
-"nnoremap <expr> >> <SID>AddIndent('n')
-
-"nmap <C-K><C-L> 
-"vmap <C-K><C-L> :call <SID>AddIndent('v')<CR>
-		"whatever
-		"whatever
-		"whatever
-		"whatever
-		"whatever
-		"whatever
 
 function! s:Realign()
 	"Rearrange all leading spaces/tabs to be tabs first then spaces
@@ -270,83 +288,48 @@ function! s:Realign()
 	let ntabs = 0
 	let nspace = 0
 	let curline = getline('.')
-	let check = ''
 	let unaligned = 0
 	for char in curline
 		if char == ' '
 			let nspace += 1
-			let check .= 's'
-		elseif char == "\t"
+		elseif char == "\<Tab>"
 			let ntabs += 1
-			let check .= 't'
 			let unaligned = nspace
 		else
 			break
 		endif
 	endfor
 	if unaligned
-		let width = strdisplaywidth(slice(curline, 0, ntabs + nspace))
-		let curpos = col('.')
+		let width = strdisplaywidth(strpart(curline, 0, ntabs + nspace))
 		let padspace = width - (&l:ts * ntabs)
-		call setline('.', repeat("\t", ntabs) . repeat(' ', padspace) . curline[ntabs+nspace:])
-		call cursor(0, curpos + padspace - nspace)
+		let parts = [
+			\ repeat("\<Tab>", ntabs),
+			\ repeat(' ', padspace),
+			\ strpart(curline, ntabs+nspace)]
+		if padspace < nspace
+			let curbyte = col('.') - 1
+			if curbyte >= ntabs + nspace
+				"After whitespace should always be in same visual position.
+				call jhsiaoutil#CursorShift(0, padspace - nspace)
+			else
+				"Keep cursor in similar visual position.
+				"guaranteed to be simple byte chars (tab or space)
+				"no multi-byte chars to complicate byte indexing.
+				let viscol = strdisplaywidth(strpart(curline, 0, curbyte))
+				let curpos = getpos('.')
+				let tabwidth = &l:ts * ntabs
+				if viscol >= tabwidth
+					let curpos[2] = curbyte / &l:ts
+				else
+					let curpos[2] = ntabs + (viscol - tabwidth)
+				endif
+				call setpos('.', curpos)
+			endif
+		endif
+		call setline('.', join(parts, ''))
 	endif
 endfunction
-"
-"function! s:AddIndent()
-"	"Insert a tab character at beginning of line
-"	let curpos = col('.')
-"	if &l:et
-"		call setline('.', repeat(' ', &l:ts) . getline('.'))
-"		call cursor(0, curpos+&l:ts)
-"	else
-"		call setline('.', "\t" . getline('.'))
-"		call cursor(0, curpos+1)
-"	endif
-"endfunction
-"
-"function! s:RmIndent()
-"	"Remove a tab from beginning of line.  If spaces, then remove ts
-"	"worth of spaces.  (Realigns first)  ts is used because
-"	"this function is supposed to remove indentation.
-"	"Tabs represent indentation, so use ts instead of sts
-"	let curline = getline('.')
-"	if len(curline)
-"		let nremoved = 0
-"		if curline[0] == "\t"
-"			let nremoved = 1
-"		elseif curline[0] == ' '
-"			while nremoved < &l:ts
-"				if curline[nremoved] == ' '
-"					let nremoved += 1
-"				else
-"					break
-"				endif
-"			endwhile
-"		endif
-"		if nremoved
-"			let curcol = col('.')
-"			call setline('.', curline[nremoved:])
-"			call cursor(0, curcol-nremoved)
-"		endif
-"	endif
-"endfunction
-"
-"" realign current line
-"nnoremap <C-K>a :call <SID>Realign()<CR>
-"" Realign last visual selection
-"nnoremap <C-K>A :'<lt>,'>call <SID>Realign()<CR>'<lt>
-"
-"if v:version > 801
-"	inoremap <C-T> <Cmd>call<Space><SID>AddIndent()<CR>
-"	inoremap <C-D> <Cmd>call<Space><SID>RmIndent()<CR>
-"else
-"	"If autoindented, <C-O> will delete all indentation
-"	"use '<Space><BS>' to prevent that.
-"	inoremap <C-T> <Space><BS><C-O>:call<Space><SID>AddIndent()<CR>
-"	inoremap <C-D> <Space><BS><C-O>:call<Space><SID>RmIndent()<CR>
-"endif
-"
+
 "function! s:SelectBlock()
 "	"If no indentation, then break at blank lines (lines with only
 "	"space/tab) otherwise include them.
