@@ -91,23 +91,27 @@ function! jhsiaoutil#GetCMSPattern()
 endfunction
 
 
+"Return pattern for analyzing a line of text using commentstring.
+"0: the full match
+"1: leading whitespace
+"2: precomment string
+"3: text
+"4: postcomment string
+"5: trailing text
 function!  jhsiaoutil#GetCMSPatternAlt()
 	let parts = jhsiaoutil#GetCMSParts()
 
-	let ifnotpost = '\%%(\%%(%s\)\?\V%s\m)\@!'
-
-
-	let precmt = '\m^\(\s*\)\(\(\V%s\m\)\(%s\)\?\)\?'
-	let tilpost = '\(\%%(\%%(\%%(%s\)\?\V%s\m\)\@!.\)*\)'
-	let postcmt = '\(\(%s\)\?\(\V%s\)\)\?'
-	let extra = '\(\%%(\s*\S\)\@=.*\)\?'
-	let pattern = printf(
-		\ join([precmt, tilpost, postcmt, extra], ''),
+	let nmatchtrail = printf('\%%(\%%(%s\)\?\%%(\V%s\m\)\)', parts[3], parts[4])
+	let indent = '\m^\(\s*\)'
+	let precms = '\(\V%s\m\%%(%s\)\?\)\?'
+	let text = '\(.*%s\@=\|.*%s\@!\)'
+	let postcms = '\(\%%(%s\)\?\V%s\m\)\?'
+	let extra = '\(.*\S\)\?'
+	return printf(
+		\ join([indent, precms, text, postcms, extra], ''),
 		\ escape(parts[1], '\'),
 		\ escape(parts[2], '\'),
-		\ escape(parts[3], '\'),
-		\ escape(parts[4], '\'),
+		\ nmatchtrail, nmatchtrail,
 		\ escape(parts[3], '\'),
 		\ escape(parts[4], '\'))
-
 endfunction
