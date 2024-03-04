@@ -89,3 +89,25 @@ function! jhsiaoutil#GetCMSPattern()
 		\ escape(parts[3], '\'),
 		\ escape(parts[4], '\'))
 endfunction
+
+
+function!  jhsiaoutil#GetCMSPatternAlt()
+	let parts = jhsiaoutil#GetCMSParts()
+
+	let ifnotpost = '\%%(\%%(%s\)\?\V%s\m)\@!'
+
+
+	let precmt = '\m^\(\s*\)\(\(\V%s\m\)\(%s\)\?\)\?'
+	let tilpost = '\(\%%(\%%(\%%(%s\)\?\V%s\m\)\@!.\)*\)'
+	let postcmt = '\(\(%s\)\?\(\V%s\)\)\?'
+	let extra = '\(\%%(\s*\S\)\@=.*\)\?'
+	let pattern = printf(
+		\ join([precmt, tilpost, postcmt, extra], ''),
+		\ escape(parts[1], '\'),
+		\ escape(parts[2], '\'),
+		\ escape(parts[3], '\'),
+		\ escape(parts[4], '\'),
+		\ escape(parts[3], '\'),
+		\ escape(parts[4], '\'))
+
+endfunction
