@@ -180,15 +180,18 @@ function! s:AddIndent(...)
 		let pre = "\<Tab>"
 	endif
 	let pattern = jhsiaoutil#GetCMSPattern()
+	"TODO: If all lines are comments, then use post-comment indentation
+	"otherwise if some comments and some not, it's probably desired to
+	"indent everything as normal...
 	while curno <= lastline
 		let curline = getline(curno)
 		let parts = matchlist(curline, pattern)
-		if len(parts)
-			let parts[0] = join(['%s%s%s', '%s%s%s'], pre)
-			call setline(curno, call('printf', parts[:6]))
+		if strlen(parts[2])
+			let parts[0] = join(['%s%s', '%s%s%s'], pre)
+			call setline(curno, call('printf', parts[:5]))
 			if a:0
 				call jhsiaoutil#CursorShift(
-					\ strlen(join(parts[1:3], '')), strlen(pre))
+					\ strlen(join(parts[1:2], '')), strlen(pre))
 			endif
 		else
 			call setline(curno, join([pre, curline], ''))
@@ -229,16 +232,19 @@ function! s:RemoveIndent(...)
 		let prepat = '\m^\(\t\)\(.*\)'
 	endif
 	let pattern = jhsiaoutil#GetCMSPattern()
+	"TODO: If all lines are comments, then use post-comment unindent.
+	"otherwise if some comments and some not, it's probably desired to
+	"unindent everything as normal...
 	while curno <= lastline
 		let curline = getline(curno)
 		let parts = matchlist(curline, pattern)
-		if len(parts)
-			let iparts = matchlist(parts[4], prepat)
+		if strlen(parts[2])
+			let iparts = matchlist(parts[3], prepat)
 			if !len(iparts) && pre != ' '
-				let iparts = matchlist(parts[4], spacepat)
+				let iparts = matchlist(parts[3], spacepat)
 			endif
 			if len(iparts)
-				let offset = strlen(join(parts[1:3], ''))
+				let offset = strlen(join(parts[1:2], ''))
 				call jhsiaoutil#CursorShift(offset, -strlen(iparts[1]))
 				call setline(
 					\ curno,

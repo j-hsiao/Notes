@@ -207,17 +207,13 @@ vmap <Plug>MiscAddComment; :call <SID>RmTrailSpace()<CR><Plug>MiscAddCommentVHel
 "Uncomment current line(s)
 function! s:RmCommentV() range
 	let pattern = jhsiaoutil#GetCMSPattern()
-	let pattern = substitute(
-		\ &l:cms,
-		\ '\m\(^.*\S\)\(\s*\)%s\(\s*\)\(.*\S\)\?$',
-		\ '\\m^\\(\\s*\\)\\V\1\\m\\(\2\\)\\?\\(.*\\)\\(\3\\)\\?\\V\4\\m\\s*',
-		\ ''
-	\ )
 	let curline = a:firstline
+	"TODO handle multiline comments
+	let numpre = 0
 	while curline <= a:lastline
 		let result = matchlist(getline(curline), pattern)
-		if len(result) > 0
-			call setline(curline, result[1] . result[3])
+		if strlen(result[2])
+			call setline(curline, join([result[1], result[3]], ''))
 		endif
 		let curline += 1
 	endwhile
@@ -226,10 +222,10 @@ endfunction
 function! s:RmCommentLine()
 	let pattern = jhsiaoutil#GetCMSPattern()
 	let result = matchlist(getline('.'), pattern)
-	if len(result) > 0
+	if strlen(result[2])
 		call jhsiaoutil#CursorShift(
-			\ strlen(result[1]), -(strlen(result[2]) + strlen(result[3])))
-		call setline('.', join([result[1], result[4]], ''))
+			\ strlen(result[1]), -strlen(result[2]))
+		call setline('.', join([result[1], result[3]], ''))
 	endif
 	return ''
 endfunction
