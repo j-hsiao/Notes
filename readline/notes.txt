@@ -3,6 +3,7 @@ contents
 -1- syntax
 -2- variables
 -3- bindings
+-4- useful
 
 ______________________________
 -0- general
@@ -130,3 +131,8 @@ ______________________________
 		unix-line-discard
 		backward-kill-word
 		unix-word-rubout
+
+______________________________
+-4- useful
+	C-x /     list file completions
+	C-x C-u   undo changes on current line

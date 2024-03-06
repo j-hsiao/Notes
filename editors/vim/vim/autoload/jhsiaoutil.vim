@@ -125,7 +125,12 @@ endfunction
 "[leading comment char(s), whitespace, whitespace, end comment char(s)]
 "The actual comment would go between the whitespace indices.
 function! jhsiaoutil#GetCMSParts()
-	return matchlist(&l:cms, '\m\(.*\S\)\(\s*\)\?%s\(\s*\)\?\(.*\)$')
+	let result = matchlist(&l:cms, '\m\(.*\S\)\(\s*\)\?%s\(\s*\)\?\(.*\)$')
+	if len(result)
+		return result
+	else
+		return repeat([''], 5)
+	endif
 endfunction
 
 "Return pattern for analyzing a line of text using commentstring.

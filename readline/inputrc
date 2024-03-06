@@ -2,12 +2,12 @@ set completion-ignore-case on
 set show-mode-in-prompt
 
 set keymap emacs
-"\C-k": vi-editing-mode
+"\C-xm": vi-editing-mode
 "\C-h": backward-kill-word
 
 set keymap vi-insert
-"\C-k": emacs-editing-mode
+"\C-xm": emacs-editing-mode
 set keymap vi-command
-"\C-k": emacs-editing-mode
+"\C-xm": emacs-editing-mode
 
 set editing-mode emacs
