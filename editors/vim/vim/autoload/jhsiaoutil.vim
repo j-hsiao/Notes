@@ -66,6 +66,59 @@ function! jhsiaoutil#CursorShift(position, nbyteschanged, ...)
 	endif
 endfunction
 
+"flags:
+"n	nested (recursive) comments
+"b	add blank space after str
+"f	only first line has char, but keep indent (not really a comment...
+"	probably)
+"s	start
+"m	middle
+"e	end
+"l	left align (default)
+"r	right align
+"O	don't consider for O command
+"x	type last char of end to add end
+"digits offset from a left alignment
+"
+"NOTE: l, r say used with s or e, but experimenting,
+"it only seems to ever have an effect if used with s
+"using l and r with e does not seem to do anything.
+"digits don't seem to do anything for e either...
+"the example with ex-2:******/
+"does not work as the example indicates.
+"It is still left aligned with the middle parts...
+function! jhsiaoutil#ParseComments()
+	starts = []
+	mids = []
+	ends = []
+	singles = []
+	for part in split(&l:comments, ',', v:true)
+		let [flags, chars] = split(part, ':', v:true)
+		let fdict = {'str': chars}
+		for flag in flags
+			let fdict[flag] = v:true
+		endfor
+		if get(fdict, 's', 0)
+			call add(starts, fdict)
+		elseif get(fdict, 'm', 0)
+			call add(mids, fdict)
+		elseif get(fdict, 'e', 0)
+			call add(ends, fdict)
+		else
+			call add(singles, fdict)
+		endif
+	endfor
+	if len(starts) != len(mids) || len(mids) != len(ends)
+		throw '3-piece comments must mach length'
+	endif
+	let i = 0
+	let multis = []
+	while i < len(starts)
+		call add(multis, [starts[i], mids[i], ends[i]])
+		let i += 1
+	endwhile
+	return [singles, multis]
+endfunction
 
 "TODO: parse comments and use that?
 "Return a list:
