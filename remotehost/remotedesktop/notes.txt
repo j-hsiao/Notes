@@ -56,17 +56,27 @@ tigervnc
 	------------------------------
 	summary:
 	------------------------------
-		on host:
-			sudo apt install xfce4-session tigervnc-standalone-server
-			edit ~/.vnc/xstartup:
-				unset SESSION_MANAGER
-				startxfce4
-			vncserver -localhost -NeverShared
-				(may need to add a password first)
-		on client:
-			sudo apt install tigervnc-viewer
-			vncviewer host:port -passwd pathtofile
+		startup:
+			on host:
+				sudo apt install xfce4-session tigervnc-standalone-server xfce4-goodies
+				edit ~/.vnc/xstartup:
+					unset SESSION_MANAGER
+					startxfce4
+				vncserver -localhost -NeverShared
+					(may need to add a password first)
+			on client:
+				sudo apt install tigervnc-viewer
+				vncviewer host:port -passwd pathtofile
+					(if -passwd omitted, then enter password)
+		shutdown:
+			on host:
+				vncserver -list
+				vncserver -kill :displaynum
+		password:
+			vncpasswd
 
+		NOTE:
+			can also ssh tunnel (ssh -L localport:localhost:vncserverport
 
 xrdp
 	windows can connect via "remote destop connection" (no extra installs)
