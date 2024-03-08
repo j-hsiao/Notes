@@ -66,6 +66,17 @@ function! jhsiaoutil#CursorShift(position, nbyteschanged, ...)
 	endif
 endfunction
 
+"TODO insert at a visual column
+"natural result seems to be if a tab
+"replace tab with ts spaces
+"and then insert accordingly
+
+" vim       sO:" -,mO:"  ,eO:"",:"
+" c         sO:* -,mO:*  ,exO:*/,s1:/*,mb:*,ex:*/,://
+" html      s:<!--,m:    ,e:-->
+" ptyhon    b:#,fb:-
+" bash      s1:/*,mb:*,ex:*/,://,b:#,:%,:XCOMM,n:>,fb:-
+
 "flags:
 "n	nested (recursive) comments
 "b	add blank space after str
@@ -80,13 +91,9 @@ endfunction
 "x	type last char of end to add end
 "digits offset from a left alignment
 "
-"NOTE: l, r say used with s or e, but experimenting,
-"it only seems to ever have an effect if used with s
-"using l and r with e does not seem to do anything.
-"digits don't seem to do anything for e either...
-"the example with ex-2:******/
-"does not work as the example indicates.
-"It is still left aligned with the middle parts...
+"NOTE: l, r, digits say used with s or e, but experimenting, it only
+"seems to ever have an effect if used with s.  e always ends up with
+"the end comment being left aligned to the middle comment.
 function! jhsiaoutil#ParseComments()
 	starts = []
 	mids = []
@@ -98,7 +105,10 @@ function! jhsiaoutil#ParseComments()
 		for flag in flags
 			let fdict[flag] = v:true
 		endfor
-		if get(fdict, 's', 0)
+		if get(fdict, 'f', 0)
+			"these don't seem like actual comments
+			"so ignore these for now
+		elseif get(fdict, 's', 0)
 			call add(starts, fdict)
 		elseif get(fdict, 'm', 0)
 			call add(mids, fdict)
@@ -109,7 +119,7 @@ function! jhsiaoutil#ParseComments()
 		endif
 	endfor
 	if len(starts) != len(mids) || len(mids) != len(ends)
-		throw '3-piece comments must mach length'
+		throw "3-piece comments must match length"
 	endif
 	let i = 0
 	let multis = []
