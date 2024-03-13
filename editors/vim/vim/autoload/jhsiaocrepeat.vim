@@ -118,15 +118,18 @@ function! jhsiaocrepeat#CharRepeatedCmds(cmd, repkey, ...)
 		\ . mapinfo['mode'] . mapinfo['lhs'] . ';'
 	let mappings = []
 	"Modified base mapping
-	if get(mapinfo, '<expr>', v:false)
-		let basecmd = printf(
-			\ '%s %s %s (%s) . "%s"',
-			\ mapinfo['mpcmd'], join(mapinfo['opts'], ' '),
-			\ mapinfo['lhs'], mapinfo['rhs'], repname)
-	else
-		let basecmd = a:cmd . repname
-	endif
+	let rawcmd = printf(
+		\ '%s %s %sraw %s',
+		\ mapinfo['mpcmd'], join(mapinfo['opts'], ' '),
+		\ repname, join(mapinfo['rhs'], ' '))
+	call add(mappings, rawcmd)
+
+	let basecmd = printf(
+		\ '%s <special> %s %sraw%s',
+		\ substitute(mapinfo['mpcmd'], 'nore', '', ''),
+		\ mapinfo['lhs'], repname, repname)
 	call add(mappings, basecmd)
+
 	"Repeat mapping
 	if mapinfo['mode'] == 'v'
 		let repeatmap = printf(

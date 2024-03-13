@@ -49,8 +49,8 @@ if maparg("\<C-L>", 'i') == ''
 endif
 
 "Easier escape
-if maparg(';l', 'i') == ''
-	inoremap ;l <Esc>
+if maparg(';lkj', 'i') == ''
+	inoremap ;lkj <Esc>
 endif
 
 "Preserve a mapping to original <Leader>
