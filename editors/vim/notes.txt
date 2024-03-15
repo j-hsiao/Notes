@@ -435,6 +435,14 @@ ______________________________
 
 	C-E           insert character in next line below cursor
 	C-Y           insert character in previous line above cursor
+	C-X C-[E|Y]   scroll up/down without exiting insert mode
+	completion
+		C-X C-D     Defined identifiers (#define)
+		C-X C-I     identifiers (keywords, but variable names work too?)
+		C-X C-F     filenames
+		C-X C-K     identifiers from dictionary (:h 'dictionary')
+		C-X C-L     match previous line
+
 ______________________________
 -3- visual mode
 	This mode is generally for selecting text to perform a command over.
