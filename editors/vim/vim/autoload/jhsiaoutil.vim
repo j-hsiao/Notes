@@ -141,7 +141,29 @@ function! jhsiaoutil#ParseComments()
 	let multimaybe = []
 	let singlemaybe = []
 	let multi = []
-	for part in split(&l:comments, ',', v:true)
+	let parts = split(&l:cms, '%s')
+	let raws = substitute(parts[0], '\m^\s*\(.\{-}\)\s*$', '\1', '')
+	if len(parts) == 1
+		if parts[0] =~ '\m.*\s$'
+			let pre = printf('b:%s', raws)
+		else
+			let pre = printf(':%s', raws)
+		endif
+		let comlist = join([pre, &l:comments], ',')
+	elseif len(parts) == 2
+		if parts[0] =~ '\m.*\s$'
+			let s = printf('sr:%s', raws)
+			let m = 'mb:' . repeat(' ', strlen(raws))
+		else
+			let s = printf('sr:%s', raws)
+			let m = 'm:' . repeat(' ', strlen(raws))
+		endif
+		let e = printf('e:%s', substitute(parts[1], '\m^\s*\(.\{-}\)\s*$', '\1', ''))
+		let comlist = join([s, m, e, &l:comments], ',')
+	else
+		let comlist = split(&l:comments, ',', v:true)
+	endif
+	for part in split(comlist, ',', v:true)
 		let [flags, chars] = split(part, ':', v:true)
 		let info = {
 			\ 'flags': flags,
@@ -178,7 +200,11 @@ function! jhsiaoutil#ParseComments()
 			if flags =~ '[fO]'
 				call add(multimaybe, info)
 			else
-				call add(multis, info)
+				if len(multis) > 0 && multis[0]['s']['val'] == info['s']['val']
+					let multis[0] = info
+				else
+					call add(multis, info)
+				endif
 			endif
 		else
 			if flags =~ 'b'
@@ -189,7 +215,11 @@ function! jhsiaoutil#ParseComments()
 			if flags =~ '[fO]'
 				call add(singlemaybe, info)
 			else
-				call add(singles, info)
+				if len(singles) > 0 && singles[0]['val'] == info['val']
+					let singles[0] = info
+				else
+					call add(singles, info)
+				endif
 			endif
 		endif
 	endfor
@@ -198,26 +228,6 @@ function! jhsiaoutil#ParseComments()
 	endif
 	if len(singles) == 0
 		let singles = singlemaybe
-	endif
-	let parts = matchlist(&l:cms, '\s*\(.*\S\)\(\s*\)%s\s*\(.*\)')
-	if len(singles) > 1 && strlen(parts[3]) == 0
-		let best = -1
-		for idx in range(len(singles))
-			if singles[idx]['val'] =~ printf('\V%s', escape(parts[1], '\'))
-				let best = idx
-			endif
-		endfor
-		if best >= 0
-			let tmp = singles[0]
-			let singles[0] = singles[best]
-			let singles[best] = tmp
-		else
-			"cms needs to be added too!
-			let info = {
-				\ 'reg': '\(\s*\)\(%s\%%(%s\)\?\)\(.*\)',
-				\ 'flags': '', 'val': parts[1]}
-			call insert(singles, info, 0)
-		endif
 	endif
 	return [singles, multis]
 endfunction
