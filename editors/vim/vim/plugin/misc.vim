@@ -146,56 +146,73 @@ endfunction
 nmap <Plug>MiscAddPostComment; :call <SID>AddPostComment()<CR>
 
 function! s:AddCommentV()
-	let pre = split(&l:commentstring, '%s')[0]
-	let firstline = line("'<")
-	let lastline = line("'>")
-	let commentcol = -1
-	"If the selection starts on a blank line, then using <C-V>
-	"for lazy comment might not work.  startline is not necessarily
-	"the same as the '< mark.  Same for stopline and '>
-	let startline = -1
-	let stopline = 0
-	while firstline <= lastline
-		if getline(firstline) !~ '\m^\s*$'
-			if commentcol < 0
-				let commentcol = indent(firstline)
-			else
-				let commentcol = min([commentcol, indent(firstline)])
-			endif
-			if startline < 0
-				let startline = firstline
-			endif
-			let stopline = firstline
-		endif
-		let firstline += 1
-	endwhile
-	if startline < 0
-		return ''
-	elseif commentcol == 0
-		let cmd = [startline . 'gg']
-		while startline <= stopline
-			if getline(startline) =~ '\m^\s*\S'
-				call add(cmd, '0i' . pre . "\<Esc>")
-			endif
-			if startline != stopline
-				call add(cmd, 'j')
-			endif
-			let startline += 1
-		endwhile
-		call add(cmd, "'<")
-		return join(cmd, '')
-	else
-		return startline . 'gg' . (commentcol+1) . "|\<C-V>"
-			\ . stopline . 'gg$I' . pre . "\<Esc>"
+	let firstline = line('v')
+	let lastline = line('.')
+	if lastline < firstline
+		let [firstline, lastline] = [lastline, firstline]
 	endif
+	let idx = -1
+	let curno = firstline
+	while curno <= lastline
+		let parts = matchlist(getline('.'), '\m^\(\s*\)\(.*\)')
+		if strlen(parts[2])
+			let curindent = strdisplaywidth(parts[1])
+			if curindent < idx or idx < 0
+				let idx = curindent
+			endif
+		endif
+		let curno += 1
+	endwhile
+	let [singles, multis] = jhsiaoutil#ParseComments()
+	if len(singles)
+		let pre = singles[0]['val']
+		if singles[0]['flags'] =~ 'b'
+			let pre .= ' '
+		endif
+		let end = ''
+		let mid = pre
+	else
+		let pre = multis[0]['s']['val']
+		if multis[0]['s']['flags'] =~ 'b'
+			let pre .= ' '
+		endif
+		let mid = multis[0]['m']['val']
+		if multis[0]['m']['flags'] =~ 'b'
+			let mid .= ' '
+		endif
+		let end = multis[0]['e']['val']
+	endif
+	let curno = 0
+	while curno <= lastline
+		let parts = matchlist(getline('.'), '\m^\(\s*\)\(.*\)')
+		if len(parts[2])
+			while strdisplaywidth(parts[0][:i])
+			endif
+
+		elseif len(parts[1])
+			call setline(curno, '')
+		endif
+	endwhile
 endfunction
 
 function! s:AddCommentLine()
-	let parts = matchlist(&l:cms, '\m\(^.*\)%s\(.*\)\?$')
-	let lineparts = matchlist(getline('.'), '\m^\(\s*\)\(.*\)')
-	call setline(
-		\ '.', join([lineparts[1], parts[1], lineparts[2], parts[2]], ''))
-	call jhsiaoutil#CursorShift(strlen(lineparts[1]), strlen(parts[1]))
+	let [singles, multis] = jhsiaoutil#ParseComments()
+	let curline = getline('.')
+	let parts = matchlist(curline, '\m^\(\s*\)\(.*\)')
+	if len(singles)
+		let mid = singles[0]['val']
+		if singles[0]['flags'] =~ 'b'
+			let mid .= ' '
+		endif
+		call setline('.', join(parts[1:2], mid))
+	else
+		let mid = multi[0]['s']['val']
+		if multi[0]['s']['flags'] =~ 'b'
+			let mid .= ' '
+		endif
+		call setline('.', join([parts[1], mid, parts[2], multi[0]['e']['val']], ''))
+	endif
+	call jhsiaoutil#CursorShift(strlen(parts[1]), strlen(parts[1]))
 	return ''
 endfunction
 
@@ -220,13 +237,30 @@ function! s:RmCommentV() range
 endfunction
 
 function! s:RmCommentLine()
-	let pattern = jhsiaoutil#GetCMSPattern()
-	let result = matchlist(getline('.'), pattern)
-	if strlen(result[2])
-		call jhsiaoutil#CursorShift(
-			\ strlen(result[1]), -strlen(result[2]))
-		call setline('.', join([result[1], result[3]], ''))
-	endif
+	let [singles, multis] =  jhsiaoutil#ParseComments()
+	let curline = getline('.')
+	for single in singles
+		let results = matchlist(curline, single['reg'])
+		if len(results)
+			call jhsiaoutil#CursorShift(
+				\ strlen(results[1]), -strlen(results[2]))
+			call setline('.', join([results[1], results[3]], ''))
+			return ''
+		endif
+	endfor
+	for multi in multis
+		let results = matchlist(curline, multi['reg'])
+		if len(results[2]) && len(results[5])
+			call jhsiaoutil#CursorShift(
+				\ strlen(results[1]), -strlen(results[2]))
+			if len(results[6])
+				call jhsiaoutil#CursorShift(
+					\ strlen(results[1]) + strlen(results[4]), -strlen(5))
+			endif
+			call setline('.', join([results[1], results[4], results[6]], ''))
+			return ''
+		endif
+	endfor
 	return ''
 endfunction
 

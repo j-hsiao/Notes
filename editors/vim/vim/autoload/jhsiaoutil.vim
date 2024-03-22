@@ -133,6 +133,7 @@ endfunction
 "		5: the ending if it exists
 "		6: anything after the ending if it exists
 "
+"comment removal requires both start and end for single line.
 "single contains comments that are single.
 "multi contains comments that have start, middle, end
 function! jhsiaoutil#ParseComments()
@@ -268,4 +269,30 @@ function!  jhsiaoutil#GetCMSPattern()
 		\ nmatchtrail, nmatchtrail,
 		\ escape(parts[3], '\'),
 		\ escape(parts[4], '\'))
+endfunction
+
+
+"return the index of the character starting at/covering column (0-index)
+"mainly to be used for space/tabs
+"return index
+function! jhsiaoutil#FindColumn(text, target)
+	let lo = 0
+	let hi = strlen(text)-1
+	let pick = hi
+	while lo <= hi
+		let curlen = strdisplaywidth(text[:pick])
+		if curlen == target
+			return hi+1
+		elseif curlen < target
+			let lo = pick+1
+		else
+			let hi = pick-1
+		endif
+		let pick = (lo + hi) / 2
+	endwhile
+	if hi >= 0
+		return hi
+	else
+		return lo
+	endif
 endfunction
