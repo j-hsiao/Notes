@@ -153,6 +153,16 @@ function! s:RawRemoveAlignment(line, sts)
 		join([parts[1], strpart(parts[2], a:sts), parts[3]], '')]
 endfunction
 
+
+"TODO
+"Convert functions to range
+"remove ParseLineRanges (when range and no selection, a:firstline = a:lastline = '.')
+"nv modes, <> -> precomment, use <C-K><> to use postcomment
+"insert mode, <C-TD> -> postcomment, use <C-K><C-TD> for normal
+"when typing, you're probably past the comment so alignment mode would be most
+"suitable.  However, in normal/visual mode you're not currently inserting so
+"more likely to be wishing to shift the actual comment left/right
+"
 function! s:ParseLineRanges(lst)
 	if len(a:lst)
 		if type(a:lst[0]) == v:t_number

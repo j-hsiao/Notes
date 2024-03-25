@@ -108,6 +108,11 @@ function! s:FitWidth(...)
 endfunction
 nnoremap <expr> gq ":<Bslash><lt>C-U>setl<Space>opfunc=<SID>FitWidth<Bslash><lt>CR>" . <SID>FitWidth()
 
+
+"Comment manipulation only operate on whole lines.
+"unless a comment includes an entire line, it will not be considered.
+"undefined behavior otherwise.
+"
 "Comment current line(s)
 "visual mode:
 "	strip trailing whitespace
@@ -118,59 +123,29 @@ nnoremap <expr> gq ":<Bslash><lt>C-U>setl<Space>opfunc=<SID>FitWidth<Bslash><lt>
 "	current line is purely whitespace, add coment char in current position
 "	otherwise, add comment char to first non-white-space char of the
 "	current line.
-function! s:RmTrailSpace() range
-	let curline = a:firstline
-	while curline <= a:lastline
-		call setline(curline, matchstr(getline(curline), '\m^.*\S'))
-		let curline += 1
-	endwhile
-endfunction
-
-function! s:AddPostComment()
-	let parts = jhsiaoutil#GetCMSParts()
-	if len(parts) <= 1
-		echom "comment string does not include \"%s\"!"
-		return
-	endif
-	let pattern = printf('\m^\s*%s', escape(parts[0], '\'))
-	let firstline = line("'<")
-	let lastline = line("'>")
-	while firstline <= lastline
-		let txt = getline(firstline)
-		if txt =~ pattern
-			call setline(firstline, join([txt, parts[2], parts[3]], ''))
-		endif
-		let firstline += 1
-	endwhile
-endfunction
-nmap <Plug>MiscAddPostComment; :call <SID>AddPostComment()<CR>
-
-function! s:AddCommentV()
-	let firstline = line('v')
-	let lastline = line('.')
-	if lastline < firstline
-		let [firstline, lastline] = [lastline, firstline]
-	endif
-	let idx = -1
-	let curno = firstline
-	while curno <= lastline
-		let parts = matchlist(getline('.'), '\m^\(\s*\)\(.*\)')
-		if strlen(parts[2])
-			let curindent = strdisplaywidth(parts[1])
-			if curindent < idx or idx < 0
-				let idx = curindent
-			endif
-		endif
-		let curno += 1
-	endwhile
+function! s:AddCommentV() range
 	let [singles, multis] = jhsiaoutil#ParseComments()
+	let check = a:firstline
+	let targetcol = -1
+	while check <= a:lastline
+		let parts = matchlist(getline(check), '\m^\(\s*\)\(.*\)')
+		if strlen(parts[2])
+			let curcol = strdisplaywidth(parts[1])
+			if curcol < targetcol || targetcol < 0
+				let targetcol = curcol
+			endif
+		else
+			call setline(check, '')
+		endif
+		let check += 1
+	endwhile
 	if len(singles)
 		let pre = singles[0]['val']
 		if singles[0]['flags'] =~ 'b'
 			let pre .= ' '
 		endif
-		let end = ''
 		let mid = pre
+		let end = ''
 	else
 		let pre = multis[0]['s']['val']
 		if multis[0]['s']['flags'] =~ 'b'
@@ -182,83 +157,190 @@ function! s:AddCommentV()
 		endif
 		let end = multis[0]['e']['val']
 	endif
-	let curno = 0
-	while curno <= lastline
-		let parts = matchlist(getline('.'), '\m^\(\s*\)\(.*\)')
-		if len(parts[2])
-			while strdisplaywidth(parts[0][:i])
+	let check = a:firstline
+	while check <= a:lastline
+		let curline = getline(check)
+		if strlen(curline)
+			let [prewidth, splitidx] = jhsiaoutil#FindColumn(curline, targetcol)
+			if splitidx == 0
+				call setline(check, pre . curline)
+			else
+				if prewidth == targetcol
+					call setline(check, join([curline[:splitidx-1], curline[splitidx:]], pre))
+				else
+					let parts = [
+						\ curline[:splitidx-1],
+						\ repeat(' ', targetcol-prewidth), pre,
+						\ repeat(' ', &l:ts + prewidth - targetcol),
+						\ curline[splitidx+1:]]
+					call setline(check, join(parts, ''))
+				endif
 			endif
-
-		elseif len(parts[1])
-			call setline(curno, '')
+			let pre = mid
 		endif
+		if check == a:lastline && strlen(end)
+			call setline(check, getline(check) . end)
+		endif
+		let check += 1
 	endwhile
 endfunction
 
 function! s:AddCommentLine()
 	let [singles, multis] = jhsiaoutil#ParseComments()
-	let curline = getline('.')
-	let parts = matchlist(curline, '\m^\(\s*\)\(.*\)')
+	let parts = matchlist(getline('.'), '\m^\(\s*\)\(.*\)')
 	if len(singles)
-		let mid = singles[0]['val']
+		let prefix = singles[0]['val']
 		if singles[0]['flags'] =~ 'b'
-			let mid .= ' '
+			let prefix .= ' '
 		endif
-		call setline('.', join(parts[1:2], mid))
+		call setline('.', join(parts[1:2], prefix))
 	else
-		let mid = multi[0]['s']['val']
-		if multi[0]['s']['flags'] =~ 'b'
-			let mid .= ' '
+		let prefix = multis[0]['s']['val']
+		if multis[0]['s']['flags'] =~ 'b'
+			let prefix .= ' '
 		endif
-		call setline('.', join([parts[1], mid, parts[2], multi[0]['e']['val']], ''))
+		call setline(
+			\ '.', join([parts[1], prefix, parts[2], multis[0]['e']['val']], ''))
 	endif
-	call jhsiaoutil#CursorShift(strlen(parts[1]), strlen(parts[1]))
+	call jhsiaoutil#CursorShift(strlen(parts[1]), strlen(prefix))
 	return ''
 endfunction
 
 inoremap <Plug>MiscAddComment; <C-R>=<SID>AddCommentLine()<CR>
 nmap <Plug>MiscAddComment; :call <SID>AddCommentLine()<CR>
-nnoremap <expr> <Plug>MiscAddCommentVHelp; <SID>AddCommentV()
-vmap <Plug>MiscAddComment; :call <SID>RmTrailSpace()<CR><Plug>MiscAddCommentVHelp;<Plug>MiscAddPostComment;
+vmap <Plug>MiscAddComment; :call <SID>AddCommentV()<CR>
+
+
 
 "Uncomment current line(s)
 function! s:RmCommentV() range
-	let pattern = jhsiaoutil#GetCMSPattern()
-	let curline = a:firstline
-	"TODO handle multiline comments
-	let numpre = 0
-	while curline <= a:lastline
-		let result = matchlist(getline(curline), pattern)
-		if strlen(result[2])
-			call setline(curline, join([result[1], result[3]], ''))
+	let [singles, multis] = jhsiaoutil#ParseComments()
+	let curno = a:firstline
+	while curno <= a:lastline
+		let curline = getline(curno)
+		let domulti = v:true
+		for single in singles
+			let parts = matchlist(curline, single['reg'])
+			if len(parts)
+				call setline(curno, join([parts[1], parts[3]], ''))
+				let domulti = v:false
+				break
+			endif
+		endfor
+		if domulti
+			for multi in multis
+				let parts = matchlist(curline, multi['reg'])
+				if strlen(parts[2]) || (
+						\ strlen(parts[3])
+						\ && curno == a:firstline
+						\ && s:MultiStart(curno, multi)>0)
+					let mparts = []
+					while strlen(parts[5]) == 0 && curno < a:lastline
+						call add(mparts, [curno, parts])
+						let curno += 1
+						let parts = matchlist(getline(curno), multi['reg'])
+					endwhile
+					call add(mparts, [curno, parts])
+					for [multino, parts] in mparts
+						if multino == a:firstline && strlen(parts[2]) == 0
+							call s:AddMultiEnd(multino-1, multi)
+						endif
+						if multino == a:lastline && strlen(parts[5]) == 0
+							call s:AddMultiBeg(multino+1, multi)
+						endif
+						call setline(multino, join([parts[1], parts[4], parts[6]], ''))
+					endfor
+					break
+				endif
+			endfor
 		endif
-		let curline += 1
+		let curno += 1
 	endwhile
 endfunction
 
+"Find start of multi-line comment.
+"assume current line is in a comment
+"but does not contain a starting comment.
+"may have middle or end though
+function! s:MultiStart(lineno, multi)
+	let check = a:lineno-1
+	while 1 <= check
+		let parts = matchlist(getline(check), a:multi['reg'])
+		if strlen(parts[5])
+			return 0
+		elseif strlen(parts[2])
+			return check
+		endif
+		let check -= 1
+	endwhile
+	return 0
+endfunction
+
+function! s:AddMultiEnd(lineno, multi)
+	let prev = getline(a:lineno)
+	let parts = matchlist(prev, a:multi['reg'])
+	if strlen(parts[2]) && strlen(parts[4]) == 0
+		call setline(a:lineno, '')
+	else
+		call setline(a:lineno, prev . a:multi['e']['val'])
+	endif
+endfunction
+
+function! s:AddMultiBeg(lineno, multi)
+	let prev = getline(a:lineno)
+	let parts = matchlist(prev, a:multi['reg'])
+	echom json_encode(parts)
+	if strlen(parts[5]) && strlen(parts[4]) == 0
+		call setline(a:lineno, '')
+	else
+		let pre = a:multi['s']['val']
+		if a:multi['s']['flags'] =~ 'b'
+			let pre .= ' '
+		endif
+		call setline(a:lineno, join([parts[1], pre, parts[4], parts[5], parts[6]], ''))
+	endif
+endfunction
+
+"Remove a multi-line comment and adjust cursor position.
+"Assume lineno is indeed inside a 3-part comment
+"Removing a single multi-line comment may require modifying
+"other lines.
+function! s:RmMulti(lineno, multi, parts, shift)
+	if strlen(a:parts[5]) == 0
+		call s:AddMultiBeg(a:lineno+1, a:multi)
+	endif
+	if strlen(a:parts[2]) == 0
+		call s:AddMultiEnd(a:lineno-1, a:multi)
+	endif
+	if a:shift
+		call jhsiaoutil#CursorShift(
+			\ strlen(a:parts[1]),
+			\ -(strlen(a:parts[2])+strlen(a:parts[3])))
+		call jhsiaoutil#CursorShift(
+			\ strlen(a:parts[1]) + strlen(a:parts[4]),
+			\ -strlen(a:parts[5]))
+	endif
+	call setline(a:lineno, join([a:parts[1], a:parts[4], a:parts[6]], ''))
+endfunction
+
 function! s:RmCommentLine()
-	let [singles, multis] =  jhsiaoutil#ParseComments()
+	let [singles, multis] = jhsiaoutil#ParseComments()
 	let curline = getline('.')
 	for single in singles
-		let results = matchlist(curline, single['reg'])
-		if len(results)
-			call jhsiaoutil#CursorShift(
-				\ strlen(results[1]), -strlen(results[2]))
-			call setline('.', join([results[1], results[3]], ''))
+		let parts = matchlist(curline, single['reg'])
+		if len(parts)
+			call jhsiaoutil#CursorShift(strlen(parts[1]), -strlen(parts[2]))
+			call setline('.', join([parts[1], parts[3]], ''))
 			return ''
 		endif
 	endfor
+	"To check if current line is multi-comment, must find the comment start.
+	"and comment end...
+	let lineno = line('.')
 	for multi in multis
-		let results = matchlist(curline, multi['reg'])
-		if len(results[2]) && len(results[5])
-			call jhsiaoutil#CursorShift(
-				\ strlen(results[1]), -strlen(results[2]))
-			if len(results[6])
-				call jhsiaoutil#CursorShift(
-					\ strlen(results[1]) + strlen(results[4]), -strlen(5))
-			endif
-			call setline('.', join([results[1], results[4], results[6]], ''))
-			return ''
+		let parts = matchlist(curline, multi['reg'])
+		if strlen(parts[2]) || strlen(parts[5]) || (strlen(parts[3]) && s:MultiStart(lineno, multi)>0)
+			call s:RmMulti(lineno, multi, parts, v:true)
 		endif
 	endfor
 	return ''

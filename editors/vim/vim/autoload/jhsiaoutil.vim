@@ -137,6 +137,12 @@ endfunction
 "single contains comments that are single.
 "multi contains comments that have start, middle, end
 function! jhsiaoutil#ParseComments()
+	"comments and commentstring are unlikely to change while in the
+	"same buffer, so try cache result
+	let result = get(b:, 'jhsiaoutilParseCommentsResult', [])
+	if len(result)
+		return result
+	endif
 	let singles = []
 	let multis = []
 	let multimaybe = []
@@ -193,7 +199,7 @@ function! jhsiaoutil#ParseComments()
 				let mreg .= '\s'
 			endif
 			let ereg = printf('\V%s\m', escape(multi[2]['val'], '\'))
-			let spaceuntil = printf('\(\%%(\%%(%s\|%s\)\@!\s\)*\)', sreg, mreg)
+			let spaceuntil = printf('\(\s*\%%(%s\|%s\)\@=\|\s*\%%(%s\|%s\)\@!\)', sreg, mreg, sreg, mreg)
 			let front = printf('\%%(\(%s\)\|\(%s\)\)\?', sreg, mreg)
 			let texttil = printf('\(\%%(\%%(%s\)\@!.\)*\)', ereg)
 			let reg = printf('%s%s%s\(%s\)\?\(.*\)', spaceuntil, front, texttil, ereg)
@@ -230,7 +236,8 @@ function! jhsiaoutil#ParseComments()
 	if len(singles) == 0
 		let singles = singlemaybe
 	endif
-	return [singles, multis]
+	let b:jhsiaoutilParseCommentsResult = [singles, multis]
+	return b:jhsiaoutilParseCommentsResult
 endfunction
 
 "TODO: parse comments and use that?
@@ -273,26 +280,18 @@ endfunction
 
 
 "return the index of the character starting at/covering column (0-index)
-"mainly to be used for space/tabs
+"intended for use with str of space/tabs
 "return index
 function! jhsiaoutil#FindColumn(text, target)
-	let lo = 0
-	let hi = strlen(text)-1
-	let pick = hi
-	while lo <= hi
-		let curlen = strdisplaywidth(text[:pick])
-		if curlen == target
-			return hi+1
-		elseif curlen < target
-			let lo = pick+1
-		else
-			let hi = pick-1
+	let idx = 0
+	let col = 0
+	while strlen(a:text[idx]) && col < a:target
+		let newcol = col + strdisplaywidth(a:text[idx], col)
+		if newcol > a:target
+			return [col, idx]
 		endif
-		let pick = (lo + hi) / 2
+		let col = newcol
+		let idx += 1
 	endwhile
-	if hi >= 0
-		return hi
-	else
-		return lo
-	endif
+	return [col, idx]
 endfunction
