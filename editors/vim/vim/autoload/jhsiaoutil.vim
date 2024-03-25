@@ -196,14 +196,15 @@ function! jhsiaoutil#ParseComments()
 			endif
 			let mreg = printf('\V%s%s\m', repeat(' ', npre), escape(multi[1]['val'], '\'))
 			if multi[1]['flags'] =~ 'b'
-				let mreg .= '\s'
+				let mreg .= '\%(\s\|$\)'
 			endif
 			let ereg = printf('\V%s\m', escape(multi[2]['val'], '\'))
 			let spaceuntil = printf('\(\s*\%%(%s\|%s\)\@=\|\s*\%%(%s\|%s\)\@!\)', sreg, mreg, sreg, mreg)
 			let front = printf('\%%(\(%s\)\|\(%s\)\)\?', sreg, mreg)
 			let texttil = printf('\(\%%(\%%(%s\)\@!.\)*\)', ereg)
 			let reg = printf('%s%s%s\(%s\)\?\(.*\)', spaceuntil, front, texttil, ereg)
-			let info = {'s': multi[0], 'm': multi[1], 'e': multi[2], 'reg': reg}
+			let any = printf('.*\(%s\)\%%(\%%(%s\)\@!.\)*\(%s\)\?', sreg, ereg, ereg)
+			let info = {'s': multi[0], 'm': multi[1], 'e': multi[2], 'reg': reg, 'any': any}
 			if flags =~ '[fO]'
 				call add(multimaybe, info)
 			else
@@ -276,6 +277,26 @@ function!  jhsiaoutil#GetCMSPattern()
 		\ nmatchtrail, nmatchtrail,
 		\ escape(parts[3], '\'),
 		\ escape(parts[4], '\'))
+endfunction
+
+"Find start of multi-line comment.
+"assume current line is in a comment
+"but does not contain a starting comment.
+"may have middle or end though
+function! jhsiaoutil#MultiStart(lineno, multi)
+	let check = a:lineno-1
+	while 1 <= check
+		let parts = matchlist(getline(check), a:multi['any'])
+		if len(parts)
+			if strlen(parts[2])
+				return 0
+			elseif strlen(parts[1])
+				return check
+			endif
+		endif
+		let check -= 1
+	endwhile
+	return 0
 endfunction
 
 

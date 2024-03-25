@@ -233,7 +233,7 @@ function! s:RmCommentV() range
 				if strlen(parts[2]) || (
 						\ strlen(parts[3])
 						\ && curno == a:firstline
-						\ && s:MultiStart(curno, multi)>0)
+						\ && jhsiaoutil#MultiStart(curno, multi)>0)
 					let mparts = []
 					while strlen(parts[5]) == 0 && curno < a:lastline
 						call add(mparts, [curno, parts])
@@ -258,29 +258,14 @@ function! s:RmCommentV() range
 	endwhile
 endfunction
 
-"Find start of multi-line comment.
-"assume current line is in a comment
-"but does not contain a starting comment.
-"may have middle or end though
-function! s:MultiStart(lineno, multi)
-	let check = a:lineno-1
-	while 1 <= check
-		let parts = matchlist(getline(check), a:multi['reg'])
-		if strlen(parts[5])
-			return 0
-		elseif strlen(parts[2])
-			return check
-		endif
-		let check -= 1
-	endwhile
-	return 0
-endfunction
 
 function! s:AddMultiEnd(lineno, multi)
 	let prev = getline(a:lineno)
 	let parts = matchlist(prev, a:multi['reg'])
 	if strlen(parts[2]) && strlen(parts[4]) == 0
 		call setline(a:lineno, '')
+	elseif strlen(parts[3]) && strlen(parts[4]) == 0
+		call setline(a:lineno, join([parts[1], a:multi['e']['val']], ''))
 	else
 		call setline(a:lineno, prev . a:multi['e']['val'])
 	endif
@@ -289,7 +274,6 @@ endfunction
 function! s:AddMultiBeg(lineno, multi)
 	let prev = getline(a:lineno)
 	let parts = matchlist(prev, a:multi['reg'])
-	echom json_encode(parts)
 	if strlen(parts[5]) && strlen(parts[4]) == 0
 		call setline(a:lineno, '')
 	else
@@ -339,7 +323,7 @@ function! s:RmCommentLine()
 	let lineno = line('.')
 	for multi in multis
 		let parts = matchlist(curline, multi['reg'])
-		if strlen(parts[2]) || strlen(parts[5]) || (strlen(parts[3]) && s:MultiStart(lineno, multi)>0)
+		if strlen(parts[2]) || strlen(parts[5]) || (strlen(parts[3]) && jhsiaoutil#MultiStart(lineno, multi)>0)
 			call s:RmMulti(lineno, multi, parts, v:true)
 		endif
 	endfor
