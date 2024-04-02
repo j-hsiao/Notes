@@ -162,7 +162,79 @@ endfunction
 "when typing, you're probably past the comment so alignment mode would be most
 "suitable.  However, in normal/visual mode you're not currently inserting so
 "more likely to be wishing to shift the actual comment left/right
+
+"Adding indent adds to beginning of the line.
 "
+"insert mode:
+"	base: add indent after comment character
+"	alt: always add at beginning of line
+"normal mode:
+"	base: always add at beginning of line
+"	alt: add indent after comment character
+"visual mode:
+"	base: always add at beginning of line
+"	alt: add indent after comment character only if all selected lines
+"		are commented.
+function! s:AddIndent(inserting, base) range
+	if &l:et
+		if &l:sw == 0
+			let prefix = repeat(' ', &l:ts)
+		else
+			let prefix = repeat(' ', &l:sw)
+		endif
+	else
+		let prefix = "\<Tab>"
+	endif
+	if a:firstline == a:lastline
+		if a:0
+		else
+		endif
+	else
+		if !a:base
+			let [singles, multis] = jhsiaoutl#ParseComments()
+			let curline = a:firstline
+			let iscomment = v:false
+			while iscomment && curline <= a:lastline
+				let text = getline(curline)
+				for single in singles
+					let parts = matchlist(text, single['reg'])
+					if len(parts)
+						let iscomment = v:true
+						break
+					endif
+				endfor
+				if !iscomment
+					for multi in multis
+						let parts = matchlist(text, multi['reg'])
+						if strlen(parts[2])
+							let ncurline = curline
+							while ncurline <= a:lastline
+								let ntext = getline(curline)
+								let parts = matchlist(ntext, multi['reg'])
+								if strlen(parts[5])
+									break
+								endif
+								let ncurline += 1
+							endwhile
+							let iscomment = v:true
+							break
+						endif
+					endfor
+				endif
+				let curline += 1
+			endwhile
+			if iscomment
+				return
+			endif
+		endif
+		let curline = a:firstline
+		while curline != a:lastline
+			call setline(curline, prefix . getline(curline))
+			let curline += 1
+		endwhile
+	endif
+endfunction
+
 function! s:ParseLineRanges(lst)
 	if len(a:lst)
 		if type(a:lst[0]) == v:t_number
