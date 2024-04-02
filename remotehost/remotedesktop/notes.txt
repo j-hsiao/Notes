@@ -41,6 +41,7 @@ tigervnc
 
 					# Uncomment the following two lines for normal desktop:
 					unset SESSION_MANAGER
+					unset DBUS_SESSION_BUS_ADDRESS
 					#exec /etc/X11/xinit/xinitrc
 					startxfce4
 
@@ -61,6 +62,7 @@ tigervnc
 				sudo apt install xfce4-session tigervnc-standalone-server xfce4-goodies
 				edit ~/.vnc/xstartup:
 					unset SESSION_MANAGER
+					unset DBUS_SESSION_BUS_ADDRESS
 					startxfce4
 				vncserver -localhost -NeverShared
 					(may need to add a password first)
