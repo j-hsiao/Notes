@@ -241,6 +241,27 @@ function! jhsiaoutil#ParseComments()
 	return b:jhsiaoutilParseCommentsResult
 endfunction
 
+"Find the comment dict from singles/multis that matches the given line.
+function! jhsiaoutil#MatchComment(line, singles, multis, ...)
+	for single in a:singles
+		let parts = matchlist(a:line, single['reg'])
+		if len(parts)
+			return [single, parts]
+		endif
+	endfor
+	for multi in a:multis
+		let parts = matchlist(a:line, multi['reg'])
+		for idx in a:0
+			if strlen(parts[idx])
+				return [multi, parts]
+			endif
+		endfor
+		if strlen(parts[2])
+			return [multi, parts]
+		endif
+	endfor
+endfunction
+
 "TODO: parse comments and use that?
 "Return a list:
 "[leading comment char(s), whitespace, whitespace, end comment char(s)]
