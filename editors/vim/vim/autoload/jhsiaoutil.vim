@@ -337,9 +337,6 @@ function! jhsiaoutil#MultiEnd(lineno, multi)
 	return 0
 endfunction
 
-
-
-
 "return the index of the character starting at/covering column (0-index)
 "intended for use with str of space/tabs
 "return index

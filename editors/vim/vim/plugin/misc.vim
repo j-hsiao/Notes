@@ -108,6 +108,21 @@ function! s:FitWidth(...)
 endfunction
 nnoremap <expr> gq ":<Bslash><lt>C-U>setl<Space>opfunc=<SID>FitWidth<Bslash><lt>CR>" . <SID>FitWidth()
 
+function! s:BlockStart(start, stop)
+	let targetcol = -1
+	let check = a:start
+	while check <= a:stop
+		let parts = matchlist(getline(check), '\m^\(\s*\)\(.*\)')
+		if strlen(parts[2])
+			let curcol = strdisplaywidth(parts[1])
+			if curcol < targetcol || targetcol < 0
+				let targetcol = curcol
+			endif
+		endif
+		let check += 1
+	endwhile
+	return curcol
+endfunction
 
 "Comment manipulation only operate on whole lines.
 "unless a comment includes an entire line, it will not be considered.
@@ -125,20 +140,7 @@ nnoremap <expr> gq ":<Bslash><lt>C-U>setl<Space>opfunc=<SID>FitWidth<Bslash><lt>
 "	current line.
 function! s:AddCommentV() range
 	let [singles, multis] = jhsiaoutil#ParseComments()
-	let check = a:firstline
-	let targetcol = -1
-	while check <= a:lastline
-		let parts = matchlist(getline(check), '\m^\(\s*\)\(.*\)')
-		if strlen(parts[2])
-			let curcol = strdisplaywidth(parts[1])
-			if curcol < targetcol || targetcol < 0
-				let targetcol = curcol
-			endif
-		else
-			call setline(check, '')
-		endif
-		let check += 1
-	endwhile
+	let targetcol = s:BlockStart(a:firstline, a:lastline)
 	if len(singles)
 		let pre = singles[0]['val']
 		if singles[0]['flags'] =~ 'b'
@@ -209,8 +211,6 @@ endfunction
 inoremap <Plug>MiscAddComment; <C-R>=<SID>AddCommentLine()<CR>
 nmap <Plug>MiscAddComment; :call <SID>AddCommentLine()<CR>
 vmap <Plug>MiscAddComment; :call <SID>AddCommentV()<CR>
-
-
 
 "Uncomment current line(s)
 function! s:RmCommentV() range
