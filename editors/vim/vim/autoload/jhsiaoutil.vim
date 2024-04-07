@@ -203,7 +203,7 @@ function! jhsiaoutil#ParseComments()
 			let front = printf('\%%(\(%s\)\|\(%s\)\)\?', sreg, mreg)
 			let texttil = printf('\(\%%(\%%(%s\)\@!.\)*\)', ereg)
 			let reg = printf('%s%s%s\(%s\)\?\(.*\)', spaceuntil, front, texttil, ereg)
-			let any = printf('.*\(%s\)\%%(\%%(%s\)\@!.\)*\(%s\)\?', sreg, ereg, ereg)
+			let any = printf('^\s*\(%s\)\?\%%(\%%(%s\)\@!.\)*\(%s\)\?', sreg, ereg, ereg)
 			let info = {'s': multi[0], 'm': multi[1], 'e': multi[2], 'reg': reg, 'any': any}
 			if flags =~ '[fO]'
 				call add(multimaybe, info)
@@ -260,6 +260,7 @@ function! jhsiaoutil#MatchComment(line, singles, multis, ...)
 			return [multi, parts]
 		endif
 	endfor
+	return [[], {}]
 endfunction
 
 "TODO: parse comments and use that?
@@ -300,15 +301,15 @@ function!  jhsiaoutil#GetCMSPattern()
 		\ escape(parts[4], '\'))
 endfunction
 
-"Find start of multi-line comment.
-"assume current line is in a comment
-"but does not contain a starting comment.
-"may have middle or end though
+"Search before for a line starting with multi['s']['val']
+"Any lines containing multi['e']['val'] will end searching.
+"0 if not found.  Otherwise the line number.
 function! jhsiaoutil#MultiStart(lineno, multi)
 	let check = a:lineno-1
 	while 1 <= check
 		let parts = matchlist(getline(check), a:multi['any'])
 		if len(parts)
+			echo parts
 			if strlen(parts[2])
 				return 0
 			elseif strlen(parts[1])
@@ -319,6 +320,24 @@ function! jhsiaoutil#MultiStart(lineno, multi)
 	endwhile
 	return 0
 endfunction
+
+"Find end of multi-line comment.
+"Assume current line is a comment
+"but does not contain the end part.
+function! jhsiaoutil#MultiEnd(lineno, multi)
+	let check = a:lineno+1
+	let end = line('$')
+	let pat = printf('\V%s', a:multi['e']['val'])
+	while check <= end
+		if match(getline(check), pat) >= 0
+			return check
+		endif
+		let check += 1
+	endwhile
+	return 0
+endfunction
+
+
 
 
 "return the index of the character starting at/covering column (0-index)
