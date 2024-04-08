@@ -212,6 +212,43 @@ inoremap <Plug>MiscAddComment; <C-R>=<SID>AddCommentLine()<CR>
 nmap <Plug>MiscAddComment; :call <SID>AddCommentLine()<CR>
 vmap <Plug>MiscAddComment; :call <SID>AddCommentV()<CR>
 
+"Remove comment for the given line and return.
+"easier/clearer than using variables/break, etc
+"Return the next line for processing
+function! s:RmLineV(curno, singles, multis, start, stop)
+	let curtext = getline(a:curno)
+	for multi in multis
+		let parts = matchlist(curtext, multi['reg'])
+		if strlen(parts[2])
+			if strlen(parts[5])
+				call setline(a:curno, join([parts[1], parts[4], parts[6]], ''))
+				return a:curno + 1
+			else
+				let ending = jhsiaoutil#MultiEnd(a:curno+1, multi)
+				if ending > a:stop
+					"multi comment extends past end of selection
+					"TODO remove from the remaining lines
+					"add comment starter to a:stop+1
+					return a:stop+1
+				elseif ending > 0
+					"TODO remove from the remaining lines
+					return ending+1
+				endif
+			endif
+		elseif (
+				\ strlen(parts[3])
+				\ && a:curno == a:start
+				\ && jhsiaoutil#MultiStart(a:curno-1, multi))
+		endif
+	endfor
+	for single in singles
+		let parts = matchlist(curtext, single['reg'])
+		if len(parts)
+			call setline(a:curno, join([parts[1], parts[3]], ''))
+			return a:curno + 1
+		endif
+	endfor
+endfunction
 "Uncomment current line(s)
 function! s:RmCommentV() range
 	let [singles, multis] = jhsiaoutil#ParseComments()
@@ -259,6 +296,7 @@ function! s:RmCommentV() range
 endfunction
 
 
+"Add multi to end of given line
 function! s:AddMultiEnd(lineno, multi)
 	let prev = getline(a:lineno)
 	let parts = matchlist(prev, a:multi['reg'])
@@ -271,6 +309,7 @@ function! s:AddMultiEnd(lineno, multi)
 	endif
 endfunction
 
+"Add multi to start to beginning of given line
 function! s:AddMultiBeg(lineno, multi)
 	let prev = getline(a:lineno)
 	let parts = matchlist(prev, a:multi['reg'])
