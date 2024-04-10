@@ -212,9 +212,22 @@ inoremap <Plug>MiscAddComment; <C-R>=<SID>AddCommentLine()<CR>
 nmap <Plug>MiscAddComment; :call <SID>AddCommentLine()<CR>
 vmap <Plug>MiscAddComment; :call <SID>AddCommentV()<CR>
 
-"Remove comment for the given line and return.
-"easier/clearer than using variables/break, etc
-"Return the next line for processing
+
+function! s:ClearMulti(start, stop, ending, multi)
+	let cur = a:start
+	while cur <= a:ending
+		if cur > a:stop
+			s:AddMultiBeg(cur, multi)
+			return cur
+		else
+			let parts = matchlist(getline(cur), multi['reg'])
+			call setline(cur, join([parts[1], parts[4], parts[6]], ''))
+		endif
+		let cur += 1
+	endwhile
+	return ending + 1
+endfunction
+"Remove commenting from line curno
 function! s:RmLineV(curno, singles, multis, start, stop)
 	let curtext = getline(a:curno)
 	for multi in multis
@@ -225,20 +238,26 @@ function! s:RmLineV(curno, singles, multis, start, stop)
 				return a:curno + 1
 			else
 				let ending = jhsiaoutil#MultiEnd(a:curno+1, multi)
-				if ending > a:stop
-					"multi comment extends past end of selection
-					"TODO remove from the remaining lines
-					"add comment starter to a:stop+1
-					return a:stop+1
-				elseif ending > 0
-					"TODO remove from the remaining lines
-					return ending+1
+				if ending > 0
+					call setline(a:curno, join([parts[1], parts[4], parts[6]], ''))
+					return s:ClearMulti(a:curno+1, a:stop, ending, multi)
 				endif
 			endif
 		elseif (
 				\ strlen(parts[3])
 				\ && a:curno == a:start
-				\ && jhsiaoutil#MultiStart(a:curno-1, multi))
+				\ && jhsiaoutil#MultiStart(a:curno-1, multi)>0)
+			if strlen(parts[5])
+				call setline(a:curno, join([parts[1], parts[4], parts[6]], ''))
+				return a:curno+1
+			else
+				let ending = jhsiaoutil#MultiEnd(a:curno+1, multi)
+				if ending > 0
+					call s:AddMultiEnd(a:curno-1, multi)
+					call setline(a:curno, join([parts[1], parts[4], parts[6]], ''))
+					return s:ClearMulti(a:curno+1, a:stop, ending, multi)
+				endif
+			endif
 		endif
 	endfor
 	for single in singles
