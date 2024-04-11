@@ -213,24 +213,34 @@ nmap <Plug>MiscAddComment; :call <SID>AddCommentLine()<CR>
 vmap <Plug>MiscAddComment; :call <SID>AddCommentV()<CR>
 
 
+"Remove a multi-line comment from start to min(ending, stop).
+"start: start of selection
+"stop: end of selection
+"ending: ending line of multiline comment.
+"muulti: multi info dict.
 function! s:ClearMulti(start, stop, ending, multi)
 	let cur = a:start
 	while cur <= a:ending
 		if cur > a:stop
-			s:AddMultiBeg(cur, multi)
+			call s:AddMultiBeg(cur, a:multi)
 			return cur
 		else
-			let parts = matchlist(getline(cur), multi['reg'])
-			call setline(cur, join([parts[1], parts[4], parts[6]], ''))
+			let parts = matchlist(getline(cur), a:multi['reg'])
+			if strlen(parts[4]) == 0 && strlen(parts[6]) == 0
+				call setline(cur, '')
+			else
+				call setline(cur, join([parts[1], parts[4], parts[6]], ''))
+			endif
 		endif
 		let cur += 1
 	endwhile
-	return ending + 1
+	return a:ending + 1
 endfunction
+
 "Remove commenting from line curno
 function! s:RmLineV(curno, singles, multis, start, stop)
 	let curtext = getline(a:curno)
-	for multi in multis
+	for multi in a:multis
 		let parts = matchlist(curtext, multi['reg'])
 		if strlen(parts[2])
 			if strlen(parts[5])
@@ -260,7 +270,7 @@ function! s:RmLineV(curno, singles, multis, start, stop)
 			endif
 		endif
 	endfor
-	for single in singles
+	for single in a:singles
 		let parts = matchlist(curtext, single['reg'])
 		if len(parts)
 			call setline(a:curno, join([parts[1], parts[3]], ''))
@@ -268,6 +278,8 @@ function! s:RmLineV(curno, singles, multis, start, stop)
 		endif
 	endfor
 endfunction
+
+
 "Uncomment current line(s)
 function! s:RmCommentV() range
 	let [singles, multis] = jhsiaoutil#ParseComments()
