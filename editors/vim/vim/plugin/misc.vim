@@ -226,10 +226,10 @@ function! s:ClearMulti(start, stop, ending, multi)
 			return cur
 		else
 			let parts = matchlist(getline(cur), a:multi['reg'])
-			if strlen(parts[4]) == 0 && strlen(parts[6]) == 0
-				call setline(cur, '')
-			else
+			if strlen(parts[4]) || strlen(parts[6])
 				call setline(cur, join([parts[1], parts[4], parts[6]], ''))
+			else
+				call setline(cur, '')
 			endif
 		endif
 		let cur += 1
@@ -237,7 +237,9 @@ function! s:ClearMulti(start, stop, ending, multi)
 	return a:ending + 1
 endfunction
 
-"Remove commenting from line curno
+"Remove commenting from line curno.
+"If multi, then remove from current line until end if applicable
+"Return the next line to handle.
 function! s:RmLineV(curno, singles, multis, start, stop)
 	let curtext = getline(a:curno)
 	for multi in a:multis
@@ -256,15 +258,24 @@ function! s:RmLineV(curno, singles, multis, start, stop)
 		elseif (
 				\ strlen(parts[3])
 				\ && a:curno == a:start
-				\ && jhsiaoutil#MultiStart(a:curno-1, multi)>0)
+				\ && jhsiaoutil#MultiStart(a:curno, multi)>0)
 			if strlen(parts[5])
-				call setline(a:curno, join([parts[1], parts[4], parts[6]], ''))
+				call s:AddMultiEnd(a:curno-1, multi)
+				if strlen(parts[4]) || strlen(parts[6])
+					call setline(a:curno, join([parts[1], parts[4], parts[6]], ''))
+				else
+					call setline(a:curno, '')
+				endif
 				return a:curno+1
 			else
 				let ending = jhsiaoutil#MultiEnd(a:curno+1, multi)
 				if ending > 0
 					call s:AddMultiEnd(a:curno-1, multi)
-					call setline(a:curno, join([parts[1], parts[4], parts[6]], ''))
+					if strlen(parts[4]) || strlen(parts[6])
+						call setline(a:curno, join([parts[1], parts[4], parts[6]], ''))
+					else
+						call setline(a:curno, '')
+					endif
 					return s:ClearMulti(a:curno+1, a:stop, ending, multi)
 				endif
 			endif
@@ -277,6 +288,7 @@ function! s:RmLineV(curno, singles, multis, start, stop)
 			return a:curno + 1
 		endif
 	endfor
+	return a:curno+1
 endfunction
 
 
@@ -286,43 +298,7 @@ function! s:RmCommentV() range
 	let curno = a:firstline
 	while curno <= a:lastline
 		let curline = getline(curno)
-		let domulti = v:true
-		for single in singles
-			let parts = matchlist(curline, single['reg'])
-			if len(parts)
-				call setline(curno, join([parts[1], parts[3]], ''))
-				let domulti = v:false
-				break
-			endif
-		endfor
-		if domulti
-			for multi in multis
-				let parts = matchlist(curline, multi['reg'])
-				if strlen(parts[2]) || (
-						\ strlen(parts[3])
-						\ && curno == a:firstline
-						\ && jhsiaoutil#MultiStart(curno, multi)>0)
-					let mparts = []
-					while strlen(parts[5]) == 0 && curno < a:lastline
-						call add(mparts, [curno, parts])
-						let curno += 1
-						let parts = matchlist(getline(curno), multi['reg'])
-					endwhile
-					call add(mparts, [curno, parts])
-					for [multino, parts] in mparts
-						if multino == a:firstline && strlen(parts[2]) == 0
-							call s:AddMultiEnd(multino-1, multi)
-						endif
-						if multino == a:lastline && strlen(parts[5]) == 0
-							call s:AddMultiBeg(multino+1, multi)
-						endif
-						call setline(multino, join([parts[1], parts[4], parts[6]], ''))
-					endfor
-					break
-				endif
-			endfor
-		endif
-		let curno += 1
+		let curno = s:RmLineV(curno, singles, multis, a:firstline, a:lastline)
 	endwhile
 endfunction
 

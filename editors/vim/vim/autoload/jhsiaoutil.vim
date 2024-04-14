@@ -304,6 +304,8 @@ endfunction
 "Search before for a line starting with multi['s']['val']
 "Any lines containing multi['e']['val'] will end searching.
 "0 if not found.  Otherwise the line number.
+"Assume lineno does not contain the start. and search before
+"it.
 function! jhsiaoutil#MultiStart(lineno, multi)
 	let check = a:lineno-1
 	while 1 <= check
