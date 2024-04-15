@@ -149,14 +149,8 @@ function! s:AddCommentV() range
 		let mid = pre
 		let end = ''
 	else
-		let pre = multis[0]['s']['val']
-		if multis[0]['s']['flags'] =~ 'b'
-			let pre .= ' '
-		endif
-		let mid = multis[0]['m']['val']
-		if multis[0]['m']['flags'] =~ 'b'
-			let mid .= ' '
-		endif
+		let pre = multis[0]['s']['add']
+		let mid = multis[0]['m']['add']
 		let end = multis[0]['e']['val']
 	endif
 	let check = a:firstline
@@ -197,10 +191,8 @@ function! s:AddCommentLine()
 		endif
 		call setline('.', join(parts[1:2], prefix))
 	else
-		let prefix = multis[0]['s']['val']
-		if multis[0]['s']['flags'] =~ 'b'
-			let prefix .= ' '
-		endif
+
+		let prefix = multis[0]['s']['add']
 		call setline(
 			\ '.', join([parts[1], prefix, parts[2], multis[0]['e']['val']], ''))
 	endif
@@ -305,30 +297,41 @@ endfunction
 
 "Add multi to end of given line
 function! s:AddMultiEnd(lineno, multi)
-	let prev = getline(a:lineno)
-	let parts = matchlist(prev, a:multi['reg'])
-	if strlen(parts[2]) && strlen(parts[4]) == 0
-		call setline(a:lineno, '')
-	elseif strlen(parts[3]) && strlen(parts[4]) == 0
-		call setline(a:lineno, join([parts[1], a:multi['e']['val']], ''))
-	else
-		call setline(a:lineno, prev . a:multi['e']['val'])
-	endif
+	let check = a:lineno
+	while check > 0
+		let text = getline(check)
+		let parts = matchlist(text, a:multi['reg'])
+		if strlen(parts[2]) && strlen(parts[4]) == 0
+			call setline(check, '')
+			return
+		elseif strlen(parts[4])
+			call setline(check, text . a:multi['e']['val'])
+			return
+		else
+			call setline(check, '')
+			let check -= 1
+		endif
+	endwhile
 endfunction
 
-"Add multi to start to beginning of given line
+"Add multi to start to beginning of given or next lines
 function! s:AddMultiBeg(lineno, multi)
-	let prev = getline(a:lineno)
-	let parts = matchlist(prev, a:multi['reg'])
-	if strlen(parts[5]) && strlen(parts[4]) == 0
-		call setline(a:lineno, '')
-	else
-		let pre = a:multi['s']['val']
-		if a:multi['s']['flags'] =~ 'b'
-			let pre .= ' '
+	let check = a:lineno
+	while 1
+		let text = getline(check)
+		let parts = matchlist(text, a:multi['reg'])
+		if strlen(parts[5]) && strlen(parts[4]) == 0
+			call setline(check, '')
+			return
+		elseif strlen(parts[4])
+			let pre = a:multi['s']['add']
+			call setline(check, join([parts[1], pre, parts[4], parts[5], parts[6]], ''))
+			return
+		else
+			call setline(check, '')
+			let check += 1
 		endif
-		call setline(a:lineno, join([parts[1], pre, parts[4], parts[5], parts[6]], ''))
-	endif
+	endwhile
 endfunction
 
 "Remove a multi-line comment and adjust cursor position.

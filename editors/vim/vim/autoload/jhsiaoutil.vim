@@ -205,6 +205,20 @@ function! jhsiaoutil#ParseComments()
 			let reg = printf('%s%s%s\(%s\)\?\(.*\)', spaceuntil, front, texttil, ereg)
 			let any = printf('^\s*\(%s\)\?\%%(\%%(%s\)\@!.\)*\(%s\)\?', sreg, ereg, ereg)
 			let info = {'s': multi[0], 'm': multi[1], 'e': multi[2], 'reg': reg, 'any': any}
+			if info['s']['flags'] =~ 'b' ||
+				\ (info['m']['flags'] =~ 'b'
+				\ && strlen(info['s']['val']) == strlen(info['m']['val'])+npre)
+				let info['s']['add'] = info['s']['val'] . ' '
+			else
+				let info['s']['add'] = info['s']['val']
+			endif
+			if info['m']['flags'] =~ 'b' ||
+				\ (info['s']['flags'] =~ 'b'
+				\ && strlen(info['s']['val']) == strlen(info['m']['val'])+npre)
+				let info['m']['add'] = repeat(' ', npre) . info['m']['val'] . ' '
+			else
+				let info['m']['add'] = repeat(' ', npre) . info['m']['val']
+			endif
 			if flags =~ '[fO]'
 				call add(multimaybe, info)
 			else
