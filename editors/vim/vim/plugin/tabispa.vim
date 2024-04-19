@@ -154,17 +154,6 @@ function! s:RawRemoveAlignment(line, sts)
 endfunction
 
 
-"TODO
-"Convert functions to range
-"remove ParseLineRanges (when range and no selection, a:firstline = a:lastline = '.')
-"nv modes, <> -> precomment, use <C-K><> to use postcomment
-"insert mode, <C-TD> -> postcomment, use <C-K><C-TD> for normal
-"when typing, you're probably past the comment so alignment mode would be most
-"suitable.  However, in normal/visual mode you're not currently inserting so
-"more likely to be wishing to shift the actual comment left/right
-
-"Adding indent adds to beginning of the line.
-"
 "insert mode:
 "	base: add indent after comment character
 "	alt: always add at beginning of line
@@ -175,7 +164,7 @@ endfunction
 "	base: always add at beginning of line
 "	alt: add indent after comment character only if all selected lines
 "		are commented.
-function! s:AddIndent(inserting, base) range
+function! s:AddIndent(raw) range
 	if &l:et
 		if &l:sw == 0
 			let prefix = repeat(' ', &l:ts)
@@ -185,13 +174,24 @@ function! s:AddIndent(inserting, base) range
 	else
 		let prefix = "\<Tab>"
 	endif
+	let [singles, multis] = jhsiaoutl#ParseComments()
+	let raw = a:raw
+	if !a:raw && a:firstline != a:lastline
+		let curline = a:firstline
+		while curline <= a:lastline
+			let text = getline('.')
+			jhsiaoutil#MatchComment(text, singles, multis, 2, 3)
+
+			if curline == a:firstline && 
+		endwhile
+	endif
+
 	if a:firstline == a:lastline
 		if a:0
 		else
 		endif
 	else
 		if !a:base
-			let [singles, multis] = jhsiaoutl#ParseComments()
 			let curline = a:firstline
 			let iscomment = v:false
 			while iscomment && curline <= a:lastline

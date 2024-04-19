@@ -256,25 +256,26 @@ function! jhsiaoutil#ParseComments()
 endfunction
 
 "Find the comment dict from singles/multis that matches the given line.
+"Return list of [info, parts] for matching comment types
 function! jhsiaoutil#MatchComment(line, singles, multis, ...)
+	let ret = []
 	for single in a:singles
 		let parts = matchlist(a:line, single['reg'])
 		if len(parts)
-			return [single, parts]
+			call add(ret, [single, parts])
 		endif
 	endfor
 	for multi in a:multis
 		let parts = matchlist(a:line, multi['reg'])
+		let matched = v:false
 		for idx in a:0
-			if strlen(parts[idx])
-				return [multi, parts]
-			endif
+			let matched = matched || strlen(parts[idx]) > 0
 		endfor
-		if strlen(parts[2])
-			return [multi, parts]
+		if matched
+			call add(ret, [multi, parts])
 		endif
 	endfor
-	return [[], {}]
+	return ret
 endfunction
 
 "TODO: parse comments and use that?
