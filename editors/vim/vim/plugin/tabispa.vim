@@ -174,14 +174,29 @@ function! s:AddIndent(raw) range
 		let prefix = "\<Tab>"
 	endif
 	let [singles, multis] = jhsiaoutl#ParseComments()
-	let raw = a:raw
-	if !a:raw && a:firstline != a:lastline
+	if mode() == 'i' || mode() == 'R'
+		for [info, parts] in jhsiaoutil#MatchComment(
+				\ getline('.'), singles, multis, 2, 3)
+			if has_key(info, 's')
+				" multi
+			else
+				" single
+			endif
+		endfor
+	elseif mode() == 'n'
+	elseif mode() == 'V'
 		let curline = a:firstline
+		infos = []
 		while curline <= a:lastline
-			let text = getline('.')
-			jhsiaoutil#MatchComment(text, singles, multis, 2, 3)
-
-			if curline == a:firstline && 
+			let text = getline(curline)
+			let matches = jhsiaoutil#MatchComment(
+				\ text, singles, multis, 2, 3)
+			if len(matches)
+				call add(infos, matches)
+			elseif strlen(text)
+				break
+			endif
+			let curline += 1
 		endwhile
 	endif
 
