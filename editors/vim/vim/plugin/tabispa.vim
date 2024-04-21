@@ -118,8 +118,7 @@ function! s:BackspaceAlignmentAction()
 	if to_remove == 0
 		let to_remove = step
 	endif
-	let nspaces = strlen(matchstr(prestr, printf('\m \{1,%d\}', to_remove)))
-
+	let nspaces = strlen(matchstr(prestr, printf('\m \{1,%d\}$', to_remove)))
 	"space+BS to ensure removing single chars even if after shifting
 	return ' ' . repeat("\<BS>", nspaces+1)
 endfunction
