@@ -59,22 +59,64 @@ if maparg('<Leader><Leader>', 'i') == ''
 endif
 
 "Sectioning
-function! s:IRepeatChar()
-	call inputsave()
-	let resp = input('repeat [count]char: ')
-	call inputrestore()
-	if strlen(resp)
-		let repeat = strpart(resp, 0, strlen(resp)-1)
-		if repeat == ''
-			let repeat = 30
+function! s:IRepeatCharParse()
+	if getchar(1)
+		let newchar = getchar()
+		if type(newchar) == v:t_number
+			let newchar = nr2char(newchar)
 		endif
-		return repeat(strpart(resp, strlen(resp)-1), repeat)
+		if newchar =~ '\m\d'
+			let b:MiscRepeatCharCount = get(b:, 'MiscRepeatCharCount', '') . newchar
+			call feedkeys("\<Plug>MiscRepeatChar;", 'mi')
+			return ''
+		else
+			let numchars = get(b:, 'MiscRepeatCharCount', '')
+			if !strlen(numchars)
+				let numchars = 30
+			endif
+			let b:MiscRepeatCharCount = ''
+			return repeat(newchar, numchars)
+		endif
+	else
+		call feedkeys("\<Plug>MiscRepeatChar;", 'mi')
+		return ''
+	endif
+endfunction
+function! s:ClearRepeat(...)
+	let b:MiscRepeatCharCount = ''
+	if a:0 && a:1
+		"Dunno why but by observation when disambiguating on
+		"cygwin C-[ results in 'C-[[91;5u' which means canceling
+		"via control-[ ends up adding the extra keys [91;5u so
+		"consume those extra keys
+		while getchar(1)
+			let thing = getchar()
+			if type(thing) == v:t_number
+				let thing = nr2char(thing)
+			endif
+		endwhile
 	endif
 	return ''
 endfunction
+inoremap <Plug>MiscRepeatChar;<Esc> <C-R>=<SID>ClearRepeat(1)<CR>
+inoremap <Plug>MiscRepeatChar; <C-R>=<SID>IRepeatCharParse()<CR>
+"function! s:IRepeatChar()
+"	call inputsave()
+"	let resp = input('repeat [count]char: ')
+"	call inputrestore()
+"	if strlen(resp)
+"		let repeat = strpart(resp, 0, strlen(resp)-1)
+"		if repeat == ''
+"			let repeat = 30
+"		endif
+"		return repeat(strpart(resp, strlen(resp)-1), repeat)
+"	endif
+"	return ''
+"endfunction
 
 if maparg('<Leader>r', 'i') == ''
-	inoremap <expr> <Leader>r <SID>IRepeatChar()
+	"inoremap <expr> <Leader>r <SID>IRepeatChar()
+	imap <Leader>r <C-R>=<SID>ClearRepeat()<CR><Plug>MiscRepeatChar;
 endif
 
 for val in ['In', 'Out']
