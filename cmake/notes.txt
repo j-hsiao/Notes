@@ -22,6 +22,9 @@ contents:
 -5- ctest
 -6- mingw
 -7- making install packages
+	-7.1- <packagename>Config.cmake
+	-7.2- <packagename>Config.cmake
+	-7.3- <packagename>Targets.cmake
 
 ------------------------------
 -0- tutorial
@@ -460,6 +463,14 @@ ctest: run tests from add_test
 ------------------------------
 -7- making install packages
 ------------------------------
+	include directories should be written as:
+		target_include_directories(
+			$<BUILD_INTERFACE:...>
+			$<INSTALL_INTERFACE:...>
+			)
+		BUILD_INTERFACE = full paths
+		INSTALL_INTERFACE = relative paths (to install dir)
+
 	Creating a package means creating some file to allow cmake to find your
 	project.
 
@@ -470,12 +481,19 @@ ctest: run tests from add_test
 		<packagename>ConfigVersion.cmake
 		<packagename>Targets.cmake
 
-	Config.cmake
+	------------------------------
+	-7.1- <packagename>Config.cmake
+	------------------------------
 		This generally finds dependencies.
 			ie: replace find_package in CMakeList.txt with:
 				include(CMakeFindDependencyMacro)
 				find_dependency(...)
+				include(<packagename>Targets.cmake)
 		And then includes the Targets.cmake file.
+		NOTE:
+			if there are no dependencies, then the <packagename>Targets.cmake
+			can just be written as <packagename>Config.cmake instead and just
+			have no <packagename>Targets.cmake
 
 		It is usually created by first writing a <package>Config.cmake.in
 		file with paths denoted by @CMAKE_VARIABLE_NAME@ and then
@@ -504,6 +522,9 @@ ctest: run tests from add_test
 				will be auto-calculated as relative to install dir
 				to make a "relocatable" package
 
+	------------------------------
+	-7.2- <packagename>Config.cmake
+	------------------------------
 	ConfigVersion.cmake
 		This tells the version of the package and the policy.
 		CMakePackageConfigHelpers:
@@ -518,7 +539,9 @@ ctest: run tests from add_test
 				ExactVersion: must match exactly
 
 
-	Targets.cmake
+	------------------------------
+	-7.3- <packagename>Targets.cmake
+	------------------------------
 		This gives the actual info about your package.
 		This is created by
 			install(
