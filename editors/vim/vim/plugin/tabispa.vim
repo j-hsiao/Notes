@@ -153,6 +153,48 @@ function! s:RawRemoveAlignment(line, sts)
 endfunction
 
 
+function! s:AddIndentSingle(ignore_comments)
+	if &l:et
+		if &l:sw == 0
+			let prefix = repeat(' ', &l:ts)
+		else
+			let prefix = repeat(' ', &l:sw)
+		endif
+	else
+		let prefix = "\<Tab>"
+	endif
+	let curmode = mode()
+	let curline = getline('.')
+	if curmode == 'n' && !strlen(curline)
+		return
+	endif
+	if a:ignore_comments
+		call setline('.', prefix . curline)
+		call jhsiaoutil#CursorShift(0, strlen(prefix))
+		return ''
+	else
+		for [info, parts] in jhsiaoutil#MatchComment(
+				\ getline('.'), singles, multis, 2, 3)
+			if has_key(info, 's')
+				if strlen(parts[2]) || jhsiaoutil#MultiStart(line('.'), info) > 0
+					let nline = join([
+						\ parts[1], parts[2], parts[3], prefix,
+						\ parts[4], parts[5], parts[6]], '')
+					call setline('.', nline)
+					call jhsiaoutil#CursorShift(
+						\ strlen(parts[1]) + strlen(parts[2]) + strlen(parts[3]), strlen(prefix))
+					return ''
+				endif
+			else
+				call setline('.', join([parts[1], parts[2], prefix, parts[3]], ''))
+				call jhsiaoutil#CursorShift(
+					\ strlen(parts[1]) + strlen(parts[2]), strlen(prefix))
+				return ''
+			endif
+		endfor
+	endif
+endfunction
+
 "insert mode:
 "	base: add indent after comment character
 "	alt: always add at beginning of line
@@ -175,15 +217,9 @@ function! s:AddIndent(raw) range
 	endif
 	let [singles, multis] = jhsiaoutl#ParseComments()
 	if mode() == 'i' || mode() == 'R'
-		for [info, parts] in jhsiaoutil#MatchComment(
-				\ getline('.'), singles, multis, 2, 3)
-			if has_key(info, 's')
-				" multi
-			else
-				" single
-			endif
-		endfor
+		return AddIndentSingle(!a:raw)
 	elseif mode() == 'n'
+		return AddIndentSingle(a:raw)
 	elseif mode() == 'V'
 		let curline = a:firstline
 		infos = []
