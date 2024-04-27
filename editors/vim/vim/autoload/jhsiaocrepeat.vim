@@ -132,9 +132,16 @@ function! jhsiaocrepeat#CharRepeatedCmds(cmd, repkey, ...)
 
 	"Repeat mapping
 	if mapinfo['mode'] == 'v'
-		let repeatmap = printf(
-			\ '%smap <special> %s%s `<lt><Esc>v`>%s',
-			\ after, repname, a:repkey, mapinfo['lhs'])
+		let rhs = join(mapinfo['rhs'], '')
+		if len(mapinfo['rhs']) && rhs[:4] == ':call'
+			let repeatmap = printf(
+				\ "%smap <special> %s%s :'<,'>%s",
+				\ after, repname, a:repkey, rhs[1:])
+		else
+			let repeatmap = printf(
+				\ '%smap <special> %s%s `<lt><Esc>v`>%s',
+				\ after, repname, a:repkey, mapinfo['lhs'])
+		endif
 	else
 		let repeatmap = printf(
 			\ '%smap <special> %s%s %s',
