@@ -152,8 +152,14 @@ function! s:RawRemoveAlignment(line, sts)
 		join([parts[1], strpart(parts[2], a:sts), parts[3]], '')]
 endfunction
 
-
+"insert mode:
+"	base: add indent after comment character
+"	alt: always add at beginning of line
+"normal mode:
+"	base: always add at beginning of line
+"	alt: add indent after comment character
 function! s:AddIndentSingle(ignore_comments)
+	let [singles, multis] = jhsiaoutil#ParseComments()
 	if &l:et
 		if &l:sw == 0
 			let prefix = repeat(' ', &l:ts)
@@ -166,13 +172,9 @@ function! s:AddIndentSingle(ignore_comments)
 	let curmode = mode()
 	let curline = getline('.')
 	if curmode == 'n' && !strlen(curline)
-		return
-	endif
-	if a:ignore_comments
-		call setline('.', prefix . curline)
-		call jhsiaoutil#CursorShift(0, strlen(prefix))
 		return ''
-	else
+	endif
+	if !a:ignore_comments
 		for [info, parts] in jhsiaoutil#MatchComment(
 				\ getline('.'), singles, multis, 2, 3)
 			if has_key(info, 's')
@@ -193,14 +195,23 @@ function! s:AddIndentSingle(ignore_comments)
 			endif
 		endfor
 	endif
+	call setline('.', prefix . curline)
+	call jhsiaoutil#CursorShift(0, strlen(prefix))
+	return ''
 endfunction
 
-"insert mode:
-"	base: add indent after comment character
-"	alt: always add at beginning of line
-"normal mode:
-"	base: always add at beginning of line
-"	alt: add indent after comment character
+inoremap <Plug>TabispaAddIndent; <C-R>=<SID>AddIndentSingle(v:false)<CR>
+inoremap <Plug>TabispaAddIndentIgnore; <C-R>=<SID>AddIndentSingle(v:true)<CR>
+nnoremap <Plug>TabispaAddIndent; :call <SID>AddIndentSingle(v:false)<CR>
+nnoremap <Plug>TabispaAddIndentIgnore; :call <SID>AddIndentSingle(v:true)<CR>
+imap <C-T> <Plug>TabispaAddIndent;
+execute jhsiaocrepeat#CharRepeatedCmds(
+	\ 'imap <C-K><C-T> <Plug>TabispaAddIndentIgnore;', '<C-T>')
+execute jhsiaocrepeat#CharRepeatedCmds(
+	\ 'nmap >> <Plug>TabispaAddIndentIgnore;', '.')
+execute jhsiaocrepeat#CharRepeatedCmds(
+	\ 'nmap <C-K><C-.> <Plug>TabispaAddIndent;', '.')
+
 "visual mode:
 "	base: always add at beginning of line
 "	alt: add indent after comment character only if all selected lines
@@ -215,27 +226,20 @@ function! s:AddIndent(raw) range
 	else
 		let prefix = "\<Tab>"
 	endif
-	let [singles, multis] = jhsiaoutl#ParseComments()
-	if mode() == 'i' || mode() == 'R'
-		return AddIndentSingle(!a:raw)
-	elseif mode() == 'n'
-		return AddIndentSingle(a:raw)
-	elseif mode() == 'V'
-		let curline = a:firstline
-		infos = []
-		while curline <= a:lastline
-			let text = getline(curline)
-			let matches = jhsiaoutil#MatchComment(
-				\ text, singles, multis, 2, 3)
-			if len(matches)
-				call add(infos, matches)
-			elseif strlen(text)
-				break
-			endif
-			let curline += 1
-		endwhile
-	endif
-
+	let [singles, multis] = jhsiaoutil#ParseComments()
+	let curline = a:firstline
+	infos = []
+	while curline <= a:lastline
+		let text = getline(curline)
+		let matches = jhsiaoutil#MatchComment(
+			\ text, singles, multis, 2, 3)
+		if len(matches)
+			call add(infos, matches)
+		elseif strlen(text)
+			break
+		endif
+		let curline += 1
+	endwhile
 	if a:firstline == a:lastline
 		if a:0
 		else
@@ -335,19 +339,9 @@ function! s:AddIndent(...)
 	endwhile
 	return ''
 endfunction
-inoremap <Plug>TabispaAddIndent; <C-R>=<SID>AddIndent('.')<CR>
-inoremap <Plug>TabispaAddIndentOld; <C-T>
-nnoremap <Plug>TabispaAddIndent; :call <SID>AddIndent('.')<CR>
-nnoremap <Plug>TabispaAddIndentOld; >>
+
 vnoremap <Plug>TabispaAddIndent; :call <SID>AddIndent()<CR>'>
 vnoremap <Plug>TabispaAddIndentOld; >
-imap <C-T> <Plug>TabispaAddIndent;
-execute jhsiaocrepeat#CharRepeatedCmds(
-	\ 'imap <C-K><C-T> <Plug>TabispaAddIndentOld;', '<C-T>')
-execute jhsiaocrepeat#CharRepeatedCmds(
-	\ 'nmap >> <Plug>TabispaAddIndent;', '.')
-execute jhsiaocrepeat#CharRepeatedCmds(
-	\ 'nmap <C-K>> <Plug>TabispaAddIndentOld;', '.')
 execute jhsiaocrepeat#CharRepeatedCmds(
 	\ 'vmap > <Plug>TabispaAddIndent;', '.', 'n')
 execute jhsiaocrepeat#CharRepeatedCmds(
