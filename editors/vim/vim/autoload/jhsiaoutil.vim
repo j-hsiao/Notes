@@ -268,7 +268,7 @@ function! jhsiaoutil#MatchComment(line, singles, multis, ...)
 	for multi in a:multis
 		let parts = matchlist(a:line, multi['reg'])
 		let matched = v:false
-		for idx in a:0
+		for idx in a:000
 			let matched = matched || strlen(parts[idx]) > 0
 		endfor
 		if matched
