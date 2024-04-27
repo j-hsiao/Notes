@@ -37,6 +37,9 @@ endif
 if maparg("\<C-[>\<C-[>", 'n') == ''
 	nnoremap <silent> <C-[><C-[> :nohl<CR>
 endif
+if maparg("\<Esc>\<Esc>", 'n') == ''
+	nnoremap <silent> <Esc><Esc> :nohl<CR>
+endif
 
 "scratch buffer
 if maparg('<Leader>b', 'n') == ''
