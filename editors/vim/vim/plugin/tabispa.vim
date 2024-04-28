@@ -212,6 +212,80 @@ execute jhsiaocrepeat#CharRepeatedCmds(
 execute jhsiaocrepeat#CharRepeatedCmds(
 	\ 'nmap <C-K><C-.> <Plug>TabispaAddIndent;', '.')
 
+function! s:AllCommented(start, stop, singles, multis)
+	let curline = a:start
+	while curline <= a:stop
+		let text = getline(curline)
+		if text == ''
+			if curline == a:start
+				for [info, end] in jhsiaoutil#MidMulti(curline, a:multis)
+					let curline = end
+					break
+				endfor
+			endif
+			let curline += 1
+			continue
+		endif
+		let iscomment = v:false
+		for [info, parts] in jhsiaoutil#MatchComment(text, a:singles, a:multis, 2, 3, 5)
+			echom 'wtf' . json_encode(parts)
+			if has_key(info, 's')
+				echom 'checking multi ' . info['s']['val'] . info['e']['val']
+				if strlen(parts[2])
+					let multiend = jhsiaoutil#MultiEnd(curline, info)
+					if multiend > 0
+						let iscomment = v:true
+						let curline = multiend
+						break
+					endif
+				elseif strlen(parts[5]) && curline == a:start
+					if jhsiaoutil#MultiStart(curline, info) > 0
+						let iscomment = v:true
+						break
+					endif
+				elseif strlen(parts[3]) && curline == a:start
+						\ && jhsiaoutil#MultiStart(curline, info) > 0
+					let multiend = jhsiaoutil#MultiEnd(curline, info)
+					if multiend > 0
+						let curline = multiend
+						let iscomment = v:true
+						break
+					endif
+				endif
+			elseif strlen(parts[2])
+				echom 'check single'
+				let iscomment = v:true
+				break
+			endif
+		endfor
+		if !iscomment
+			return v:false
+		endif
+		let curline += 1
+	endwhile
+	return v:true
+endfunction
+
+function! s:AddIndentVisual(ignore_comments) range
+	if &l:et
+		if &l:sw == 0
+			let prefix = repeat(' ', &l:ts)
+		else
+			let prefix = repeat(' ', &l:sw)
+		endif
+	else
+		let prefix = "\<Tab>"
+	endif
+	let [singles, multis] = jhsiaoutil#ParseComments()
+	"add indentation after comments only if selection is all comments
+	let ignore_comments = a:ignore_comments
+	if !ignore_comments && s:AllCommented(a:firstline, a:lastline)
+		"TODO add after comments
+		return
+	endif
+	"TODO Add at beginning.
+endfunction
+
 "visual mode:
 "	base: always add at beginning of line
 "	alt: add indent after comment character only if all selected lines
