@@ -255,6 +255,26 @@ function! jhsiaoutil#ParseComments()
 	return b:jhsiaoutilParseCommentsResult
 endfunction
 
+"list of [info, endline]
+"assume no multistart/stop in current line
+function! jhsiaoutil#MidMulti(line, multis ...)
+	if a:0
+		let maxdif = a:1
+	else
+		let maxdif = 1000
+	endif
+	let result = []
+	for multi in a:multis
+		if jhsiaoutil#MultiStart(a:line, multi) > 0
+			let multiend = jhsiaoutil#MultiEnd(a:line, multi)
+			if multiend > 0
+				call add(result, [multi, multiend])
+			endif
+		endif
+	endfor
+	return result
+endfunction
+
 "Find the comment dict from singles/multis that matches the given line.
 "Return list of [info, parts] for matching comment types
 function! jhsiaoutil#MatchComment(line, singles, multis, ...)
@@ -321,12 +341,17 @@ endfunction
 "0 if not found.  Otherwise the line number.
 "Assume lineno does not contain the start. and search before
 "it.
-function! jhsiaoutil#MultiStart(lineno, multi)
+function! jhsiaoutil#MultiStart(lineno, multi, ...)
+	if a:0
+		let maxdif = a:1
+	else
+		let maxdif = 1000
+	endif
 	let check = a:lineno-1
-	while 1 <= check
+	let lastline = max(1, check - maxdif)
+	while lastline <= check
 		let parts = matchlist(getline(check), a:multi['any'])
 		if len(parts)
-			echo parts
 			if strlen(parts[2])
 				return 0
 			elseif strlen(parts[1])
@@ -341,9 +366,14 @@ endfunction
 "Find end of multi-line comment.
 "Assume current line is a comment
 "but does not contain the end part.
-function! jhsiaoutil#MultiEnd(lineno, multi)
+function! jhsiaoutil#MultiEnd(lineno, multi, ...)
+	if a:0
+		let maxdif = a:1
+	else
+		let maxdif = 1000
+	endif
 	let check = a:lineno+1
-	let end = line('$')
+	let end = min(line('$'), check+maxdif)
 	let pat = printf('\V%s', a:multi['e']['val'])
 	while check <= end
 		if match(getline(check), pat) >= 0
