@@ -255,8 +255,8 @@ function! jhsiaoutil#ParseComments()
 	return b:jhsiaoutilParseCommentsResult
 endfunction
 
-"list of [info, endline]
-"assume no multistart/stop in current line
+"Return a list of [[info, endline]...] 3-part comments that
+"the given line may be strictly in the middle of.
 function! jhsiaoutil#MidMulti(line, multis ...)
 	if a:0
 		let maxdif = a:1

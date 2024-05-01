@@ -136,22 +136,6 @@ execute jhsiaomapfallback#CreateFallback(
 	\ '<Plug>TabispaBackspaceAlignmentFallbackCH;', '<C-H>', 'i')
 imap <expr> <C-H> <SID>BackspaceAlignmentDispatch('CH')
 
-"Add alignment.  Return Add position and result.
-function! s:RawAddAlignment(line, sts)
-	let parts = matchlist(a:line, '\m^\(\s*\)\(.*\)$')
-	return [
-		\ strlen(parts[1]),
-		\ join([parts[1], repeat(' ', a:sts), parts[2]], '')]
-endfunction
-
-"Remove alignment.  Return remove position and result.
-function! s:RawRemoveAlignment(line, sts)
-	let parts = matchlist(a:line, '\m^\(\t*\)\( *\)\(.*\)$')
-	return [
-		\ strlen(parts[1]),
-		join([parts[1], strpart(parts[2], a:sts), parts[3]], '')]
-endfunction
-
 "insert mode:
 "	base: add indent after comment character
 "	alt: always add at beginning of line
@@ -212,6 +196,8 @@ execute jhsiaocrepeat#CharRepeatedCmds(
 execute jhsiaocrepeat#CharRepeatedCmds(
 	\ 'nmap <C-K><C-.> <Plug>TabispaAddIndent;', '.')
 
+"Return whether the range of lines are all commented
+"or blank
 function! s:AllCommented(start, stop, singles, multis)
 	let curline = a:start
 	while curline <= a:stop
@@ -228,9 +214,7 @@ function! s:AllCommented(start, stop, singles, multis)
 		endif
 		let iscomment = v:false
 		for [info, parts] in jhsiaoutil#MatchComment(text, a:singles, a:multis, 2, 3, 5)
-			echom 'wtf' . json_encode(parts)
 			if has_key(info, 's')
-				echom 'checking multi ' . info['s']['val'] . info['e']['val']
 				if strlen(parts[2])
 					let multiend = jhsiaoutil#MultiEnd(curline, info)
 					if multiend > 0
@@ -253,13 +237,22 @@ function! s:AllCommented(start, stop, singles, multis)
 					endif
 				endif
 			elseif strlen(parts[2])
-				echom 'check single'
 				let iscomment = v:true
 				break
 			endif
 		endfor
 		if !iscomment
-			return v:false
+			if curline == a:start
+				let mids = jhsiaoutil#MidMulti(curline, a:multis)
+				if len(mids)
+					let curline = mids[0][1]
+					break
+				else
+					return v:false
+				endif
+			else
+				return v:false
+			endif
 		endif
 		let curline += 1
 	endwhile
@@ -279,11 +272,34 @@ function! s:AddIndentVisual(ignore_comments) range
 	let [singles, multis] = jhsiaoutil#ParseComments()
 	"add indentation after comments only if selection is all comments
 	let ignore_comments = a:ignore_comments
-	if !ignore_comments && s:AllCommented(a:firstline, a:lastline)
-		"TODO add after comments
-		return
+	if !ignore_comments && s:AllCommented(a:firstline, a:lastline, singles, multis)
+		let curline = a:firstline
+		while curline <= a:lastline
+			let text = getline(curline)
+			if strlen(text)
+				for [info, parts] in jhsiaoutil#MatchComments(text, singles, multis, 2,3)
+					if has_key(info, 's')
+						call setline(curline, join([parts[1], parts[2], prefix, parts[3]], ''))
+					else
+						call setline(\ curline, join([
+							\ parts[1], parts[2], parts[3], prefix,
+							\ parts[4], parts[5], parts[6]], ''))
+					endif
+					break
+				endfor
+			endif
+			let curline += 1
+		endwhile
+	else
+		let curline = a:firstline
+		while curline <= a:lastline
+			let text = getline(curline)
+			if strlen(text)
+				call setline(curline, prefix . text)
+			endif
+			let curline += 1
+		endwhile
 	endif
-	"TODO Add at beginning.
 endfunction
 
 "visual mode:
