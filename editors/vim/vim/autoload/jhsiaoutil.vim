@@ -257,7 +257,7 @@ endfunction
 
 "Return a list of [[info, endline]...] 3-part comments that
 "the given line may be strictly in the middle of.
-function! jhsiaoutil#MidMulti(line, multis ...)
+function! jhsiaoutil#MidMulti(line, multis, ...)
 	if a:0
 		let maxdif = a:1
 	else
