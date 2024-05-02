@@ -302,82 +302,12 @@ function! s:AddIndentVisual(ignore_comments) range
 	endif
 endfunction
 
-"visual mode:
-"	base: always add at beginning of line
-"	alt: add indent after comment character only if all selected lines
-"		are commented.
-function! s:AddIndent(raw) range
-	if &l:et
-		if &l:sw == 0
-			let prefix = repeat(' ', &l:ts)
-		else
-			let prefix = repeat(' ', &l:sw)
-		endif
-	else
-		let prefix = "\<Tab>"
-	endif
-	let [singles, multis] = jhsiaoutil#ParseComments()
-	let curline = a:firstline
-	infos = []
-	while curline <= a:lastline
-		let text = getline(curline)
-		let matches = jhsiaoutil#MatchComment(
-			\ text, singles, multis, 2, 3)
-		if len(matches)
-			call add(infos, matches)
-		elseif strlen(text)
-			break
-		endif
-		let curline += 1
-	endwhile
-	if a:firstline == a:lastline
-		if a:0
-		else
-		endif
-	else
-		if !a:base
-			let curline = a:firstline
-			let iscomment = v:false
-			while iscomment && curline <= a:lastline
-				let text = getline(curline)
-				for single in singles
-					let parts = matchlist(text, single['reg'])
-					if len(parts)
-						let iscomment = v:true
-						break
-					endif
-				endfor
-				if !iscomment
-					for multi in multis
-						let parts = matchlist(text, multi['reg'])
-						if strlen(parts[2])
-							let ncurline = curline
-							while ncurline <= a:lastline
-								let ntext = getline(curline)
-								let parts = matchlist(ntext, multi['reg'])
-								if strlen(parts[5])
-									break
-								endif
-								let ncurline += 1
-							endwhile
-							let iscomment = v:true
-							break
-						endif
-					endfor
-				endif
-				let curline += 1
-			endwhile
-			if iscomment
-				return
-			endif
-		endif
-		let curline = a:firstline
-		while curline != a:lastline
-			call setline(curline, prefix . getline(curline))
-			let curline += 1
-		endwhile
-	endif
-endfunction
+vnoremap <Plug>TabispaAddIndent; :call <SID>AddIndentVisual(v:false)<CR>
+vnoremap <Plug>TabispaAddIndentIgnore; :call <SID>AddIndentVisual(v:true)<CR>
+execute jhsiaocrepeat#CharRepeatedCmds(
+	\ 'vmap > <Plug>TabispaAddIndentIgnore;', '.', 'n')
+execute jhsiaocrepeat#CharRepeatedCmds(
+	\ 'vmap <C-K>> <Plug>TabispaAddIndent;', '.', 'n')
 
 function! s:ParseLineRanges(lst)
 	if len(a:lst)
@@ -397,45 +327,6 @@ function! s:ParseLineRanges(lst)
 		endif
 	endif
 endfunction
-
-function! s:AddIndent(...)
-	let [curno, lastline] = s:ParseLineRanges(a:000)
-	if &l:et
-		let pre = repeat(' ', shiftwidth())
-	else
-		let pre = "\<Tab>"
-	endif
-	let pattern = jhsiaoutil#GetCMSPattern()
-	"TODO: If all lines are comments, then use post-comment indentation
-	"otherwise if some comments and some not, it's probably desired to
-	"indent everything as normal...
-	while curno <= lastline
-		let curline = getline(curno)
-		let parts = matchlist(curline, pattern)
-		if strlen(parts[2])
-			let parts[0] = join(['%s%s', '%s%s%s'], pre)
-			call setline(curno, call('printf', parts[:5]))
-			if a:0
-				call jhsiaoutil#CursorShift(
-					\ strlen(join(parts[1:2], '')), strlen(pre))
-			endif
-		else
-			call setline(curno, join([pre, curline], ''))
-			if a:0
-				call jhsiaoutil#CursorShift(0, strlen(pre))
-			endif
-		endif
-		let curno += 1
-	endwhile
-	return ''
-endfunction
-
-vnoremap <Plug>TabispaAddIndent; :call <SID>AddIndent()<CR>'>
-vnoremap <Plug>TabispaAddIndentOld; >
-execute jhsiaocrepeat#CharRepeatedCmds(
-	\ 'vmap > <Plug>TabispaAddIndent;', '.', 'n')
-execute jhsiaocrepeat#CharRepeatedCmds(
-	\ 'vmap <C-K>> <Plug>TabispaAddIndentOld;', '.', 'n')
 
 function! s:RemoveIndent(...)
 	let [curno, lastline] = s:ParseLineRanges(a:000)
