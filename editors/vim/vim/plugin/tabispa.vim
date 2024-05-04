@@ -196,6 +196,53 @@ execute jhsiaocrepeat#CharRepeatedCmds(
 execute jhsiaocrepeat#CharRepeatedCmds(
 	\ 'nmap <C-K><C-.> <Plug>TabispaAddIndent;', '.')
 
+function! s:RemoveIndentSingle(ignore_comments)
+	if &l:et
+		let char = ' '
+		if &l:sw == 0
+			let pat = printf('\m^ \{1,%d}\(.*\)', &l:ts)
+		else
+			let pat = printf('\m^ \{1,%d}\(.*\)', &l:sw)
+		endif
+	else
+		let pat = "\\m^\<Tab>\\(.*\\)"
+	endif
+	let [singles, multis] = jhsiaoutil#ParseComments()
+	if !a:ignore_comments
+		for [info, parts] in jhsiaoutil#MatchComment(
+				\ getline('.'), singles, multis, 2, 3)
+			if has_key(info, 's')
+				if strlen(parts[2]) || jhsiaoutil#MultiStart(line('.'), info) > 0
+					let removed = matchlist(parts[4], pat)
+					if len(removed)
+						let nline = join([
+							\ parts[1], parts[2], parts[3],
+							\ removed[1], parts[5], parts[6]], '')
+						call setline('.', nline)
+						call jhsiaoutil#CursorShift(
+							\ strlen(parts[1]) + strlen(parts[2]) + strlen(parts[3]),
+							\ strlen(removed[1]) - strlen(parts[4]))
+					endif
+					return ''
+				endif
+			else
+				let removed = matchlist(parts[3], pat)
+				if len(removed)
+					call setline('.', join([parts[1], parts[2], removed[1]], ''))
+					call jhsiaoutil#CursorShift(
+						\ strlen(parts[1]) + strlen(parts[2]),
+						\ strlen(removed[1]) - strlen(parts[3]))
+				endif
+				return ''
+			endif
+		endfor
+	endif
+	call setline('.', prefix . curline)
+	call jhsiaoutil#CursorShift(0, strlen(prefix))
+	return ''
+
+endfunction
+
 "Return whether the range of lines are all commented
 "or blank
 function! s:AllCommented(start, stop, singles, multis)
@@ -271,8 +318,7 @@ function! s:AddIndentVisual(ignore_comments) range
 	endif
 	let [singles, multis] = jhsiaoutil#ParseComments()
 	"add indentation after comments only if selection is all comments
-	let ignore_comments = a:ignore_comments
-	if !ignore_comments && s:AllCommented(a:firstline, a:lastline, singles, multis)
+	if !a:ignore_comments && s:AllCommented(a:firstline, a:lastline, singles, multis)
 		let curline = a:firstline
 		while curline <= a:lastline
 			let text = getline(curline)
@@ -308,6 +354,7 @@ execute jhsiaocrepeat#CharRepeatedCmds(
 	\ 'vmap > <Plug>TabispaAddIndentIgnore;', '.', 'n')
 execute jhsiaocrepeat#CharRepeatedCmds(
 	\ 'vmap <C-K>> <Plug>TabispaAddIndent;', '.', 'n')
+
 
 function! s:ParseLineRanges(lst)
 	if len(a:lst)
