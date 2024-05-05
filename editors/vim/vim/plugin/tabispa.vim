@@ -160,7 +160,7 @@ function! s:AddIndentSingle(ignore_comments)
 	endif
 	if !a:ignore_comments
 		for [info, parts] in jhsiaoutil#MatchComment(
-				\ getline('.'), singles, multis, 2, 3)
+				\ curline, singles, multis, 2, 3)
 			if has_key(info, 's')
 				if strlen(parts[2]) || jhsiaoutil#MultiStart(line('.'), info) > 0
 					let nline = join([
@@ -208,9 +208,10 @@ function! s:RemoveIndentSingle(ignore_comments)
 		let pat = "\\m^\<Tab>\\(.*\\)"
 	endif
 	let [singles, multis] = jhsiaoutil#ParseComments()
+	let curline = getline('.')
 	if !a:ignore_comments
 		for [info, parts] in jhsiaoutil#MatchComment(
-				\ getline('.'), singles, multis, 2, 3)
+				\ curline, singles, multis, 2, 3)
 			if has_key(info, 's')
 				if strlen(parts[2]) || jhsiaoutil#MultiStart(line('.'), info) > 0
 					let removed = matchlist(parts[4], pat)
@@ -237,11 +238,25 @@ function! s:RemoveIndentSingle(ignore_comments)
 			endif
 		endfor
 	endif
-	call setline('.', prefix . curline)
-	call jhsiaoutil#CursorShift(0, strlen(prefix))
+	let removed = matchlist(curline, pat)
+	if len(removed)
+		call setline('.', removed[1])
+		call jhsiaoutil#CursorShift(0, strlen(removed[1]) - strlen(curline))
+	endif
 	return ''
-
 endfunction
+
+inoremap <Plug>TabispaRemoveIndent; <C-R>=<SID>RemoveIndentSingle(v:false)<CR>
+inoremap <Plug>TabispaRemoveIndentIgnore; <C-R>=<SID>RemoveIndentSingle(v:true)<CR>
+nnoremap <Plug>TabispaRemoveIndent; :call <SID>RemoveIndentSingle(v:false)<CR>
+nnoremap <Plug>TabispaRemoveIndentIgnore; :call <SID>RemoveIndentSingle(v:true)<CR>
+imap <C-D> <Plug>TabispaRemoveIndent;
+execute jhsiaocrepeat#CharRepeatedCmds(
+	\ 'imap <C-K><C-D> <Plug>TabispaRemoveIndentIgnore;', '<C-D>')
+execute jhsiaocrepeat#CharRepeatedCmds(
+	\ 'nmap <lt><lt> <Plug>TabispaRemoveIndentIgnore;', '.')
+execute jhsiaocrepeat#CharRepeatedCmds(
+	\ 'nmap <C-K><C-,> <Plug>TabispaRemoveIndent;', '.')
 
 "Return whether the range of lines are all commented
 "or blank
@@ -419,19 +434,8 @@ function! s:RemoveIndent(...)
 	endwhile
 	return ''
 endfunction
-inoremap <Plug>TabispaRemoveIndent; <C-R>=<SID>RemoveIndent('.')<CR>
-inoremap <Plug>TabispaRemoveIndentOld; <C-D>
-nnoremap <Plug>TabispaRemoveIndent; :call <SID>RemoveIndent('.')<CR>
-nnoremap <Plug>TabispaRemoveIndentOld; <lt><lt>
 vnoremap <Plug>TabispaRemoveIndent; :call <SID>RemoveIndent()<CR>'<lt>
 vnoremap <Plug>TabispaRemoveIndentOld; <lt>
-imap <C-D> <Plug>TabispaRemoveIndent;
-execute jhsiaocrepeat#CharRepeatedCmds(
-	\ 'imap <C-K><C-D> <Plug>TabispaRemoveIndentOld;', '<C-D>')
-execute jhsiaocrepeat#CharRepeatedCmds(
-	\ 'nmap <lt><lt> <Plug>TabispaRemoveIndent;', '.')
-execute jhsiaocrepeat#CharRepeatedCmds(
-	\ 'nmap <C-K><lt> <Plug>TabispaRemoveIndentOld;', '.')
 execute jhsiaocrepeat#CharRepeatedCmds(
 	\ 'vmap <lt> <Plug>TabispaRemoveIndent;', '.', 'n')
 execute jhsiaocrepeat#CharRepeatedCmds(
