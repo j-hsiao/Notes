@@ -338,13 +338,13 @@ function! s:AddIndentVisual(ignore_comments) range
 		while curline <= a:lastline
 			let text = getline(curline)
 			if strlen(text)
-				for [info, parts] in jhsiaoutil#MatchComments(text, singles, multis, 2,3)
+				for [info, parts] in jhsiaoutil#MatchComment(text, singles, multis, 2,3)
 					if has_key(info, 's')
-						call setline(curline, join([parts[1], parts[2], prefix, parts[3]], ''))
-					else
-						call setline(\ curline, join([
+						call setline(curline, join([
 							\ parts[1], parts[2], parts[3], prefix,
 							\ parts[4], parts[5], parts[6]], ''))
+					else
+						call setline(curline, join([parts[1], parts[2], prefix, parts[3]], ''))
 					endif
 					break
 				endfor
@@ -370,80 +370,64 @@ execute jhsiaocrepeat#CharRepeatedCmds(
 execute jhsiaocrepeat#CharRepeatedCmds(
 	\ 'vmap <C-K>> <Plug>TabispaAddIndent;', '.', 'n')
 
-
-function! s:ParseLineRanges(lst)
-	if len(a:lst)
-		if type(a:lst[0]) == v:t_number
-			let num = a:lst[0]
-		else
-			let num = line(a:lst[0])
-		endif
-		return [num, num]
-	else
-		let curno = line('v')
-		let lastline = line('.')
-		if lastline < curno
-			return [lastline, curno]
-		else
-			return [curno, lastline]
-		endif
-	endif
-endfunction
-
-function! s:RemoveIndent(...)
-	let [curno, lastline] = s:ParseLineRanges(a:000)
-	let spacepat = printf('\m^\( \{1,%s\}\)\(.*\)', shiftwidth())
+function! s:RemoveIndentVisual(ignore_comments) range
 	if &l:et
-		let pre = ' '
-		let prepat = spacepat
-	else
-		let pre = "\<Tab>"
-		let prepat = '\m^\(\t\)\(.*\)'
-	endif
-	let pattern = jhsiaoutil#GetCMSPattern()
-	"TODO: If all lines are comments, then use post-comment unindent.
-	"otherwise if some comments and some not, it's probably desired to
-	"unindent everything as normal...
-	while curno <= lastline
-		let curline = getline(curno)
-		let parts = matchlist(curline, pattern)
-		if strlen(parts[2])
-			let iparts = matchlist(parts[3], prepat)
-			if !len(iparts) && pre != ' '
-				let iparts = matchlist(parts[3], spacepat)
-			endif
-			if len(iparts)
-				let offset = strlen(join(parts[1:2], ''))
-				call jhsiaoutil#CursorShift(offset, -strlen(iparts[1]))
-				call setline(
-					\ curno,
-					\ strpart(curline, 0, offset)
-					\ . strpart(curline, offset + strlen(iparts[1])))
-			endif
+		let char = ' '
+		if &l:sw == 0
+			let pat = printf('\m^ \{1,%d}\(.*\)', &l:ts)
 		else
-			let parts = matchlist(curline, prepat)
-			if !len(parts) && pre != ' '
-				let parts = matchlist(curline, spacepat)
-			endif
-			if len(parts)
-				call jhsiaoutil#CursorShift(0, -strlen(parts[1]))
-				call setline(curno, parts[2])
-			endif
+			let pat = printf('\m^ \{1,%d}\(.*\)', &l:sw)
 		endif
-		let curno += 1
-	endwhile
-	return ''
+	else
+		let pat = "\\m^\<Tab>\\(.*\\)"
+	endif
+	let [singles, multis] = jhsiaoutil#ParseComments()
+	let curline = a:firstline
+	if !a:ignore_comments && s:AllCommented(a:firstline, a:lastline, singles, multis)
+		while curline <= a:lastline
+			let text = getline(curline)
+			if strlen(text)
+				for [info, parts] in jhsiaoutil#MatchComment(text, singles, multis, 2,3)
+					if has_key(info, 's')
+						let removed = matchlist(parts[4], pat)
+						if len(removed)
+							call setline(\ curline, join([
+								\ parts[1], parts[2], parts[3],
+								\ removed[1], parts[5], parts[6]], ''))
+						endif
+					else
+						let removed = matchlist(parts[3], pat)
+						if len(removed)
+							call setline(curline, join([parts[1], parts[2], removed[1]], ''))
+						endif
+					endif
+					break
+				endfor
+			endif
+			let curline += 1
+		endwhile
+	else
+		while curline <= a:lastline
+			let text = getline(curline)
+			if strlen(text)
+				let removed = matchlist(text, pat)
+				if len(removed)
+					call setline(curline, removed[1])
+				endif
+			endif
+			let curline += 1
+		endwhile
+	endif
 endfunction
-vnoremap <Plug>TabispaRemoveIndent; :call <SID>RemoveIndent()<CR>'<lt>
-vnoremap <Plug>TabispaRemoveIndentOld; <lt>
+
+vnoremap <Plug>TabispaRemoveIndent; :call <SID>RemoveIndentVisual(v:false)<CR>
+vnoremap <Plug>TabispaRemoveIndentIgnore; :call <SID>RemoveIndentVisual(v:true)<CR>
 execute jhsiaocrepeat#CharRepeatedCmds(
-	\ 'vmap <lt> <Plug>TabispaRemoveIndent;', '.', 'n')
+	\ 'vmap <lt> <Plug>TabispaRemoveIndentIgnore;', '.', 'n')
 execute jhsiaocrepeat#CharRepeatedCmds(
-	\ 'vmap <C-K><lt> <Plug>TabispaRemoveIndentOld;', '.', 'n')
+	\ 'vmap <C-K><lt> <Plug>TabispaRemoveIndent;', '.', 'n')
 
 "TODO: alignment
-
-
 function! s:Realign()
 	"Rearrange all leading spaces/tabs to be tabs first then spaces
 	"NOTE: this may change the number of spaces depending on the
