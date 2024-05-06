@@ -194,7 +194,7 @@ execute jhsiaocrepeat#CharRepeatedCmds(
 execute jhsiaocrepeat#CharRepeatedCmds(
 	\ 'nmap >> <Plug>TabispaAddIndentIgnore;', '.')
 execute jhsiaocrepeat#CharRepeatedCmds(
-	\ 'nmap <C-K><C-.> <Plug>TabispaAddIndent;', '.')
+	\ 'nmap <C-K>> <Plug>TabispaAddIndent;', '.')
 
 function! s:RemoveIndentSingle(ignore_comments)
 	if &l:et
@@ -256,7 +256,7 @@ execute jhsiaocrepeat#CharRepeatedCmds(
 execute jhsiaocrepeat#CharRepeatedCmds(
 	\ 'nmap <lt><lt> <Plug>TabispaRemoveIndentIgnore;', '.')
 execute jhsiaocrepeat#CharRepeatedCmds(
-	\ 'nmap <C-K><C-,> <Plug>TabispaRemoveIndent;', '.')
+	\ 'nmap <C-K><lt> <Plug>TabispaRemoveIndent;', '.')
 
 "Return whether the range of lines are all commented
 "or blank
