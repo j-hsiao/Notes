@@ -219,20 +219,20 @@ function! s:RemoveIndentSingle(ignore_comments)
 						let nline = join([
 							\ parts[1], parts[2], parts[3],
 							\ removed[1], parts[5], parts[6]], '')
-						call setline('.', nline)
 						call jhsiaoutil#CursorShift(
 							\ strlen(parts[1]) + strlen(parts[2]) + strlen(parts[3]),
 							\ strlen(removed[1]) - strlen(parts[4]))
+						call setline('.', nline)
 					endif
 					return ''
 				endif
 			else
 				let removed = matchlist(parts[3], pat)
 				if len(removed)
-					call setline('.', join([parts[1], parts[2], removed[1]], ''))
 					call jhsiaoutil#CursorShift(
 						\ strlen(parts[1]) + strlen(parts[2]),
 						\ strlen(removed[1]) - strlen(parts[3]))
+					call setline('.', join([parts[1], parts[2], removed[1]], ''))
 				endif
 				return ''
 			endif
@@ -240,8 +240,8 @@ function! s:RemoveIndentSingle(ignore_comments)
 	endif
 	let removed = matchlist(curline, pat)
 	if len(removed)
-		call setline('.', removed[1])
 		call jhsiaoutil#CursorShift(0, strlen(removed[1]) - strlen(curline))
+		call setline('.', removed[1])
 	endif
 	return ''
 endfunction
