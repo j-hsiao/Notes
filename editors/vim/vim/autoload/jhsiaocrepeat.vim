@@ -44,7 +44,7 @@ if "\<Ignore>" == "<Ignore>"
 		if curmode == 'i'
 			return "\<C-R>=''\<CR>"
 		elseif curmode == 'n'
-			return "a\<Esc>"
+			return ":\<Esc>"
 		else
 			throw 'nop unsupported for mode "' . curmode . '"'
 		endif
@@ -54,6 +54,39 @@ else
 		return "\<Ignore>"
 	endfunction
 endif
+
+"Get the next keypress as a string.
+function! jhsiaocrepeat#NextCharStr()
+	let thing = getchar()
+	if type(thing) == v:t_number
+		return nr2char(thing)
+	else
+		return thing
+	endif
+endfunction
+
+"Repeatedly wait for another key via an ambiguous mapping.
+"ambigname: the name of the ambiguous mapping without the
+"preceding <Plug>
+function! jhsiaocrepeat#AmbiguousRepeat(ambigname)
+	if getchar(1)
+		let thing = getchar()
+		if type(thing) == v:t_number
+			return nr2char(thing)
+		else
+			return thing
+		endif
+	else
+		let curmode = mode()
+		if curmode == 'i'
+			return printf("\<C-R>=''\<CR>\<Plug>%s", a:ambigname)
+		elseif curmode == 'n'
+			return printf(":\<Esc>\<Plug>%s", a:ambigname)
+		else
+			throw printf('ambiguous repeat not supported for mode "%s"', curmode)
+		endif
+	endif
+endfunction
 
 let s:special = [
 	\ '<expr>', '<buffer>', '<nowait>', '<silent>',
@@ -88,20 +121,12 @@ function! s:ParseMapCommand(cmd)
 	return ret
 endfunction
 
-"Get the next keypress as a string.
-function! jhsiaocrepeat#NextCharStr()
-	let thing = getchar()
-	if type(thing) == v:t_number
-		return nr2char(thing)
-	else
-		return thing
-	endif
-endfunction
 
 "Return a list of mapping commands that can be executed to create
 "the desired repeatable mapping.
 "Mappings should have <special> or < not in cpoptions
 "cmd: map command
+"	ex. 'imap <flag1> <flag2> lhs rhs'
 "repkey: key to press to repeat the mapping.
 "extra arg:
 "	ending mode, mostly for visual mode which may end in normal mode.
@@ -114,18 +139,18 @@ function! jhsiaocrepeat#CharRepeatedCmds(cmd, repkey, ...)
 	if a:0
 		let after = a:1
 	endif
-	let repname = '<Plug>jhsiaocrepeatAmbigufy'
-		\ . mapinfo['mode'] . mapinfo['lhs'] . ';'
+	let repname = printf('jhsiaocrepeatAmbigufy%s%s;',
+		\ mapinfo['mode'], substitute(mapinfo['lhs'], '<', '<lt>', 'g'))
 	let mappings = []
 	"Modified base mapping
 	let rawcmd = printf(
-		\ '%s %s %sraw %s',
+		\ '%s %s <Plug>%sraw %s',
 		\ mapinfo['mpcmd'], join(mapinfo['opts'], ' '),
 		\ repname, join(mapinfo['rhs'], ' '))
 	call add(mappings, rawcmd)
 
 	let basecmd = printf(
-		\ '%s <special> %s %sraw%s',
+		\ '%s <special> %s <Plug>%sraw<Plug>%s',
 		\ substitute(mapinfo['mpcmd'], 'nore', '', ''),
 		\ mapinfo['lhs'], repname, repname)
 	call add(mappings, basecmd)
@@ -135,22 +160,22 @@ function! jhsiaocrepeat#CharRepeatedCmds(cmd, repkey, ...)
 		let rhs = join(mapinfo['rhs'], '')
 		if len(mapinfo['rhs']) && rhs[:4] == ':call'
 			let repeatmap = printf(
-				\ "%smap <special> %s%s :'<,'>%s",
+				\ "%smap <special> <Plug>%s%s :'<,'>%s",
 				\ after, repname, a:repkey, rhs[1:])
 		else
 			let repeatmap = printf(
-				\ '%smap <special> %s%s `<lt><Esc>v`>%s',
+				\ '%smap <special> <Plug>%s%s `<lt><Esc>v`>%s',
 				\ after, repname, a:repkey, mapinfo['lhs'])
 		endif
 	else
 		let repeatmap = printf(
-			\ '%smap <special> %s%s %s',
+			\ '%smap <special> <Plug>%s%s %s',
 			\ after, repname, a:repkey, mapinfo['lhs'])
 	endif
 	call add(mappings, repeatmap)
 	"Wait mapping
 	let ambigmap = printf(
-		\ '%smap <expr> <special> %s getchar(1) == 0 ? jhsiaocrepeat#Nop() . "%s" : jhsiaocrepeat#NextCharStr()',
+		\ '%smap <expr> <special> <Plug>%s jhsiaocrepeat#AmbiguousRepeat("%s")',
 		\ after, repname, repname)
 	call add(mappings, ambigmap)
 	return join(mappings, '|')
