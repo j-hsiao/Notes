@@ -1,7 +1,7 @@
 #!/bin/bash
 
 
-OUTDIR="${1:-~/.vim/after/ftplugin}"
+OUTDIR="${1:-${HOME}/.vim/after/ftplugin}"
 if [ ! -d ${OUTDIR} ]
 then
 	mkdir -p ${OUTDIR}
