@@ -197,15 +197,10 @@ execute jhsiaocrepeat#CharRepeatedCmds(
 	\ 'nmap <C-K>> <Plug>TabispaAddIndent;', '.')
 
 function! s:RemoveIndentSingle(ignore_comments)
-	if &l:et
-		let char = ' '
-		if &l:sw == 0
-			let pat = printf('\m^ \{1,%d}\(.*\)', &l:ts)
-		else
-			let pat = printf('\m^ \{1,%d}\(.*\)', &l:sw)
-		endif
+	if &l:sw == 0
+		let pat = printf('\m^\%%( \{1,%d}\|\t\)\(.*\)', &l:ts)
 	else
-		let pat = "\\m^\<Tab>\\(.*\\)"
+		let pat = printf('\m^\%%( \{1,%d}\|\t\)\(.*\)', &l:sw)
 	endif
 	let [singles, multis] = jhsiaoutil#ParseComments()
 	let curline = getline('.')
@@ -371,15 +366,10 @@ execute jhsiaocrepeat#CharRepeatedCmds(
 	\ 'vmap <C-K>> <Plug>TabispaAddIndent;', '.', 'n')
 
 function! s:RemoveIndentVisual(ignore_comments) range
-	if &l:et
-		let char = ' '
-		if &l:sw == 0
-			let pat = printf('\m^ \{1,%d}\(.*\)', &l:ts)
-		else
-			let pat = printf('\m^ \{1,%d}\(.*\)', &l:sw)
-		endif
+	if &l:sw == 0
+		let pat = printf('\m^\%%( \{1,%d}\|\t\)\(.*\)', &l:ts)
 	else
-		let pat = "\\m^\<Tab>\\(.*\\)"
+		let pat = printf('\m^\%%( \{1,%d}\|\t\)\(.*\)', &l:sw)
 	endif
 	let [singles, multis] = jhsiaoutil#ParseComments()
 	let curline = a:firstline
