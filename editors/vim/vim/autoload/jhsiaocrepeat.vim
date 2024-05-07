@@ -70,12 +70,25 @@ endfunction
 "preceding <Plug>
 function! jhsiaocrepeat#AmbiguousRepeat(ambigname)
 	if getchar(1)
-		let thing = getchar()
-		if type(thing) == v:t_number
-			return nr2char(thing)
-		else
-			return thing
+		let val = getchar()
+		if type(val) == v:t_number
+			let val = nr2char(val)
 		endif
+		"Strange behavior:
+		"feedkeys and return have different outcomes.
+		"1. Using return, the returned key will be interpreted as part
+		"of a mapping.  (consecutive mappings activate correctly)
+		"BUT: it has a very strange interaction with <C-[>. <Esc> does
+		"not have this issue.  Typing <C-[> right after a mapping that
+		"returns <C-[> seems to cause 5 undo commands.  Using
+		"feedkeys(val, 'mti') seems to stop the undo commands, but
+		"then the next keys are not interpreted as part of a mapping.
+		"(even though using m flag so it should be mapped...)
+		if (val == "\<C-[>")
+			call feedkeys("\<Esc>", 'mti')
+			return ''
+		endif
+		return val
 	else
 		let curmode = mode()
 		if curmode == 'i'
