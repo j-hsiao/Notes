@@ -47,6 +47,8 @@ set nowrap number relativenumber ruler incsearch autoindent copyindent preservei
 	\ backspace=indent,eol,start
 let &showbreak='-> '
 
+"Don't search include files for completion, it can take a while.
+set complete=.,w,b,u,t
 
 let g:mapleader = "\<C-K>"
 
