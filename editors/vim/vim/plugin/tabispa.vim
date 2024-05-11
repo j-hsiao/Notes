@@ -142,9 +142,10 @@ imap <expr> <C-H> <SID>BackspaceAlignmentDispatch('CH')
 "normal mode:
 "	base: always add at beginning of line
 "	alt: add indent after comment character
-function! s:AddIndentSingle(ignore_comments)
+function! s:AddIndentSingle(ignore_comments, ...)
 	let [singles, multis] = jhsiaoutil#ParseComments()
-	if &l:et
+	let align = a:0 > 0 ? a:1 : v:false
+	if &l:et || align
 		if &l:sw == 0
 			let prefix = repeat(' ', &l:ts)
 		else
@@ -163,23 +164,46 @@ function! s:AddIndentSingle(ignore_comments)
 				\ curline, singles, multis, 2, 3)
 			if has_key(info, 's')
 				if strlen(parts[2]) || jhsiaoutil#MultiStart(line('.'), info) > 0
-					let nline = join([
-						\ parts[1], parts[2], parts[3], prefix,
-						\ parts[4], parts[5], parts[6]], '')
-					call setline('.', nline)
-					call jhsiaoutil#CursorShift(
-						\ strlen(parts[1]) + strlen(parts[2]) + strlen(parts[3]), strlen(prefix))
+					if align
+						let results = matchlist(parts[4], '\m^\(\s*\)\(.*\)')
+						let nline = join([
+							\ parts[1], parts[2], parts[3], results[1], prefix,
+							\ results[2], parts[5], parts[6]], '')
+						call setline('.', nline)
+						call jhsiaoutil#CursorShift(
+							\ strlen(parts[1]) + strlen(parts[2]) + strlen(parts[3]) + strlen(results[1]),
+							\ strlen(prefix))
+					else
+						let nline = join([
+							\ parts[1], parts[2], parts[3], prefix,
+							\ parts[4], parts[5], parts[6]], '')
+						call setline('.', nline)
+						call jhsiaoutil#CursorShift(
+							\ strlen(parts[1]) + strlen(parts[2]) + strlen(parts[3]), strlen(prefix))
+					endif
 					return ''
 				endif
 			else
-				call setline('.', join([parts[1], parts[2], prefix, parts[3]], ''))
-				call jhsiaoutil#CursorShift(
-					\ strlen(parts[1]) + strlen(parts[2]), strlen(prefix))
+				if align
+					let results = matchlist(parts[3], '\m^\(\s*\)\(.*\)')
+					call setline('.', join([parts[1], parts[2], results[1], prefix, results[2]], ''))
+					call jhsiaoutil#CursorShift(
+						\ strlen(parts[1]) + strlen(parts[2]) + strlen(results[1]), strlen(prefix))
+				else
+					call setline('.', join([parts[1], parts[2], prefix, parts[3]], ''))
+					call jhsiaoutil#CursorShift(
+						\ strlen(parts[1]) + strlen(parts[2]), strlen(prefix))
+				endif
 				return ''
 			endif
 		endfor
 	endif
-	call setline('.', prefix . curline)
+	if align
+		let results = matchlist(curline, '\m^\(\s*\)\(.*\)')
+		call setline('.', join([results[1], prefix, results[2]], ''))
+	else
+		call setline('.', prefix . curline)
+	endif
 	call jhsiaoutil#CursorShift(0, strlen(prefix))
 	return ''
 endfunction
@@ -195,6 +219,20 @@ execute jhsiaocrepeat#CharRepeatedCmds(
 	\ 'nmap >> <Plug>TabispaAddIndentIgnore;', '.')
 execute jhsiaocrepeat#CharRepeatedCmds(
 	\ 'nmap <C-K>> <Plug>TabispaAddIndent;', '.')
+
+inoremap <Plug>TabispaAddAlign; <C-R>=<SID>AddIndentSingle(v:false, v:true)<CR>
+inoremap <Plug>TabispaAddAlignIgnore; <C-R>=<SID>AddIndentSingle(v:true, v:true)<CR>
+nnoremap <Plug>TabispaAddAlign; :call <SID>AddIndentSingle(v:false, v:true)<CR>
+nnoremap <Plug>TabispaAddAlignIgnore; :call <SID>AddIndentSingle(v:true, v:true)<CR>
+execute jhsiaocrepeat#CharRepeatedCmds(
+	\ 'imap <C-K><C-L> <Plug>TabispaAddAlign;', '<C-L>')
+execute jhsiaocrepeat#CharRepeatedCmds(
+	\ 'imap <C-K><C-K><C-L> <Plug>TabispaAddAlignIgnore;', '<C-L>')
+execute jhsiaocrepeat#CharRepeatedCmds(
+	\ 'nmap <C-K><C-L> <Plug>TabispaAddAlignIgnore;', '.')
+execute jhsiaocrepeat#CharRepeatedCmds(
+	\ 'nmap <C-K><C-K><C-L> <Plug>TabispaAddAlign;', '.')
+
 
 function! s:RemoveIndentSingle(ignore_comments)
 	if &l:sw == 0
