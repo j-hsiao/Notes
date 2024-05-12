@@ -149,7 +149,9 @@ function! jhsiaoutil#ParseComments()
 	let singlemaybe = []
 	let multi = []
 	let parts = split(&l:cms, '%s')
-	let raws = substitute(parts[0], '\m^\s*\(.\{-}\)\s*$', '\1', '')
+	if len(parts)
+		let raws = substitute(parts[0], '\m^\s*\(.\{-}\)\s*$', '\1', '')
+	endif
 	if len(parts) == 1
 		if parts[0] =~ '\m.*\s$'
 			let pre = printf('b:%s', raws)
