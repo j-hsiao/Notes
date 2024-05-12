@@ -234,11 +234,17 @@ execute jhsiaocrepeat#CharRepeatedCmds(
 	\ 'nmap <C-K><C-K><C-L> <Plug>TabispaAddAlign;', '.')
 
 
-function! s:RemoveIndentSingle(ignore_comments)
+function! s:RemoveIndentSingle(ignore_comments, ...)
+	let align = a:0 > 0 ? a:1 : v:false
 	if &l:sw == 0
-		let pat = printf('\m^\%%( \{1,%d}\|\t\)\(.*\)', &l:ts)
+		let nspace = &l:ts
 	else
-		let pat = printf('\m^\%%( \{1,%d}\|\t\)\(.*\)', &l:sw)
+		let nspace = &l:sw
+	endif
+	if align
+		let pat = printf('\m^\(\s\{-}\)\%%( \{1,%d}\|\t\)\(\S.*\)\?$', nspace)
+	else
+		let pat = printf('\m^\(\)\%%( \{1,%d}\|\t\)\(.*\)', nspace)
 	endif
 	let [singles, multis] = jhsiaoutil#ParseComments()
 	let curline = getline('.')
@@ -251,10 +257,10 @@ function! s:RemoveIndentSingle(ignore_comments)
 					if len(removed)
 						let nline = join([
 							\ parts[1], parts[2], parts[3],
-							\ removed[1], parts[5], parts[6]], '')
+							\ removed[1], removed[2], parts[5], parts[6]], '')
 						call jhsiaoutil#CursorShift(
-							\ strlen(parts[1]) + strlen(parts[2]) + strlen(parts[3]),
-							\ strlen(removed[1]) - strlen(parts[4]))
+							\ strlen(parts[1]) + strlen(parts[2]) + strlen(parts[3]) + strlen(removed[1]),
+							\ strlen(removed[1]) + strlen(removed[2]) - strlen(parts[4]))
 						call setline('.', nline)
 					endif
 					return ''
@@ -262,10 +268,11 @@ function! s:RemoveIndentSingle(ignore_comments)
 			else
 				let removed = matchlist(parts[3], pat)
 				if len(removed)
+					echom json_encode(removed)
 					call jhsiaoutil#CursorShift(
-						\ strlen(parts[1]) + strlen(parts[2]),
-						\ strlen(removed[1]) - strlen(parts[3]))
-					call setline('.', join([parts[1], parts[2], removed[1]], ''))
+						\ strlen(parts[1]) + strlen(parts[2]) + strlen(removed[1]),
+						\ strlen(removed[1]) + strlen(removed[2]) - strlen(parts[3]))
+					call setline('.', join([parts[1], parts[2], removed[1], removed[2]], ''))
 				endif
 				return ''
 			endif
@@ -273,8 +280,8 @@ function! s:RemoveIndentSingle(ignore_comments)
 	endif
 	let removed = matchlist(curline, pat)
 	if len(removed)
-		call jhsiaoutil#CursorShift(0, strlen(removed[1]) - strlen(curline))
-		call setline('.', removed[1])
+		call jhsiaoutil#CursorShift(strlen(removed[1]), strlen(removed[1]) + strlen(removed[2]) - strlen(curline))
+		call setline('.', join([removed[1], removed[2]], ''))
 	endif
 	return ''
 endfunction
@@ -290,6 +297,19 @@ execute jhsiaocrepeat#CharRepeatedCmds(
 	\ 'nmap <lt><lt> <Plug>TabispaRemoveIndentIgnore;', '.')
 execute jhsiaocrepeat#CharRepeatedCmds(
 	\ 'nmap <C-K><lt> <Plug>TabispaRemoveIndent;', '.')
+
+inoremap <Plug>TabispaRemoveAlign; <C-R>=<SID>RemoveIndentSingle(v:false, v:true)<CR>
+inoremap <Plug>TabispaRemoveAlignIgnore; <C-R>=<SID>RemoveIndentSingle(v:true, v:true)<CR>
+nnoremap <Plug>TabispaRemoveAlign; :call <SID>RemoveIndentSingle(v:false, v:true)<CR>
+nnoremap <Plug>TabispaRemoveAlignIgnore; :call <SID>RemoveIndentSingle(v:true, v:true)<CR>
+execute jhsiaocrepeat#CharRepeatedCmds(
+	\ 'imap <C-K><C-J> <Plug>TabispaRemoveAlign;', '<C-J>')
+execute jhsiaocrepeat#CharRepeatedCmds(
+	\ 'imap <C-K><C-K><C-J> <Plug>TabispaRemoveAlignIgnore;', '<C-J>')
+execute jhsiaocrepeat#CharRepeatedCmds(
+	\ 'nmap <C-K><C-J> <Plug>TabispaRemoveAlignIgnore;', '.')
+execute jhsiaocrepeat#CharRepeatedCmds(
+	\ 'nmap <C-K><C-K><C-J> <Plug>TabispaRemoveAlign;', '.')
 
 "Return whether the range of lines are all commented
 "or blank
@@ -354,8 +374,9 @@ function! s:AllCommented(start, stop, singles, multis)
 	return v:true
 endfunction
 
-function! s:AddIndentVisual(ignore_comments) range
-	if &l:et
+function! s:AddIndentVisual(ignore_comments, ...) range
+	let align = a:0 > 0 ? a:1 : v:false
+	if &l:et || align
 		if &l:sw == 0
 			let prefix = repeat(' ', &l:ts)
 		else
@@ -372,12 +393,24 @@ function! s:AddIndentVisual(ignore_comments) range
 			let text = getline(curline)
 			if strlen(text)
 				for [info, parts] in jhsiaoutil#MatchComment(text, singles, multis, 2,3)
-					if has_key(info, 's')
-						call setline(curline, join([
-							\ parts[1], parts[2], parts[3], prefix,
-							\ parts[4], parts[5], parts[6]], ''))
+					if align
+						if has_key(info, 's')
+							let result = matchlist(parts[4], '\(\s*\)\(.*\)')
+							call setline(curline, join([
+								\ parts[1], parts[2], parts[3], result[1], prefix,
+								\ result[2], parts[5], parts[6]], ''))
+						else
+							let result = matchlist(parts[3], '\(\s*\)\(.*\)')
+							call setline(curline, join([parts[1], parts[2], result[1], prefix, result[2]], ''))
+						endif
 					else
-						call setline(curline, join([parts[1], parts[2], prefix, parts[3]], ''))
+						if has_key(info, 's')
+							call setline(curline, join([
+								\ parts[1], parts[2], parts[3], prefix,
+								\ parts[4], parts[5], parts[6]], ''))
+						else
+							call setline(curline, join([parts[1], parts[2], prefix, parts[3]], ''))
+						endif
 					endif
 					break
 				endfor
@@ -389,7 +422,12 @@ function! s:AddIndentVisual(ignore_comments) range
 		while curline <= a:lastline
 			let text = getline(curline)
 			if strlen(text)
-				call setline(curline, prefix . text)
+				if align
+					let result = matchlist(text, '\(\s*\)\(.*\)')
+					call setline(curline, join([result[1], prefix, result[2]], ''))
+				else
+					call setline(curline, prefix . text)
+				endif
 			endif
 			let curline += 1
 		endwhile
@@ -403,11 +441,24 @@ execute jhsiaocrepeat#CharRepeatedCmds(
 execute jhsiaocrepeat#CharRepeatedCmds(
 	\ 'vmap <C-K>> <Plug>TabispaAddIndent;', '.', 'n')
 
-function! s:RemoveIndentVisual(ignore_comments) range
+vnoremap <Plug>TabispaAddAlign; :call <SID>AddIndentVisual(v:false, v:true)<CR>
+vnoremap <Plug>TabispaAddAlignIgnore; :call <SID>AddIndentVisual(v:true, v:true)<CR>
+execute jhsiaocrepeat#CharRepeatedCmds(
+	\ 'vmap <C-K><C-L> <Plug>TabispaAddAlignIgnore;', '.', 'n')
+execute jhsiaocrepeat#CharRepeatedCmds(
+	\ 'vmap <C-K><C-K><C-L> <Plug>TabispaAddAlign;', '.', 'n')
+
+function! s:RemoveIndentVisual(ignore_comments, ...) range
+	let align = a:0 > 0 ? a:1 : v:false
 	if &l:sw == 0
-		let pat = printf('\m^\%%( \{1,%d}\|\t\)\(.*\)', &l:ts)
+		let nspace = &l:ts
 	else
-		let pat = printf('\m^\%%( \{1,%d}\|\t\)\(.*\)', &l:sw)
+		let nspace = &l:sw
+	endif
+	if align
+		let pat = printf('\m^\(\s\{-}\)\%%( \{1,%d}\|\t\)\(\S.*\)\?$', nspace)
+	else
+		let pat = printf('\m^\(\)\%%( \{1,%d}\|\t\)\(.*\)', nspace)
 	endif
 	let [singles, multis] = jhsiaoutil#ParseComments()
 	let curline = a:firstline
@@ -420,13 +471,13 @@ function! s:RemoveIndentVisual(ignore_comments) range
 						let removed = matchlist(parts[4], pat)
 						if len(removed)
 							call setline(\ curline, join([
-								\ parts[1], parts[2], parts[3],
-								\ removed[1], parts[5], parts[6]], ''))
+								\ parts[1], parts[2], parts[3], removed[1],
+								\  removed[2], parts[5], parts[6]], ''))
 						endif
 					else
 						let removed = matchlist(parts[3], pat)
 						if len(removed)
-							call setline(curline, join([parts[1], parts[2], removed[1]], ''))
+							call setline(curline, join([parts[1], parts[2], removed[1], removed[2]], ''))
 						endif
 					endif
 					break
@@ -440,7 +491,7 @@ function! s:RemoveIndentVisual(ignore_comments) range
 			if strlen(text)
 				let removed = matchlist(text, pat)
 				if len(removed)
-					call setline(curline, removed[1])
+					call setline(curline, join(removed[1:], ''))
 				endif
 			endif
 			let curline += 1
@@ -455,7 +506,13 @@ execute jhsiaocrepeat#CharRepeatedCmds(
 execute jhsiaocrepeat#CharRepeatedCmds(
 	\ 'vmap <C-K><lt> <Plug>TabispaRemoveIndent;', '.', 'n')
 
-"TODO: alignment
+vnoremap <Plug>TabispaRemoveAlign; :call <SID>RemoveIndentVisual(v:false, v:true)<CR>
+vnoremap <Plug>TabispaRemoveAlignIgnore; :call <SID>RemoveIndentVisual(v:true, v:true)<CR>
+execute jhsiaocrepeat#CharRepeatedCmds(
+	\ 'vmap <C-K><C-J> <Plug>TabispaRemoveAlignIgnore;', '.', 'n')
+execute jhsiaocrepeat#CharRepeatedCmds(
+	\ 'vmap <C-K><C-K><C-J> <Plug>TabispaRemoveAlign;', '.', 'n')
+
 function! s:Realign()
 	"Rearrange all leading spaces/tabs to be tabs first then spaces
 	"NOTE: this may change the number of spaces depending on the
