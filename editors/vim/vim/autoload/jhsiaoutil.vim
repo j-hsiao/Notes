@@ -170,7 +170,7 @@ function! jhsiaoutil#ParseComments()
 		let e = printf('e:%s', substitute(parts[1], '\m^\s*\(.\{-}\)\s*$', '\1', ''))
 		let comlist = join([s, m, e, &l:comments], ',')
 	else
-		let comlist = split(&l:comments, ',', v:true)
+		let comlist = &l:comments
 	endif
 	for part in split(comlist, ',', v:true)
 		let [flags, chars] = split(part, ':', v:true)
