@@ -120,7 +120,7 @@ function! s:BackspaceAlignmentAction()
 	endif
 	let nspaces = strlen(matchstr(prestr, printf('\m \{1,%d\}$', to_remove)))
 	"space+BS to ensure removing single chars even if after shifting
-	return ' ' . repeat("\<BS>", nspaces+1)
+	return " \<BS>" . repeat("\<BS>", nspaces)
 endfunction
 inoremap <expr> <Plug>TabispaBackspaceAlignmentAction; <SID>BackspaceAlignmentAction()
 
@@ -135,6 +135,97 @@ endfunction
 execute jhsiaomapfallback#CreateFallback(
 	\ '<Plug>TabispaBackspaceAlignmentFallbackCH;', '<C-H>', 'i')
 imap <expr> <C-H> <SID>BackspaceAlignmentDispatch('CH')
+
+"Return the number of spaces to insert at position
+"to align to then next/previous word of previous line.
+function! s:AlignTo(position, prevline, nxt)
+	let col = 0
+	for part in split(a:prevline, '\m\<')
+		let size = strdisplaywidth(part, col)
+		if col + size > a:position || col+size == a:position && !a:nxt
+			if a:nxt
+				return col+size - a:position
+			else
+				return a:position - col
+			endif
+		endif
+		let col += size
+	endfor
+	if a:nxt
+		let step = s:STS()
+		return step-(a:position%step)
+	else
+		return a:position - strdisplaywidth(a:prevline)
+	endif
+endfunction
+
+"Align current cursor to word start on previous line
+"nxt: bool, insert spaces to go forward to next alignment point
+"     otherwise, delete spaces to go back to previous alignment
+"[pre]: optional int, the number of lines above to search for alignment
+"       when the target line does not have any next alignment in the
+"       corresponding direction.
+function! s:AlignCursor(nxt, ...)
+	if a:0 <= 1
+		let curcol = col('.')
+		let curtext = getline('.')
+		if !a:nxt && strpart(curtext, curcol-3, 2) != '  '
+			return "\<BS>"
+		endif
+		let pretext = strpart(curtext, 0, curcol-1)
+		let curpos = strdisplaywidth(pretext)
+		let curno = line('.')
+		let searchend = curno - get(a:000, 1, 50)
+		if searchend < 1
+			let searchend = 1
+		endif
+	else
+		let [curno, searchend, pretext, curpos] = a:000
+	endif
+	if curno == 1
+		if a:nxt
+			return s:InsertAlignmentAction()
+		else
+			return s:BackspaceAlignmentAction()
+		endif
+	endif
+	let prevline = getline(curno-1)
+	if a:nxt
+		if curpos >= strlen(prevline) && curno>searchend
+			return s:AlignCursor(a:nxt, curno-1, searchend, pretext, curpos)
+		else
+			let nspace = s:AlignTo(curpos, prevline, a:nxt)
+			if nspace + curpos == strdisplaywidth(prevline) && curno>searchend
+				return s:AlignCursor(a:nxt, curno-1, searchend, pretext, curpos)
+			else
+				return repeat(' ', nspace)
+			endif
+		endif
+	else
+		let nspace = s:AlignTo(curpos, prevline, a:nxt)
+		let nspace = strlen(matchstr(pretext, printf('\m \{1,%d\}$', nspace)))
+		if nspace == strlen(pretext) && curno > searchend
+			return s:AlignCursor(a:nxt, curno-1, searchend, pretext, curpos)
+		else
+			return " \<BS>" . repeat("\<BS>", nspace)
+		endif
+	endif
+endfunction
+
+inoremap <expr> <Plug>TabispaAlignCursor; <SID>AlignCursor(v:true)
+inoremap <expr> <Plug>TabispaDealignCursor; <SID>AlignCursor(v:false)
+execute jhsiaocrepeat#CharRepeatedCmds(
+	\ 'imap <C-K><C-F> <Plug>TabispaAlignCursor;', '<C-F>')
+execute jhsiaocrepeat#CharRepeatedCmds(
+	\ 'imap <C-K><C-B> <Plug>TabispaDealignCursor;', '<C-B>')
+
+
+"TODO
+"1. insert/backspace alignment
+"       insert/remove s:AlignTo(...) spaces at cursor position
+"2. add/remove alignment
+"       insert/remove s:AlignTo(...) spaces at first non-whitespace
+
 
 "insert mode:
 "	base: add indent after comment character
@@ -268,7 +359,6 @@ function! s:RemoveIndentSingle(ignore_comments, ...)
 			else
 				let removed = matchlist(parts[3], pat)
 				if len(removed)
-					echom json_encode(removed)
 					call jhsiaoutil#CursorShift(
 						\ strlen(parts[1]) + strlen(parts[2]) + strlen(removed[1]),
 						\ strlen(removed[1]) + strlen(removed[2]) - strlen(parts[3]))
