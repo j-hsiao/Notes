@@ -166,7 +166,7 @@ function! s:BlockStart(start, stop)
 		endif
 		let check += 1
 	endwhile
-	return curcol
+	return targetcol
 endfunction
 
 "Comment manipulation only operate on whole lines.
