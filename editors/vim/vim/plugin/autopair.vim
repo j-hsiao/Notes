@@ -126,14 +126,14 @@ function! s:AutopairPostRmL()
 endfunction
 inoremap <expr> <Plug>AutopairPostRmL; <SID>AutopairPostRmL()
 
-execute jhsiaomapfallback#CreateFallback('<Plug>AutopairPreFallback<BS>;', '<BS>', 'i')
-execute jhsiaomapfallback#CreateFallback('<Plug>AutopairPreFallback<C-H>;', '<C-H>', 'i')
-execute jhsiaomapfallback#CreateFallback('<Plug>AutopairPreFallback<C-W>;', '<C-W>', 'i')
-execute jhsiaomapfallback#CreateFallback('<Plug>AutopairPreFallback<C-U>;', '<C-U>', 'i')
-imap <expr> <BS> <SID>AutopairPreRmL("<lt>BS>")
-imap <expr> <C-H> <SID>AutopairPreRmL("<lt>C-H>")
-imap <expr> <C-W> <SID>AutopairPreRmL("<lt>C-W>")
-imap <expr> <C-U> <SID>AutopairPreRmL("<lt>C-U>")
+execute jhsiaomapfallback#CreateFallback('<Plug>AutopairPreFallbackBS;', '<BS>', 'i')
+execute jhsiaomapfallback#CreateFallback('<Plug>AutopairPreFallbackC-H;', '<C-H>', 'i')
+execute jhsiaomapfallback#CreateFallback('<Plug>AutopairPreFallbackC-W;', '<C-W>', 'i')
+execute jhsiaomapfallback#CreateFallback('<Plug>AutopairPreFallbackC-U;', '<C-U>', 'i')
+imap <expr> <BS> <SID>AutopairPreRmL("BS")
+imap <expr> <C-H> <SID>AutopairPreRmL("C-H")
+imap <expr> <C-W> <SID>AutopairPreRmL("C-W")
+imap <expr> <C-U> <SID>AutopairPreRmL("C-U")
 
 "Register a pair of opening and closing chars for completion.
 "These should be using <> notation if applicable.
