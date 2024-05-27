@@ -16,6 +16,8 @@ let g:loaded_autopair = 1
 
 "Save whether or not to complete pairs per buffer.
 let s:complete_pair = {}
+let s:closing = '\m[]'
+let s:opening = '\m[]'
 
 "Split the current line by cursor position
 function s:CursorSplit(length)
@@ -33,12 +35,14 @@ let s:rpairs = {}
 
 "Insert opening character with [], {}, () in mind.
 "These are inserted when following characters are non-words
+"and non-opening char for pairs.
 "or non-existent
 function s:OpenPair(char1, char2)
 	if !get(s:complete_pair, bufnr('%'), 1)
 		return a:char1
 	endif
-	if strpart(getline('.'), col('.')-1, 1) !~ '\w'
+	let nxt = strpart(getline('.'), col('.')-1, 1)
+	if nxt !~ '\w' && nxt !~ s:opening
 		return a:char1 . a:char2 . "\<Left>"
 	else
 		return a:char1
@@ -59,10 +63,12 @@ function s:ClosePair(char)
 	endif
 endfunction
 
+
 "Insert quotes.
-"Only automatically pair quotes if cursor is surrounded by space or
-"blank, or one of registered pairs.
+"Only automatically pair quotes if cursor is surrounded by one of:
+"space, blank ([{,}])
 "ex.
+"| = cursor insertion position
 " hello|    -> single
 " hello |   -> paired
 " call(|)   -> paired
@@ -76,7 +82,7 @@ function s:SamePair(char)
 	let after = strpart(curline, curcol-1, 1)
 	if after == a:char
 		return "\<Right>"
-	elseif after !~ '\w'
+	elseif after !~ '\S' || after =~ s:closing
 		if strpart(curline, curcol-3, 2) == repeat(a:char, 2)
 			let before = strpart(curline, curcol-4, 1)
 			if before !~ '[^({[[:space:]=,]' && after !~ '[^\])},[:space:]]'
@@ -144,11 +150,17 @@ function s:RegisterPair(char1, char2)
 		let quoted = substitute(json_encode(a:char1), '<', '\\<', 'g')
 		execute 'inoremap <expr> ' . a:char1 . ' <SID>SamePair(' . quoted . ')'
 	else
+		let s:closing = join([
+			\ strpart(s:closing, 0, strlen(s:closing)-1),
+			\ escape(a:char2, ']'), ']'], '')
 		let q1 = substitute(json_encode(a:char1), '<', '\\<', 'g')
 		let q2 = substitute(json_encode(a:char2), '<', '\\<', 'g')
 		execute 'inoremap <expr> ' . a:char1 . ' <SID>OpenPair(' . q1 . ', ' . q2 . ')'
 		execute 'inoremap <expr> ' . a:char2 . ' <SID>ClosePair(' . q2 . ')'
 	endif
+	let s:opening = join([
+		\ strpart(s:opening, 0, strlen(s:opening)-1),
+		\ escape(a:char1, ']'), ']'], '')
 endfunction
 
 "call <SID>RegisterPair('[', ']')
