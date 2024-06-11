@@ -470,7 +470,8 @@ ______________________________
 			S|R   delete entire selected lines and insert (insert text only on first)
 			<|>   shift left|right
 			u|U   make lower|upper case
-			p|P   replace selection with register contents
+			p     swap selection with the " register
+			P     replace selection with the " register
 ______________________________
 -4- command mode
 	Enter command mode with :.  This only allows 1 command.  Ex-mode

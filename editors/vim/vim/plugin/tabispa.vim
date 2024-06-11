@@ -140,7 +140,8 @@ imap <expr> <C-H> <SID>BackspaceAlignmentDispatch('CH')
 "to align to then next/previous word of previous line.
 function! s:AlignTo(position, prevline, nxt)
 	let col = 0
-	for part in split(a:prevline, '\m\<')
+	for part in split(a:prevline, '\m\s\+\zs')
+	"for part in split(a:prevline, '\m\<')
 		let size = strdisplaywidth(part, col)
 		if col + size > a:position || col+size == a:position && !a:nxt
 			if a:nxt
@@ -170,7 +171,11 @@ function! s:AlignCursor(nxt, ...)
 		let curcol = col('.')
 		let curtext = getline('.')
 		if !a:nxt && strpart(curtext, curcol-3, 2) != '  '
-			return "\<BS>"
+			if len(curtext)
+				return "\<BS>"
+			else
+				return ''
+			endif
 		endif
 		let pretext = strpart(curtext, 0, curcol-1)
 		let curpos = strdisplaywidth(pretext)
@@ -191,7 +196,7 @@ function! s:AlignCursor(nxt, ...)
 	endif
 	let prevline = getline(curno-1)
 	if a:nxt
-		if curpos >= strlen(prevline) && curno>searchend
+		if curpos >= strdisplaywidth(prevline) && curno>searchend
 			return s:AlignCursor(a:nxt, curno-1, searchend, pretext, curpos)
 		else
 			let nspace = s:AlignTo(curpos, prevline, a:nxt)
@@ -205,6 +210,7 @@ function! s:AlignCursor(nxt, ...)
 		let nspace = s:AlignTo(curpos, prevline, a:nxt)
 		let nspace = strlen(matchstr(pretext, printf('\m \{1,%d\}$', nspace)))
 		if nspace == strlen(pretext) && curno > searchend
+			\ && strdisplaywidth(matchstr(prevline, '\m^\s*')) >= curpos
 			return s:AlignCursor(a:nxt, curno-1, searchend, pretext, curpos)
 		else
 			return " \<BS>" . repeat("\<BS>", nspace)
