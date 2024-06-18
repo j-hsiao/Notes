@@ -11,9 +11,21 @@ then
 	MYENV+=(TZ=)
 fi
 
+BG=1
+for item in "${@}"
+do
+	if [ "${item}" = "-h" ] || [ "${item}" = "--help" ]
+	then
+		BG=0
+	fi
+done
+
 # always run reminder in background
-(sleep 1; kill -s SIGCONT "$$" ) &
-kill -s SIGSTOP $$
+if [ "${BG}" -eq 1 ]
+then
+	(sleep 1; kill -s SIGCONT "$$" ) &
+	kill -s SIGSTOP $$
+fi
 
 env "${MYENV[@]}" python -c "
 import time
