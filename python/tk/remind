@@ -10,6 +10,11 @@ if hash cygpath >/dev/null 2>&1
 then
 	MYENV+=(TZ=)
 fi
+
+# always run reminder in background
+(sleep 1; kill -s SIGCONT "$$" ) &
+kill -s SIGSTOP $$
+
 env "${MYENV[@]}" python -c "
 import time
 import argparse
