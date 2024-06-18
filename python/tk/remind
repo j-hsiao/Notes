@@ -1,0 +1,96 @@
+#!/bin/bash
+# NOTE: this just starts a process that waits until the given time to
+# display a reminder.  The scheduled reminder will not persist on system
+# reboot.
+
+# TZ environment variable seems to affect
+# python weirdly from cygwin
+MYENV=()
+if hash cygpath >/dev/null 2>&1
+then
+	MYENV+=(TZ=)
+fi
+env "${MYENV[@]}" python -c "
+import time
+import argparse
+import tkinter as tk
+import datetime
+import re
+
+datepat = re.compile(r'(?P<ymd>\d*-\d*)? ?(?P<hms>\S*:\S*)?')
+
+try:
+    from tkinter import messagebox
+except ImportError:
+    import tkMessageBox as messagebox
+
+p = argparse.ArgumentParser()
+p.add_argument('message', help='message to display')
+p.add_argument('-t', '--title', default='remind', help='message title')
+p.add_argument('-d', '--delay', type=float, help='seconds of delay')
+p.add_argument(
+    '-a', '--at',
+    help=(
+        'time to remind at.  Times are split between ymd and hms'
+        ' hms: MM, HH:MM, HH:MM:SS'
+        ' ymd: dd, mm-dd, YYYY-mm-dd'
+        ' Using ymd only will keep the current hms.'
+    )
+)
+args = p.parse_args()
+
+if args.delay:
+    now = time.time()
+    expect = now + args.delay
+    while now < expect:
+        time.sleep(expect - now)
+        now = time.time()
+elif args.at:
+    m = datepat.match(args.at)
+    if not m:
+        raise ValueError('Bad at format.')
+    m = m.groupdict()
+    if all([v is None for v in m.values()]):
+        try:
+            int(args.at)
+        except ValueError:
+            raise ValueError('Bad target reminder time')
+        else:
+            m['hms'] = args.at.strip()
+    then = now = datetime.datetime.now()
+    if m['hms']:
+        hms = list(map(float, m['hms'].split(':')))
+        if len(hms) == 1:
+            then = now.replace(minute=int(hms[0]), second=0, microsecond=0)
+        elif len(hms) == 2:
+            then = now.replace(hour=int(hms[0]), minute=int(hms[1]), second=0, microsecond=0)
+        elif len(hms) == 3:
+            then = now.replace(
+                hour=int(hms[0]), minute=int(hms[1]), second=int(hms[2]),
+                microsecond=int((hms[2] - int(hms[2])) * 1000000))
+        else:
+            raise ValueError('Bad hour/minute/second')
+    if m['ymd']:
+        ymd = list(map(int, m['ymd'].split('-')))
+        if len(ymd) == 1:
+            then = then.replace(day=ymd[0])
+        elif len(ymd) == 2:
+            then = then.replace(month=ymd[0], day=ymd[1])
+        elif len(ymd) == 3:
+            then = then.replace(year=ymd[0], month=ymd[1], day=ymd[2])
+        else:
+            raise ValueError('Bad year/month/day')
+
+    print('now :', now)
+    print('then:', then)
+    tdelta = (then-now).total_seconds()
+    print('delaying for ', tdelta, 'seconds')
+    while tdelta > 0:
+        time.sleep(tdelta)
+        tdelta = (then - datetime.datetime.now()).total_seconds()
+
+r = tk.Tk()
+r.withdraw()
+messagebox.showinfo(title=args.title, message=args.message)
+r.destroy()
+" "${@}"
