@@ -516,10 +516,17 @@ ______________________________
 		attributes: set/get various attributes:
 			use no args to find valid attributes (flattened Nx2 array)
 			Options vary by OS
+			unix (tested on wsl ubuntu):
+				-alpha (??)
+				-topmost (bool)
+				-zoomed (?bool?)
+				-fullscreen (?bool?)
+				-type (??)
 			options on windows
 				-fullscreen (bool)
 				-topmost (bool)
-				-toolwindow ("toolwindow style window")
+				-toolwindow (bool) "toolwindow style window", like a popup can alt tab to it
+				                   but it will not show up in bottom bar.
 				-disabled (bool)
 				-alpha (0-1)
 				-transparentcolor (index)
@@ -534,7 +541,8 @@ ______________________________
 		state(state): normal, iconic, withdrawn, icon, or zoomed(win/macos)
 		title(title): set window title
 
-		overrideredirect: ignore window manager->no top ribbon etc
+		overrideredirect: ignore window manager->no top ribbon, doesn't show
+			up in list of windows, etc, attributes are invalid.
 	______________________________
 	-1.9- images
 		use pillow:

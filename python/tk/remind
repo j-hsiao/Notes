@@ -16,6 +16,7 @@ import argparse
 import tkinter as tk
 import datetime
 import re
+import platform
 
 datepat = re.compile(r'(?P<ymd>\d*-\d*)? ?(?P<hms>\S*:\S*)?')
 
@@ -90,7 +91,28 @@ elif args.at:
         tdelta = (then - datetime.datetime.now()).total_seconds()
 
 r = tk.Tk()
-r.withdraw()
+r.title('remind')
+# using withdraw() would hide it from view. When working with
+# something else, there would be no visual indication of the reminder
+# except when alt+tab and see it in the list or no other windows open
+# and would obscure it when it is created.
+
+if platform.system() == 'Windows':
+    r.attributes('-toolwindow', True, '-topmost', True)
+else:
+    try:
+        r.attributes('-topmost', True)
+    except Exception:
+        traceback.print_exc()
+# Make main window small and hide behind popup(assumed to be at screen
+# center).
+r.geometry('1x1')
+r.update_idletasks()
+r.geometry('+{}+{}'.format(
+    (r.winfo_screenwidth() - r.winfo_width())//2,
+    (r.winfo_screenheight() - r.winfo_height())//2
+))
+
 messagebox.showinfo(title=args.title, message=args.message)
 r.destroy()
 " "${@}"
