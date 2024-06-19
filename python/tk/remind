@@ -11,33 +11,37 @@ then
 	MYENV+=(TZ=)
 fi
 
-BG=1
-for item in "${@}"
+for candidate in py python python3
 do
-	if [ "${item}" = "-h" ] || [ "${item}" = "--help" ]
+	if hash "${candidate}" &>/dev/null
 	then
-		BG=0
+		PYEXE="${candidate}"
+		break
 	fi
 done
-
-# always run reminder in background
-if [ "${BG}" -eq 1 ]
+if [ -z "${PYEXE}" ]
 then
-	# NOTE in wsl, without backgrounding, an immediate
-	# sigcont after a sigstop results in received signals
-	# but not being put into background.
-	# ie: kill -s SIGSTOP; kill -s SIGCONT.
-	# However, it seems that if the sigcont is some delay
-	# after SIGSTOP, then the process will become backgrounded.
-	# using the & to run kill in the background seems to delay
-	# it by a bit which seems to work on both wsl and cygwin
-	# This also ensures order of signal delivery.  The previous
-	# sleep method also causes a larger delay.
-	bash -c "kill -s SIGSTOP $$; kill -s SIGCONT $$&" &
-	wait
+	echo "Failed to find python." >&2
+	exit 1
 fi
 
-env "${MYENV[@]}" python -c "
+HELP=
+JOB=
+for item in "${@}"
+do
+	case "${item}" in
+		-h|--help)
+			HELP=1
+			JOB=1
+			;;
+		-j|--job)
+			JOB=1
+			;;
+	esac
+done
+
+
+PYSCRIPT="
 import time
 import argparse
 import tkinter as tk
@@ -63,6 +67,18 @@ p.add_argument(
         ' hms: MM, HH:MM, HH:MM:SS'
         ' ymd: dd, mm-dd, YYYY-mm-dd'
         ' Using ymd only will keep the current hms.'
+    )
+)
+p.add_argument(
+    '-j', '--job', action='store_true',
+    help=(
+        'run as a job, otherwise run without job as background'
+        ' Running as a job means backgrounding the remind script.'
+        ' This makes it show up when using \"jobs\" at the commandline'
+        ' which allows you to check if reminders are scheduled.'
+        ' However, this also means that fg would put it in fg, and on'
+        ' cygwin, it cannot be placed back into bg so if you'
+        ' accidentally fg, you might need to cancel and re-schedule it.'
     )
 )
 args = p.parse_args()
@@ -109,7 +125,7 @@ elif args.at:
         else:
             raise ValueError('Bad year/month/day')
 
-    print('now :', now)
+    print('\nnow :', now)
     print('then:', then)
     tdelta = (then-now).total_seconds()
     print('delaying for ', tdelta, 'seconds')
@@ -142,4 +158,20 @@ r.geometry('+{}+{}'.format(
 
 messagebox.showinfo(title=args.title, message=args.message)
 r.destroy()
-" "${@}"
+"
+
+# always run reminder in background
+if [ -n "${JOB}" ]
+then
+	if [ -z "${HELP}" ]
+	then
+    	# put this script into the background
+    	# run py in current script = job remains
+		bash -c "kill -s SIGSTOP $$; kill -s SIGCONT $$&" &
+		wait
+	fi
+	env "${MYENV[@]}" "${PYEXE}" -c "${PYSCRIPT}" "${@}"
+else
+	# run py in background, no job
+	env "${MYENV[@]}" "${PYEXE}" -c "${PYSCRIPT}" "${@}" &
+fi
