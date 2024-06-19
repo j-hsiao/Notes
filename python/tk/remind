@@ -23,8 +23,18 @@ done
 # always run reminder in background
 if [ "${BG}" -eq 1 ]
 then
-	(sleep 1; kill -s SIGCONT "$$" ) &
-	kill -s SIGSTOP $$
+	# NOTE in wsl, without backgrounding, an immediate
+	# sigcont after a sigstop results in received signals
+	# but not being put into background.
+	# ie: kill -s SIGSTOP; kill -s SIGCONT.
+	# However, it seems that if the sigcont is some delay
+	# after SIGSTOP, then the process will become backgrounded.
+	# using the & to run kill in the background seems to delay
+	# it by a bit which seems to work on both wsl and cygwin
+	# This also ensures order of signal delivery.  The previous
+	# sleep method also causes a larger delay.
+	bash -c "kill -s SIGSTOP $$; kill -s SIGCONT $$&" &
+	wait
 fi
 
 env "${MYENV[@]}" python -c "
