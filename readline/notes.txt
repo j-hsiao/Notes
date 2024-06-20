@@ -77,6 +77,10 @@ ______________________________
 	useful variables:
 		completion-ignore-case
 			on/off
+		menu-complete-display-prefix
+			on/off
+		show-all-if-ambiguous
+			on/off
 		editing-mode
 			vi: start in insert mode by default.
 			emacs: general default
@@ -131,6 +135,9 @@ ______________________________
 		unix-line-discard
 		backward-kill-word
 		unix-word-rubout
+	completion
+		menu-complete
+		menu-complete-backward
 
 ______________________________
 -4- useful

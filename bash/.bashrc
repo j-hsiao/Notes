@@ -22,3 +22,26 @@ export IGNOREEOF=100
 
 # allow C-s commandline searching too
 stty -ixon
+
+# cd via number
+# takes find arguments
+# eg. -name 'a*' to give directories beginning with a
+function lcd()
+{
+	local fnames
+	local response
+	defaults=('!' -name '.*')
+	readarray -t fnames < <(find . -maxdepth 1 -mindepth 1 -type d -a "${@:-"${defaults[@]}"}" | sort)
+	if [ "${#fnames[@]}" -gt 0 ]
+	then
+		paste -d: <(seq 0 $[${#fnames[@]} - 1]) <(printf '%s\n' "${fnames[@]##*/}") | column
+		printf '\ncd to number: '
+		read response
+		if [[ "${response}" =~ ^[0-9]+$ ]] && [ "${response}" -ge 0 -a "${response}" -lt ${#fnames[@]} ]
+		then
+			cd "${fnames[response]}"
+		fi
+	else
+		echo no dirs
+	fi
+}
