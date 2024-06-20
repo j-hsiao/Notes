@@ -4,6 +4,18 @@ contents
 -1- spec
 -2- basics
 	-2.1- reference syntax
+	-2.2- common commands
+		-2.2.1- clone
+		-2.2.2- add
+		-2.2.3- commit
+		-2.2.4- checkout
+		-2.2.5- branch
+		-2.2.6- diff
+		-2.2.7- reflog
+		-2.2.8- reset
+		-2.2.9- pull
+		-2.2.10- push
+		-2.2.11- tag
 -3- rebase
 -4- history
 	-4.1- reflog
@@ -90,85 +102,6 @@ other
 ------------------------------
 -2- basics
 ------------------------------
-	clone a repo
-		git clone uri
-
-	add
-		git add <files>
-
-	commit
-		git commit -m 'message'
-
-		git commit --fixup <commit>
-			fix the commit and keep its message
-		git commit --squash <commit>
-			merge commits into a single commit and specify final message after merge with rebase -i
-
-		protip:
-			use HEAD for commit
-
-	checkout
-		git checkout [branchname]
-			checkout branch from repo (use git branch -a to see repo branches too)
-		git checkout -b [newbranch]
-			create/checkout branch
-		git checkout [branchname] -- [path-to-filename]
-			checkout file
-
-	branch
-		git branch -a:
-			display all branches
-		git branch -d [name]
-			delete branch
-
-	diff
-		git diff -- [path-to-file]
-			difference between file current and since last stage
-			(so git reset if want to see dif since last commit)
-		git diff --cached [commit] [--] [path]
-			diff between staged changes for next commit and [commit] (defaults to head)
-		git diff commit -- path
-			dif between cur state and commit (not staged necessarily)
-		git diff commit commit -- path
-			dif between path for the two commits
-
-	reflog:
-		shows hashes for previous commits/checkouts etc
-
-	reset:
-		(reset current branch (if applicable) to the ref)
-		NOTE: reflog may still point to commits so will not be able to prune
-		git reset --hard 'hash/string_thing'
-			reset all files to state from corresponding commit (delete files too)
-		git reset
-			unstage commits (keep files the same)
-
-	pull changes from repo (fetch & merge)
-		git pull [remote] [local]
-
-	push changes to repo
-		git push [remote] [local]
-
-	tags:
-		creation:
-			git tag -a <tagname> -m 'tag message/description'
-			(add -f to change tag commit if already exist)
-		deletion:
-			local:
-				git tag -d <tagname>
-			remote:
-				git push origin :tagname
-				git push origin :refs/tags/tagname
-				git push origin --delete <tagname>
-		display:
-			git tag
-			git tag -n
-		pull tags:
-			git fetch --tags
-		push tags:
-			git push origin --tags
-			git push origin <tagname>
-
 	------------------------------
 	-2.1- reference syntax
 	------------------------------
@@ -190,6 +123,121 @@ other
 		          ~n
 		            n defaults to 1 if absent
 		            go back n generations, choosing the 1st parent
+
+	------------------------------
+	-2.2- common commands
+	------------------------------
+		------------------------------
+		-2.2.1- clone
+		------------------------------
+			clone a repo
+				git clone uri
+		------------------------------
+		-2.2.2- add
+		------------------------------
+			add
+				git add <files>
+		------------------------------
+		-2.2.3- commit
+		------------------------------
+			commit
+				git commit -m 'message'
+
+				git commit --fixup <commit>
+					fix the commit and keep its message
+				git commit --squash <commit>
+					merge commits into a single commit and specify final message after merge with rebase -i
+
+				protip:
+					use HEAD for commit
+
+		------------------------------
+		-2.2.4- checkout
+		------------------------------
+			checkout
+				git checkout [branchname]
+					checkout branch from repo (use git branch -a to see repo branches too)
+				git checkout -b [newbranch]
+					create/checkout branch
+				git checkout [branchname] -- [path-to-filename]
+					checkout file
+		------------------------------
+		-2.2.5- branch
+		------------------------------
+			branch
+				git branch -a:
+					display all branches
+				git branch -d [name]
+					delete branch
+		------------------------------
+		-2.2.6- diff
+		------------------------------
+			diff
+				git diff -- [path-to-file]
+					difference between file current and since last stage
+					(so git reset if want to see dif since last commit)
+				git diff --cached [commit] [--] [path]
+					diff between staged changes for next commit and [commit] (defaults to head)
+				git diff commit -- path
+					dif between cur state and commit (not staged necessarily)
+				git diff commit commit -- path
+					dif between path for the two commits
+		------------------------------
+		-2.2.7- reflog
+		------------------------------
+			reflog:
+				shows hashes for previous commits/checkouts etc
+		------------------------------
+		-2.2.8- reset
+		------------------------------
+			reset:
+				(reset current branch (if applicable) to the ref)
+				NOTE: reflog may still point to commits so will not be able to prune
+				git reset --hard 'hash/string_thing'
+					reset all files to state from corresponding commit (delete files too)
+				git reset
+					unstage commits (keep files the same)
+		------------------------------
+		-2.2.9- pull
+		------------------------------
+			pull changes from repo (fetch & merge)
+				git pull [remote] [local]
+		------------------------------
+		-2.2.10- push
+		------------------------------
+			push changes to repo
+				git push <remote> <localbranch>[:remotebranch]
+
+				can leave localbranch blank to delete remotebranch.
+		------------------------------
+		-2.2.11- tag
+		------------------------------
+			there are 2 types of tags:
+				lightweight
+					(no -a, -s, -m options)
+				annotated
+					has a message and is a true git object
+			creation:
+				git tag -a <tagname> -m 'tag message/description' [sha]
+					if no sha, then use HEAD
+				(add -f to change tag commit if already exist)
+			deletion:
+				local:
+					git tag -d <tagname>
+				remote:
+					git push origin :tagname
+					git push origin :refs/tags/tagname
+					git push origin --delete <tagname>
+			display:
+				git tag
+				git tag -n
+				git tag -l "pattern*"
+			pull tags:
+				git fetch --tags
+			push tags:
+				git push origin --tags
+				git push origin <tagname>
+
 ------------------------------
 -3- rebase
 ------------------------------
@@ -271,7 +319,7 @@ example:
 		global:
 			git config core.autocrlf
 		per repo:
-			.gitattributes file
+			.gitattributes file (must be in root directory)
 		by file:
 			.git/info/attributes
 
@@ -283,7 +331,7 @@ example:
 				unspecified: not specified... (no matches or not in .gitattributes)
 
 			later lines override previous lines
-			must be in repo root (but newer versions maybe not?)
+			must be in repo root
 			example:
 				* text=auto
 				*.c text
