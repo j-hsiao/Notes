@@ -40,22 +40,7 @@ do
 	esac
 done
 
-
-PYSCRIPT="
-import time
-import argparse
-import tkinter as tk
-import datetime
-import re
-import platform
-
-datepat = re.compile(r'(?P<ymd>\d*-\d*)? ?(?P<hms>\S*:\S*)?')
-
-try:
-    from tkinter import messagebox
-except ImportError:
-    import tkMessageBox as messagebox
-
+PARSER_SCRIPT="
 p = argparse.ArgumentParser()
 p.add_argument('message', help='message to display')
 p.add_argument('-t', '--title', default='remind', help='message title')
@@ -81,15 +66,10 @@ p.add_argument(
         ' accidentally fg, you might need to cancel and re-schedule it.'
     )
 )
-args = p.parse_args()
+"
 
-if args.delay:
-    now = time.time()
-    expect = now + args.delay
-    while now < expect:
-        time.sleep(expect - now)
-        now = time.time()
-elif args.at:
+DATE_PARSE="
+    datepat = re.compile(r'(?P<ymd>\d*-\d*)? ?(?P<hms>\S*:\S*)?')
     m = datepat.match(args.at)
     if not m:
         raise ValueError('Bad at format.')
@@ -124,11 +104,57 @@ elif args.at:
             then = then.replace(year=ymd[0], month=ymd[1], day=ymd[2])
         else:
             raise ValueError('Bad year/month/day')
+"
 
-    print('\nnow :', now)
-    print('then:', then)
+PYDEBUG="
+import argparse
+import datetime
+import re
+
+${PARSER_SCRIPT}
+args = p.parse_args()
+if args.at:
+${DATE_PARSE}
+    print('now   :', now)
+    print('target:', then)
+    tdelta = max(0, (then-now).total_seconds())
+
+    hours, secs = divmod(tdelta, 3600)
+    minutes, secs = divmod(secs, 60)
+    secs, nano = divmod(secs, 1)
+    nano *= 1000000000
+    print(
+        'delay : {:02d}:{:02d}:{:02d}.{:09d}'.format(
+            *map(int, (hours, minutes, secs, nano))))
+"
+
+
+PYSCRIPT="
+import time
+import argparse
+import tkinter as tk
+import datetime
+import re
+import platform
+
+
+try:
+    from tkinter import messagebox
+except ImportError:
+    import tkMessageBox as messagebox
+
+${PARSER_SCRIPT}
+args = p.parse_args()
+
+if args.delay:
+    now = time.time()
+    expect = now + args.delay
+    while now < expect:
+        time.sleep(expect - now)
+        now = time.time()
+elif args.at:
+    ${DATE_PARSE}
     tdelta = (then-now).total_seconds()
-    print('delaying for ', tdelta, 'seconds')
     while tdelta > 0:
         time.sleep(tdelta)
         tdelta = (then - datetime.datetime.now()).total_seconds()
@@ -161,6 +187,9 @@ r.destroy()
 "
 
 # always run reminder in background
+
+env "${MYENV[@]}" "${PYEXE}" -c "${PYDEBUG}" "${@}"
+
 if [ -n "${JOB}" ]
 then
 	if [ -z "${HELP}" ]
