@@ -1,0 +1,3213 @@
+NOTE: skipped external.tifffile
+last: finished transform
+
+
+
+####################
+contents::
+####################
+::||;;''//
+general
+  segmentation
+  functions
+    dtype_limits
+    img_as_bool
+    img_as_float
+    img_as_int
+    img_as_ubyte
+    img_as_uint
+    test
+  
+Modules
+  color
+    constants
+      rgb_from_stains
+    functions
+      combine_stains
+      convert_colorspace
+      deltaE_cie76
+      deltaE_ciede2000
+      deltaE_ciede94
+      deltaE_cmc
+      gray2rgb
+      guess_spatial_dimensions
+      extra conversions
+  data
+    images
+      astronaut
+      camera
+      checkerboard
+      chelsea
+      clock
+      coffee
+      coins
+      horse
+      hubble_deep_field
+      immunohistochemistry
+      moon
+      page
+      rocket
+      text
+    functions
+      binary_blobs
+      imread
+      load
+      use_plugin
+  draw
+    bezier_curve
+    circle
+    circle_perimeter
+    circle_perimeter_aa
+    ellipse
+    ellipse_perimeter
+    ellipsoid
+    ellipsoid_stats
+    line
+    line_aa
+    polygon
+    polygon_perimeter
+    set_color
+  exposure
+    adjust_gamma
+    adjust_log
+    adjust_sigmoid
+    cumulative_distribution
+    equalize_adapthist
+    equalize_hist
+    histogram
+    is_low_contrast
+    rescale_intensity
+  feature
+    blob_dog
+    blob_doh
+    blob_log
+    canny
+    corner_fast
+    corner_foerstner
+    corner_harris
+    corner_kitchen_rosenfeld
+    corner_moravec
+    corner_orientations
+    corner_peaks
+    corner_shi_tomasi
+    corner_subpix
+    daisy
+    draw_multiblock_lbp
+    greycomatrix
+    greycoprops
+    hessian_matrix
+    hessian_matrix_det
+    hessian_matrix_eigvals
+    hog
+    local_binary_pattern
+    match_descriptors
+    match_template
+    multilock_lbp
+    peak_local_max
+    plot_matches
+    register_translation
+    structure_tensor
+    structure_tensor_eigvals
+    BRIEF
+    CENSURE
+    ORB
+  filters
+    copy_func
+    gabor
+    gabor_kernel
+    gaussian
+    inverse
+    laplace
+    median
+    prewitt
+    prewitt_h
+    prewitt_v
+    rank_order
+    roberts
+    roberts_neg_diag
+    roberts_pos_diag
+    scharr
+    scharr_h
+    scharr_v
+    sobel
+    sobel_h
+    sobel_v
+    threshold_adaptive
+    threshold_isodata
+    threshold_li
+    threshold_otsu
+    threshold_yen
+    wiener
+    LPIFilter2D
+  filters.rank
+    autolevel
+    autolevel_percentile
+    bottomhat
+    enhance_contrast
+    enhance_contrast_percentile
+    entropy
+    equalize
+    geometric_mean
+    gradient
+    gradient__percentile
+    maximum
+    mean
+    mean_bilarteral
+    mean_percentile
+    median
+    minimum
+    modal
+    noise_filter
+    otsu
+    percentile
+    pop
+    pop_bilateral
+    pop_percentile
+    subtract_mean
+    subtract_mean_percentile
+    sum
+    sum_bilateral
+    sum_percentile
+    threshold
+    threshold_percentile
+    tophat
+    windows_histogram
+  future.graph
+    cut_normalized
+    cut_threshold
+    drag_rag
+    merge_hierarchical
+    ncut
+    rag_boundary
+    rag_mean_color
+    class:RAG: skipped
+  graph
+    route_through_array
+    shortest_path
+    MCP
+    MCP_Connect
+    MCP_Flexible
+    MCP_Geometric
+  IO
+    plugins
+    call_plugin
+    concatenate_images
+    find_available_plugins
+    imread
+    imread_collection
+    imread_collection_wrapper
+    imsave
+    imshow
+    imshow_collection
+    load_sift
+    load_surf
+    plugin_info
+    plugin_order
+    pop
+    push
+    reset_plugins
+    show
+    use_plugin
+    class:ImageCollection
+    class:MultiImage
+  measure
+    skipped:
+      approximate_polygon
+      block_reduce
+      correct_mesh_orientation
+      grid_points_in_poly
+      marching_cubes
+      mesh_surface_area
+      moments
+      moments_central
+      moments_hu
+      moments_normalized
+      perimeter
+      points_in_poly
+      profiel_line
+      ransac
+      structural_similarity
+      subdivide_polygon
+      class:CircleModel
+      class:EllipseModel
+      class:LineModel
+      class:LineModelND
+    compare_mse
+    compare_nrmse
+    compare_psnr
+    compare_ssim
+    find_contours
+    label
+    regionprops
+  morphology
+    ball
+    binary_closing
+    binary_dilation
+    binary_erosion
+    binary_opening
+    binary_tophat
+    closing
+    convex_hull_image
+    convex_hull_object
+    cube
+    diamond
+    dilation
+    disk
+    erosion
+    label
+    medial_axis
+    octagon
+    octahedron
+    opening
+    reconstruction
+    rectangle
+    remove_small_holes
+    remove_small_objects
+    skeletonize
+    skeletonize_3d
+    square
+    star
+    watershed
+    white_tophat
+  novice
+    SKIPPED
+  restoration
+    denoise_bilateral
+    denoise_nl_means
+    deoise_tv_bregman
+    denoise_tv_chambolle
+    richardson_lucy
+    unsupervised_wiener
+    unwrap_phase: SKIPPED
+    wiener
+  segmentation
+    constants
+    functions
+      random_walker
+    SKIPPED
+  transform
+    downscale_local_mean
+    estimate_transform
+    frt2
+    hough_circle
+    hough_ellipse
+    hough_line
+    hough_line_peaks
+    ifrt2
+    integral_image
+    integrate
+    iradon
+    iradon_sart
+    matrix_transform
+    probabilistic_hough_line
+    pyramid_expand
+    pyramid_gaussian
+    pyramid_laplacian
+    pyramid_reduce
+    radon
+    rescale
+    resize
+    rotate
+    seam_carve
+    swirl
+    warp
+    warp_coords
+    class:AffineTransform
+    class:PiecewiseAffineTransform
+    class:PolynomialTransform
+    class:ProjectiveTransform
+    class:SimilarityTransform
+    
+  util
+    constants
+    functions
+      rgb2hsv
+      lab2rgb
+
+  viewer
+    constants
+    functions
+    objects
+      ImageViewer
+        constructor
+    modules
+      plugins
+miscellaneous
+  ndimage
+
+::||;;''//
+
+
+
+
+
+####################
+general::
+####################
+images: numpy arrays
+
+ex:
+import skimage
+
+images: floats or ints
+        floats: [0, 1]
+
+______________________________
+segmentation||
+  use otsu filtering
+  histogram, find median/mean etc
+  below = 0, above = 1
+  good for bi-modal histograms
+
+  watershed
+    fills basins
+    basins = local maxima (distance from background)
+
+
+
+______________________________
+functions||
+
+  dtype_limits
+    (img, [clip_negative])
+      img: image to examine
+      clip_negative: true: neg values->0
+    returns:
+      min/max intensity for the image (a pair)
+
+  img_as_bool
+    (img, force_copy)
+      img: image to convert
+      force_copy: true->forcibly copies, no references
+    returns:
+      new image (range > 1/2 = true, else false)
+      ie: 0.5->true, 0.0->false
+      128->true
+      127->false
+
+  img_as_float
+    (img, force_copy)
+      img: image to convert
+      force_copy: true->forcibly copies, no references
+    returns:
+      new image, mapped to [0,1]
+  
+
+  img_as_int
+    (img, force_copy)
+      img: image to convert
+      force_copy: true->forcibly copies, no references
+    returns:
+      new image  (int16): images mapped to full range
+                          of +/- 32768
+
+
+  img_as_ubyte
+    (img, force_copy)
+      img: image to convert
+      force_copy: true->forcibly copies, no references
+    returns:
+      new image (uint8): image to [0,255]
+
+  img_as_uint
+    (img, force_copy)
+      img: image to convert
+      force_copy: true->forcibly copies, no references
+    returns:
+      new image (uint16) [0,65535]
+
+  test
+    (doctest=False, verbose=False)
+      runs all tests
+
+####################
+Modules::
+####################
+______________________________
+color||
+  ______________________________
+  constants;;
+    ______________________________
+    rgb_from_stains''
+      rgb_from_hed
+      rgb_from_hdx
+      rgb_from_fgx
+      rgb_from_bex
+      rgb_from_rbd
+      rgb_from_gdx
+      rgb_from_hax
+      rgb_from_bro
+      rgb_from_bpx
+      rgb_from_ahx
+      rgb_from_hpx
+
+  ______________________________
+  functions;;
+    ______________________________
+    combine_stains''
+      (stains, conv_matrix)
+        stains: matrix of stains
+        conv_matrix: rgb_from_stains constant
+      returns:
+        rgb format
+
+    ______________________________
+    convert_colorspace''
+      (arr, fromspace, tospace)
+        arr: image to convert
+        fromspace: string of original color space
+        tospace: string of dest color space
+          values: 'rgb'
+                  'hsv'
+                  'rgb cie'
+                  'xyz'
+        returns: the converted image
+
+    ______________________________
+    deltaE_cie76''
+      (lab1, lab2)
+        lab1: 1st lab color
+        lab2: 2nd lab color
+      returns:
+        distance
+      NOTE:
+        lab = Lightness, a, b
+
+    ______________________________
+    deltaE_ciede2000''
+      (lab1, lab2, kL=1, kC=1, kH=1)
+        same as above but:
+        kL = L scale
+        kC = chroma scale
+        kH = hue scale
+      returns:
+        distance
+    
+    ______________________________
+    deltaE_ciede94''
+      (lab1, lab2, KH=1, KC=1, kL=1, k1=0.045, k2=0.015)
+        same as above
+        k1, k2 = extra parameters
+      returns:
+        distance between colors
+
+    ______________________________
+    deltaE_cmc''
+      (lab1, lab2, kL1, kC1)
+        same as above
+      returns:
+        distance between colors
+
+    NOTE: deltaE functions:
+          scales are scale of the "reference" color ie lab1
+      
+    ______________________________
+    gray2rgb''
+      (img, alpha=None)
+        img: image
+        alpha: true: make rgba
+      returns:
+        rgb image (rgba if alpha=true)
+
+
+    ______________________________
+    guess_spatial_dimensions(img)''
+      img: image to analyze
+    returns:
+      number of spatial dimensions
+
+    ______________________________
+    extra conversions''
+      hed2rgb
+      hsv2rgb
+      lab2lch
+      lab2rgb
+      lab2xyz
+      label2rgb
+      lch2lab
+      luv2rgb
+      luv2xyz
+      rgb2gray
+      rgb2grey
+      rgb2hed
+      rgb2hsv
+      rgb2lab
+      rgb2luv
+      rgb2rgbcie
+      rgb2xyz
+      rgbcie2rgb
+      xyz2lab
+      xyz2luv
+      xyz2rgb
+    ______________________________
+    separate_stains''
+      (rgb, conv_mat)
+        rgb: rgb color
+        conv_mat: conversion matrix
+                  see combine_stains
+
+______________________________
+data||
+  image return functs
+    astronaut
+    camera
+    checkerboard
+    chelsea
+    clock
+    coffee
+    coins
+    horse
+    hubble_deep_field
+    immunohistochemistry
+    moon
+    page
+    rocket
+    text
+  ______________________________
+  functions;;
+    ______________________________
+    binary_blobs''
+      (length=512, blob_size_fraction=0.1, n_dim=2, volume_fraction=0.5, seed=None)
+        length: linear size of output image
+        blob_size_fraction: linear size of blob as fraction of
+                            length
+        n_dim: dims of output
+        volume_fraction: % of image pixels covered by blobs [0,1]
+        seed: rng seed
+      returns:
+        blob image
+    ______________________________
+    imread''
+      (fname, as_grey=False, plugin=None, flatten=None, **plugin_args)
+        fname:        file name
+        as_grey:      grey or not
+        plugin:       name of plugin to use
+        flatten:      save space? remove channels
+        **plugin_args:args for the plugin used
+
+    ______________________________
+    load''
+      (str)
+        name of file to load
+
+    ______________________________
+    use_plugin
+      (name, kind)
+        name: name of plugin to use
+        kind: name of function for use with plugin as default
+              'imread', 'imshow', 'imsave', 'imread_collection'
+              'imshow_collection'
+      sets plugin to default plugin for the operaiton
+      
+
+______________________________
+draw||
+  ______________________________
+  bezier_curve;;
+    (y0,x0, y1,x1, y2,x2, weight, [shape])
+      yixi: control point coordinates
+      weight: line tension (mid control point weight)
+      shape: image shape (dimensions of the image you want
+             to draw on)
+    returns:
+      rr,cc: list of y,x coordinates
+
+  ______________________________
+  circle;;
+    (r,c,radius,shape=None)
+      r,c: center of circle (y,x)
+      radius: radius of circle (double)
+      shape: tuple (image shape)
+    returns:
+      rr,cc: list of y,x coords
+
+
+  ______________________________
+  circle_perimeter;;
+    (r,c,radius,method='bresenham',shape=None)
+      r,c: center of circle (y,x)
+      radius: radius of circle (int
+      method: method for circle:
+              'bresenham'
+              'andres'
+      shape: tuple (image shape)
+    returns:
+      rr,cc: list of y,x coords
+    NOTE:
+      andres better? less distortions on rotation
+      concentric circles will leave no holes
+
+  ______________________________
+  circle_perimeter;;
+    (r,c,radius,shape=None)
+      r,c: center of circle (y,x)
+      radius: radius of circle (int
+      method: method for circle:
+              'bresenham'
+              'andres'
+      shape: tuple (image shape)
+    returns:
+      rr,cc: list of y,x coords
+
+  ______________________________
+  ellipse;;
+    (r,c,yrad,xrad,shape=None)
+      r,c: y,x coord of center
+      yrad: yradius
+      xrad: xradius
+      shape: shape of image to draw into
+    returns: 
+      y,x coords of locations within ellipse
+
+  ______________________________
+  ellipse;;
+    (r,c,yrad,xrad,orientation=0, shape=None)
+      r,c: y,x coord of center
+      yrad: yradius
+      xrad: xradius
+      orientation: rotation(clockwise) of ellipse (rads)
+      shape: shape of image to draw into
+    returns: 
+      y,x coords of locations within ellipse
+
+  ______________________________
+  ellipsoid;;
+    (a,b,c,spacing=(1.0,1.0,1.0), levelset=False)
+      a: float, semimajor axis alligned with x
+      b: float, semimajor axis alligned with y
+      c: float, semimajor axis alligned with z
+      spacing: spacing in x,y,z spatial dimensions
+      levelset: bool, True = returns level set
+                signed level set about 0, positive = interior
+                else returns binarized version
+
+  ______________________________
+  ellipsoid_stats;;
+    (a,b,c)
+      a, b, c: as above
+    returns:
+      vol, surf
+      volume, surface area
+
+  ______________________________
+  line;;
+    (y0,x0,y1,x1)
+      yixi: coordinates of line
+    returns:
+      array of indices as usual
+
+  ______________________________
+  line_aa;;
+    (y0,x0,y1,x1)
+      yixi: coordinates of line
+    returns:
+      array of indices as usual, but also intensities
+      antialiased
+
+  ______________________________
+  polygon;;
+    (y,x,shape)
+      y: list of y indices
+      x: list of x indices
+      shape: diensions of array to put into
+    returns:
+      rr,cc: list of coordinates for polygon
+      filled
+
+  ______________________________
+  polygon_perimeter;;
+    (y,x,shape=None,clip=False)
+      y: y coords
+      x: x coorsd
+      shape: shape of image
+      clip: bool clip polygon to shape
+    returns:
+      polygon indices
+
+  ______________________________
+  set_color;;
+    (img, coords, color, alpha=1)
+      img: image to edit
+      coords: coords to set colors of
+      color: colors to be assigned (1 if only 1 color)
+      alpha: list of alpha values (1 if only 1 alpha)
+    returns:
+      None
+      mutates img
+  
+
+______________________________
+exposure||
+
+  ______________________________
+  adjust_gamma''
+    (img, gamma=1, gain=1)
+      img: image to edit
+      gamma: camma value
+      gain: gain value (constant mult)
+    returns:
+      adjusted image
+    NOTE:
+      eq: O = I ** gamma
+
+  ______________________________
+  adjust_log''
+    (image, gain=1, inv=False)
+      image: image to edit
+      gain: const mult
+      inv: inv log correction if true
+    returns:
+      corrected image
+    NOTE:
+      log correction
+      eq: O=gain*(2**I - 1)
+
+  ______________________________
+  adjust_sigmoid;;
+    (img, cutoff=0.5, gain=10, inv=False)
+      img: image to edit
+      cutoff: cutoff for sigmoid function
+      gain: const multiplier in exp
+      inv: negative sigmoid
+    returns:
+      corrected image
+    NOTE:
+      eq: O = 1/(1 + exp*(gain*(cutoff - I)))
+
+
+  ______________________________
+  cumulative_distribution;;
+    (img, nbins=256)
+      img: image to analyze
+      nbins: number of bins
+    returns:
+      img_cdf, bin_centers
+      
+
+  ______________________________
+  equalize_adapthist;;
+    (img, *args, **kwargs)
+      img: the image to equalize
+      kernel_size: integer or 2-tuple
+      clip_limit: [0,1], higher = more contrast
+      nbins: number of bins
+    returns:
+      equalized image
+    NOTE:
+      on colored images, converted to HSV and
+      performed on V component
+
+
+  ______________________________
+  equalize_hist;;
+    (img)
+      img: the image to equalize
+    returns:
+      equalized image
+
+  ______________________________
+  histogram;;
+    (img, nbins)
+      img: image
+      nbins: # of bins
+    returns:
+      histogram of the image
+
+  ______________________________
+  is_low_contrast;;
+    (img, fraction_threshold=0.05, lower_percentile=1, upper_percentile=99,
+          method='linear')
+      img: image to analyze
+      fraction_threshold: threshold for low contrast
+                          (if spans < 0.05 of datatype range)
+      lower_percentile: disregard anything below
+      upper_percentile: disregard anything above
+      method: only 'linear'
+    returns:
+      bool: true of low contrast (threshold)
+                                 
+  ______________________________
+  rescale_intensity;;
+    (img, in_range='image', out_range='dtype')
+      img: image to process
+      in_range: 2-tuple or str, min/max intensities
+      out_range: 2-tuple or str, min/max intensities
+        'dtype': use min/max of data type
+        'image': use min/max of the image
+    returns:
+      returns remapped intensity image based in in/out_range
+
+______________________________
+feature||
+  ______________________________
+  blob_dog;;
+    (img, min_sigma=1, max_sigma=50, sigma_ratio=1.6, threshold=2.0,
+          overlap=0.5)
+      img: image to analyze (gray)
+      min_sigma: min sigma
+      max_sigma: max sigma
+      sigma_ratio: ratio for computing difference of gaussians
+      threshold: threshold on the blobs
+      overlap: [0,1] if blobs overlap by more than a fraction
+               greater than overlap, elim smaller one
+    returns:
+      A:  y    x    sigma
+      y = y coord of blob
+      x = x coord of blob
+      sigma = sigma of gaussians that detected blob
+      blobs are about radius = sqrt(2)*sigma
+    NOTE:
+      difference of gaussians
+      
+  ______________________________
+  blob_doh;;
+    (img, min_sigma=1, max_sigma=30, num_sigma=10, threshold=0.01,
+          overlap=0.5, log_scale=False)
+      img: image to process (gray)
+      min_sigma: min sigma for gaussian kernel
+      max_sigma: max sigma for gaussian kernel
+      num_sigma: number of intermediat values
+      threshold: threshold for blobbiness
+      overlap: [0,1], overlap more than this, gna remove smaller
+               blob
+      log_scale: bool, standard deviations interpolated on
+                 log-scale with base 10
+    returns:
+      array of blobs as in blob_dog
+    NOTE:
+      determinant of hessians
+
+  ______________________________
+  blob_log;;
+    (img, min_sigma=1, max_sigma=50, num_sigma=10, threshold=0.2,
+          overlap=0.5, log_scale=False)
+      look above
+    returns:
+      same as above
+    NOTE:
+      laplacian of gaussian
+
+  ______________________________
+  canny;;
+    (img, sigma=1.0, low_threshold=None, high_threshold=None,
+          mask=None, use_quantiles=False)
+      img: image to process
+      sigma: sd of gaussian filter used for smoothing b4 laplacian
+      low_thresh: below = ignored
+      high_thresh: below = weak edge, above = strong edge
+      mask: limit application of canny to particular area
+      use_quantiles: True, treat low_thres, high_thresh as
+                     quantiles of edge magnitude, if true,
+                     they must be in [0,1]
+    returns:
+      binary edge map array size of img with T/F for edge or not
+
+
+  ______________________________
+  corner_fast;;
+    (img, n=12, threshold=0.15)
+      img: image (gray)
+      n: number of consecutive pixels
+         for determination
+      threshold:
+        threshold for corner detection
+    returns:
+      binary corner map
+
+  ______________________________
+  corner_foerstner;;
+    (image, sigma=1)
+      image; grayscale
+      sigma: sigma for gaussian filter
+             to apply to derivs
+    returns:
+      (w,q)
+      each w, q is a map of values, same size
+      as image
+      w is det(A) / trace(A)
+      q is 4 * det(A) / trace(A)**2
+      
+      w='size of error ellipse'
+      q='roundness of error ellipse'
+    NOTE:
+      uses autocorrelation matrix
+      [Axx Axy]
+      [Ayx Ayy]  = A
+      x, y indicate partial derivative to that
+      var
+  ______________________________
+  corner_harris;;
+    (image, method='k', k=0.05, eps=1e-06, sigma=1)
+      image: image to process
+      method: {'K', 'eps'}
+      k: see equation below
+      eps: see equation below
+      sigma: smooths the derivs first
+
+    NOTE:
+      uses A as above
+      det(A) - k * trace(A)**2
+      or
+      2*det(A) / trace(A) + eps
+
+
+  ______________________________
+  corner_kitchen_rosenfeld;;
+    (img, mode='constant', cval=0)
+      img: image, grey
+      mode: {'constant', 'reflect', 'wrap',
+            'nearest', 'mirror'}
+      cval: float, used with 'constant'
+    returns:
+      kitchen and rosenfeld response image
+
+
+  ______________________________
+  corner_moravec;;
+    (image, window_size=1)
+      image: input
+      window_size: ...
+    returns:
+      response image
+
+  ______________________________
+  corner_orientations;;
+    (img, corners, mask)
+      img: image
+      corners: corner coordinates
+      mask: local neighborhooed of corner
+            for calculating moment
+    returns:
+      orientations [-pi, pi]
+
+
+  ______________________________
+  corner_peaks;;
+    (img, min_distance=1, threshold_abs=None,
+    threshold_rel=0.1, exclude_border=True,
+    indices=True, num_peaks=inf, footprint=None
+    labels=None)
+      see peak_local_max
+    returns:
+      location of corners (one per blob)
+
+
+  ______________________________
+  corner_shi_tomasi;;
+    (image, sigma=1)
+      image: input
+      sigma: for smoothing derivs
+    returns:
+      response image
+    NOTE:
+      uses matrix A (see corner_foerstner)
+      corner measure:
+      ((Axx + Ayy) - sqrt((Axx - Ayy)**2 +
+      4*Axy**2))/2
+      (smaller eigenvalue of A)
+
+  ______________________________
+  corner_subpix;;
+    (image, corners, window_size=11, alpha=0.99)
+      image; input
+      corners: list of corners
+      window_size: search window for subpixel
+                   estimation
+      alpha: significance level for classification
+    returns:
+      subpixel corner positions
+      NaN for non-classified
+
+  ______________________________
+  daisy;;
+    (img, step=4, radius=15, rings=3, histograms=8,
+          orientations=8, normalization='L1',
+          sigmas=None,ring_radii=None, visualize=False)
+      img: image
+      step: dist b/w descriptor sampling points
+      radius: radius of outermost ring
+      rings: # of rings
+      histograms: # of histograms per ring
+      orientations: orientations/bins per histogram
+      normalization: l1, l2, daisy, off
+      sigmas: 1d array of floats
+              for smoothing histograms and
+              rings
+      ringi_radii: 1d array of ints
+                   radii of rings
+      visualize: visualize
+    returns:
+      descs, descs_img
+        descs: P,Q,R:
+               P: ceil((M-radius*2)/step)
+               Q: ceil((N-radius*2)/step)
+               R: (rings*histograms+1)*orientations
+    NOTE:
+      extract DAISY feature descriptors
+      
+  ______________________________
+  draw_multiblock_lbp;;
+    (img, r, c, width, height, lbp_code=0,
+          color_greater_block=[1,1,1],
+          color_less_block=[0,0.69,0.96],
+          alpha=0.5)
+      img: input
+      r: row coord of top left corner
+      c: col coord of top left corner
+      width: width of rectangle used
+      height: height of rectangle used
+      lbp_code: int, descriptor of feature
+      color_greater_block: color for
+                           greater blocks
+      color_less_block: color for less blocks
+      alpha: alpha for blending
+    returns:
+      
+    NOTE:
+      local binary pattern
+      higher sum = alpha-blended white rectangles
+      lower sums->alpha-blended cyan
+
+  ______________________________
+  greycomatrix;;
+    (img, distances, angles, levels=256,
+          symmetric=False, normed=False)
+      img: input, uint8 grayscale
+      distances: pixel pair distance offsets
+      angels: pixel pair angles (rads)
+      levels: int, input has [0,levels-1] as
+              range
+      symmetric: bool, true: output is
+                 symmetric
+      normed: bool, true:normalized to sum
+              to one
+    returns:
+      P: 4-d array
+         i,j,d,theta: i,j = gray levels
+         # of times j occurs with i at
+         distance d and angle theta
+         ex: binary: i,j both in [0,1]
+         
+    NOTE:
+      co-occurrence matrix: histogram of
+      co-occurring greyscale values at offset
+      over an image
+
+  ______________________________
+  greycoprops;;
+    (P, prop='contrast')
+      P: grey-level co-occurrence histogram
+      prop: contrast, dissimilarity,homogeneity,
+            energy,correlation,asm
+    returns:
+
+    NOTE:
+      calc texture prop of GLCM
+      contrast: sum of Pij(i-j)**2
+      dissimilarity:sum of Pij|i-j|
+      homogeneity:sum of Pij/(1+(i-j)**2)
+      ASM: sum(Pij**2)
+      energy: sqrt(ASM)
+      correlation: sum(Pij[i-m][j-n]/(sqrt(si^2sj^2)))
+    
+  ______________________________
+  hessian_matrix;;
+    (img, sigma=1, mode='constant', cval=0)
+      img: input
+      sigma: sd of gaussian
+      mode: constant, reflect, wrap, nearest, mirror
+            determines how to handle borders
+      cval: val outside the image
+    returns:
+      Hxx, Hxy, Hyy
+    NOTE:       
+      hessian:matrix of 2nd partials
+      Hxx, Hxy
+      Hyx, Hyy
+      (convolves these 2nd derivs of gaussian
+      with the image)
+
+
+  ______________________________
+  hessian_matrix_det;;
+    (img, sigma)
+      img: image
+      sigma: for gaussian to calc hessian
+    returns:
+      result
+    NOTE:
+      uses box filters over integral image
+      computes approximate hessian det
+
+
+  ______________________________
+  hog;;
+    (img, orientations=9, pixels_per_cell=(8,8)
+          cells_per_block=(3,3),visualise=false
+          transform_sqrt=false,feature_vector=true,)
+      img: input
+      orientations: # of orientations
+      pixels_per_cell: 2-tuple
+      cells_per_block: 2-tuple
+      visualise: returns image of HOG
+      transform_sqrt: apply power law compression
+                      to normalize image
+      feature_vector: return data as 
+                      feature vector (.ravel())
+    returns:
+      res:
+        1: normalise
+        2: compute gradients (x, y)
+        3: compute gradient histograms
+        4: normalize across blocks
+        5: flatten to feature vector
+      resimg: image if visualise
+
+
+  ______________________________
+  local_binary_pattern;;
+    (img, P, R, method='default')
+      img: gray image
+      P: # of neighbor set points
+      R: radius of circle
+      method: default, ror, uniform, var, nri_uniform
+    returns:
+      LBP image
+  
+
+  ______________________________
+  match_descriptors;;
+    (descriptors1, descriptors2, metric=None,
+                   p=2, max_distance=inf,
+                   cross_check=True
+      descriptors1: binary descriptors img1
+      descriptors2: binary descriptors img2
+      metric: euclidean, cityblock, minkowski
+              hamming
+      p: pnorm for minkowski
+      max_distance: max dist b/w descriptors
+                    to be a "match"
+      cross_check: matches returned only if
+                   they are both best matches
+                   for each other
+    returns:
+      matches:list of points
+
+
+  ______________________________
+  match_template;;
+    (img, template, pad_input=false, mode=constant
+         constant_values=0)
+      img: input
+      template: template<= image
+      pad_input: pad the inputso output size
+                 is same size as image
+
+  ______________________________
+  multiblock_lbp;;
+    (int_image, r, c, width, height)
+      int_image: integral image
+      r: rowcoord of top left corner
+      c: colcoord of top left corner
+      width: width of rects
+      height: height of rects
+    returns:
+      MB-LBP feature descriptor (an int)
+
+
+  ______________________________
+  peak_local_max;;
+    (image, min_distance=1, threshold_abs=None,
+            threshold_rel=None, exclude_border=True,
+            indices=True, num_peaks=inf, footprint=None,
+            labels=None)
+      image: input
+      min_distance: min separation of peaks
+      threshold_abs: absolute thresh
+      threshold_rel: use max(image)*threshold_rel
+      exclude_border: excludes border pixels
+      indices: boo, will output coordinates
+               false: return an image
+      num_peaks: max # of peaks
+      footprint: mask for searching for peaks
+      labels: labels separating regions to search
+              for
+    returns:
+      indices=True: list of peaks (row,col)
+      false: image 
+      
+    NOTE:
+      finds peaks (local maxima)
+
+  ______________________________
+  plot_matches;;
+    (ax, img1, img2, kp1, kp2, matches,
+         keypoints_color='k', matches_color=None,
+         only_matches=False)
+      ax: matplotlib.axes.Axes
+      img1: image
+      img2: image
+      kp1: keypoint coordinates
+      kp2: keypoint coordinates
+      matches: indices of matches in
+               1st adn 2nd keypoints
+      keypoints_color: matplotlib color
+      matches_color: color for lines connecting
+                     keypoint matches
+      only_matches: plot only matches
+
+
+  ______________________________
+  register_translation;;
+    (src_image, target_image, upsample_factor=1,
+         space='real')
+      src_image: reference image
+      target_image: img to register, mst be same
+                    dimensionality as src-image
+      upsample_factor: int, images will be
+                       registered to within
+                       1/upsample_factor of a 
+                       pixel
+      space: real, fourier
+    returns:
+      shifts, error, phasediff
+        shifts: shft vector, ZYX ordered axes
+        error: float, normalized RMS b/w images
+        phasediff: global phasediff b/w images
+    NOTE:
+      subpixel translation registration by
+      cross-correlation
+
+
+  ______________________________
+  structure_tensor;;
+    (img, sigma=1, mode='constant', cval=0
+      img: image
+      sigma: sd for gaussian
+      mode: constant, reflect, wrap, nearest,
+            mirror: how to handle the border
+      cval: for constant
+    returns:
+      axx
+      axy
+      ayy
+    NOTE:
+      uses A= [Axx Axy]
+              [Ayx Ayy]
+       approxed by weighted sum of squared
+       differences
+
+
+  ______________________________
+  structure_tensor_eigvals;;
+    (Axx, Axy, Ayy)
+      from structure_tensor
+    returns:
+      l1,l2
+      l1: larger eigenvalues
+      l2: smaller eigenvalues
+
+
+  ______________________________
+  class  BRIEF;;
+    (descriptor_size=256, patch_size=49,mode='normal'
+        sigma=1,sample_seed=1)
+      descriptor_size: size of BRIEF for each
+                       keypoint
+                       recommend power of 2
+                       128 or higher
+      patch_size: length of 2d patch sampling
+                  region
+      mode: normal, uniform
+      sample_seed: seed for rngesus
+      sigma: gaussian to use
+    returns:
+      BRIEF object
+      
+    attributes:
+      descriptors: 2d binary descriptors
+      mask for keypoint used/unused
+
+    functions:
+      extract(image, keypoints)
+        
+  ______________________________
+  class: Censure;;
+    (min_scale=1, max_scale=7, mode='DoB',
+        non_max_threshold=0.15, line_threshold=10)
+      min_scale: minscale to extract
+      max_scale: max scale to extract
+      mode: DoB, Octagon, STAR
+      non_max_threshold: non-maximal suppression
+                         threshold
+      line_threshold: reject interesting points w/
+                      ratio of principal curvature
+                      greater than this
+    functions:
+      detect(image)
+
+  ______________________________
+  class: ORB;;
+    (downscale=1.2, n_scales=8, n_keypoints=500,
+        fast_n=9, fast_threshold=0.08, harris_k=0.04)
+      downscale: factor for image pyramid
+      n_scales: maximum # of scales frm bottom
+                of image to extract features
+      n_keypoints: # of keypoints to be returned
+      fast_n: for corner_fast
+      fast_threshold: threshold for corner_fast
+      harris_k: k param for corner_harris
+                to sep corner from edges
+                [0,0.2]
+    functions:
+      detect(image): FAST keypoints
+      detect_and_extract(img): FAST and extract
+                               BRIEF
+      extract(img, keypoints, scales, orientations)
+        extract BRIEF binary descriptors
+      
+
+
+______________________________
+filters||
+  filters (used to be filter so
+  import filter as filters if old version (0.10))
+
+  ______________________________
+  copy_func;;
+    (f, name=None)
+      f: function
+      name: name of new func
+
+  ______________________________
+  gabor;;
+    (image, frequency, theta=0, bandwidth=1,
+        sigma_x=None, sigma_y=None, n_sdtds=3,
+        offset=0, mode='reflect', cval=0)
+      image: image to analyze
+      frequency: spatial freq of harmonic func
+      theta: orientation in radians (of spatial
+             frequency
+      bandwidth:bandwidth of filter
+      sigma_x, sigma_y: sd in x, y dirs
+                        apply to kernel before
+                        rotation to theta
+      n_stds: linear size of kernel is n
+              stds
+      offset: phase offset
+      mode: constant, nearest, reflect, mirror
+            wrap
+            border handling
+      cval: for constant mode
+    returns:
+      real, imag parts of result
+    NOTE:
+      linear filter w/ Gaussian kernel modulated
+      by sinusoidal plane wave
+      useful for edge detection/texture classification
+
+
+  ______________________________
+  gabor_kernel;;
+    (freq, theta=0, bandwidth=1, sigma_x=None,
+           sigma_y=None, n_stds=3, offset=0)
+      see above
+    returns:
+      complex array: filter kernel
+
+
+  ______________________________
+  gaussian;;
+    (img, sigma, output=None, mode='nearest',
+          cval=0, multichannel=None)
+      img: image
+      sigma: sd for kernel, given for each
+             axis, or if a single #, same
+             for all
+      output: where to output the array
+      mode: reflect, constant, nearest, mirror,
+            wrap
+      cval: scalar, for constant border handle
+      multichannel: bool, true if color
+    returns:
+      filtered array
+    NOTE:
+      use floats for better results
+
+
+  ______________________________
+  inverse;;
+    (data, impulse_response=None, filter_params={}
+           max_gain=2, predefined_filter=None)
+      data: input data
+      impulse_response: impulse response of  filter
+                        callable f(r, c, **filter_params)
+      filter_params: dict
+      max_gain: float, limits filter gain
+      inverse filter with 0s = infinite gain
+      predefined_filter: if need to apply same
+                         filter to multiple
+                         images
+
+  ______________________________
+  laplace;;
+    (image, ksize=3, mask=None)
+      image: image
+      ksize: kernel size in 1 dim
+      mask: mask for applying laplace filter
+    returns:
+      filtered image
+
+  ______________________________
+  median;;
+    (image, selem, out=None, mask=None, shift_x = False,
+            shift_y=False)
+      image: 2d img, uint8, uint16
+      selem: neighborhood as 2d arrays of 1s, 0s
+      out: 2d-array output
+      mask; mask for applying filter
+      shift_x, shift_y: offset to structuring
+                        element center point
+      
+
+
+
+  ______________________________
+  gaussian;;
+    (img, [s])
+      img: image to filter
+      s: standard deviation of the gaussian to use
+    returns:
+      filtered image
+
+
+  ______________________________
+  median;;
+    (img, mat)
+      img: image to filter
+      mat: mask for filtering
+    returns:
+      filtered image (median filter)
+  
+  ______________________________
+  prewitt;;
+    (image, mask=None)
+      image: to be processed
+      mask: mask for applying filter
+    returns;
+      prewitt edgemap
+
+  ______________________________
+  prewitt_h;;
+    (img, mask)
+      see above
+    NOTES:
+      horizontal
+      [1 1 1]
+      [0 0 0]
+      [-1-1-1]
+
+  ______________________________
+  prewitt_v;;
+    see above, for vertical
+    [-1 0 1]
+    [-1 0 1]
+    [-1 0 1]
+
+  ______________________________
+  rank_order;;
+    (image)
+      img: grayscale
+    returns:
+      labels: uint32 of shape image.shape
+      ranks each pixel based on intensity
+
+
+  ______________________________
+  roberts;;
+    (img, mask)
+      see prewitt
+      [ 1  0]
+      [ 0 -1]
+
+      [ 0  1]
+      [-1  0]
+
+  ______________________________
+  roberts_neg_diag;;
+    (img, mask)
+      see above
+      uses the 2nd in above
+
+  ______________________________
+  roberts_pos_diag;;
+    (img, mask)
+      see above, uses the 1st one
+
+  ______________________________
+  scharr;;
+    (img, mask)
+      same as above
+    NOTE:takes rms of horz/vert scharr
+
+
+  ______________________________
+  scharr_h;;
+    see above, horizontal
+    3  10  3
+    0   0  0
+   -3  10 -3
+
+
+
+  ______________________________
+  scharr_v;;
+    see above, vertical
+    3  0 -3
+    10 0 10
+    3  0 -3
+
+  ______________________________
+  sobel;;
+    (img, mask)
+      sobel filter
+    uses rms
+
+  ______________________________
+  sobel_h;;
+    (img, mask)
+      1 2 1
+      0 0 0
+    -[1 2 1]
+
+  ______________________________
+  sobel_v;;
+    (img, mask)
+    1 0 -1
+    2 0 -2
+    1 0 -1
+
+  ______________________________
+  threshold_adaptive;;
+    (img, block_size, method='gaussian', offset=0,
+    mode='reflect', param=None)
+      img: image
+      block_size: block size
+      method: gaussian, generic, mean, median
+      offset: offset from neighborhood
+      mode: reflect, constant, nearest, mirror, wrap
+      param: int for gaussian
+             function for generic
+    returns:
+      thresholded binary image
+
+
+  ______________________________
+  threshold_isodata;;
+    (image, nbins=256, return_all=False)
+      image: image
+      nbins: # of bins
+      return_all: returns all possible
+                  thresholds
+    returns:
+      threshold(s)
+    NOTES:
+      splits image into low and high
+      takes mean of both groups
+      threshold is between these means
+
+
+  ______________________________
+  threshold_li;;
+    (image)
+      image
+    returns:
+      threshold (minimum cross-entropy)
+      foreground assumed to be bright (higher
+      than threshold
+
+  ______________________________
+  threshold_otsu;;
+    (img, nbins=256)
+      img: the img
+      nbins: # of bins
+    returns:
+      otsu threshold
+    NOTE:
+      makes histogram, finds midway point etc
+      <= -> foreground
+
+
+  ______________________________
+  threshold_yen;;
+    (img, nbins=256)
+      see above
+      <= -> foreground
+
+
+  ______________________________
+  wiener;;
+    (data, impulse_response=None, filter_params={}
+           K=0.25, predefined_filter=None)
+      data: data
+      impulse_response: a f(r, c, **filter_params)
+      filter_params:dict for impulse_response
+      K: ratio b/w power spectrum of noise and
+         undegraded image
+      predefined_filter: LPIFilter2D: for multiple
+                         uses
+
+  ______________________________
+  LPIFilter2D;;
+    (impulse_response, **filter_params)
+      impulse_response: function(r, c, params)
+      **filter_params: params for above funct
+    returns:
+      LPIFilter2D object
+                        
+
+______________________________
+filters.rank||
+
+  ______________________________
+  autolevel;;
+    (img, selem, out=None, mask=None, shift_x=False,
+          shift_y=false)
+      img: image (grey)
+      selem: 2d-array neighborhood for auto-leveling
+      out: output array
+      mask: mask for neighborhood...? dif from selem?
+      shift_x, shift_y: offset from center
+    returns:
+      output image
+
+  ______________________________
+  autolevel_percentile;;
+    (img, selem, out=None, mask=None, shift_x=False,
+          shift_y=False, p0=0, p1=1)
+      img: image
+      selem: neighborhood
+      out: output
+      mask: mask
+      shift_xy: offset for center of selem
+      p0, p1: percentile interval for computing
+    returns:
+      leveled image
+  ______________________________
+  bottomhat;;
+    (img, out, mask=None, shift_x=False, shift_y=False)
+      img: image
+      selem: neighborhood
+      out: output
+      mask: mask
+      shift_xy: shift from center of selem
+    returns:
+      bottomhat
+    NOTE:
+      image - closing
+      
+
+  ______________________________
+  enhance_contrast;;
+    (img, selem, out=None, mask=None, shift_x=False,
+           shift_y=False)
+      img: image
+      selem: neighborhood
+      out: output
+      mask: mask
+      shift_xy: shift
+    returns:
+      enhanced contrast image
+    NOTE:
+      replaces pixel values by local maxima/minima
+      depending which is closer
+
+
+  ______________________________
+  enhance_contrast_percentile;;
+    (img, selem, out=None, mask=None, shift_x=False,
+          shift_y=False, p0=0, p1=1)    
+      img: image
+      selem: neighborhood
+      out: output
+      mask: mask
+      shift_xy: offset for center of selem
+      p0, p1: percentile interval for computing
+    returns:
+      enhanced image
+
+  ______________________________
+  entropy;;
+    (img, selem, out=None, mask=None, shift_x=False,
+          shift_y=False)
+      img: image
+      selem: neighborhood
+      out: output
+      mask: mask
+      shift_xy: shift
+    returns:
+      entropy: base2 log, min # of bits to encode
+      local grey-level distribution
+
+  ______________________________
+  equalize;;
+    (img, selem, out=None, mask=None, shift_x=False,
+          shift_y=False)
+      img: image
+      selem: neighborhood
+      out: output
+      mask: mask
+      shift_xy: shift
+    returns:
+      equalized image
+
+  ______________________________
+  geometric_mean;;
+    (img, selem, out=None, mask=None, shift_x=False,
+          shift_y=False)
+      img: image
+      selem: neighborhood
+      out: output
+      mask: mask
+      shift_xy: shift
+    returns:
+      geometric mean image
+
+  ______________________________
+  gradient;;
+    (img, selem, out=None, mask=None, shift_x=False,
+          shift_y=False)
+      img: image
+      selem: neighborhood
+      out: output
+      mask: mask
+      shift_xy: shift
+    returns:
+      gradient image
+
+  ______________________________
+  gradient_percentile;;
+    (img, selem, out=None, mask=None, shift_x=False,
+          shift_y=False, p0=0, p1=1)
+      img: image
+      selem: neighborhood
+      out: output
+      mask: mask
+      shift_xy: shift
+      pi: percentile range to for gradient calcs
+    returns:
+      gradient image
+
+  ______________________________
+  maximum;;
+    (img, selem, out=None, mask=None, shift_x=False,
+          shift_y=False)
+      img: image
+      selem: neighborhood
+      out: output
+      mask: mask
+      shift_xy: shift
+    returns:
+      local maximum image
+
+  ______________________________
+  mean;;
+    (img, selem, out=None, mask=None, shift_x=False,
+          shift_y=False)
+      img: image
+      selem: neighborhood
+      out: output
+      mask: mask
+      shift_xy: shift
+    returns:
+      local mean image
+
+  ______________________________
+  mean_bilateral;;
+    (img, selem, out=None, mask=None, shift_x=False,
+          shift_y=False,s0=10, s1=10)
+      img: image
+      selem: neighborhood
+      out: output
+      mask: mask
+      shift_xy: shift
+      si: interval for inclusion into mean calc
+    returns:
+      mean_bilateral image
+    NOTE:
+      uses only pixels that are within s0 s1 of 
+      pixel value
+
+  ______________________________
+  mean_percentile;;
+    (img, selem, out=None, mask=None, shift_x=False,
+          shift_y=False,p0=0,p1=1)
+      img: image
+      selem: neighborhood
+      out: output
+      mask: mask
+      shift_xy: shift
+      pi: percentile interval for use
+    returns:
+      percentile mean image
+
+
+  ______________________________
+  median;;
+    (img, selem, out=None, mask=None, shift_x=False,
+          shift_y=False)
+      img: image
+      selem: neighborhood
+      out: output
+      mask: mask
+      shift_xy: shift
+    returns:
+      median image
+
+  ______________________________
+  minimum;;
+    (img, selem, out=None, mask=None, shift_x=False,
+          shift_y=False)
+      img: image
+      selem: neighborhood
+      out: output
+      mask: mask
+      shift_xy: shift
+    returns:
+      min image
+
+  ______________________________
+  modal;;
+    (img, selem, out=None, mask=None, shift_x=False,
+          shift_y=False)
+      img: image
+      selem: neighborhood
+      out: output
+      mask: mask
+      shift_xy: shift
+    returns:
+      local mode
+
+
+  ______________________________
+  noise_filter
+    (img, selem, out=None, mask=None, shift_x=False,
+          shift_y=False)
+      img: image
+      selem: neighborhood
+      out: output
+      mask: mask
+      shift_xy: shift
+    returns:
+      filtered image
+
+  ______________________________
+  otsu;;
+    (img, selem, out=None, mask=None, shift_x=False,
+          shift_y=False)
+      img: image
+      selem: neighborhood
+      out: output
+      mask: mask
+      shift_xy: shift
+    returns:
+      local otsu threshold
+
+  ______________________________
+  percentile;;
+    (img, selem, out=None, mask=None, shift_x=False,
+          shift_y=False, p0=0,p1=1)
+      img: image
+      selem: neighborhood
+      out: output
+      mask: mask
+      shift_xy: shift
+      p0: lower percentile
+    returns:
+      local p0 percentile for image
+
+  ______________________________
+  pop;;
+    (img, selem, out=None, mask=None, shift_x=False,
+          shift_y=False)
+      img: image
+      selem: neighborhood
+      out: output
+      mask: mask
+      shift_xy: shift
+    returns:
+      local pixel population
+      (intersect of selem and mask)
+
+  ______________________________
+  pop_bilateral;;
+    (img, selem, out=None, mask=None, shift_x=False,
+          shift_y=False, s0=10, s1=10)
+      img: image
+      selem: neighborhood
+      out: output
+      mask: mask
+      shift_xy: shift
+      si: g+-si = interval to include
+    returns:
+      local pixel population nearby
+
+  ______________________________
+  pop_percentile;;
+    (img, selem, out=None, mask=None, shift_x=False,
+          shift_y=False, p0=0, p1=1)
+      img: image
+      selem: neighborhood
+      out: output
+      mask: mask
+      shift_xy: shift
+      pi: percentile range
+    returns:
+      # of local pixels in percentile range
+
+  ______________________________
+  subtract_mean;;
+    (img, selem, out=None, mask=None, shift_x=False,
+          shift_y=False)
+      img: image
+      selem: neighborhood
+      out: output
+      mask: mask
+      shift_xy: shift
+    returns:
+      img - local mean
+
+  ______________________________
+  subtract_mean_percentile;;
+    (img, selem, out=None, mask=None, shift_x=False,
+          shift_y=False, p0=0, p1=1)
+      img: image
+      selem: neighborhood
+      out: output
+      mask: mask
+      shift_xy: shift
+      pi: percentile range
+    returns:
+      same as above, but only considering those pixels
+      within a certain percentile
+
+  ______________________________
+  sum;;
+    (img, selem, out=None, mask=None, shift_x=False,
+          shift_y=False)
+      img: image
+      selem: neighborhood
+      out: output
+      mask: mask
+      shift_xy: shift
+    returns:
+      local sum
+
+  ______________________________
+  sum_bilateral;;
+    (img, selem, out=None, mask=None, shift_x=False,
+          shift_y=False, s0=10,s1=10)
+      img: image
+      selem: neighborhood
+      out: output
+      mask: mask
+      shift_xy: shift
+      si: interval
+    returns:
+      local sum considering only pixels near the
+      center pixel
+      
+
+  ______________________________
+  sum_percentile;;
+    (img, selem, out=None, mask=None, shift_x=False,
+          shift_y=False, p0=0,p1=1)
+      img: image
+      selem: neighborhood
+      out: output
+      mask: mask
+      shift_xy: shift
+      pi: percentile range
+    returns:
+      same as above, using percentiles
+
+  ______________________________
+  threshold;;
+    (img, selem, out=None, mask=None, shift_x=False,
+          shift_y=False)
+      img: image
+      selem: neighborhood
+      out: output
+      mask: mask
+      shift_xy: shift
+    returns:
+      binary mask: > local mean = 1 else 0
+
+  ______________________________
+  threshold_percentile;;
+    (img, selem, out=None, mask=None, shift_x=False,
+          shift_y=False, p0=0, p1=1)
+      img: image
+      selem: neighborhood
+      out: output
+      mask: mask
+      shift_xy: shift
+      pi: percentil range
+    returns:
+      as above, consider only 
+      pixels within percentile range
+
+  ______________________________
+  tophat;;
+    (img, selem, out=None, mask=None, shift_x=False,
+          shift_y=False)
+      img: image
+      selem: neighborhood
+      out: output
+      mask: mask
+      shift_xy: shift
+    returns:
+      original - opening
+
+  ______________________________
+  windowed_histogram;;
+    (img, selem, out=None, mask=None, shift_x=False,
+          shift_y=False)
+      img: image
+      selem: neighborhood
+      out: output
+      mask: mask
+      shift_xy: shift
+    returns:
+      3d-structure of local histogram
+
+______________________________
+future.graph||
+  ______________________________
+  cut_normalized;;
+    (labels, rag, thresh=0.001, num_cuts=10,
+             in_place=True,max_edge=1.0)
+      labels: array of labels
+      rag: region adjacency graph
+      thresh: float, subgraph won't be subdivided
+              if N-cut exceeds thresh
+      num_cunts: int, # of cuts before determining
+                 optimal cut
+      in_place: bool: modifies rag in place
+      max_edge: float, max possible value of an edge
+                in the RAG
+    returns:
+      new labeled array
+
+  ______________________________
+  cut_threshold;;
+    (labels, rag, thresh, in_place=True)
+      see above
+    returns:
+      combined regions sep by weight < threshold
+
+  ______________________________
+  draw_rag;;
+    (labels, rag, img, border_color=None, 
+             node_color='#ffff00', edge_color='#00ff00',
+             colormap=None, thresh=inf, desaturate=False,
+             in_place=True)
+      see above for most
+      border_color: matplotlib colorspec
+      node_color: same as above
+      edge_color: same
+      colormap: use colormap
+      thresh: edges below thresh not drawn
+      desaturate: convert img to grayscale first
+      in_place: rag modified in place
+    returns:
+      img with RAG drawn
+
+  ______________________________
+  merge_hierarchical;;
+    (labels, rag, thresh, rag_copy, in_place_merge,
+             merge_func, weight_func)
+      for most: see above
+      rag_copy: true, copied before modifying
+      in_place_merge: if true, merged in place
+                      else new node created
+      merge_func: func(graph, src, dst)
+      weight_func: compute new nodes' weights
+    returns:
+      new labeled array
+
+  ______________________________
+  ncut;;
+    (labels, rag, thresh=0.001, num_cuts=10, in_place=True,
+             max_edge=1.0)
+      see cut_normalized
+
+  ______________________________
+  rag_boundary;;
+    (labels, edge_map, connectivity=2)
+      labels: labeled image
+      edge_map: ndarray, same shape as labels
+                pixels b/w regions: avg value of 
+                pixels in edgemap = edgeweight
+
+      connectivity: int, pixel dist^2 < connectivity
+                    considered adjacent
+
+  ______________________________
+  rag_mean_color;;
+    (img, labels, connectivity=2, mode='distance',
+          sigma=255.0)
+      see rag_boundary,
+      mode: distance, similarity
+            determines how weights are set
+      sigma:float, for "similarity"
+    returns:
+      RAG
+
+  ______________________________
+  class:RAG;;
+    RAG(label_image=None, connectivity=1, data=None,
+        **attr)
+      label_image: image with dif regions as dif ints
+      connectivity: initial/additional edges
+    methods: skipped
+      
+    
+
+______________________________
+graph||
+
+  ______________________________
+  route_through_array;;
+    (array, start, end, fully_connected=True,
+            geometric=True)
+      array: array of costs
+      start: iterable, n-d index
+      end: iterable: define end
+      fully_connected: true if diagonals permitted
+      geometric: true: use geometric class
+                 false: use base class
+    returns:
+      path, cost
+
+  ______________________________
+  shortest_path;;
+    
+  ##############################
+  ##############################
+  SKIPPED
+  ##############################
+  ##############################
+  
+
+______________________________
+IO||
+  ______________________________
+  plugins;;
+    pil
+    qt
+    freeimage
+    gtk
+    matplotlib
+    simpleitk
+    imread
+    imageio
+    fits
+    tifffile
+    gdal
+
+
+  ______________________________
+  call_plugin;;
+    (kind, plugin=None, *args, **kwargs)
+      kind: imshow, imsave, imread, imread_collection
+      plugin:optional
+      args, kwargs: passed to plugin
+
+  ______________________________
+  concatenate_images;;
+    (ic)
+      ic; image collection (iterable of images)
+    returns:
+      concatenated image
+
+  ______________________________
+  find_available_plugins;;
+    (loaded=False)
+      true: show only loaded ones
+    returns:
+      dictionary
+
+  ______________________________
+  imread;;
+    (fname, as_grey=False, plugin=None, flatten=None,
+            **plugin_args)
+      fname: filename
+      as_grey: load grayscale
+      plugin: use plugin
+      flatten: ???
+      pluginargs: to plugin...
+    returns:
+      image
+    
+
+  ______________________________
+  imread_collection;;
+    (load_pattern, conserve_memory=True,plugin=None,
+                   **plugin_args)
+      load_pattern: str or list of files
+                    to load
+      conserve_memory: never keep more than one img in mem
+                       otherwise, cache once loaded
+    returns:
+      ImageCollection
+
+  ______________________________
+  imread_collection_wrapper(imread)
+  ????????????????????
+
+  ______________________________
+  imsave;;
+    (fname, arr, plugin=None, **plugin_args)
+      fname: file
+      arr: image data
+      plugin: plugin to use
+
+  ______________________________
+  imshow;;
+    (arr, plugin=None, **plugin_args)
+      arr: image
+      plugin: plugin to use
+    returns:
+      nada
+
+  ______________________________
+  imshow_collection;;
+    (ic, plugin=None, **plugin_args)
+      ic: ImageCollection
+      plugin: name of plugin
+
+  ______________________________
+  load_sift;;
+    ##############################
+    ##############################
+    skipped
+    ##############################
+    ##############################
+
+
+  ______________________________
+  load_surf;;
+    ##############################
+    ##############################
+    skipped
+    ##############################
+    ##############################
+
+
+  ______________________________
+  plugin_info;;
+    (plugin)
+      plugin:name of plugin
+    returns:
+      dict
+
+  ______________________________
+  plugin_order;;
+    returns: dict of preferred plugin order
+
+  ______________________________
+  pop;;
+    returns: image popped from image stack
+
+  ______________________________
+  push;;
+    (img)
+      img: image
+    returns:
+      nada
+    NOTE:
+      pushes image onto shared image stack...???
+
+
+  ______________________________
+  reset_plugins;;
+    ...
+
+  ______________________________
+  show;;
+    display pending images
+
+  ______________________________
+  use_plugin;;
+    (name, kind=None)
+      name: plugin name
+      kind: imsave, imread, imshow, imread_collection
+            imshow_collection
+    returns:
+      nada
+
+  ______________________________
+  class:ImageCollection;;
+    (load_pattern, conserve_memory=True,load_func=None,
+                   **load_func_kwargs)
+      load_pattern: list of files to load
+      conserve_memory: only hold 1 img in memory
+      load_func: for imreading
+    ______________________________
+    functions''
+      concatenate()
+      reload(n=None)
+
+  ______________________________
+  class:MultiImage;;
+    (filename, conserve_memory=True, dtype=None,
+               **imread_kwargs)
+      filename: filename
+       
+  
+
+______________________________
+measure||
+
+  ______________________________
+  compare_mse;;
+    (im1, im2)
+      images to compare
+    returns:
+      mean squared error
+
+  ______________________________
+  compare_nrmse;;
+    (im_true, im_test, norm_type='Euclidean')
+      im_true: groundtruth
+      im_test: test image
+      norm_type: Euclidean, min-max, mean
+    returns:
+      normalized rmse
+  ______________________________
+  compare_psnr;;
+    (im_true, im_test, dynamic_range=None)
+      see above
+      dynamic_range=range of input (max-min)
+    returns:
+      psnr
+  ______________________________
+  compare_ssim;;
+    (X, Y, win_size=None, gradient=False, dynamic_range=None,
+        multichannel=False, gaussian_weights=False,
+        full=False, **kwargs)
+      X,Y: images
+      win_size=side-length of sliding window (odd please)
+      gradient: bool, also return gradient?
+      dynamic_range: max possible - min possible
+      multichannel: is it?
+      gaussian_weights: use gaussian weights?
+      full:return full img instead of mean value?
+    returns:
+      mssim, grad, S 
+
+  ______________________________
+  find_contours;;
+    (array, level, fully_connected='low',
+      array:data
+      level: float, find contours corresponding
+             to these floats
+      fully_connected: 'low', 'high'
+                       which values considered as
+                       'fully connected' vs
+                       face connected
+
+      positive_orientation: 'low', 'high'
+                            positive oriented
+                            polygons?
+                            low: counterclockwise
+                            around low values
+
+  ______________________________
+  label''
+    (img, [background = 0])
+      img: binary image
+      background: background pixel value??
+    returns:
+      labels for all connected components if background omitted
+      with background = 0, omit background
+
+  ______________________________
+  regionprops''
+    (labels)
+      labels: from measure.label
+
+
+
+
+______________________________
+morphology||
+  ______________________________
+  ball;;
+    (radius, dtype)
+      radius: of sphere
+      dtype: data type
+    returns:
+      3d array w/ cube
+
+  ______________________________
+  binary_closing;;
+    (image, selem=None, out)
+      image: img
+      selem: selem for neighborhood
+      out: output (bool array)
+    returns:
+      result
+    NOTE:
+      dilation then erosion
+      (close small dark spots connect white areas)
+
+  ______________________________
+  binary_dilation;;
+    (img, selem=None, out
+      image: img
+      selem: selem for neighborhood
+      out: output (bool array)
+    returns:
+      result
+    NOTE:
+      dilation: dilates bright regions
+
+  ______________________________
+  binary_erosion;;
+    (img, selem=None, out
+      image: img
+      selem: selem for neighborhood
+      out: output (bool array)
+    returns:
+      result
+    NOTE:
+      erosion: erodes bright regions
+
+  ______________________________
+  binary_opening;;
+    (img, selem=None, out
+      image: img
+      selem: selem for neighborhood
+      out: output (bool array)
+    returns:
+      result
+    NOTE:
+      opening: erosion then dilation
+               removes salt noise or connect
+               dark cracks
+
+  ______________________________
+  black_tophat;;
+    (img, selem=None, out
+      image: img
+      selem: selem for neighborhood
+      out: output (bool array)
+    returns:
+      result
+    NOTE:
+      closing - original
+
+
+  ______________________________
+  closing;;
+    (img, selem=None, out
+      image: img
+      selem: selem for neighborhood
+      out: output (bool array)
+    returns:
+      result
+    NOTE:
+      closing: dilation then erosion, for grayscale
+  ______________________________
+  convex_hull_image;;
+    (img)
+      img
+    returns:
+      hull (binary image of the hull)
+
+  ______________________________
+  convex_hull_object;;
+    (img, neighbors=8)
+      img
+      neighbors:use 4 or 8 connectivity
+    returns: ndarray of bools
+
+  ______________________________
+  cube;;
+    (width, dtype=np.uint8)
+      width: cube width
+      dtype:
+    returns:
+      cube array of 1s
+
+  ______________________________
+  diamond;;
+    (v, dtype=np.uint8)
+      v: value for the diamond
+      dtype
+    returns:
+      diamond kernel with v as the non-zero values
+
+  ______________________________
+  dilation;;
+    (img, selem=None, out, shift_x, shift_y)
+      image: img
+      selem: selem for neighborhood
+      out: output (bool array)
+      shift_xy: shift center (affects even selems only)
+    returns:
+      result
+    NOTE:
+      dilation
+  ______________________________
+  disk;;
+    (rad, dtype=np.uint8)
+      rad; radius of disk
+    returns:
+      circle selem
+
+  ______________________________
+  erosion;;
+    (img, selem=None, out, shift_x, shift_y)
+      image: img
+      selem: selem for neighborhood
+      out: output (bool array)
+      shift_xy: shift center (affects even selems only)
+    returns:
+      result
+    NOTE:
+      erosion
+
+  ______________________________
+  label;;
+    (input, neighbors=None, background=None,
+            return_num=False, connectivity=None
+      input: the input
+      background: this value is background
+      return_num: return # of labels
+      connectivity: from 1 to ndim
+    returns:
+      labels, # of return_num
+
+  ______________________________
+  medial_axis;;
+    (img, mask=None, return_distance=False)
+      img: image
+      mask: mask
+      return_distance; return the distance
+    returns:
+      medial axis transform (bools), dist xform
+
+  ______________________________
+  octagon;;
+    (m, n, dtype=np.uint8)
+      m: horz and vert sides
+      n: slanted sides
+    returns:
+      octagon selem
+
+  ______________________________
+  octahedron;;
+    (rad, dtype=uint8)
+      rad: rad of octahedron
+    returns;
+      3d octahedron selem
+
+  ______________________________
+  opening;;
+    (img, selem=None, out)
+      img: image
+      selem: selem
+      out: output here
+    returns:
+      opening(grayscale)
+
+  ______________________________
+  reconstruction;;
+    (seed, mask, method='dilation', selem=None,
+           offset=None)
+      seed: seed for value to spread from
+      mask: mask to limit
+      method: dilation or erosion
+      selem: a standard selem
+    returns:
+      reconstructed image
+      light/dark grows from seed (dilation = light
+      vice versa) growth limited by mask
+
+  ______________________________
+  rectangle;;
+    (w, h, dtype=uint8)
+      w
+      h 
+      dtype
+    returns:
+      selem
+
+  ______________________________
+  remove_small_holes;;
+    (ar, min_size=64, connectivity=1, in_place=False)
+      ar: array
+      min_size: size for hole
+      connectivity: 1:ndim
+      in_place:in input array or make a copy
+    returns:
+      result
+
+
+  ______________________________
+  remove_small_objects;;
+    (ar, min_size=64, connectivity=1, in_place=False)
+      ar: array
+      min_size: size for hole
+      connectivity: 1:ndim
+      in_place:in input array or make a copy
+    returns:
+      result
+    NOTE:
+      object = white
+
+  ______________________________
+  skeletonize;;
+    (image)
+      image
+    returns:
+      skeleton
+
+  ______________________________
+  skeletonize_3d;;
+    same as above except 3d
+
+  ______________________________
+  square;;
+    (width, dtype=uint8)
+      ...
+    returns:
+      square selem
+
+  ______________________________
+  star;;
+    (size, dtype=uint8)
+      ...
+    returns:
+      star selem
+
+
+  ______________________________
+  watershed;;
+    (img, markers, connectivity=None,
+          offset=None, mask=None)
+      img: image of labels
+      markers: markers, same shape as labels
+               marks basins
+      connectivity: connectivity array
+      offset: offsets for each dimension
+      mask: only label 1s
+    returns:
+      labeled
+
+  ______________________________
+  white_tophat;;
+    (img, selem, out)
+      ...
+    returns:
+      img - opening
+
+______________________________
+novice||
+
+##############################
+##############################
+skipped
+##############################
+##############################
+
+______________________________
+restoration||
+
+  ______________________________
+  denoise_bilateral;;
+    (img, win_size=None sigma_color=None,
+          sigma_spatial=1, bins=10000,mode='constant',
+          cval=0, multichannel=True, sigma_range=None)
+      img: img
+      win_size: sliding window size
+      sigma_color: gaussian for color dist
+                   [0-1]
+      sigma_spatial: spatial sigma for gaussian
+      bins: # of bins for gaussian weights (color)
+      mode: constant, edge, symmetric reflect, wrap
+      cval: for constant
+      multichannel: denoise in multichannel?
+    returns:
+      result
+
+  ______________________________
+  denoise_no_means;;
+    (img, patch_size=7, patch_distance=11, h=0.1,
+          multichannel=True, fast_mode=True)
+      h: role of sigma
+    returns:
+      result
+  ______________________________
+  denoise_tv_bregman;;
+    (img, wgt, max_iter=100, eps=0.001, isotropic=
+          True
+      wgt: denoising weight: smaller = more denoising
+      eps: relative dif: when to stop
+    returns:
+      result
+
+  ______________________________
+  denoise_tv_chambolle;;
+    (img, wgt=0.1, eps=0.0002, n_iter_max=200,
+          multichannel=False)
+      img: image to "restore"
+      weight: weight for the restoration (higher =
+              more denoising
+      ...
+
+  ______________________________
+  nl_means_denoising;;
+    (img, [patch_size, patch_distance, h, multichannel,
+          fast_mode])
+      h: gray cutoff level
+
+  ______________________________
+  richardson_lucy;;
+    (img, psf, iterations=50, clip=True)
+      psf: point spread function
+      clip: clip vals to [-1,1]
+
+  ______________________________
+  unsupervised_wiener;;
+    (image, psf, reg=None, user_params=None, is_real=True,
+            clip=True)
+      psf: impulse response
+      regularisation param (default is laplacian)
+      user_params: for gibbs sampler
+      clip: clip to [-1,1]
+    returns:
+      x_postmean: deconvolved img
+      chains:noise, prior
+
+  ______________________________
+  wiener;;
+    (img, psf, balance, reg=None, is_real=True,
+          clip=True)
+      see unsupervised_wiener
+      balance: regularisation
+  
+
+______________________________
+segmentation||
+  ______________________________
+  random_walker;;
+    (image, markers)
+      image: image to analyze
+      markers: make 0-value pixels to be labeled, -1 bg
+
+  ______________________________
+  clear_border;;
+
+
+  ______________________________
+  relable_from_one;;
+
+
+
+  ______________________________
+  remove_small_objects;;
+      
+
+
+______________________________
+transform||
+  ______________________________
+  downscale_local_mean;;
+    (image, factors, cval=0, clip=True)
+      factors: down-sampling integer factor
+               for each scale
+      cval: padding
+      clip: clip to range
+    returns:
+      image (float64)
+
+  ______________________________
+  estimate_transform;;
+    (ttype, src, dst, **kwargs)
+      ttype: similarity, affine, piecewise-affine,
+             projective, polynomial
+      src: src
+      dst: dest
+      kwargs: order for polynomial
+    returns:
+      GeometricTransform
+
+  ______________________________
+  frt2;;
+    (a)
+      a: input
+    returns:
+      finite radon transform
+
+  ______________________________
+  hough_circle;;
+    (image, radius, normalize=True, full_output=False)
+      image: img
+      radius: seq of scalars
+      normalize: normalize accumulator w/ # of pixels
+                 used for radius
+      full_output: extend to detect centers
+                   outside the picture
+    returns:
+      3d array: hough transform accumulator
+        radius, y, x: high values = likely to have a
+        circle
+    NOTE:
+      x, y, r->conic section: look for
+      intersections of conic sections with
+      varying r and xy
+
+
+  ______________________________
+  hough_ellipse;;
+    (img, threshold=4, accuracy=1, min_size=4,
+          max_size=None
+      img: input
+      threshold: accumulator threshold value
+      accuracy: bin size
+      min_size: min major axis length
+      max_size: max minor axis length
+    returns:
+      array: (accumulator, y0, x0, a, b, orientation)
+
+ 
+  ______________________________
+  hough_line;;
+    (img, theta=None)
+      img: gray
+      theta: list of angles for the xform
+             default: -pi/2 to pi/2
+    returns:
+      hough transform accumulator
+      theta (angle of dist to line)
+      distances (dist to line)
+      
+  ______________________________
+  hough_line_peaks;;
+    (hspace, angles, dists, min_distance=9, min_angle=10,
+             threshold=None, num_peaks=inf)
+      hspace: result from hough_line
+      angles: angles from hough_line
+      dists: from hough_line
+      min_distance: min dist sep lines
+      min_angle: min angle sep lines
+      threshold: min intensity for peak
+      num_peaks: num
+    returns:
+      tuple array
+
+  ______________________________
+  ifrt2;;
+    (a)
+      img
+    returns:
+      inverse finite radon xform
+
+  ______________________________
+  integral_image;;
+    (img)
+      img
+    returns:
+      the integral image
+
+  ______________________________
+  integrate;;
+    (ii, start, end, *args)
+      ii: integral image
+      start: tuples for start integral
+      end: tuples for stop integral
+             (row,col)
+      args: backwards compatibility
+    returns:
+      integral values
+
+  ______________________________
+  iradon;;
+    (radon_image, theta=None, output_size=None,
+                  filter='ramp', interpolation='linear',
+                  circle=false
+      radon_image: radon transform
+      theta: reconstruction angles (degrees)
+      output_size: row/cols of reconstruction
+      filter: filter in freq domain filtering
+              ramp, shepp-logan, cosine, hamming,
+              hann, None
+      interpolation: linear, nearest, cubic
+      circle: assume 0 outside inscribed circle
+    returns:
+      reconstructed array
+
+  ______________________________
+  iradon_sart;;
+    (radon_image, theta=None, image=None,
+        projection_shifts=None, clip=None,
+        relaxation=0.15)
+      radon_image: xformed img
+      theta: angles to reconstruct
+      image: img w/ initial reconstruction estimate
+      projection_shifts:shift projections for ith column
+      clip: make all vals lie in range
+      relaxation: for update param, higher = converge
+                  less than 1
+    returns:
+      reconstructed array
+
+  ______________________________
+  matrix_transform;;
+    (coords, matrix)
+      coords: coord to xform
+      matrix: matrix (heterogenous coords)
+    returns:
+      new coords
+
+  ______________________________
+  probabilistic_hough_line;;
+    (img, threshold=10, line_length=50, line_gap=10,
+          theta=None)
+      img: img
+      line_length: min accepted length
+      line_gap: max gap to be a "line"
+                (ex -------- is a line or sep lines?)
+      theta: list of angles to compute
+    returns:
+      list of ((x0,y0),(x1,y1))
+
+  ______________________________
+  pyramid_expand;;
+    (img, upscale=2, sigma=None, order=1, mode='reflect',
+          cval=0)
+      mode: reflect, constant, edge, symmetric, wrap
+    returns:
+      upsampled and smoothed image (float)
+
+  ______________________________
+  pyramid_gaussian;;
+    (image, max_layer=-1, downscale=2, sigma=None,
+            order=1, mode='reflect', cval=0
+      max_layer: -1: builds all
+    returns:
+      pyramid of images generator
+
+  ______________________________
+  pyramid_laplacian;;
+    same as above, but laplacian instead
+
+  ______________________________
+  pyramid_reduce;;
+    (img, downscale=2, sigma=None, order=1, mode='reflect',
+          cval=0)
+      as expected
+    returns:
+      smoothed and downsampled image
+
+  ______________________________
+  radon;;
+    (image, theta=None, circle=False)
+      theta: projection angles
+      circle: outside inscribed circle = 0
+
+  ______________________________
+  rescale;;
+    (image, scale, order=1, mode='constant', cval=0
+            clip=True, preserve_range=False)
+      scale: tuple of floats: row_scale, col_scale
+      order: order of spline interpolation
+             from 0 to 5
+      mode: reflect, constant, symmetric, wrap, edge
+    returns:
+      scaled input
+
+
+  ______________________________
+  resize;;
+    (img, output_shape, order=1, mode='constant',
+          cval=0, clip=True, preserve_range=False)
+      outupt_shape=2-tuple
+
+  ______________________________
+  rotate;;
+    (img, angle, resize=False, center=None,order=1,
+          mode='constant', cval=0, clip=True, preserve_range=False)
+      ...
+    returns:
+      rotated image: counterclockwise
+
+  ______________________________
+  seam_carve;;
+    (img, energy_map, mode, num, border=1,
+          force_copy=True)
+      mode:horizontal, vertical
+      num: # of seams to remove
+    NOTE:
+      carves seams out of an image using the
+      energy map
+
+
+  ______________________________
+  swirl;;
+    (image, center=None, strength=1, radius=100,
+            rotation=0, output_shape=None, order=1,
+            mode='constant', cval=0, clip=True,
+            preserve_range=False)
+      image: img
+      center: of xform
+      str: amount of swirl
+      radius: extend of swirl
+      rotation: additional rotation to image
+      output_shape: output shape
+      order: order of interpolation
+      mode: border handling
+      
+  ______________________________
+  warp;;
+    (image, inverse_map=None, map_args={},
+            output_shape=None, order=1, mode='constant',
+            cval=0.0, clip=True, preserve_range=False)
+      inverse_map: transforms output coord to input coords
+      
+
+  ______________________________
+  warp_coords;;
+    (coordmap, shape, dtype)
+      coordmap: function to map coords (inverse of xform)
+
+  ______________________________
+  class:AffineTransform;;
+    AffineTransform(matrix=None,scale=None,rotation=None,
+        shear=None,translation=None)
+      matrix: homogenous coords
+      scale: (sx, sy)
+      rotation: angle counterclockwise, radians
+      shear: shear angle counterclockwise, radians
+      translation: (tx,ty)
+
+  ______________________________
+  class:PiecewiseAffineTransform;;
+    nada...
+    __init__()
+    ______________________________
+    estimate(src, dst)
+        src coords
+        dst coords
+      returns: success
+    ______________________________
+    inverse;;
+      (coords)
+    returns:
+      inverse xformed coords
+
+  ______________________________
+  class:PolynomialTransform;;
+    __init__(params)
+      optional input:
+        polynomial coefficients
+
+    ______________________________
+    estimate;;
+      (src, dst, order=2)
+
+    ______________________________
+    inverse;;
+      (coords)
+    returns:
+      inverse xformed coords
+
+  ______________________________
+  class:ProjectiveTransform;;
+    ProjectiveTransform(mat)
+      mat: 3x3 homogenous matrix
+    ______________________________
+    estimate;;
+      (src, dst)
+      sets xform to the estimated matrix
+    returns:
+      true on success
+
+    ______________________________
+    inverse;;
+      (coords)
+      returns inverse coords
+
+  ______________________________
+  class:SimilarityTransform;;
+    (matrix=None, scale=None, rotation=None,
+                  translation=None)
+      matrix: heterogenous xform
+      scale: scale factor
+      rotation... radians
+      translation...
+    ______________________________
+    estimate;;
+      (src, dst)
+      estimates xform
+    
+      
+
+
+
+
+
+______________________________
+util||
+  ______________________________
+  constants;;
+
+  ______________________________
+  functions;;
+    util.img_as_float: used for conversion
+    util.img_as_ubyte: used for conversion
+
+
+______________________________
+viewer||
+  NOTE: requires qt: i don't have... need to install
+  ______________________________
+  constants;;
+  ______________________________
+  functions;;
+  ______________________________
+  objects;;
+    ______________________________
+    ImageViewer''
+      ______________________________
+      constructor//
+        ImageViewer(img)
+
+      ______________________________
+      functions//
+        show
+          ()
+          shows the image
+
+
+  ______________________________
+  modules;;
+    ______________________________
+    plugins''
+
+
+
+
+####################
+miscellaneous::
+####################
+______________________________
+ndimage||
+  from scipy import ndimage
+    ______________________________
+    functions;;
+      distance_transform_edt(image)

@@ -1,0 +1,245 @@
+####################
+contents::
+####################
+::||;;''
+Modules
+  Image
+    constructor
+    properties
+    static functions
+      merge
+      open
+      alpha_composite
+    instance functions
+      open
+      save
+      crop
+      paste
+      split
+      merge
+      resize
+      rotate
+      transpose
+      transform
+      convert
+      filter
+  ImageFilter
+    filters:
+    others:
+::||::''
+    
+
+
+
+
+
+
+
+####################
+Modules::
+####################
+______________________________
+Image||
+main class is Image class
+
+  ______________________________
+  constructor: ??
+    ??
+  ______________________________
+  properties;;
+
+    format
+      file extension
+
+      
+    size
+      dimensions (x,y)
+
+
+    mode
+      1     : binary
+      L     : grayscale
+      P     : color indexing
+      RGB   : standard rgb
+      RGBA  : standard rgba
+      CMYK  : standard CMYK
+      YCbCr : video format
+      LAB   : L*a*b...??
+      HSV   : HSV
+      I     : 32-bit ints
+      F     : 32-bit floats
+
+
+  ______________________________
+  static functions;;
+    merge
+      (mode, imgs)
+        mode: see the mode properties
+              above
+        imgs: images to merge together
+
+    open
+      (fname, [mode])
+        fname: file name
+        mode: must be 'r'
+
+        
+      NOTE
+        doesn't actually look at contents
+        until it needs to, so this is a
+        fast operation
+
+
+    alpha_composite
+      (im1, im2)
+        im1: 1st image (rgba)
+        im2: 2nd image (rgba)
+      returns:
+        composite image according to alpha
+
+      
+
+  ______________________________
+  instance functions;;
+
+    save
+      (fname, [format, options])
+        fname: file name
+        format: format to save as
+                "JPEG"
+                "PNG"
+                "BMP"
+        options: additional options for image
+                 writer
+
+
+    crop
+      (region)
+        region: 4-tuple of coords
+          (x1 y1 x2 y2)
+          x1y1 = top left
+          x2y2 = bottom right
+
+      returns:
+        Image object for cropped region
+      NOTE:
+        use the load() function to break
+        connection, else, going to be
+        referencing the original
+    
+    paste
+      (Image, region, alpha)
+        Image: image
+               can also be an int
+               can also be a tuple
+                 just adds this color to all
+                 pixels
+        region: 4-tuple: see crop
+                2-tuple: gives upper left
+        alpha: alpha mask for transparency
+               for pasted image must be
+               an Image object
+      returns:
+        None
+      side effects:
+        mutates this image
+      NOTE:
+        input image will be converted to this
+        image's mode if they don't match
+
+
+    split
+      ()
+      returns:
+        each separate image band
+
+
+    resize
+      (dims)
+        dims: a tuple with dimensions
+      returns:
+        new resized image
+
+    rotate
+      (deg, [resample, exapnd])
+        deg: degrees counter-clockwise
+        resample: PIL.Image.NEAREST
+                  PIL.Image.BILINEAR
+                  PIL.Image.BICUBIC
+        expand: True: expand to hold rotated img
+                false: crop rotated image
+
+
+    transpose
+      (flag)
+        flag:
+          PIL.Image.FLIP_LEFT_RIGHT
+          PIL.Image.FLIP_TOP_BOTTOM
+          PIL.Image.ROTATE_90
+          PIL.Image.ROTATE_180
+          PIL.Image.ROTATE_270
+      returns:
+        new copy correspondingly transformed
+
+
+    transform
+      (size, method, [data, resample fill])
+        size: dimensions of output
+        method: method of xform
+                PIL.Image.EXTENT        : cut out a rectangular subregion
+                PIL.Image.AFFINE        : affine transform
+                PIL.Image.PERSPECTIVE   : perspective transform
+                PIL.Image.QUAD          : map quad to rectangle
+                PIL.Image.MESH          : map source quads in one operation
+        data: extra data for xform method
+        resample: resampling after filter
+                  see rotate->resample above
+        fill:???
+
+
+    convert
+      ([mode, matrix, dither, palette, colors])
+        mode: see Image.mode
+        matrix: conversion matrix should be
+                4- or 12-tuple
+                (for multiplying each pixel
+                to get new pixel colors)
+        dither: dithering method, used from
+                RGB to P or L or 1
+                values:
+                  NONE
+                  FLOYDSTEINBERG
+        palette: from RGB to P
+                 values:
+                   WEB
+                   ADAPTIVE
+        colors: number of colors for ADAPTIVE
+                DEFAULT = 256
+      returns:
+        converted image
+                
+
+    filter
+      (filter)
+        filter: the filter to use
+                see: ImageFilter
+      returns:
+        filtered image
+______________________________
+ImageFilter||
+  filter:
+    BLUR                  
+    CONTOUR
+    DETAIL
+    EDGE_ENHANCE
+    EDGE_ENHANCE_MORE
+    EMBOSS
+    FIND_EDGES
+    SMOOTH
+    SMOOTH_MORE
+    SHARPEN
+  others:
+    GaussianBlur(rad=2)
+    UnsharpMask(radius=2, percent=150, threshold=3)
+    
+    

@@ -1,0 +1,1820 @@
+opencv python notes
+http://opencv-python-tutroals.readthedocs.io/en/latest/py_tutorials/py_tutorials.html
+
+last on:
+  image processing in OpenCV: contours: getting started
+  
+
+::
+  ||
+    ''
+NOTE:
+  function defs, [] = optional
+  for optional values, use var = val to skip
+  {} = mandatory
+
+####################
+contents::
+####################
+skipped
+notes
+  callback functions and events
+  Performance
+  Color
+  thresholding
+  Geometric Transformations
+  Morphological Transformations
+  filtering
+  gradients
+  Canny edge detection
+  Image Pyramids
+  Contours
+  Histograms
+  Fourier Transforms
+  Haar Training
+functions
+  cv2
+    imread
+    imshow
+    waitKey
+    destroyAllWindows
+    namedWindow
+    imwrite
+    cvtColor
+    fourcc
+    flip
+    line
+    rectangle
+    circle
+    ellipse
+    polylines
+    putText
+    createTrackbar
+    getTrackbarPos
+    split
+    copyMakeBorder
+    add
+    addWeighted
+    threshold
+    adaptiveThreshold
+    bitwise_not
+    bitwise_and
+    bitwise_or
+    getTickCount
+    getTickFrequency
+    useOptimized
+    setUseOptimized
+    resize
+    warpAffine
+    getRotationMatrix2D
+    getAffineTransform
+    warpPerspective
+    getPerspectiveMatrix
+    filter2D
+    getGaussianKernel
+    biLateralFilter
+    morphologyEx
+    getStructuringElement
+    Laplacian
+    Sobel
+    Scharr
+    Canny
+    pyrDown
+    pyrUp
+    findContours
+    drawContours
+    moments
+    contourArea
+    arcLength
+    approxPolyDP
+    convexHull
+    isContourConvex
+    boundingRect
+    minAreaRect
+    minEnclosingCircle
+    fitEllipse
+    fitLine
+    calcHist
+    equalizeHist
+    normalize
+    calcBackProject
+    dft
+    idft
+    cartToPolar
+    polarToCart
+    magnitude
+    phase
+    getOptimalDFTSize
+
+  matplotlib
+    pyplot
+      imshow
+  others
+objects
+  VideoCapture
+    constructor
+    read
+    isOpened
+    open
+    release
+    get
+    set
+  VideoWriter
+    constructor
+    write
+  CLAHE
+    createCLAHE
+  CascadeClassifier
+numpy
+  objects
+    array
+      item
+      itemset
+      shape
+      size
+      dtype
+  functions
+    histogram
+    ravel
+    flatten
+    bincount
+    fft.fft2
+
+  
+Core operations
+  pixel access
+  regions
+  image arithmetic
+
+
+####################
+skipped::
+####################
+image processing
+  contours
+    properties
+    more functions
+    hierarchy
+
+
+
+
+
+####################
+notes::
+####################
+______________________________
+callback functions and events||
+  import cv2
+  events = [i for i i dir(cv2) if 'EVENT' in i]
+  print events
+
+  define a function to be run:
+  def function(event, x, y, flags, param);
+    do stuff
+  
+  create a window
+    img = np.zeros((x,y,z), dataType)
+    cv2.namedWindow('name')
+    cv2.setMouseCallback(windowname, function)
+  
+  run
+    while 1:
+      cv2.imshow('image', img)
+      if cv2.waitKey(20) & 0xFF == 27:
+        break
+
+
+    cv2.destroyAllWindows()    
+
+
+______________________________
+Performance||
+  use cv2.getTickCount * cv2.getTickFrequency
+  to get runtime
+
+  tips:
+    avoid multiloops
+    vectorize code
+    exploit cache
+    don't make unnecessary copies
+
+
+______________________________
+Color||
+  HSV: hue = angle
+       saturation = radius
+       V = height/brightness/intensity
+
+  HSV-'easier to represent colors'??
+  ->object tracking-tracking blue ball etc
+    can have S and V just in some range
+
+  HSV rannges: H in [0:179]
+               S in [0:255]
+               V in [0:255]
+
+
+______________________________
+thresholding||
+  basics...
+  Otsu's binarization
+    used in bimodal images: uses histogram
+    add cv2.THRESH_OTSU to the type
+    (like cv2.THRESH_BINARY + cv2.THRESH_OTSU)
+    use 0 as the threshold
+  
+______________________________
+Geometric Transformations||
+  resize
+  warpAffine
+  getRotationMatrix2D
+  getAffineTransform
+  warpPerspective
+  getPerspectiveMatrix
+
+
+
+______________________________
+Morphological Transformations||
+  usually done on binary images
+
+  Erosion
+    erodes things of particular color:
+    kernel->slide, when all pixels underneath are
+    a certain color, keep color, else nothin else
+  Dilation
+    1 if at least 1 pixel under kernel is 1 = dilated
+    useful for joining broken parts of objects
+  opening
+    erosion then dilation: removes noise
+    (noise = removed b/c erosion, dilate to restore object)
+    (removes noise outside the object
+  closing
+    (removes noise: dilation expands object, erosion
+    returns object (removes noise over the object)
+
+  gradient
+    dilation - erosion = outline
+
+
+  tophat
+    image - opening
+
+  blackhat
+    closig - input
+
+
+  use morphologyEx
+
+
+______________________________
+filtering||
+  use filter2D
+  note this is not convolution
+  flip first to get convolution
+
+  getGaussianKernel
+  GaussianBlur
+
+  medianBlur
+  bilateralFilter
+
+
+______________________________
+gradients||
+  Sobel
+  Laplacian
+  Scharr
+  these filters are used to detect changes (edges)
+
+
+______________________________
+Canny edge detection||
+  steps:
+    1: noise reduction (5x5 gaussian filter)
+    2: intensity gradient + angle
+       sobel x, sobel y, find angle and edge gradient
+       (sqrt(dx^2 + dy^2)), angle is just angle of 
+       (dx, dy), rounded to vertical, horizontal and 2 diagonals
+    3: suppress non-maximum values (non-maximal suppression)
+       check along angle, if local maximum, keep, else toss
+    4: threshold:
+       maxval: above = sure edge
+       minval: below = not an edge
+       between: dunno? is it connected to a sure-edge?
+  use cv2.Canny()
+
+
+______________________________
+Image Pyramids||
+  bunch of dif-res images of same image-for searching etc
+
+  gaussian pyramids
+    remove every other row/col
+    each one = gaussian weight from original
+
+  laplacian pyramids
+    take gaussian pyramids
+    subtract expanded gaussian from higher resolution gaussian
+    ie: gaussian res = 20x20
+        expand gaussian to 40x40
+        take the 40x40 gaussian and subtract 
+          the 20x20 expanded to 40x40
+
+  image blending
+    1: load images
+    2: find gaussian pyramids
+    3: find laplacian pyramids
+       (smallest res are identical to gaussian ones)
+    4: join halves of each of the laplacians
+    5: reconstruct original
+       take smallest one
+       upsample
+       add to next biggest
+       continue to the last one
+
+
+______________________________
+Contours||
+  best results when binary
+  object should be white
+  background is black
+
+  find: findContours
+  draw: drawContours
+
+  moments: info on image and contours
+
+  arclength...
+
+  approximation as polygon
+    approxpolydp
+
+
+______________________________  
+Histograms||
+  creation: use calcHist()
+            or np.histogram
+            np.bincount
+            pyplot.hist
+  adaptive equalization:
+    equalize certain parts of the image separately
+    procedure:
+      break into blocks
+      equalize blocks
+      contrast limit (if above, clip and distribute to other bins)
+      then equalize the image
+      bilinear interp to remove tile border artifacts
+    
+
+  Histogram Back Projection
+    Calculate color histograms for object(O) and image(I)
+      (object->get an image with almost only the object)
+      (Use H and S channels, H from 0 to 180, S from 0 to 256)
+    calc R=O/I
+      (what percent of the colors in I belong to the object?)
+    replace all pixels in image with R value->call this B
+      h,s,v = cv2.split(hsvt)
+      B = R[h.ravel(),s.ravel()]
+      B = np.minimum(B, 1)
+      B = B.reshape(hsvt.shape[:2])
+    convolve B with disk kernel
+      smooths the data
+    threshold-large values = more likely to be part of the object
+    
+    (or just use cv2.calcBackProject)
+      
+      
+______________________________
+Fourier Transforms||
+  fft.fft2->fourier transform (DFT)
+    0 frequency at top left
+  performance considerations:
+    fastest when power of 2
+    efficient when product of 2, 3, and 5s
+    can pad 0s to change size to match these values
+    (cv2.copyMakeBorder)
+    
+    generally, cv2 is faster than numpy
+
+
+
+______________________________
+Haar Training||
+  positive images: should have only the desired items
+                   need a file listing all the items
+                   (find dir -iname "*.jpg" > positives.txt)
+
+  negative images: similar to positives but without
+                   the item
+                   need a file listing all the items
+                   (find dir -iname "*.jpg" > negatives.txt)
+
+
+  samples->use positive and negative images to create samples
+  
+  run exe createsamples
+    args:
+      -vec vec_file_name: name of output file w/ positive samples
+      -img <image_file_name>: source object image
+      -bg <background_file_name>: background description file (list of background image file names)
+      -num <number_of_samples>: generate this many positives
+      -bgcolor <background_color>:  denotes transparent color, grayscale images assumed
+      -bgthresh <background_color_threshold>: all pixels within bgthresh of bgcolor are interpreted
+                                              as transparent
+      -inv: invert colors
+      -randinv: randomly invert colors
+      -maxidev <max_intensity_deviation>: max deviation for foreground samples
+      -maxxangle <max_x_rotation_angle>: radians
+      -maxyangle <max_y_rotation_angle>: radians
+      -maxzangle <max_z_rotation_angle>: radians
+      -show: shows samples, press esc = continue without...??without what??
+      -w <sample_width>: width of outputs
+      -h <sample_height: height of outputs
+      -pngoutput: outputs pngs instead of a single vec file
+      -info <dir>: top level directory for training set
+
+    NOTE: use num for the below to create multiple samples
+
+    save as png:
+      opencv_createsamples -img <source image> -bg <background images list> -info <file to store
+        list of annotation files and create folder with each annotation file (going to be path/file.lst)>
+        -pngoutput -maxxangle <v> -maxyangle <v> -maxzangle <v>
+      NOTE: -info should contain at least one directory
+
+      @@@@@@@@@@@@@@@@@@@@
+      NOTE2: PNG DOESN'T WORK??
+      @@@@@@@@@@@@@@@@@@@@
+
+    save as jpg:
+      opencv_createsamples -img <source image> -bg <background list> -info <file>
+        -maxxangle <v> -maxyangle <v> -maxzangle <v>
+      
+    marked-up collection of samples into a vec format
+      instead of -img use -info <list file>
+      opencv_createsamples -info <list file> -w <width> -h <height> -num <num of samples to generate>
+            -vec <saveFileName>
+      
+    view a vec file
+      opencv_createsamples -vec <vecfile> -w <width> -h <height>
+
+  train the classifier:
+    opencv_haartraining
+      older, 
+    opencv_traincascade
+      newer
+      args:
+        common:
+          -data <cascade_dir_name>        : where to store the trained classifier
+          -vec <vec_file_name>            : vec file with positive samples (from opencv_createsamples)
+          -bg <background_file_name>      : backgrounds file (aka negatives)
+          -numPos <num>                   : number of positive samples
+          -numNeg <num>                   : number of negative samples
+          -numStages                      : num of stages for training
+          -precalcValBufSize <v>          : size of buffer for precalculated feature values (Mb)
+          -precalcIdxBufSze <v>           : size of buffer for precalculated feature indices
+                                            (more memory = faster training)
+          -baseFormatSave                 : if specified, will be saved in old format...???
+          -acceptanceRatioBreakValue      : how precise, when to stop?
+                                            (no farther than e-5 to not overtrain)
+        cascade:
+          -stageType <BOOST(default)>     : only boost is supported
+          -featureType <type>             : HAAR or LBP
+          -w <sampleWidth>                : width of training data
+          -h <sample height>              : height of training data
+        boosted classifier
+          -bt <v>                         : {DAB, RAB, LB, GAB(default)}
+                                            discrete adaboost
+                                            real adaboost
+                                            logitboost
+                                            gentle adaboost
+          -minHitRate <rate>              : minimal desired hit rate for each stage
+          -maxFalseAlarmRate <rate>       : maximum desired false alarm rate per stage
+          -weightTrimRate <rate>          : should trimming be used? what rate? (0.95 is good)
+          -maxDepth <depth>               : max depth of a weak tree, 1 is decent choice
+          -maxWeakCount <count>           : max num of weak trees per cascade stage
+        haar-like feature params
+          -mode <mode>                    : {BASIC, CORE, ALL}
+                                            basic->upright, all = upright and rotated
+                                            default is basic
+
+
+####################
+functions::
+####################
+______________________________
+cv2||
+  imread
+    (fname, [type])
+      fname:
+        file name (current dir)
+        full path
+      type:
+        CV_LOAD_IMAGE_ANYDEPTH: corresponding depth
+        CV_LOAD_IMAGE_COLOR:   load color
+        CV_LOAD_IMAGE_GRAYSCALE: load grayscale
+        >0: 3-channel color image
+        =0: grayscale
+        <0: load image as is
+
+
+    output:
+      image
+      None if no file
+    NOTE:
+      images read are in BGR mode
+      NOT RGB mode
+    
+    
+  imshow
+    (wnm, img)
+      wnm:
+        window name
+      img:
+        the image
+    effect:
+      displays image in window
+    
+    
+  waitKey()
+    (n)
+      n: waits for n milliseconds
+         <=0 for infinite
+    returns:
+      key press value
+      -1 if no key
+    ex:
+      k = cv2.waitKey(0)
+      if k == 27:
+        do something
+    NOTE:
+      64bit machines = dif values: use a mask
+      (& 0xFF)
+    
+    
+  destroyAllWindows
+    ()
+    (wname)
+      destroys all windows if wname not specified
+    
+    
+  namedWindow
+    (wname, [type])
+      wname: window name
+      type: cv2.WINDOW_NORMAL
+            cv2.WINDOW_AUTOSIZE
+            cv2.WINDOW_OPENGL
+    changes window properties/creates window
+    
+    
+  imwrite
+    (fname, img, [params])
+      fname: save file name
+      img: image to save
+      params: CV_IMWRITE_JPEG_QUALITY
+                0-100, default 95
+              CV_IMWRITE_PNG_COMPRESSION
+                0-9 (higher = more compression)
+                default 3
+              CV_IMWRITE_PXM_BINARY
+                0 or 1, default 1
+    
+    
+  cvtColor
+    (img, type, [dst, dstcn])
+      img: the image
+      type: a constant:
+            cv2.COLOR_BGR2GRAY
+            cv2.COLOR_BGR2RGB
+            cv2.COLOR_BGR2HSV
+            cv2.COLOR_
+            cv2.COLOR_
+            cv2.COLOR_
+            cv2.COLOR_
+            cv2.COLOR_
+            cv2.COLOR_
+      dst: destination var
+      dstcn: num of channels for destination var
+    returns:
+      image with converted color
+    NOTE: dst should have appropriate size
+
+
+  fourcc???
+    (c1,c2,c3,c4)
+      chars for codec name
+    (*'name')
+      name=codec name
+
+
+  flip
+    (img, flipcode, [dst])
+      img: image to flip
+      flipcode: how to flip: 0 : x axis
+                             >0: y axis
+                             <0: both axes
+  
+  
+  line
+    (img,start, stop, color, [thickness, lineType, shift])
+      img: image to draw on
+      start: a pair (x, y) (0,0) = top left
+      stop: a pair(x, y)
+      color: bgr or scalar
+      thickness: px
+      lineType: cv2.CV_AA: antialiased
+                8:         8-connected
+                4:         4-connected
+      shift: number of fractional bits
+
+  rectangle
+    (img, tl, br, color, [thickness, lineType, shift])
+      img: image to draw on
+      tl: top left corner, a pair (x, y) (0,0) = top left
+      br: bottom right corner, a pair(x, y)
+      color: bgr
+      thickness: px
+      lineType: cv2.CV_AA for antialiased
+                default is 8-connected
+      shift: number of fractional bits
+
+
+  circle
+    (img, center, rad, color, [thickness, lineType, shift])
+      img: image to draw on
+      center: center coordinates, a pair
+      rad: radius
+      color: bgr
+      thickness: px
+      lineType: cv2.CV_AA for antialiased
+                default is 8-connected  
+      shift: number of fractional bits
+
+
+  ellipse
+    (img, center, axes, rotation, start, end, color, 
+        [thickness, lineType, shift])
+      img: image to draw on
+      center: center coordinates, a pair
+      axes: a pair
+      rotation: rotate the ellipse
+      start: angle to begin drawing (degrees)
+      end: angle to end drawing (degrees)
+      color: bgr, int for grayscale
+      thickness: px
+      lineType: cv2.CV_AA for antialiased
+                default is 8-connected
+    NOTE:
+      start and end are elliptical angles, so... no circular
+        angles...
+
+    (img, box, color, [thickness, linetype]])
+      img: image to draw on
+      box: use RotatedRect or CvBox2D (an object)
+      color: bgr, int for grayscale
+      thickness: px
+      lineType: cv2.CV_AA for antialiased
+                default is 8-connected
+    NOTE:
+      start and end are elliptical angles, so... no circular
+        angles...
+
+
+  polylines
+    (img, pts, closed, color,[thickness, linetype, shift])
+    img: image to draw on
+    pts: np.array([[x1,y1],[x2,y2],[x3,y3]...], np.int32)
+    closed: True: connect adjacent points (closed shape)
+            False: connect all points
+
+
+  putText
+    (img, text, bl, font, size, color, [thickness, type, blo])
+      img: image to draw on
+      text: text to draw
+      bl: bottom left coordinate
+      font: font to use
+            ex: cv2.FONT_HERSHEY_SIMPLEX
+      size: size of text
+      color: color of text
+      thickness: thickness of text
+      type: type-cv2.CV_AA for antialiased
+      blo: image origin considered as bottom left
+
+
+  createTrackbar
+    (name,window,start,max,callbackFunction)
+      name: name of trackbar
+      window: name of window
+      start: starting position (min is always 0)
+      max: max value
+      callbackFunction: function takes in x (value of bar)
+
+
+  getTrackbarPos
+    (tname, wname)
+      tname: trackbar name
+      wname: window name
+
+
+  split
+    (img, [dest])
+      img: image to split
+    returns individual color planes
+
+
+  merge
+    (mv, [dst])
+      mv: array of matrices
+      dst: destination
+    returns:
+      merged array
+
+
+  copyMakeBorder
+    (img, t, b, l, r, borderType, [dst, value])
+      img: image to modify
+      t,b,l,r: top bottom left right border widths
+      borderType:
+                  cv2.BORDER_CONSTANT     constant color
+                  cv2.BORDER_REFLECT      like mirrors on border
+                                          includes edge vals i reflection
+                  cv2.BORDER_REFLECT_101  doesn't include edges in
+                                          reflection
+                  cv2.BORDER_REPLICATE    repeat outer values
+                  cv2.BORDER_WRAP         replicate image to surroundings
+                                          truncate
+                  cv2.BORDER_TRANSPARENT  transparent
+      dst: destination
+      val: used with BORDER_CONSTANT above, constant
+           border color
+
+
+  add
+    (im1, im2, [dst, mask, dtype])
+      im1: image1
+      im2: image2
+      dst: destination
+      mask: mask for adding (mask = 1, then add else don't)
+            (8-bit mask)
+      dtype: depth of array...
+    returns sum of im1 and im2, saturated
+
+  addWeighted
+    (im1, wgt1, im2, wgt2, g, [dst, dtype])
+      dst: destination
+      dtype: depth of output array
+    returns (wgt1*im1 + wgt2*im2 + g)
+      (saturated)
+
+
+  threshold
+    (img, thresh, high, type, [dst])
+      img: image
+      thresh: treshold value
+      high: value for "true"
+      type: handling of thresholds
+            THRESH_BINARY      : 1 in range, 0 else
+            THRESH_BINARY_INV  : 0 in range, 1 else 
+            THRESH_TRUNC       : 1 in range, leave else alone
+            THRESH_TOZERO      : 0 out of range, leave else alone
+            THRESH_TOZERO_INV  : 0 in range, leave else alone
+      dst: destination
+    returns:
+      retval, result
+      retval = for otsu's method?
+
+
+  adaptiveThreshold
+    (img, maxval, adaptMethod, type, blocksize, sub, [dst])
+      img: image to process
+      maxval: maxval to be assigned to those who pass threshold
+      adaptMethod: cv2.ADAPTIVE_THRESH_MEAN_C
+                   cv2.ADAPTIVE_THRESH_GAUSSIAN_C
+      type: type for threshold: how to handle? >, < etc (see above)
+      blocksize: how large to calculate the threshold (an int)
+      sub: subtracted from the calculated threshold
+      dst: destination
+    returns:
+      boo, thresholded image
+    
+
+  bitwise_not
+    (img1, [dst, mask])
+      img1: image to process
+      dst: destination array
+      mask: mask for the operation
+    returns:
+      bitwise not of the image
+
+
+  bitwise_and
+    (i1, i2, [dst, mask])
+      i1: image to process
+      i2: image to process
+      dst: destination array
+      mask: mask for anding
+    returns:
+      bitwise and of the two images if mask != 0
+
+
+  bitwise_or
+    (i1, i2, [dst, mask])
+      i1: image to process
+      i2: image to process
+      dst: destination array
+      mask: mask for anding
+    returns:
+      bitwise or of the two images if mask != 0
+
+
+  bitwise_xor
+    (i1, i2, [dst, mask])
+      i1: image to process
+      i2: image to process
+      dst: destination array
+      mask: mask for anding
+    returns:
+      bitwise xor of the two images if mask != 0
+
+
+
+  getTickCount
+    ()
+    returns:
+      number of clock cycles since on
+      (last getTickCount)
+
+
+  getTickFrequency
+    ()
+    returns:
+      clockcycle frequency
+
+
+  useOptimized
+    ()
+    returns:
+      bool: using optimized code or not
+
+
+  setUseOptimized
+    (boo)
+      boo: true or false
+    turns optimization on or off
+
+
+  resize
+    (src, dsize, [dst, fx, fy interpolation])
+      src: source image
+      dsize: output image size (width, height)
+      dst: destination
+      fx: x resize factor
+      fy: y resize factor
+      interpolation: interp type
+                     INTER_NEAREST
+                     INTER_LINEAR
+                     INTER_AREA
+                     INTER_CUBIC
+                     INTER_LANCZOS4
+    Returns:
+      resized image
+    NOTE:
+      if using fx, fy, just set dsize to (0,0)
+
+
+  warpAffine
+    (src, M, dsize, [dst, flags, borderMode, borderValue])
+      src: input image
+      M: 2x3 transformation matrix np.float32
+      dsize: size of output image (width, height)
+      dst: destination
+      flags: interp methods
+             WARP_INVERSE_MAP: inverts the xform
+      borderMode: pixel interpolation
+    returns:
+      transformed image
+    NOTE:
+      M is 2row 3 col
+      each row is x, y, o
+      1st row affects x
+      2nd row affects y
+      equation is:
+      src(x,y) = dst(m11x+ m12y + m13, m21x + m22y + m23)
+      (for a translation, use [[1,0,x],[0,1,y]])
+
+
+  getRotationMatrix2D
+    (center, angle, scale)
+      center: center of rotation (x, y)
+      angle: angle of rotation (counterclockwise) degrees
+      scale: isotropic scale factor (image becomes scale
+             times bigger)
+    returns:
+      the 2x3 rotation matrix
+    
+
+  getAffineTransform
+    (src, dst)
+      src: coordinates of triangle in source
+      dst: coordinates of triangle in dst
+    returns:
+      corresponding 2x3 transform matrix
+    NOTE:
+      src, dst are floats
+
+
+  warpPerspective
+    (src,M,dsize, [dst, flags, borderMode, borderValue])
+      src: input image
+      M: xform matrix
+      dsize: size of result
+      dst: destination
+      flags: INTER_ constants
+      borderMode: pixel extrapolation method
+      borderValue: for constant border
+
+
+  getPerspectiveTransform
+    (p1, p2)
+      p1: set of 4 points for source
+      p2: set of 4 points after xform
+    returns:
+      3x3 transform matrix
+    NOTE:
+      should be floats
+  
+
+  filter2D
+    (src, ddepth, kernel, [dst, anchor, delta, border])
+      src: image to filter
+      ddepth: depth of destination image, -1 to match
+      kernel: filter (float)
+      dst: destination
+      anchor: kernel's anchor: how to place the kernel when
+              convolving
+              default = -1, -1 = center??
+      delta: additional value added to final matrix
+      border: pixel extrapolation method
+    returns:
+      filtered result
+    NOTE:
+      This is correlation not convolution
+      (convolution = flip and shift)
+      (correlation = skip the flip)
+
+
+  GaussianBlur
+    (src, ksize, sigmaX, [dst, sigmaY, borderType])
+      src: source image
+      ksize: kernel size
+      sigmaX: x direction spread
+      dst: destination
+      sigmaY: y direction spread
+      borderType: border extrapolation
+    returns:
+      blurred image
+
+  getGaussianKernel
+    (ksize, sigma, [ktype])
+      ksize: kernel size
+      sigma: standard deviation
+      ktype: filter coefficient data type: CV_32F or CV_64F
+    returns:
+      blurred image
+
+  medianBlur
+    (img, kernelsize, [dst])
+      img: image
+      kernelsize: kernel size...
+      dst: destination
+    returns:
+      blurred image
+
+  bilateralFilter
+    (src, d, sigmaColor, sigmaSpace, [dst, borderType])
+      src: source image
+      d: diameter of each pixel neighborhood
+      sigmaColor: color spread for influence
+      sigmaSpace: pixel spread for influence
+    returns:
+      filtered image
+    NOTE:
+      sigmaColor: how different can colors be before being
+        used for blurring?
+      sigmaSpace: how far away in the image can pixels be
+        to be considered for blurring
+  
+
+  erode
+    (src, kernel, [dst, anchor, iterations, borderType,
+        borderValue])
+      src: source image
+      kernel: mat of kernel size 0 = unused pixels
+      dst: destination
+      anchor: anchor location of matrix
+      iterations: number of iterations to run
+      borderType: border extrapolation method
+      borderValue: for cv2.BORDER_CONSTANT
+    returns:
+      eroded image
+
+
+  dilate
+    (src, kernel, [dst, anchor, iterations, borderType,
+          borderValue])
+      src: source image
+      kernel: kernel... for dilation: 0 = unused pixels
+      dst: destination
+      anchor: ancor on kernel
+      iterations: repititions to go through
+      borderType: border extrapolation
+      borderValue: used with cv2.BORDER_CONSTANT
+    returns:
+      dilated image
+
+
+  morphologyEx
+    (src, op, kernel, [dst, anchor, iterations, borderType,
+          borderValue])
+      src: source image
+      op: operation
+        MORPH_OPEN
+        MORPH_CLOSE
+        MORPH_GRADIENT
+        MORPH_TOPHAT
+        MORPH_BLACKHAT
+        MORPH_HITMISS
+      kernel: kernel (0 = unused)
+      dst: destination
+      anchor: anchor location in the kernel
+      iterations: number of iterations
+      borderType: border extrapolation
+      borderValue: for constant border color
+
+
+  getStructuringElement
+    (shape, ksize, [anchor])
+      shape:
+        MORPH_RECT
+        MORPH_ELLIPSE
+        MORPH_CROSS
+        MORPH_CUSTOM
+      ksize: (width, height)
+      anchor: anchor of kernel
+    returns:
+      kernel of corresponding shape
+    NOTE:
+      only cross is affected by the anchor position
+
+
+  Laplacian
+    (src, ddepth, [dst, ksize, scale, delta, borderType])
+      src: source image
+      ddepth: desired result depth
+      dst: destination
+      ksize: kernel size (an int)
+      scale: scaling on the laplacian
+      delta: added to results
+      borderType: extrapolation method
+    returns:
+      filtered image
+
+
+  Sobel
+    (src, ddepth, dx, dy, [dst, ksize, scale, delta, borderType])
+      src: source image
+      ddepth: desired depth for result
+      dx: order of derivative in x direction
+      dy: order of derivative in y direction
+      dst: destination
+      ksize: size of filter (an int)
+      scale: scaling for the filter
+      delta: added to result
+      borderType: pixel extrapolation at border
+
+
+  Scharr
+    (src, ddepth, dx, dy, [dst, scale, delta, borderType])
+      src: image
+      ddepth: desired depth
+      dx: x order deriv
+      dy: y order deriv
+      dst: destination
+      scale: scale of the filter
+      delta: added to result
+      borderType: type of border pixel extrapolation
+
+
+  Canny
+    (img, thresh1, thresh2, [edges, apertureSize, L2gradient])
+      img: image
+      thresh1: low threshold
+      thresh2: high threshold
+      edges: edge map
+      apertureSize: aperture for sobel operator
+      L2gradient: true = uses sqrt(sum(square)) else abs val
+    returns:
+      img w/ edges
+
+
+  pyrDown
+    (img, [dst, dstsize, borderType])
+      img: image to downscale
+    returns:
+      subsampled image
+
+
+  pyrUp
+    (img, [dst, dstsize, borderType])
+      img: image to upscale
+    returns:
+      upsampled image
+
+
+  findContours
+    (img, mode, method, [contours, hierarchy, offset])
+      img: image
+      mode: RETR_EXTERNAL: only outer contours
+            RETR_LIST: all contours w/o hierarchy
+            RETR_CCOMP: all contours, 2-level hierarchy
+            RETR_TREE: all contours, full hierarchy
+      method: CHAIN_APPROX_NONE: store all points
+              CHAIN_APPROX_SIMPLE: compresses horizontal
+                                      and vertical
+              CHAIN_APPROX_TC89_L1: chain algs
+              CHAIN_APPROX_TC89_KCOS: chain algs
+      contours: store contour lines
+      hierarchy: output vector w/ image topology
+                 one entry per contour line
+                 each entry: 4 elements for next
+                             and previous contours
+                             at same hierarchical level
+                             first child, first parent
+      offset: offset for shifting the contours
+              (for if extracted from ROI and need to shift
+              to match corresponding location)
+    returns:
+      contours, hierarchy
+    NOTE:
+      contours is a list of 2d-arrays where the inner array is
+      the coordinates
+        (format like this:
+          [ [[x1,y1]],
+            [[x2,y2]],
+            [[x3,y3]]...]
+
+
+  drawContours
+    (img, contours, contourIndex, color,
+         [thickness, lineType, hierarchy, maxLevel,
+         offset])
+      img:          image to draw on
+      contours:     list of contours
+      contourIndex: which to draw, -1 for all
+      color:        color of lines
+      thickness:    thickness of lines: >=0 outline
+                    < 0: filled area
+      lineType:     type of line (4, 8, CV_AA)
+      hierarchy:    hierarchy
+      maxLevel:     max level to draw n generations below too
+      offset:       shift parameter: shifts all contours
+    
+
+  moments
+    (array, [binaryImage])
+      array:       raster image
+      binaryImage: binary image or not (bool)
+    returns:
+      dictionary of moments
+    NOTE:
+      centroid: ((m10/m00),(m01/m00))
+      m00: area
+
+
+  contourArea
+    (cnt, [oriented])
+      cnt: contour (an entry from findContours)
+      oriented: true: signed area
+                false: abs value
+    returns:
+      area
+
+
+  arcLength
+    (curve, closed)
+      curve: curve/contour (list of points)
+      closed: bool, closed curve?
+    returns:
+      curve length
+
+  approxPolyDP
+    (curve, epsilon, closed, [approxCurve])
+      curve:    the list of points
+      epsilon:  allowable error
+      closed:   boolean: closed or open?
+    returns:
+      new set of points    
+
+
+  convexHull
+    (points, [hull, clockwise, returnPoints])
+      points:     set of points for shape
+      hull:       which points to use? set of indices
+                  or set of points
+      clockwise:  true-> clockwise, else counterclockwise
+      returnPoints: true->convex hull points
+                    false->indices
+
+
+  isContourConvex
+    (contour)
+      contour: contour line
+    returns:
+      true/false
+
+
+  boundingRect
+    (points)
+      points: set of points
+    returns:
+      bounding box
+
+
+  minAreaRect
+    (points)
+      points: set of points (a contour line)
+    returns:
+      minimum bounding rectangle (may be rotated)
+
+
+  minEnclosingCircle
+    (points)
+      points: set of points
+    returns:
+      center, radius
+
+
+  fitEllipse
+    (points)
+      points: set of points
+    returns:
+      rotated rectangle that inscribes the ellipse
+    
+
+  fitLine
+    (points, distType, param, reps, aeps, [line])
+      points:       set of points
+      distType:     distance used by M-estimator
+                    CV_DIST_L2
+                    CV_DIST_L1
+                    CV_DIST_L12
+                    CV_DIST_FAIR
+                    CV_DIST_WELSCH
+                    CV_DIST_HUBER
+
+      param:        parameter for some distances
+      reps:         radius accuracy
+      aeps:         angle accuracy
+    returns:
+
+    NOTE:
+      reps and aeps, 0.01 if unsure
+
+
+  calcHist
+    (images, channels, mask, histSize, ranges, [hist, accumulate])
+      images:       list of images
+      channels:     which channel to calc?
+      mask:         count the non-zero elements, if empty, count all
+                    same size as each image
+      histSize:     array of histogram sizes per dimension
+                    (# of bins)
+      ranges:       array of dims...??
+                    the range of values (X ranges from min to max)
+      hist:         output histogram
+      accumulate:   doesn't clear so accumulate as you
+                    make more calls
+    returns:
+      hist
+
+  equalizeHist
+    (src, [dst])
+      src: image
+      dst: destination
+    returns:
+      new  image with equalized histogram
+
+
+  normalize
+    (img, [dst, alpha, beta, norm_type, dtype, mask])
+      img: image to normalize
+      dst: output destination
+      alpha: norm value to normalize to or lower val when
+             normalizing into a particular range
+      beta: upper range boundary to normalize to
+      normType: normalization type
+                NORM_INF
+                NORM_L1
+                NORM_L2
+                NORM_MINMAX
+      dtype: data type, <0 = copy img type
+      mask: operation mask: 0 = don't use
+    returns:
+      normalized image
+
+
+  calcBackProject
+    (images, channels, hist, ranges, scale, [dst])
+      images: images to analyze
+      channels: channels to be used
+      hist: input histogram (for the object?)
+      ranges: array of arrays for histogram bin dimensions
+      scale: scale factor for output
+      dst: destination
+    Returns:
+      backProjection result
+      
+
+  dft
+    (img, [dst, flags, nonzeroRows])
+      img: image to take dft
+      dst: destination
+      flags: comination of: DFT_INVERSE: inverse transform
+                            DFT_SCALE: scales result (divide by array element count)
+                            DFT_ROWS: does each row individually
+                            DFT_COMPLEX_OUTPUT: used: fullsize complex array
+                                                unused: complex-conjugate symmetry
+                            DFT_REAL_OUTPUT: if Complex conjugate symmetry, outputs
+                                             real
+      nonzeroRows: an int
+                   not inverse: 1st n rows nonzero
+                   inverse: 1st n rows of output 0
+    returns:
+      the DFT
+    NOTE:
+      complex conjugate symmetry: CCS
+        true because for a real signal f, and -f will have same 
+        real value and opposite imaginary values (otherwise it
+        would not result in only real values)
+      should scale (this is like the 1/2pi in dft BUT only
+        one of them should be scaled)
+
+  idft
+    (src, [dst, flags, nonzeroRows])
+      src: input
+      dst: destination
+      flags: see above
+      nonzeroRows: an int, number of non-zero rows (real signal)
+    returns:
+      the inverse DFT
+    NOTE:
+      CCS: see above
+      should scale (this is like the 1/2pi in dft, BUT only 
+        one of them should be scaled)
+
+
+  cartToPolar
+    (x, y, [mag, angle, angleInDegrees])
+      x: x-coords
+      y: y-coords
+      mag: magnitude destination
+      angle: angle output destination
+      angleInDegrees: true=degrees, else radians
+    returns:
+      magnitudes, angles
+
+
+  polarToCart
+    (magnitude, angle, [x, y, angleInDegrees])
+      magnitude: magnitudes
+      angle: angles
+      x: x destinations
+      y: y destinations
+      angleInDegrees: angle is given in degrees or radians?
+    returns:
+      xvals, yvals
+
+
+  magnitude
+    (x, y, [magnitude])
+      x: vector of x-coords
+      y: vector of y-coords
+      magnitude: destination of magnitudes
+    returns:
+      magnitudes vector
+
+
+  phase
+    (x, y, [angle, angleInDegrees])
+      x: vector of x-coords
+      y: vector of y-coords
+      angle: destination of angles vector
+      angleInDegrees: true = deg, else rad
+    returns:
+      angles vector
+
+
+  getOptimalDFTSize
+    (vecsize)
+      current vector size
+    returns:
+      optimal size (min number that is greater and optimal)
+
+    
+    
+______________________________
+matplotlib||
+  pyplot
+    from matplotlib import pyplot
+    
+    imshow
+      (img, cmap = str, interp = val)
+      displays in RGB
+      if using cv2.imread:
+        need to flip r and b
+          img2 = img[:,:,::-1]
+            or
+          cv2.cvtColor(img, cv2.BGR2RGB)
+
+    subplot(rowscolsnum)
+      1st digit = numrows
+      2nd digit = numcol
+      3rd digit = count
+
+    title(str)
+      sets title of subplot to str
+
+
+    hist
+      (x, [bins, range, normed, weights, cumulative, bottom, histtype,
+      align, orientation, rwidth, log, color, label, stacked, hold
+      data, **kwargs)
+        x: data
+        bins: number of bins
+        range: data range
+        normed: normalized
+        weights: weights for each entry
+        cumulative: cumulative histogram
+        bottom: bottom baseline shift of each bin
+        histtype: type
+                  bar, barstacked, step, stepfilled
+        align: bars aligned on 
+               left, mid, right
+        orientation: orientation of bars
+                     horizontal, vertical
+        rwidth: relative width of bar
+        log: bool-> use logscale?
+        color: specify colors for each bin
+        label: label for data set
+        stacked: stacked bars
+        hold: ??
+        data:??
+        **kwargs: patch properties
+      returns:
+        n, binEdges, patches
+    
+    
+    plot
+      (data, color = color)
+        data: data to plot
+        color: 'r', 'g', 'b', etc
+      plots data
+
+
+    xlim
+      (range)
+        range: range for x axis
+
+        
+
+
+
+        
+        
+
+______________________________
+others||
+  ord(char)
+    returns ascii number?
+
+
+####################
+objects::
+####################
+______________________________
+VideoCapture||
+  note: instal proper versions of ffmpeg and gstreamer
+
+  constructor:
+    VideoCapture(camnum)
+      creates obj using camnum camera
+      (starts from 0)
+    
+
+    VideoCapture(fname)
+      fname: file name of the video
+
+  functions:
+    read
+      ()
+      returns: boo, frame
+        boo: frame read correctly
+        frame: the frame
+
+
+    isOpened
+      ()
+      returns if video capture start or not
+
+
+    open
+      (fname)
+      (device)
+      corresponding video file or camera
+
+
+    release
+      ()
+      releases the capture
+
+
+    get
+      (propid)
+        propid:
+          CV_CAP_PROP_POS_MSEC
+          CV_CAP_PROP_POS_FRAMES
+          CV_CAP_PROP_POS_AVI_RATIO
+          CV_CAP_PROP_FRAME_WIDTH
+          CV_CAP_PROP_FRAME_HEIGHT
+          CV_CAP_PROP_FPS
+          CV_CAP_PROP_FOURCC
+          CV_CAP_PROP_FRAME_COUNT
+          CV_CAP_PROP_FORMAT
+          CV_CAP_PROP_MODE
+          CV_CAP_PROP_BRIGHTNESS
+          CV_CAP_PROP_CONTRAST
+          CV_CAP_PROP_SATURATION
+          CV_CAP_PROP_HUE
+          CV_CAP_PROP_GAIN
+          CV_CAP_PROP_EXPOSURE
+          CV_CAP_PROP_CONVERT_RGB
+          CV_CAP_PROP_WHITE_BALANCE_U
+          CV_CAP_PROP_WHITE_BALANCE_V
+          CV_CAP_PROP_RECTIFICATION
+          CV_CAP_PROP_ISO_SPEED
+          CV_CAP_PROP_BUFFERSIZE
+      returns:
+        property
+
+
+    set
+      (propid, value)
+        propid: see above list for get
+        value: value to set it to
+
+
+______________________________
+VideoWriter||
+  constructor:
+    VideoWriter(fname, FourCC, fps, framesize, [isColor])
+      fname: file name
+      FourCC: codec code: cv2.cv.CV_FOURCC
+      fps: frames per second
+      framesize: a pair (width, height)
+      isColor: optional? color or gray?
+
+
+  functions:
+    write(frame)
+      frame: frame to write
+      
+  open
+    (fname, fourcc, fps, framesize, [is color])
+  
+
+  isOpened
+    ()
+    returns: is opened or not
+
+______________________________
+CLAHE||
+  createCLAHE
+    (clipLimit, tileGridSize)
+      clipLimit: the clip limit
+      tileGrideSize: (x y)
+
+  apply
+    (img)
+      img: image to apply it to
+    returns:
+      adaptively equalized histogram
+
+
+______________________________
+CascadeClassifier||
+  CascadeClassifier(file)
+    file = xml file from traincascade
+  
+  detectMultiScale
+    (image, [scaleFactor, minNeighbors, flags, minSize, maxSize])
+    (image, rejectLevels, levelWeights, [scaleFactor, minNeighbors, flags, minSize, maxSize, outputRejectLevels])
+      image: image to analyze
+      rejectLevels: ???
+      levelWeights: ???
+      scaleFactor: image size reduced at each image scale
+      minNeighbors: how many neighbors each rectangle
+                    should have to retain it
+      flags: params w/ same meaning for old cascade, not used
+             in new ones
+      minSize: min possible object size
+      maxSize: max possible object size
+      
+    returns:
+      objects
+    
+
+####################
+numpy::
+####################
+______________________________
+objects||
+  ______________________________
+  array(normal array, data type)''
+    functions
+      item(indices)
+        returns item
+
+
+      itemset((indices), val)
+        sets item at indices to val
+        
+
+      copy()
+        returns a copy
+      
+
+      cumsum()
+        returns cumulative sum
+
+
+    properties
+      shape
+        returns dimensions row, col, channels
+      size
+        number of values (row x col)
+      dtype
+        data type
+    
+    NOTE:
+      a = np.array(...)
+      b = a
+      change b, a changes
+      use 
+
+
+
+
+
+______________________________
+functions||
+  histogram
+    (data, [bins, range, normed, weights, density])
+      data: the data
+      bins: number of bins
+      range: data range
+      normed:
+    returns:
+      hist, bin_edges
+      
+
+  ravel
+    (array)
+      array: array to flatten
+    returns:
+      flattened array (a view)
+
+  flatten
+    (array)
+      array: array to flatten
+    returns:
+      flattened array (a copy)
+
+  bincount
+    (data, [weights, minlength])
+      data: the data to analyze
+      weights: weights for each entry
+      minlength: min number of bins
+
+
+  fft.fft2
+    (a, [s, axes, norm])
+      a: array to transform
+      s: sequence of ints representing
+         axes lengths (if none, uses input's axes)
+         s>input = zero-padded, s<output  cropped
+      axes: axes to compute FFT (which 2 axes to use)
+            (last  2 if not specified)
+      norm: None or "ortho"
+            normalization mode
+    NOTE:
+      0,0 frequency at top left (index 0,0)
+
+
+  fft.ifft2
+    (a, [s, axes, norm])
+       a: array to transform
+       s: sequence of ints-axes lengths
+       axes: axes to use for computation
+       norm: None or "ortho"
+     returns:
+       inverse fft of matrix
+
+
+  abs
+    (num)
+      num: number to take abs value of
+    returns:
+      abs val
+
+
+  fft.fftshift
+    (x, [axes])
+      x: input array to shift
+      axes: axes to shift over
+    returns:
+      shifted matrix
+
+
+  fft.ifftshift
+    (x, [axes])
+      x: input array to inverse shift
+    returns:
+      shifted array
+
+
+  check
+    ((dims), [type])
+      dims: for a checkerboard matrix (x,y)
+      type: np.uint8 etc
+    returns:
+      checkerboard matrix    
+
+
+  zeros
+    ((dims), [type])
+      dims: dims for matrix
+      type: datatype
+    returns:
+      0 matrix
+
+
+  eye
+    ((dims), [type])
+      dims: dims for matrix
+      type: datatype
+    returns:
+      identity matrix
+      
+
+
+
+
+
+
+
+
+
+####################
+Core Operations::
+####################
+______________________________
+pixel access||
+  index into array
+    [b, g, r] if color
+    I if gray (I = intensity)
+  can mutate in same way
+
+
+______________________________
+regions||
+  like matlab indexing
+  img[start:stop, start:stop etc]
+    NOTE: excludes stop
+  can do assignment like matlab too
+
+______________________________
+image arithmetic||
+  cv2.add(img1, img2)
+    saturated addition (uint8 255 + 1 = 255)
+  
+  
+  numpy addition (img1 + img2)
+    modulo addition (uint8 255 + 1 = 0)
+
+  can do matlab-like operations as well:
+    a = np.array([1, 2, 3, 4])
+    a / 2->[0.5, 1, 1.5, 2]
+    5 + a->[6, 7, 8, 9]
+    2 * a->[2, 4, 6, 8]

@@ -1,0 +1,23 @@
+Open CV Notes
+
+::
+  ||
+    ''
+####################
+Contents::
+####################
+
+####################
+Notes::
+####################  
+______________________________
+Namespaces||
+  use the cv namespace
+    ideally, always use namespace explicitly
+______________________________
+Memory management||
+  automatic: deallocated when reference counter reaches 0
+  use Ptr<T> ptr = new T(...) to get automatic memory management
+  
+  output data usually automatic as well
+

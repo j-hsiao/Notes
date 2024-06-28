@@ -713,6 +713,7 @@ https://www.gnu.org/software/bash/manual/html_node/Programmable-Completion-Built
 			default: use readline's filename when no matches
 			dirnames: use dirname when no matches
 			filenames: specify completions are filenames (so process like filenames), used with -F
+			           adds / to directories after completion (doesn't affect compgen...)
 			noquote: don't quote if filenames
 			nosort: don't sort
 			nospace: don't append space to end of the completion
@@ -776,8 +777,8 @@ https://www.gnu.org/software/bash/manual/html_node/Programmable-Completion-Built
 				'@': list completions if word not unmodified
 				'%': menu completion
 			functions only:
-				COMP_WORDS: completion words array
-				COMP_CWORD: current word
+				COMP_WORDS: array of current commandline
+				COMP_CWORD: index of current word in COMP_WORDS
 				COMPREPLY : the completion candidates
 		-G pat expand for completions
 		-P: prefix prepended to completion results

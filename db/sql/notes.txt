@@ -1,0 +1,239 @@
+SQL Notes
+####################
+Contents::
+####################
+NOTES::
+  Concatenation||
+  Wildcards||
+  Aliases||
+Common COMMANDS::
+  SELECT||
+  DISTINCT||
+  WHERE||
+    LIKE''
+    IN''
+    BETWEEN''
+  AND, OR||
+  ORDER BY||
+  INSERT_INTO||
+  UPDATE||
+  DELETE||
+Other Commands::
+  SELECT TOP||
+  JOIN||
+    INNER JOIN''
+    
+  
+
+
+
+SQL Injection::
+
+
+
+
+
+####################
+NOTES::
+####################
+semicolons end lines
+  (for multi-line requests)
+
+NOT case sensitive
+
+text: needs ''
+numbers: no ''
+
+[a|b|c]
+optional a, b, or c
+
+{a|b|c}
+mandatory a, b, or c
+
+use [] or "" ?or ''? if name contains spaces
+
+______________________________
+Concatenation||
+  use + to concat
+  CONCAT() in MySQL
+
+______________________________
+Wildcards||
+  symbol        description:
+  %             >= 0 characters
+  _             1 character
+  [charlist]    sets/ranges to match 1 char
+  [^charlist]   sets/ranges to not match 1 char
+  [!charlist]   sets/ranges to not match 1 char
+
+______________________________
+Aliases||
+  temp name for table/column
+  (only in the returned table)
+  Syntax:
+    SELECT col AS alias FROM table
+    SELECT cols FROM table AS alias
+  use:
+    multiple tables
+    functions used
+    col names big and unreadable
+    multiple combined columns
+
+
+####################
+COMMANDS::
+####################
+______________________________
+SELECT||
+  Syntax:
+    SELECT cols FROM table
+    SELECT t1.c1, c1.c2...t2.c1, t2.c2... FROM
+      t1, t2...
+
+______________________________
+DISTINCT||
+  Syntax:
+    SELECT DISTINCT cols FROM table
+______________________________
+WHERE||
+  Syntax:
+    SELECT etc... WHERE col op val
+
+  ops:
+    =                : equal
+    <> or !=         : not equal
+    >, <, <=, >=     : as expected
+    BETWEEN          : inclusive range
+    LIKE             : pattern searching
+    IN               : possible values
+      use (val1, val2...)
+
+  ______________________________
+  LIKE''
+    Syntax:
+      statement etc. WHERE cols [NOT] LIKE
+        attern
+    Pattern:
+      text
+      % = wildcard
+      SEE Wildcards||
+
+  ______________________________
+  IN''
+    Syntax:
+      statement etc...
+        WHERE col IN (v1, v2...);
+  ______________________________
+  BETWEEN''
+    Syntax:
+      statement etc...
+        WHERE col BETWEEN v1 AND v2
+    values:
+      numbers: inclusive range
+      Single Letter: between the letters
+                     (ex: 'a' and 'm' = start
+                      between a and m)
+      date: #MM/DD/YYYY#
+  
+
+______________________________
+AND, OR||
+  Syntax:
+    SELECT col FROM table WHERE
+    cond1 AND cond2 OR cond3...
+
+    use() to group
+
+______________________________
+ORDER BY||
+  Syntax:
+    SELECT statement... ORDER BY
+    col1 [ASC|DSC], col2 [ASC|DSC]
+
+  text ASC = top=a, bottom = z
+  num ASC = top=1, bottom = inf
+______________________________
+INSERT INTO||
+  Syntax:
+    INSERT INTO table [(col1, col2...)]
+    VALUES (v1, v2, v3...);
+  NOTE:
+    default values = null
+______________________________
+UPDATE||
+  Syntax:
+    UPDATE table
+    SET col1=v1, col2=v2, col3=v3...
+    WHERE conds...;
+  NOTE:
+    ommitted WHERE statement = 
+    all rows will be updated = 
+    all data wiped
+______________________________
+DELETE||
+  Syntax:
+    DELETE FROM table WHERE conds
+  NOTE:
+    no WHERE = all deleted
+
+
+
+
+
+
+####################
+Other Commands::
+####################
+______________________________
+SELECT TOP||
+  Syntax:
+    SQL/MS Access
+      SELECT TOP {num| num PERCENT} cols
+        FROM table;
+
+    MySQL
+      SELECT col FROM table LIMIT num
+    
+    Oracle
+      SELECT cols FROM table WHERE
+        ROWNUM <= num;  
+______________________________
+JOIN||
+  Syntax:
+    SELECT table.cols FROM t1 INNER JOIN t2
+      ON {condition involving t1, t2} 
+  ______________________________
+  INNER JOIN''
+    all rows when at least one match in both
+    tables
+    AKA JOIN
+
+  ______________________________
+  LEFT JOIN''
+    all rows from left table
+    matched rows from right table
+    AKA LEFT OUTER JOIN
+  ______________________________
+  RIGHT JOIN''
+    all rows from right table
+    matched rows from left table
+  ______________________________
+  FULL JOIN''
+    all rows when match in one of the tables
+      
+    
+
+
+
+####################
+SQL Injection::
+####################
+Webpages often ask for user input
+  user can maliciously insert SQL code
+  to destroy database/access data
+protect from SQL Injection
+
+Use this in code for ASP, PHP, etc
+  use @num, (0 indexing)
+  db.Execute(statement, arg0, arg1...);
+
