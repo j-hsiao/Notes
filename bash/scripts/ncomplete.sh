@@ -59,7 +59,13 @@ function num_complete() {
 			fi
 			if [ "${#COMPREPLY[@]}" -gt 1 ]
 			then
-				readarray -t COMPREPLY < <( paste -d' ' <(eval printf "'%s\n'" "{01..${#COMPREPLY[@]}}") <(printf '%s\n' "${COMPREPLY[@]}"))
+				if [ "${#COMPREPLY[@]}" -gt 9 ]
+				then
+					local prezero=0
+				else
+					local prezero=
+				fi
+				readarray -t COMPREPLY < <( paste -d' ' <(eval printf "'%s\n'" "{${prezero}1..${#COMPREPLY[@]}}") <(printf '%s\n' "${COMPREPLY[@]}"))
 			elif [ "${#COMPREPLY[@]}" -eq 1 ]
 			then
 				COMPREPLY=("${target%/*}/${COMPREPLY[0]}")
