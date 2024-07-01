@@ -4,7 +4,7 @@
 nls_search_cache=()
 function nls()
 {
-	local fnames=() defaults=(-type d) numcols=0 flags=()
+	local fnames=() defaults=(-type d) numcols= flags=()
 	while [ "${#}" -gt 0 -a "${1:0:1}" != '-' ]
 	do
 		fnames+=("${1}")
@@ -30,9 +30,9 @@ function nls()
 		shift
 	done
 	local enumerate=(nl -s ' ' -w 1 -n 'ln')
-	if [ "${numcols}" -gt 0 ] || ! hash column >/dev/null 2>&1
+	if [ "${numcols:-0}" -gt 0 ] || ! hash column >/dev/null 2>&1
 	then
-		local columnate=(pr "-${numcols}" -t -w $(tput cols))
+		local columnate=(pr "-${numcols:-1}" -t -w $(tput cols))
 	else
 		local columnate=(column)
 	fi
