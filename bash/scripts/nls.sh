@@ -45,35 +45,70 @@ function nls()
 # optionally add a command to perform on the chosen item.
 function np()
 {
-	local num= printall=0 default=(printf '%s') cmd=()
+	local printall=0 default=(printf '%s') cmd=() check=0
 	while [ "${#}" -gt 0 ]
 	do
-		if [ "${1}" = d ]
+		if [ "${#cmd[@]}" -gt 0 ]
 		then
-			shift
-			local enumerate=(nl -s ' ' -w 1 -n 'ln')
-			if [[ "${1}" =~ -[0-9]+ ]] || ! hash column >/dev/null 2>&1
+			if [[ "${1}" =~ [0-9]+ ]]
 			then
-				local columnate=(pr "${1}" -t -w $(tput cols))
+				if [ "${printall}" -gt 0 ]
+				then
+					cmd+=("${nls_search_cache[${1}-1]}")
+				else
+					cmd+=("${nls_search_cache[${1}-1]##*/}")
+				fi
 			else
-				local columnate=(column)
+				cmd+=("${1}")
 			fi
-			printf '%s\n' "${nls_search_cache[@]##*/}" | "${enumerate[@]}" | "${columnate[@]}"
-		elif [ "${1}" = '-a' ]
-		then
-			printall=1
-		elif [[ "${1}" =~ [0-9]+ && -z "${num}" ]]
-		then
-			num="${1}"
 		else
-			cmd+=("${1}")
+			if [ "${1}" = d ]
+			then
+				shift
+				local enumerate=(nl -s ' ' -w 1 -n 'ln')
+				if [[ "${1}" =~ -[0-9]+ ]]
+				then
+					local columnate=(pr "${1}" -t -w $(tput cols))
+				elif ! hash column >/dev/null 2>&1
+				then
+					local columnate=(pr -1 -t -w $(tput cols))
+				else
+					local columnate=(column)
+				fi
+				printf '%s\n' "${nls_search_cache[@]##*/}" | "${enumerate[@]}" | "${columnate[@]}"
+				return
+			elif [ "${1}" = '-c' ]
+			then
+				check=1
+			elif [ "${1}" = '-h' ]
+			then
+				echo "usage: np [options] [cmd] ..."
+				echo "d [-N]: display the current list using N columns and return."
+				echo "-c: just check the command, do not run"
+				echo "-h: display this help message"
+				echo "-a: use the entire listing name instead of just the basename."
+			elif [ "${1}" = '-a' ]
+			then
+				printall=1
+			elif [[ "${1}" =~ [0-9]+ ]]
+			then
+				cmd=("${default[@]}")
+				if [ "${printall}" -gt 0 ]
+				then
+					cmd+=("${nls_search_cache[${1}-1]}")
+				else
+					cmd+=("${nls_search_cache[${1}-1]##*/}")
+				fi
+			else
+				cmd+=("${1}")
+			fi
 		fi
 		shift
 	done
-	if [ "${printall}" -gt 0 ]
+	if [ "${check}" -gt 0 ]
 	then
-		"${cmd[@]:-${default[@]}}" "${nls_search_cache[num-1]}"
+		printf '"%s"\n' "${cmd[@]}"
 	else
-		"${cmd[@]:-${default[@]}}" "${nls_search_cache[num-1]##*/}"
+		"${cmd[@]}"
 	fi
 }
