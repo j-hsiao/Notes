@@ -20,18 +20,21 @@
 # cache results of listing choices.
 # sometimes listing choices can be somewhat expensive so
 # caching may help improve performance
-num_completion_choices=()
+numeric_completion_choices=()
 alias n=''
 function num_complete() {
 	local target="${2}"
 	if [[ "${target}" =~ ^[0-9]*$ ]]
 	then
 		target="./${target}"
+	elif [[ "${target}" =~ ^'~/'.* || "${target}" = '~' || "${target}" =~ '~'[0-9]+ ]]
+	then
+		target="${target/#'~'/"${HOME}/"}"
 	fi
 
-	if [[ "${target}" =~ ^.*/[0-9]+$ && "${#num_completion_choices[@]}" -gt 0 && "${num_completion_choices[0]}${target##*/}" = "${PWD}${COMP_WORDS[*]}" ]]
+	if [[ "${target}" =~ ^.*/[0-9]+$ && "${#numeric_completion_choices[@]}" -gt 0 && "${numeric_completion_choices[0]}${target##*/}" = "${PWD}${COMP_WORDS[*]}" ]]
 	then
-		COMPREPLY=("${target%/*}/${num_completion_choices[${target##*/}]}")
+		COMPREPLY=("${target%/*}/${numeric_completion_choices[${target##*/}]}")
 		return
 	fi
 
@@ -51,28 +54,26 @@ function num_complete() {
 		if [ -n "${target##*/}" ]
 		then
 			COMPREPLY=("${target%/*}/${COMPREPLY[${target##*/}-1]}")
-			num_completion_choices=()
+			numeric_completion_choices=()
 		else
 			if [ -z "${NCOMPLETE_NO_CACHE}" ]
 			then
-				num_completion_choices=("${PWD}${COMP_WORDS[*]}" "${COMPREPLY[@]}")
+				numeric_completion_choices=("${PWD}${COMP_WORDS[*]}" "${COMPREPLY[@]}")
 			fi
 			if [ "${#COMPREPLY[@]}" -gt 1 ]
 			then
-				if [ "${#COMPREPLY[@]}" -gt 9 ]
-				then
-					local prezero=0
-				else
-					local prezero=
-				fi
-				readarray -t COMPREPLY < <( paste -d' ' <(eval printf "'%s\n'" "{${prezero}1..${#COMPREPLY[@]}}") <(printf '%s\n' "${COMPREPLY[@]}"))
+				# enumerate choices with 0-padded numbers(so properly sorted)
+				while read target
+				do
+					COMPREPLY[$((10#${target}-1))]="${target} ${COMPREPLY[$((10#${target}-1))]}"
+				done < <(seq -w "${#COMPREPLY[@]}")
 			elif [ "${#COMPREPLY[@]}" -eq 1 ]
 			then
 				COMPREPLY=("${target%/*}/${COMPREPLY[0]}")
 			fi
 		fi
 	else
-		num_completion_choices=()
+		numeric_completion_choices=()
 	fi
 }
 complete -o bashdefault -o default -o nospace -o filenames -F num_complete n
