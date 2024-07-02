@@ -103,15 +103,29 @@ ______________________________
 					save to tempvariable and reuse for more levels
 					It does not work on arrays
 			existence/emptiness expansions:
-				If : is omitted, check only for existence or not
-				otherwise, check for non-emptiness (undefined = empty)
+				${[expr1][:][op][expr2]}
+					op:
+						-    replace with expr2 if empty/unset
+						=    replace and assign if empty/unset
+						?    print expr2 as error message if empty/unset
+						+    replace with expr2 if not set/non-empty
+					:
+						check emptiness instead of unset-ness
 
-				${var:-word}    replace with word if unset or empty
-				${var:=word}    assign word to var if unset or empty
-				${var:?words}   print words to stderr and (exit if not interactive)
-				${var:+word}    replace with word if not (unset or empty)
-
-				if var is array-like, operates on entire concatenated str
+				expr1:
+					arrvar[@]: check the array length always (${arr[@]-expr2})
+					           Even if arr=(), so arr is set, expr2 is still used
+					var: check the value of the var as a string
+				expr2:
+					arrvar[@]: expand to the array.
+					           NOTE: an empty array will be expanded as a single empty string argument...
+					           ex:
+					              arr=()
+					              defaults=()
+					              bash -c 'echo $#' progname "${arr[@]:-${defaults[@]}}"
+					              will print 1 argument instead of 0, even though all arrays are empty
+					var: expand to the single item
+				NOTE: for arrays, expansion is still as expected with @, * and quoting
 
 			slicing (substring/subarray expansion):
 				${param:offset[:length]}
@@ -190,6 +204,15 @@ ______________________________
 					name=(val1 val2 val3 ...)       create/initialize array
 					name=([key]=val [key]=val)      if key omitted, then place val
 					                                after previous item in list
+			expansion
+				Expand arrays by indexing with [@] or [*]
+				ex:
+					${arr[@]}
+					${arr[*]}
+				If unquoted, normal word-splitting is used.
+				If quoted, * results in a single string of items joined by space.
+				           @ results in multiple arguments, one per index.
+
 			adding items
 				arr+=(stuff to append to arr)
 

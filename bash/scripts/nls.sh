@@ -14,13 +14,15 @@ function nls()
 	do
 		if [[ "${1}" = '-h' ]]
 		then
-			echo 'same arguments as find. but forces min/maxdepth 1'
-			echo 'defaults to: -type d'
-			echo 'use -A to change default to: -type d -o -type f'
+			echo 'same arguments as find. but will force min/maxdepth 1'
+			echo 'Also uses -L because for symlinks, generally only care'
+			echo 'what type it points to. Flags will default to: -type d'
+			echo 'Use -a to erase defaults (find all types) before any'
+			echo 'find operators.'
 			return
-		elif [[ "${1}" = '-A' ]]
+		elif [[ "${1}" = '-a' && "${#flags[@]}" -eq 0 ]]
 		then
-			flags+=(-type d -o -type f)
+			defaults=()
 		elif [[ "${1}" =~ -[0-9]+ ]]
 		then
 			numcols="${1#-}"
@@ -36,8 +38,12 @@ function nls()
 	else
 		local columnate=(column)
 	fi
+	if [ "${#flags[@]}" -eq 0 ]
+	then
+		flags=("${defaults[@]}")
+	fi
 	readarray -t nls_search_cache < \
-		<(find "${fnames[@]}" -maxdepth 1 -mindepth 1 "${flags[@]:-${defaults[@]}}" | sort)
+		<(find -L "${fnames[@]}" -maxdepth 1 -mindepth 1 "${flags[@]}" | sort)
 	printf '%s\n' "${nls_search_cache[@]##*/}" | "${enumerate[@]}" | "${columnate[@]}"
 }
 
