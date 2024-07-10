@@ -7,3 +7,4 @@ python-c/cythontest/build
 build
 *.swp
 *.prof
+remotehost/ssh/keys
