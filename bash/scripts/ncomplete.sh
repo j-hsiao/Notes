@@ -27,7 +27,10 @@ function num_complete() {
 	if [[ "${target}" =~ ^[0-9]*$ ]]
 	then
 		target="./${target}"
-	elif [[ "${target}" =~ ^'~/'.* || "${target}" = '~' || "${target}" =~ '~'[0-9]+ ]]
+	elif [[ "${target}" =~ ^'~/'.* ]]
+	then
+		target="${target/#'~'/"${HOME}"}"
+	elif [[ "${target}" = '~' || "${target}" =~ '~'[0-9]+ ]]
 	then
 		target="${target/#'~'/"${HOME}/"}"
 	fi
