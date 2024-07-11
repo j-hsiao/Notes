@@ -4,6 +4,7 @@ contents
 -0- general
 	-0.1- logic
 	-0.2- variable
+		-0.2.0- scopes
 		-0.2.1- strings
 		-0.2.2- numbers
 		-0.2.3- arrays
@@ -102,6 +103,13 @@ ______________________________
 					NOTE: only 1 level of indirection is allowed
 					save to tempvariable and reuse for more levels
 					It does not work on arrays
+
+				For indirect array, must use a temporary variable:
+					arr=(1 2 3)
+					arrname=arr
+					tmp="${arrname}[@]"
+					arrcopy=("${!tmp}")
+
 			existence/emptiness expansions:
 				${[expr1][:][op][expr2]}
 					op:
@@ -174,6 +182,40 @@ ______________________________
 				${parameter,,pattern}
 
 				pattern should be single-char, and if omitted, defaults to ?
+
+		______________________________
+		-0.2.0- scopes
+			Depending on how the variable is set,
+
+			Functions see parent (caller) scope.
+			declare varname=val defaults to local variables.
+			declare -g varname=val creates global variables
+			read "${varname}" <<<"value"
+
+			ex:
+				blah.sh:
+
+				v1=1
+				function func2()
+				{
+					v1=newvalue   # seen in func1 and blah.sh
+					v2=newvalue   # seen in func1, but not blah.sh (was local to func1)
+					v3=newvalue   # seen in func1 and blah.sh
+
+					declare v1=newvalue # Neither func1 nor func2 see the new values
+					declare v2=newvalue # Neither func1 nor func2 see the new values
+					declare v3=newvalue # Neither func1 nor func2 see the new values
+
+					IFS= read v1 <<<newvalue # same as v1=newvalue
+					IFS= read v2 <<<newvalue # same as v2=newvalue
+					IFS= read v3 <<<newvalue # same as v3=newvalue
+				}
+				function func1()
+				{
+					local v2=1
+					v3=1
+					func2
+				}
 
 		______________________________
 		-0.2.1- strings
