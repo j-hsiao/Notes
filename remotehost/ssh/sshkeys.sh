@@ -238,7 +238,7 @@ function install_key()
 						username=
 						;;
 					identityfile)
-						update_entry "${HOME}/.ssh/keys/${private_key}"
+						update_entry "%d/.ssh/keys/${private_key}"
 						private_key=
 						;;
 					identitiesonly)
@@ -276,7 +276,7 @@ function install_key()
 	indent='	'
 	key=HOSTNAME; value=${datakey}; add_entry_value "${hostname}"
 	key=USER; value=; add_entry_value "${username}"
-	key=IDENTITYFILE; value=; add_entry_value "${HOME}/.ssh/keys/${private_key}"
+	key=IDENTITYFILE; value=; add_entry_value "${private_key:+"%d/.ssh/keys/${private_key}"}"
 	key=PORT; value=; add_entry_value "${port}"
 	key=IDENTITIESONLY; value=; add_entry_value "${idonly}"
 	ssh_data["host_${datakey}"]="${entry}${trail}"
