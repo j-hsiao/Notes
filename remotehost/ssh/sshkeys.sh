@@ -95,8 +95,21 @@ function chunk_config()
 	done < "${1:-"${HOME}/.ssh/config"}"
 }
 
+# add a new entry to ssh config
+# usage: add_entry_value <value>
+#   value: the value for the option.  If empty, do nothing.
+# assumes caller has defined variables:
+#   entry: A string that represents the current ssh config entry
+#   ignored: string of ignored lines (comments, blanks, etc)
+#   indent: indentation to use for the line.
+#   key: the key/option name.
+#   value: the original value if any.
 function add_entry_value()
 {
+	if [[ -z "${1}" || "${1}" = '-' ]]
+	then
+		return
+	fi
 	if [[ "${1}" =~ ^.*[[:space:]].*$ ]]
 	then
 		entry="${entry}${ignored}${indent}${key^^} \"${1}\"
@@ -106,12 +119,30 @@ function add_entry_value()
 "
 	fi
 	ignored=
-	printf '%s%s %s -> %s\n' "${indent}" "${key^^}" "${value}" "${1}"
+	if [[ -n "${value}" ]]
+	then
+		printf '%s%s %s -> %s\n' "${indent}" "${key^^}" "${value}" "${1}"
+	else
+		printf '+%s%s %s\n' "${indent}" "${key^^}" "${1}"
+	fi
 }
 
+# Update an existing entry.
+# Assume the caller scope has variables:
+#   line: a string containing the original line of the entry.
+#   entry: A string that represents the current ssh config entry
+#   ignored: string of ignored lines (comments, blanks, etc)
+#   indent: indentation to use for the line.
+#   key: the key/option name.
+#   value: the original value if any.
 function update_entry()
 {
-	if [[ "${1}" != "${value}" ]]
+	if [[ "${1}" = '-' ]]
+	then
+		printf -- '-%s\n' "${line}"
+		return
+	fi
+	if [[ -n "${1}" && "${1}" != "${value}" ]]
 	then
 		add_entry_value "${1}"
 	else
@@ -150,16 +181,15 @@ function install_key()
 	elif [ "${#keys[@]}" -gt 1 ]
 	then
 		choose_from_list 'Choose the key to use' keys private_key "${keys[0]}" || return 1
+		printf 'Using key "%s"\n' "${private_key}"
 	else
-		echo "using only key: \"${keys[0]}\""
+		printf '1 key found: "%s"\n' "${keys[0]}"
 		private_key="${keys[0]}"
 	fi
-	echo "using key \"${private_key}\""
 
 	if [ "${KEYDIR#${HOME}/.ssh/keys/}" = "${KEYDIR}" ]
 	then
 		"${norun[@]}" mkdir -p "${HOME}/.ssh/keys/"
-
 		if ! "${norun[@]}" cp "${KEYDIR}/${private_key}/${private_key}" "${HOME}/.ssh/keys/${private_key}"
 		then
 			if [ ! -f "${HOME}/.ssh/keys/${private_key}" ]
@@ -169,15 +199,14 @@ function install_key()
 			fi
 		fi
 	fi
-	touch "${HOME}/.ssh/config"
+	"${norun[@]}" touch "${HOME}/.ssh/config"
 	"${norun[@]}" chmod 700 "${HOME}/.ssh" "${HOME}/.ssh/keys"
 	"${norun[@]}" chmod 600 "${HOME}/.ssh/config" "${HOME}/.ssh/keys/${private_key}"
 
 	printf 'hostname (actual server name/ip): '
 	read hostname
-	printf 'username (default: git): '
+	printf 'username: '
 	read username
-	username="${username:-git}"
 	printf 'port: '
 	read port
 
@@ -243,39 +272,14 @@ function install_key()
 	indent=
 	trail="${ignored}"
 	ignored=
-	if [[ -n "${host}" ]]
-	then
-		key=HOST
-		add_entry_value "${host}"
-	fi
+	key=HOST; value=; add_entry_value "${host}"
 	indent='	'
-	if [[ -n "${hostname}" ]]
-	then
-		key=HOSTNAME
-		add_entry_value "${hostname}"
-	fi
-	if [[ -n "${username}" ]]
-	then
-		key=USER
-		add_entry_value "${username}"
-	fi
-	if [[ -n "${private_key}" ]]
-	then
-		key=IDENTITYFILE
-		add_entry_value "${HOME}/.ssh/keys/${private_key}"
-	fi
-	if [[ -n "${port}" ]]
-	then
-		key=PORT
-		add_entry_value "${port}"
-	fi
-	if [[ -n "${idonly}" ]]
-	then
-		key=IDENTITIESONLY
-		add_entry_value "${idonly}"
-	fi
+	key=HOSTNAME; value=${datakey}; add_entry_value "${hostname}"
+	key=USER; value=; add_entry_value "${username}"
+	key=IDENTITYFILE; value=; add_entry_value "${HOME}/.ssh/keys/${private_key}"
+	key=PORT; value=; add_entry_value "${port}"
+	key=IDENTITIESONLY; value=; add_entry_value "${idonly}"
 	ssh_data["host_${datakey}"]="${entry}${trail}"
-
 
 	printf '%s\n' '--- config file ---'
 	for k in "${ssh_hosts[@]}"
@@ -382,6 +386,9 @@ usage: run.sh [-l] command
       i [-n] [configfile]
         -n: just print, do not actually run.
         configfile: default to ${HOME}/.ssh/config
+      You will be prompted for basic ssh config entry fields.
+      Leave blank to keep the value that already exists.  Use a single
+      '-' to delete the existing entry.  Otherwise enter a value.
     ------
     c: create a new ssh key.
       create [-n] [args]...
