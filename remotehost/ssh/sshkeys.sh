@@ -410,7 +410,7 @@ function install_key_config()
 
 function simple_key_config()
 {
-	local keys=() norun=() outfile=("${HOME}/.ssh/config")
+	local keys=() norun=() outfile=("${HOME}/.ssh/config") i=1
 	local configin= host= private_key=() hostname= username= port=
 	local keydir="${1}"
 	shift 1
