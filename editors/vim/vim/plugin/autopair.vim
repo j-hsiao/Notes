@@ -80,7 +80,7 @@ function s:SamePair(char)
 	let curline = getline('.')
 	let curcol = col('.')
 	let after = strpart(curline, curcol-1, 1)
-	if after == a:char
+	if after == a:char && (curcol == 1 || strpart(curline, curcol-2, 1) != '\')
 		return "\<Right>"
 	elseif after !~ '\S' || after =~ s:closing
 		if strpart(curline, curcol-3, 2) == repeat(a:char, 2)
