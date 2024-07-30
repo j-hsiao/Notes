@@ -232,9 +232,9 @@ function! jhsiaoutil#ParseComments()
 			endif
 		else
 			if flags =~ 'b'
-				let info['reg'] = printf('\(\s*\)\(\V%s\s\?\m\)\(.*\)', escape(chars, '\'))
+				let info['reg'] = printf('^\(\s*\)\(\V%s\s\?\m\)\(.*\)', escape(chars, '\'))
 			else
-				let info['reg'] = printf('\(\s*\)\(\V%s\m\)\(.*\)', escape(chars, '\'))
+				let info['reg'] = printf('^\(\s*\)\(\V%s\m\)\(.*\)', escape(chars, '\'))
 			endif
 			if flags =~ '[fO]'
 				call add(singlemaybe, info)
