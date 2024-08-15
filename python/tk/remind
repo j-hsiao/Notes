@@ -107,16 +107,18 @@ DATE_PARSE="
 "
 
 PYDEBUG="
+import sys
 import argparse
 import datetime
+import time
 import re
 
 ${PARSER_SCRIPT}
 args = p.parse_args()
 if args.at:
 ${DATE_PARSE}
-    print('now   :', now)
-    print('target:', then)
+    print('now   :', now, file=sys.stderr)
+    print('target:', then, file=sys.stderr)
     tdelta = max(0, (then-now).total_seconds())
 
     hours, secs = divmod(tdelta, 3600)
@@ -125,7 +127,18 @@ ${DATE_PARSE}
     nano *= 1000000000
     print(
         'delay : {:02d}:{:02d}:{:02d}.{:09d}'.format(
-            *map(int, (hours, minutes, secs, nano))))
+            *map(int, (hours, minutes, secs, nano))), file=sys.stderr)
+elif args.delay:
+    now = time.time()
+    tnow = datetime.datetime.fromtimestamp(now)
+    print('now   :', tnow, file=sys.stderr)
+    print('target:', tnow + datetime.timedelta(seconds=args.delay), file=sys.stderr)
+    hours, secs = divmod(args.delay, 3600)
+    minutes, secs = divmod(secs, 60)
+    secs, nano = divmod(secs, 1)
+    nano *= 1000000000
+    print('delay : {:02d}:{:02d}:{:02d}.{:09d}'.format(
+        *map(int, (hours, minutes, secs, nano))), file=sys.stderr)
 "
 
 
@@ -188,7 +201,7 @@ r.destroy()
 
 # always run reminder in background
 
-env "${MYENV[@]}" "${PYEXE}" -c "${PYDEBUG}" "${@}"
+env "${MYENV[@]}" "${PYEXE}" -c "${PYDEBUG}" "${@}" || exit 1
 
 if [ -n "${JOB}" ]
 then
