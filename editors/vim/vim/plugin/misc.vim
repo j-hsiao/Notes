@@ -478,3 +478,13 @@ endif
 if maparg('C-K>[', 'v') == ''
 	vnoremap <expr> <C-K>[ <SID>Surround('[', ']')
 endif
+
+"------------------------------
+" Change :u<CR> to :up<CR>
+" usually would never use :u command since you could just press u in
+" normal mode instead, :u is probably more often simple because didn't
+" type the p.
+"------------------------------
+"Add a fixed :u to :up message for visual indication that this
+"mapping actually did something...
+cnoremap <expr> u<CR> getcmdtype() == ':' && getcmdline() == '' ? "up<Bslash><lt>CR>:echom <Bslash>"fixed :u to :up<Bslash>"<Bslash><lt>CR>" : "u<Bslash><lt>CR>"
