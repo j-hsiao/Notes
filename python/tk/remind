@@ -114,7 +114,10 @@ import time
 import re
 
 ${PARSER_SCRIPT}
-args = p.parse_args()
+try:
+    args = p.parse_args()
+except SystemExit:
+    sys.exit(1)
 if args.at:
 ${DATE_PARSE}
     print('now   :', now, file=sys.stderr)
