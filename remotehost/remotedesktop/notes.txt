@@ -2,6 +2,7 @@ Notes use tigervnc with xfce4 desktop
 
 contents
 ______________________________
+-0- ssh tunneling
 -1- tigervnc
 	-1.1- setup/startup
 		-1.1.1- blank screen/screensaver issue
@@ -9,14 +10,33 @@ ______________________________
 -2- xrdp
 	-2.1- setup
 
+______________________________
+-0- ssh tunneling
+	The client can be ssh tunneled to the remote server to encrypt the
+	connection or bypass firewalls etc.
+	Command:
 
+		ssh user@host -L [local net]:(localport):(net on remote server):(remoteport) -f sleep 10 && vncviewer ...
 
+	Usually, net (both local and remote) will be "localhost".
+	"localport" is the port used at the local/client machine.
+	"remoteport" is the port used at the remote/host machine.
 
+	The -f will have the tunnel run in background and the sleep will make
+	it run for a few seconds.  vncviewer should connect before the tunnel is
+	closed.  The tunnel will last until vncviewer closes the connection.
+
+	For more info, see notes at "/remotehost/ssh/notes.txt" section -1.3-
+
+______________________________
+-1- tigervnc
 	______________________________
 	-1.1- setup/startup
 		HOST:
-			sudo apt install xfce4-session tigervnc-standalone-server xfce4-goodies
-			edit ~/.vnc/xstartup:
+			Run commands:
+				sudo apt install xfce4-session tigervnc-standalone-server xfce4-goodies
+
+			Edit ~/.vnc/xstartup:
 				unset SESSION_MANAGER
 				unset DBUS_SESSION_BUS_ADDRESS
 				startxfce4
@@ -32,6 +52,17 @@ ______________________________
 			seem to turn it back on.  As a result, the screen is just left black
 			with no response.
 			Possible solutions:
+				1. Run commands (needs a DISPLAY value)
+
+				   xfconf-query -c xfce4-power-manager -p /xfce4-power-manager/blank-on-ac -s 0
+				   xfconf-query -c xfce4-power-manager -p /xfce4-power-manager/dpms-on-ac-off -s 0
+				   xfconf-query -c xfce4-power-manager -p /xfce4-power-manager/dpms-on-ac-sleep -s 0
+
+				   The settings seem to persist, so only need to set this once.
+
+				2. topleft applications->settings->power manager -> display tab
+				   Turn all to never.
+			Failed solutions:
 				1. uninstall power management
 				   sudo apt remove xfce4-power-manager-*
 				2. ssh and try:
