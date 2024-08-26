@@ -1,91 +1,85 @@
-various vnc server types:
-	xvnc
-	vino
-	tigervnc
-	tightvnc
+Notes use tigervnc with xfce4 desktop
+
+contents
+______________________________
+-1- tigervnc
+	-1.1- setup/startup
+		-1.1.1- blank screen/screensaver issue
+	-1.2- Usage
+-2- xrdp
+	-2.1- setup
 
 
 
-tigervnc
-	(Use f8 for context menu to fullscreen etc)
 
-	tigervnc [options...] [user[@host]:display]
-	-localhost <yes|no>
-		only allow connections from localhost. The connection to remote
-		would then be handled by ssh or something like that.
-		(see ssh/notes -1.3- forwarding)
+	______________________________
+	-1.1- setup/startup
+		HOST:
+			sudo apt install xfce4-session tigervnc-standalone-server xfce4-goodies
+			edit ~/.vnc/xstartup:
+				unset SESSION_MANAGER
+				unset DBUS_SESSION_BUS_ADDRESS
+				startxfce4
+		CLIENT:
+			sudo apt install tigervnc-viewer
+			vncviewer host:port [-passwd pathtofile]
+				(if -passwd omitted, then enter password)
 
-		(newest versions seem to default to yes)
-	-NeverShared
-		do not share screen (you can know if someone else logged in)
-	-kill [[user@]host][:display#|:*]
-		kills desktop
-	-clean
-		also removes logfile for that display
-	-list
-		list running tigervnc displays
+		______________________________
+		-1.1.1- blank screen/screensaver issue
+			After a period of inactivity, the virtual screen might be turned
+			off.  When this happens, connecting and moving the mouse does not
+			seem to turn it back on.  As a result, the screen is just left black
+			with no response.
+			Possible solutions:
+				1. uninstall power management
+				   sudo apt remove xfce4-power-manager-*
+				2. ssh and try:
+				   xset dpms force on
 
-	NOTE: sometimes, starting a vncserver and connecting to it will just
-		result in a blank screen. In this case, xfce4 seems to have good
-		success rate:
-		apt install xfce4-session.  Then add/edit the file:
-			~/.vnc/xstartup: uncomment the lines for "normal desktop"
-				instead of xinitrc, replace with startxfce4
-				ie:
+	______________________________
+	-1.2- Usage
+		HOST:
+			creating:
+				vncserver:
+					-localhost
+						yes|no        explicitly specify yes/no to only localhost
+						              default is yes.  This is mainly for security.
+						              The port can be ssh-tunneled and then the server
+						              can be accessed via ssh.
+					-NeverShared    Do not share the screen, only 1 user at a time.
+					                You will be kicked off if someone else connects.
 
-					# Uncomment the following two lines for normal desktop:
-					#unset SESSION_MANAGER
-					#exec /etc/X11/xinit/xinitrc
+			managing:
+				vncserver:
+					-list:          list the current sessions.
+						:number|:*    list specified session
+					-kill
+						:number|:*    kill the vnc specified vnc session.
+						-dry-run      don't actually kill
+						-verbose      more verbose
+						-clean        also clean log files
+				vncpasswd:
+					Prompt you for a password and maybe a view-only password too.
 
-					becomes
+		CLIENT:
+			vncviewer:
+				[user@][host][:port]  Connect to specified vnc server.
 
-					# Uncomment the following two lines for normal desktop:
-					unset SESSION_MANAGER
-					unset DBUS_SESSION_BUS_ADDRESS
-					#exec /etc/X11/xinit/xinitrc
-					startxfce4
+______________________________
+-2- xrdp
+	______________________________
+	-2.1-
+		sudo apt install xrdp
 
-		install xfce4 xfce4-terminal
-		(gnome-terminal ignores :display and puts window in wrong x server)
-
-	set password:
-		vncpasswd
-
-	connect to display:
-		vncviewer <:display#> options
-
-	------------------------------
-	summary:
-	------------------------------
-		startup:
-			on host:
-				sudo apt install xfce4-session tigervnc-standalone-server xfce4-goodies
-				edit ~/.vnc/xstartup:
-					unset SESSION_MANAGER
-					unset DBUS_SESSION_BUS_ADDRESS
-					startxfce4
-				vncserver -localhost -NeverShared
-					(may need to add a password first)
-			on client:
-				sudo apt install tigervnc-viewer
-				vncviewer host:port -passwd pathtofile
-					(if -passwd omitted, then enter password)
-		shutdown:
-			on host:
-				vncserver -list
-				vncserver -kill :displaynum
-		password:
-			vncpasswd
-
-		NOTE:
-			can also ssh tunnel (ssh -L localport:localhost:vncserverport
-
-xrdp
-	windows can connect via "remote destop connection" (no extra installs)
-	(xrdp apparently wraps vnc... so same gnome-terminal issue exists with
-	same solution)  This uses the computer's user/password combo
-
-	add startxfce4 in /etc/xrdp/startwm.sh before xsession:
+		edit /etc/srdp/startwm.sh
 		+ startxfce4
-			test -x /etc/X11/Xsession && exec /etc/X11/Xsession
-			exec /bin/sh /etc/X11/Xsession
+			  test -x /etc/X11/Xsession && exec /etc/X11/Xsession
+			  exec /bin/sh /etc/X11/Xsession
+
+		might have to:
+			service xrdp status
+			service xrdp start
+
+		xrdp uses port 3389,
+		but ssh tunnel attempts failed, something about already have a console session.
