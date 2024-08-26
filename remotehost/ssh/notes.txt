@@ -118,6 +118,15 @@ ______________________________
 				ssh to the remote machine, and create a socket bound to
 					<remotehost>:<remoteport> which forward traffic to
 					<localhost>:<localport>
+
+		These would force you to create an ssh session and leave it open.
+		This is fine if you will be using the ssh session as well.
+		Alternatively, add the -f option and the command sleep 10 or
+		something similar.  This will cause the tunnel to open for the
+		specified sleep duration.  During this time, connect over the tunnel.
+		When the sleep finishes, the ssh will exit and the tunnel will last
+		as long as the connection lasts.
+
 	_______________________________
 	-1.4- keys
 		create a key:
