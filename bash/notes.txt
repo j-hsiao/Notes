@@ -45,6 +45,9 @@ contents
 	-4.69- others
 		-4.69.1- shuf
 		-4.69.2- tput
+		-4.69.3- stty
+-5- tips/tricks
+	-5.1- reset
 
 ______________________________
 -0- general
@@ -1147,7 +1150,25 @@ ______________________________
 
 			tput <command>
 
-				longname      print long name of terminal
-				lines         number of lines
-				cols          number of cols
-				colors        number of colors
+				longname    print long name of terminal
+				lines       number of lines
+				cols        number of cols
+				lines       number of lines
+				colors      number of colors
+		______________________________
+		-4.69.3- stty
+			Tool for changing terminal settings
+				stty size   prints current size of terminal
+				stty sane   sets some terminal settings to default values.
+
+
+______________________________
+-5- tips/tricks
+	______________________________
+	-5.1- reset
+		sometimes if accidentally cat binary or something, terminal may become messed up.
+		try these to reset the terminal:
+
+			stty sane   sets some terminal settings to default values.
+			reset       (tset)reset the entire terminal (as if reopened from scratch)
+			tput reset  man says uses reset from tset
