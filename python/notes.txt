@@ -10,6 +10,8 @@ contents:
 -7- style
 -8- zipfile
 -9- python3 differences
+-10- miscellaneous
+	-10.1- timezones
 
 interpreter:
 ~/.inputrc
@@ -390,3 +392,13 @@ ______________________________
 		imports:
 			relative imports are      implicit relative imports are not
 			implicit                  done.
+
+______________________________
+-10- miscellaneous
+	______________________________
+	-10.1- timezones
+		Python may be affected by the TZ environment variable.
+		This may or may not affect the results of datetime.datetime() etc.
+		In particular, for cygwin environment using windows py/python,
+		TZ should be set to empty for correct time.
+			TZ= py -c 'import datetime; print(datetime.datetime.now())'
