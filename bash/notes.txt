@@ -10,6 +10,7 @@ contents
 		-0.2.3- arrays
 		-0.2.4- ANSI-C quoting
 	-0.3- functions
+		-0.3.1- function outputs
 	-0.4- pattern matching
 	-0.5- shopt
 	-0.6- brace expansion
@@ -313,6 +314,92 @@ ______________________________
 		to caller, unless declared as local)
 			arguments are same as scripts, ${1-9}, ${@}, shift, etc
 
+		______________________________
+		-0.3.1- function outputs
+			Functions do not have an explicit output method.
+			The `return` keyword for functions gives the function's exit code.
+			There are various methods to return a value:
+				(useful source: https://stackoverflow.com/a/55331060)
+
+				1. echo and use command substitution.
+				   funcname() { echo result; }
+				   output=$(funcname args...)
+				   echo "${output}"
+
+				2. fixed variable
+				   Use a fixed variable name as the function output.  This is
+				   also a simple solution but might result in name clashes.
+
+					 funcname() { FIXED_OUTPUT_VAR=result; }
+					 funcname
+					 output="${FIXED_OUTPUT_VAR}"
+					 echo "${output}"
+
+				3. Use an associative array and output to a key.
+
+				   declare -A OUTPUTS_ARRAY
+				   funcname() { OUTPUTS_ARRAY["${1}"]=result; }
+				   funcname output
+				   echo ${OUTPUTS_ARRAY['output']}
+
+				4. Use an variable output variable
+				   Pass the name of the output variable to the function.  The
+				   function sets the value.
+
+					4.1 printf (bash version 3.1)
+					    the -v argument will set the variable to the result
+					    instead of printing to stdout.
+
+					    funcname() { printf -v "${1}" "%s" result; }
+					    funcname output
+					    echo "${output}"
+
+					4.2 read
+					    read already saves to variable but uses stdin.  Use a
+					    herestring.  NOTE: herestrings automatically add a
+					    newline.  If the result might have a newline then extra
+					    processing might be needed.
+
+					    funcname() { IFS=$'\n' read "${1}" <<<result; }
+					    funcname output
+					    echo "${output}"
+
+					4.3 declare (bash version 4.3)
+					    The -n argument creates a nameref.  Use the nameref to
+					    assign the values.  Note that the output var name must not
+					    clash with the internal nameref variable name or a
+					    circular reference will be created.
+
+					    funcname() { declare -n out="${1}"; out=result; }
+					    funcname output
+					    echo "${output}"
+
+
+			Comparisons:
+				safety:
+					Variable output variables all have code injection
+					vulnerability.  Setting the output variable to
+					'x[$(injected code here)]' will cause the injected code to
+					run, but built-in read already has this vulnerability as well,
+					so maybe it's acceptable/can be ignored?
+
+					The fixed output varnames/echo methods do not have this issue.
+
+				speed:
+					fixed variable output is the fastest followed by array.
+					Next is printf/declare, then read, and lastly echo.
+					echo method uses IO as well as subshells so is the slowest.
+					read uses IO so is slower than the others.
+
+				nameclashes:
+					echo has no name clashes since there are no variables.
+					Fixed output might have name clashes.  Variable output
+					vars can avoid name clashes as long as the right variable
+					is chosen.
+
+				The fixed output var method is the output method for
+				programmable bash completion (COMPREPLY etc) so maybe this is
+				generally the best choice?
 
 	______________________________
 	-0.4- pattern matching
