@@ -1,0 +1,64 @@
+contents
+	-1- virtual desktops
+	-2- menus
+
+
+
+
+------------------------------
+-1- virtual desktops
+------------------------------
+windows +
+	ctrl +
+		d             create a new desktop
+		left/right    move left/right
+		f4            close virtual desktop
+	tab             open virtual desktop menu
+	                can drag apps between virtual desktops
+
+------------------------------
+-2- menus
+------------------------------
+quick menu
+	windows + x
+	This menu has some useful quick links like shutdown or signout
+	with quick-keys:
+		uu        shutdown
+		ui        sign out
+		e         open file explorer (windows+e)
+		d         show desktop (can also just do windows+d)
+
+window context menu
+	alt+space
+	This has window options like resize, move, etc
+
+------------------------------
+-3- miscellaneous
+------------------------------
+windows +
+	e       open file explorer
+	d       show desktop
+	l       lock screen
+	u       ease of use/accessibiility settings
+	        useful for:
+	            ->keyboard->underline access keys
+
+------------------------------
+-4- file explorer
+------------------------------
+alt+left/right      go back/forward (back/forward buttons)
+alt+up              up a folder
+ctrl+l              address bar
+ctrl+shift+n        new folder
+ctrl+shift+number   change view
+                    5: list
+                    6: details
+f2                  rename selected item
+alt+enter           open properties on selected item
+
+------------------------------
+-5- dialog boxes
+------------------------------
+alt+acess key       select that option
+                    ex: ctrl+o = open file dialog
+                    alt+o = open (if filename empty, jump to that bar)
