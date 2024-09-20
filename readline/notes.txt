@@ -82,6 +82,7 @@ ______________________________
 		show-all-if-ambiguous
 			on/off
 			List options on the first tab.
+			This seems to override show-all-if-unmodified
 		show-all-if-unmodified
 			on/off
 			Complete up to common prefix, then show options if tab

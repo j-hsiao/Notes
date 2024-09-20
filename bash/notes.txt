@@ -925,12 +925,35 @@ https://www.gnu.org/software/bash/manual/html_node/Programmable-Completion-Built
 			COMP_LINE: current commandline
 			COMP_POINT: index of cursor relative to beginning
 			COMP_KEY: key used to invoke completion
-			COMP_TYPE: int: type of completion
-				TAB: normal
-				'?': multiple tabs
-				'!': "listing alternatives on partial word completion" ???
-				'@': list completions if word not unmodified
-				'%': menu completion
+			COMP_TYPE: int that determines completion situation
+
+				Remeber that COMP_TYPE is set before the completions are returned.
+
+				COMP_TYPE char    desc
+				9         TAB     normal completion (first tab)
+				33        !       readline show-all-if-ambiguous is set.
+				37        %       menu completion
+				63        ?       multiple tabs
+				64        @       show-all-if-unmodified is set.  On the first tab
+				                  and also if any prefix-completion was done, then
+				                  @ will be given again.  Afterwards, all ?
+
+				NOTE: after a delay, tab completion will "reset"
+				Behavior:
+					multiple completions:
+						9   complete up to common prefix
+						33  print choices, start new line
+						37
+						63  print choices, start a new
+						64  If no extra prefix can be done, print choices, start newline
+					no completions
+						9   do nothing
+						33  do nothing
+						37
+						63  do nothing
+						64  do nothing
+					single completion
+						complete the word
 			functions only:
 				COMP_WORDS: array of current commandline
 				COMP_CWORD: index of current word in COMP_WORDS

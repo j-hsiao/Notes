@@ -1,12 +1,86 @@
-man thing
-man <section> thing
+contents
+-1- general usage
+	-1.1- options
+	-1.2- controls
+		-1.2.1- movement
+		-1.2.2- searching
 
-(if want printf(7), then man 7 printf)
+------------------------------
+-1- general usage
+	man thing
+	man <section> thing
+
+		Usually, references will say something like:
+			"see printf(7)"
+
+			to see that, on commandline:
+				man 7 printf
+
+	------------------------------
+	-1.1- options
+	------------------------------
+		-N[Return]: display line numbers
+
+	------------------------------
+	-1.2- controls
+	------------------------------
+	Man seems to have controls similar to less (or maybe directly uses less?)
+	opening man and pressing h (help) seems to be identical to less --help
+
+	------------------------------
+	notation
+	------------------------------
+		-           sequence of keys: esc-) means first press escape, then
+								press )
+		^key        control + key at same time
 
 
--N[Return]: display line numbers
-&thing will filter for thing (displays as &/thing)
+	h     open help screen
+	q     quit
+		------------------------------
+		-1.2.1- movement
+		------------------------------
+		up/down
+			ey    forward/backward one line
+			du    forward/backward half page
+			fb    forward/backward one page
+			Prefix any movements to go forward/backward by N lines
+			2f = go forward 2 lines
 
-[num]g: go to line [num]
-g: [num] taken as 0 (to beginning)
-G: to end
+			gG    to beginning/end
+
+			tT    to next/prev tag
+
+			([{   find closing corresponding item
+
+			}])   find opening corresponding item
+
+
+		left/right
+			esc-)     right halfscreen
+			esc-(     left halfscreen
+
+			esc-}     last col on right
+			esc-{     first col on left
+
+			prefix with number to move N columns
+
+		------------------------------
+		-1.2.2- searching
+		------------------------------
+		/?      search forward/backward (regex-like)
+		        !pattern    non-matching pattern
+		        ^R          raw (no regex)
+		        ^K          highlight but don't move
+		&       filter lines with pattern (like output of grep)
+		        further search/filter will only act on the already filtered
+		        lines.  Use a & with no pattern to get back to original.
+		n       next match
+		N       prev match
+
+		------------------------------
+		-1.2.3- marks
+		------------------------------
+		m<key>      create a mark at top line named by <key>
+		M<key>      create a mark at bottom line named by <key>
+		'<key>      jump to <key> mark
