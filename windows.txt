@@ -60,5 +60,5 @@ alt+enter           open properties on selected item
 -5- dialog boxes
 ------------------------------
 alt+acess key       select that option
-                    ex: ctrl+o = open file dialog
+                    eg: ctrl+o = open file dialog
                     alt+o = open (if filename empty, jump to that bar)
