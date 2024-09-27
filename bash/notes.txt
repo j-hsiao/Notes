@@ -473,7 +473,9 @@ ______________________________
 			localvar_unset
 			login_shell
 			mailwarn
-			no_empty_cmd_completion
+			no_empty_cmd_completion   do not do completion on empty command
+			                          This generally causes hanging for an excessive
+			                          duration.
 			nocaseglob
 			nocasematch
 			nullglob
@@ -715,19 +717,21 @@ ______________________________
 			spaces are still necessary as with []
 			(no filename expansion/word splitting)
 			differences:
-				&& || < > work inside [[]]
+				logical and: &&, -a DOES NOT WORK (syntax error)
+				logical or : ||, -o DOES NOT WORK (syntax error)
+				<>         : lexicographical sort order with current local
+				             NOT less than/greater than
 				-eq evaluates hex/octal, etc
 					parens are ok for grouping
-
-				= compares string using pattern matching
-					Pattern must be on righthand side.
-					Using quotes removes any special pattern meanings.
-				eg.
-					a*: a followed by anylength anythings
-					a?: maybe an a
-					[asdf]: any of a, s, d, or f
-					'*': a literal *
-				=~ Use regex matching
+				= compares string using pattern matching.  Pattern must be on
+					righthand side.  Using quotes (both double and single) removes
+					any special pattern meanings.
+					eg.
+						a*: a followed by anylength anythings
+						a?: maybe an a
+						[asdf]: any of a, s, d, or f
+						'*': a literal *
+				=~ Use regex matching, pattern still needs to be on right.
 					Like =, when placed in quotes, everything is literal
 		______________________________
 		-0.10.4- () subshell
@@ -879,10 +883,14 @@ https://www.gnu.org/software/bash/manual/html_node/Programmable-Completion-Built
 			plusdirs: add dir completion
 		-p: print to reuse as input
 		-r: remove specification for each name
-		-D: default completion
-		-E: empty completion
-		-I: initial non-assignment word or after delim (like ;, |)
-			-DEI is order of precedence
+		-D: Set this specification as the default. (For words after a command.)
+		-E: Set this specification for empty commandline
+		    (Truly empty, whitespace does not count as empty)
+		-I: First word of the line or after delim (;|etc)
+		    (ie. completion on the command)
+			-DEI is order of precedence, if have multiple of these flags,
+			only the highest precedence will take effect.  If want to assign
+			to all 3 of them must use separate calls to complete.
 		-A action
 			Some actions have short-flags that can be used instead
 
@@ -890,7 +898,8 @@ https://www.gnu.org/software/bash/manual/html_node/Programmable-Completion-Built
 			arrayvar: array variable names
 			binding: key binding names
 			builtin (-b): names of shell builtin commands
-			command (-c): command names
+			command (-c): command names.
+			              This will also complete dirnamesi, aliases, functions.
 			directory(-d): directory names
 			disabled: disabled shell builtins
 			enabled: enabled shell builtins
@@ -914,7 +923,8 @@ https://www.gnu.org/software/bash/manual/html_node/Programmable-Completion-Built
 		-F: bash func called as:
 			[func] [cmd] [word] [preword]
 			  func: the function that is registered
-			  cmd: the name of the command
+			  cmd: the name of the command or
+			       -E "_EmptycmD_" if -E, or "_InitialWorD_" if -I
 			  word: the current word
 			  preword: the word before current word
 			  ex:
