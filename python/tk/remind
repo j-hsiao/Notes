@@ -42,18 +42,18 @@ done
 
 PARSER_SCRIPT="
 p = argparse.ArgumentParser()
-p.add_argument('message', help='message to display')
-p.add_argument('-t', '--title', default='remind', help='message title')
-p.add_argument('-d', '--delay', type=float, help='seconds of delay')
 p.add_argument(
-    '-a', '--at',
-    help=(
-        'time to remind at.  Times are split between ymd and hms'
-        ' hms: MM, HH:MM, HH:MM:SS'
-        ' ymd: dd, mm-dd, YYYY-mm-dd'
-        ' Using ymd only will keep the current hms.'
-    )
-)
+    'time', help=(
+        'time for message, in YYYY-mm-dd HH:MM:SS format.'
+        '  A partial time can be given, the other values will be set to 0.'
+        '  In ambiguous cases, the time will be interpreted as:'
+        ' MM, HH:MM'
+    ))
+p.add_argument('message', help='message to display', default='', nargs='?')
+p.add_argument('-q', '--quiet', action='store_true')
+p.add_argument('-v', '--verbose', action='store_true')
+p.add_argument('-t', '--title', default='remind', help='message title')
+p.add_argument('-d', '--delay', action='store_true', help='interpret time as a delay instead.')
 p.add_argument(
     '-j', '--job', action='store_true',
     help=(
@@ -69,111 +69,119 @@ p.add_argument(
 "
 
 DATE_PARSE="
-    datepat = re.compile(r'(?P<ymd>\d*-\d*)? ?(?P<hms>\S*:\S*)?')
-    m = datepat.match(args.at)
-    if not m:
-        raise ValueError('Bad at format.')
-    m = m.groupdict()
-    if all([v is None for v in m.values()]):
-        try:
-            int(args.at)
-        except ValueError:
-            raise ValueError('Bad target reminder time')
-        else:
-            m['hms'] = args.at.strip()
-    then = now = datetime.datetime.now()
-    if m['hms']:
-        hms = list(map(float, m['hms'].split(':')))
-        if len(hms) == 1:
-            then = now.replace(minute=int(hms[0]), second=0, microsecond=0)
-        elif len(hms) == 2:
-            then = now.replace(hour=int(hms[0]), minute=int(hms[1]), second=0, microsecond=0)
-        elif len(hms) == 3:
-            then = now.replace(
-                hour=int(hms[0]), minute=int(hms[1]), second=int(hms[2]),
-                microsecond=int((hms[2] - int(hms[2])) * 1000000))
-        else:
-            raise ValueError('Bad hour/minute/second')
-    if m['ymd']:
-        ymd = list(map(int, m['ymd'].split('-')))
-        if len(ymd) == 1:
-            then = then.replace(day=ymd[0])
-        elif len(ymd) == 2:
-            then = then.replace(month=ymd[0], day=ymd[1])
-        elif len(ymd) == 3:
-            then = then.replace(year=ymd[0], month=ymd[1], day=ymd[2])
-        else:
-            raise ValueError('Bad year/month/day')
-"
+def parse_time(spec):
+    parts = re.split(r'(\d+(?:\.\d+)?)', spec.strip())
+    it = iter(parts)
+    pre = next(it)
 
-PYDEBUG="
+    ymd = []
+    hms = []
+    try:
+        for num, post in zip(it, it):
+            if pre == '':
+                if post == '' or post == ':':
+                    out = hms
+                else:
+                    out = ymd
+            out.append(float(num))
+            if post == ' ':
+                out = hms
+            pre = post
+    except NameError:
+        raise ValueError('Bad time spec: {}'.format(repr(spec)))
+
+    if ymd:
+        if len(parts[1]) == 4:
+            while len(ymd) < 3:
+                ymd.append(0.0)
+        else:
+            ymd = ([0.0] * (3-len(ymd))) + ymd
+        while len(hms) < 3:
+            hms.append(0.0)
+    else:
+        assert hms
+        ymd = [0.0]*3
+        if len(hms) == 1:
+            hms = [0.0, hms[0], 0.0]
+        elif len(hms) == 2:
+            hms.append(0.0)
+
+    try:
+        assert len(ymd) == 3
+        assert len(hms) == 3
+    except AssertionError:
+        raise ValueError('Bad time spec {}'.format(repr(spec)))
+    ymd.extend(hms)
+    return ymd
+"
+GET_TDELTA="
 import sys
 import argparse
 import datetime
 import time
 import re
+import tkinter as tk
+try:
+    from tkinter import messagebox
+except ImportError:
+    import tkMessageBox as messagebox
+import platform
 
 ${PARSER_SCRIPT}
 try:
     args = p.parse_args()
 except SystemExit:
     sys.exit(1)
-if args.at:
+if args.quiet:
+    args.verbose = False
 ${DATE_PARSE}
-    print('now   :', now, file=sys.stderr)
-    print('target:', then, file=sys.stderr)
-    tdelta = max(0, (then-now).total_seconds())
-
-    hours, secs = divmod(tdelta, 3600)
-    minutes, secs = divmod(secs, 60)
-    secs, nano = divmod(secs, 1)
-    nano *= 1000000000
-    print(
-        'delay : {:02d}:{:02d}:{:02d}.{:09d}'.format(
-            *map(int, (hours, minutes, secs, nano))), file=sys.stderr)
-elif args.delay:
-    now = time.time()
-    tnow = datetime.datetime.fromtimestamp(now)
-    print('now   :', tnow, file=sys.stderr)
-    print('target:', tnow + datetime.timedelta(seconds=args.delay), file=sys.stderr)
-    hours, secs = divmod(args.delay, 3600)
-    minutes, secs = divmod(secs, 60)
-    secs, nano = divmod(secs, 1)
-    nano *= 1000000000
-    print('delay : {:02d}:{:02d}:{:02d}.{:09d}'.format(
-        *map(int, (hours, minutes, secs, nano))), file=sys.stderr)
+times = parse_time(args.time)
+now = datetime.datetime.now()
+if args.verbose:
+    print('now:', now, file=sys.stderr)
+    print(times, file=sys.stderr)
+if args.delay:
+    if times[0] or times[1]:
+        raise ValueError('Year/Month not supported for delay interpretation.')
+    info = {k:v for k, v in zip(['days', 'hours', 'minutes', 'seconds'], times[2:])}
+    tdelta = datetime.timedelta(**info)
+    if args.verbose:
+        print('delay:', file=sys.stderr)
+        for k, v in info.items():
+            print('  {}: {}'.format(k, v), file=sys.stderr)
+else:
+    replace = dict()
+    microsecond = int((times[-1] - int(times[-1])) * 1000000)
+    times = [int(_) for _ in times]
+    times.append(microsecond)
+    keys=['year', 'month', 'day', 'hour', 'minute', 'second', 'microsecond']
+    adding = False
+    for k, v in zip(keys, times):
+        if v or adding:
+            adding = True
+            if v == 0 and (k == 'month' or k == 'day'):
+                replace[k] = 1
+            else:
+                replace[k] = v
+    if args.verbose:
+        print(replace, file=sys.stderr)
+    target = now.replace(**replace)
+    if target < now and target.hour < 12:
+        if args.verbose:
+            print('Warning, negative duration, assuming pm.', file=sys.stderr)
+        target = target.replace(hour=target.hour+12)
+    tdelta = target - now
+if not args.quiet:
+    print('Reminding at:', now + tdelta, file=sys.stderr)
 "
 
-
 PYSCRIPT="
-import time
-import argparse
-import tkinter as tk
-import datetime
-import re
-import platform
-
-
-try:
-    from tkinter import messagebox
-except ImportError:
-    import tkMessageBox as messagebox
-
-${PARSER_SCRIPT}
-args = p.parse_args()
-
-if args.delay:
+${GET_TDELTA}
+now = time.time()
+target = now + tdelta.total_seconds()
+while now < target:
+    time.sleep(target-now)
     now = time.time()
-    expect = now + args.delay
-    while now < expect:
-        time.sleep(expect - now)
-        now = time.time()
-elif args.at:
-    ${DATE_PARSE}
-    tdelta = (then-now).total_seconds()
-    while tdelta > 0:
-        time.sleep(tdelta)
-        tdelta = (then - datetime.datetime.now()).total_seconds()
 
 r = tk.Tk()
 r.title('remind')
@@ -202,9 +210,10 @@ messagebox.showinfo(title=args.title, message=args.message)
 r.destroy()
 "
 
-# always run reminder in background
+# always run reminder in background, but don't want errors or help message
+# in background
 
-env "${MYENV[@]}" "${PYEXE}" -c "${PYDEBUG}" "${@}" || exit 1
+env "${MYENV[@]}" "${PYEXE}" -c "${GET_TDELTA}" "${@}" || exit 1
 
 if [ -n "${JOB}" ]
 then
@@ -215,8 +224,8 @@ then
 		bash -c "kill -s SIGSTOP $$; kill -s SIGCONT $$&" &
 		wait
 	fi
-	env "${MYENV[@]}" "${PYEXE}" -c "${PYSCRIPT}" "${@}"
+	env "${MYENV[@]}" "${PYEXE}" -c "${PYSCRIPT}" "${@}" -q
 else
 	# run py in background, no job
-	env "${MYENV[@]}" "${PYEXE}" -c "${PYSCRIPT}" "${@}" &
+	env "${MYENV[@]}" "${PYEXE}" -c "${PYSCRIPT}" "${@}" -q &
 fi
