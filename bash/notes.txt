@@ -964,6 +964,17 @@ https://www.gnu.org/software/bash/manual/html_node/Programmable-Completion-Built
 						64  do nothing
 					single completion
 						complete the word
+				descriptions from:
+				https://unix.stackexchange.com/questions/250262/how-to-use-bashs-complete-or-compgen-c-command-option
+				TAB     normal completion
+				!       listing alternatives on ambiguous completion
+				%       menu completion
+				?       tabbing between ambiguous completions
+				@       list completions after partial completion
+
+				https://unix.stackexchange.com/questions/614123/explanation-of-bash-completion-comp-type
+				!       show-all-if-ambiguous
+				@       show-all-if-unmodified
 			functions only:
 				COMP_WORDS: array of current commandline
 				COMP_CWORD: index of current word in COMP_WORDS
