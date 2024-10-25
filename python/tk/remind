@@ -11,6 +11,7 @@ then
 	MYENV+=(TZ=)
 fi
 
+PYEXE=
 for candidate in py python python3
 do
 	if hash "${candidate}" &>/dev/null
@@ -41,19 +42,26 @@ do
 done
 
 PARSER_SCRIPT="
-p = argparse.ArgumentParser()
-p.add_argument(
-    'time', help=(
-        'time for message, in YYYY-mm-dd HH:MM:SS format.'
-        '  A partial time can be given, the other values will be set to 0.'
-        '  In ambiguous cases, the time will be interpreted as:'
-        ' MM, HH:MM'
-    ))
+p = argparse.ArgumentParser(
+    description=(
+        'Remind with a pop-up.  The full time format is'
+        ' \"YYYY-mm-dd HH:MM:SS\".  This can be partially given.'
+        '  For a datetime, the omitted values larger than given will be'
+        ' taken from now.  The smaller values will be 0.  For a delay,'
+        ' all omitted values will be 0.  For the ambiguous cases,  let'
+        ' AA and BB be separate 2-digit numbers.  AA will match MM.'
+        '  AA:BB will match HH:MM.  Note: this does not persist after'
+        ' system restart.'
+    ),
+)
+p.add_argument('time', help='The target date or delay.')
 p.add_argument('message', help='message to display', default='', nargs='?')
 p.add_argument('-q', '--quiet', action='store_true')
 p.add_argument('-v', '--verbose', action='store_true')
 p.add_argument('-t', '--title', default='remind', help='message title')
-p.add_argument('-d', '--delay', action='store_true', help='interpret time as a delay instead.')
+p.add_argument(
+    '-d', '--delay', action='store_true',
+    help='interpret time as a delay instead.  Only supports days to seconds.')
 p.add_argument(
     '-j', '--job', action='store_true',
     help=(
@@ -73,7 +81,6 @@ def parse_time(spec):
     parts = re.split(r'(\d+(?:\.\d+)?)', spec.strip())
     it = iter(parts)
     pre = next(it)
-
     ymd = []
     hms = []
     try:
