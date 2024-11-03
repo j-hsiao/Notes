@@ -51,7 +51,11 @@ _mincmd_complete()
 # also, default completion (-D) seems to never be triggered at all
 
 complete -E
-complete -I -F _mincmd_complete -o filenames
-
-# Alternative to complete for empty case.
-# shopt -s no_empty_cmd_completion
+if help complete 2>&1 | grep -- -I
+then
+	# older bash does not have a -I completion option
+	complete -I -F _mincmd_complete -o filenames
+else
+	# Alternative to complete for empty case.
+	shopt -s no_empty_cmd_completion
+fi
