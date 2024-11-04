@@ -237,6 +237,22 @@ numeric_display_choices()
 		idx=$((idx-1))
 	done
 
+	local lessname lessver lessother pager
+	if read lessname lessver lessother < <(less --version)
+	then
+		if [[ "${lessver%%.*}" -ge 600 ]]
+		then
+			pager=(less -R -~ --header 2)
+		else
+			pager=(less -R -~ +1)
+		fi
+	elif [[ "$(type -t more)" = 'file' ]]
+	then
+		pager=(more)
+	else
+		pager=(cat)
+	fi
+
 	local currow=0
 	while [[ ${currow} -lt "${rows}" ]]
 	do
@@ -259,7 +275,7 @@ numeric_display_choices()
 		done
 		printf '\n'
 		currow=$((currow+1))
-	done | less -R -~ --header 2
+	done | "${pager[@]}"
 }
 
 numeric_search_ls() {
