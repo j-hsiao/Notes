@@ -255,7 +255,7 @@ numeric_display_choices()
 		done
 		printf '\n'
 		currow=$((currow+1))
-	done | less -R
+	done | less -R -p^
 }
 
 numeric_search_ls() {
