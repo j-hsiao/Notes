@@ -313,6 +313,7 @@ numeric_set_COMPREPLY()
 }
 
 numeric_complete() {
+	printf '%s*%s' $'\e[s' $'\e[u'
 	local extra="${2#${numeric_completion_choices[0]}}"
 
 	if [[ ("${extra}" != "${2}" || "${numeric_completion_choices[0]}" = '' ) && "${extra}" =~ ^[0-9]+$ && "${extra}" -lt "${#numeric_completion_choices[@]}" ]]
@@ -342,6 +343,7 @@ numeric_complete() {
 			COMPREPLY=()
 		fi
 	fi
+	printf '%s %s' $'\e[s' $'\e[u'
 }
 if [[ "${NUMERIC_COMPLETE_DEFAULT}" ]]
 then
