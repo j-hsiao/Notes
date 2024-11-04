@@ -24,6 +24,14 @@
 # 			ls asd[tab]
 # 		numeric completion:
 # 			n ls asd[tab]
+# 	NUMERIC_COMPLETE_PAGER=
+# 		If empty, then just print the choices as well as the prompt and
+# 		command line.  Note that this might not result in the prompt and
+# 		commandline being exactly the same as before the completion.
+# 		Otherwise, the choices will be fed into less, falling back to more
+# 		or just print to command line as a last resort.  Using less/more
+# 		will leave the current command line intact but starting up the
+# 		extra program might add to the latency of displaying choices.
 # 	numeric_completion_choices
 # 		This is an array that will cache the last directory search for
 # 		matches.  This way, directories are only searched once.
@@ -91,7 +99,11 @@
 # then less need to search directories... but if dir is updated
 # (rm/new file), would need to re-search anyways... maybe not necessary.
 
+NUMERIC_COMPLETE_DEFAULT=
+NUMERIC_COMPLETE_PAGER=
 numeric_completion_choices=()
+
+
 
 numeric_set_extglob() {
 	declare -n Nreset_extglob="${1}"
@@ -204,6 +216,47 @@ numeric_calc_shape()
 	done
 }
 
+# Mimic prompt text and commandline (needs bash >= 4.4)
+numeric_mimic_prompt_pager()
+{
+	printf '\n'
+	cat
+	local modeprompt="$(bind -v | grep show-mode-in-prompt)"
+	modeprompt="${modeprompt##* }"
+	if [[ "${modeprompt,,}" = 'on' ]]
+	then
+		modeprompt=' '
+	else
+		modeprompt=
+	fi
+	local replicate="${modeprompt}${PS1@P}${COMP_LINE}" ncols=$(tput cols) nlines=0
+	while [[ -n "${replicate}" ]]
+	do
+		local seg="${replicate%%$'\n'*}"
+		if [[ "${seg}" = "${replicate}" ]]
+		then
+			replicate=
+		else
+			replicate="${replicate#*$'\n'}"
+		fi
+		nlines="$((nlines + ${#seg}/ncols + (${#seg}%ncols > 0)))"
+	done
+	local restore=$'\e['"${nlines}"'A'
+	while [[ "${nlines}" -gt 0 ]]
+	do
+		printf '\n'
+		nlines=$((nlines-1))
+	done
+	printf '%s' \
+		"${restore}" \
+		"${PS1@P}" \
+		"${modeprompt}" \
+		"${COMP_LINE:0:${COMP_POINT}}" \
+		$'\e[s' \
+		"${COMP_LINE:${COMP_POINT}}" \
+		$'\e[u'
+}
+
 # Some column command might not handle proper alignment with colors
 numeric_display_choices()
 {
@@ -237,28 +290,38 @@ numeric_display_choices()
 		idx=$((idx-1))
 	done
 
-	local lessname lessver lessother pager
-	if read lessname lessver lessother < <(less --version)
+	if [[ -n "${NUMERIC_COMPLETE_PAGER}" ]]
 	then
-		if [[ "${lessver%%.*}" -ge 600 ]]
+		local lessname lessver lessother pager
+		if read lessname lessver lessother < <(less --version)
 		then
-			pager=(less -R -~ --header 2)
+			if [[ "${lessver%%.*}" -ge 600 ]]
+			then
+				pager=(less -R -~ --header 2)
+			else
+				pager=(less -R -~ +1)
+			fi
+		elif [[ "$(type -t more)" = 'file' ]]
+		then
+			pager=(more)
 		else
-			pager=(less -R -~ +1)
+			pager=(numeric_mimic_prompt_pager)
 		fi
-	elif [[ "$(type -t more)" = 'file' ]]
-	then
-		pager=(more)
 	else
-		pager=(cat)
+		pager=(numeric_mimic_prompt_pager)
 	fi
+
 
 	local currow=0
 	while [[ ${currow} -lt "${rows}" ]]
 	do
 		if [[ "${currow}" -eq 0 ]]
 		then
-			printf 'Press "q" to return.  Enter the number choice then press tab to select.\n\n'
+			if [[ "${pager[0]}" != 'numeric_mimic_prompt_pager' ]]
+			then
+				printf 'Press "q" to return.  '
+			fi
+			printf 'Enter the number choice then press tab to select.\n\n'
 		fi
 		local curcol=0
 		while [[ ${curcol} -lt ${cols} ]]
@@ -333,7 +396,7 @@ numeric_set_COMPREPLY()
 }
 
 numeric_complete() {
-	printf '%s*%s' $'\e[s' $'\e[u'
+	printf '*%s' $'\e[D'
 	local extra="${2#${numeric_completion_choices[0]}}"
 
 	if [[ ("${extra}" != "${2}" || "${numeric_completion_choices[0]}" = '' ) && "${extra}" =~ ^[0-9]+$ && "${extra}" -lt "${#numeric_completion_choices[@]}" ]]
@@ -363,7 +426,8 @@ numeric_complete() {
 			COMPREPLY=()
 		fi
 	fi
-	printf '%s %s' $'\e[s' $'\e[u'
+	local restore=${COMP_LINE:${COMP_POINT}:1}
+	printf '%s\e[D' "${restore:- }"
 }
 if [[ "${NUMERIC_COMPLETE_DEFAULT}" ]]
 then
