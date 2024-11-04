@@ -51,7 +51,7 @@ _mincmd_complete()
 # also, default completion (-D) seems to never be triggered at all
 
 complete -E
-if help complete 2>&1 | grep -- -I
+if help complete 2>&1 | grep -- -I &>/dev/null
 then
 	# older bash does not have a -I completion option
 	complete -I -F _mincmd_complete -o filenames
