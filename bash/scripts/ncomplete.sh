@@ -240,6 +240,10 @@ numeric_display_choices()
 	local currow=0
 	while [[ ${currow} -lt "${rows}" ]]
 	do
+		if [[ "${currow}" -eq 0 ]]
+		then
+			printf 'Press "q" to return.  Enter the number choice then press tab to select.\n\n'
+		fi
 		local curcol=0
 		while [[ ${curcol} -lt ${cols} ]]
 		do
@@ -255,7 +259,7 @@ numeric_display_choices()
 		done
 		printf '\n'
 		currow=$((currow+1))
-	done | less -R -p^ -~
+	done | less -R -~ --header 2
 }
 
 numeric_search_ls() {
