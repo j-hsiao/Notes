@@ -87,7 +87,7 @@
 # 	$ n ls dir1/dir2/1[tab]
 # 	$ n ls dir1/dir2/f\ with\ space\'and\ quote
 #
-#	As usual, completion should properly quote any weird names.
+# 	As usual, completion should properly quote any weird names.
 
 
 # ------------------------------
@@ -98,6 +98,20 @@
 # otherwise, could try saving a cache/use a LRU cache or something
 # then less need to search directories... but if dir is updated
 # (rm/new file), would need to re-search anyways... maybe not necessary.
+#
+# ------------------------------
+# Observations
+# ------------------------------
+# 1. ls vs compgen
+# 	1. local drive
+# 		compgen is the fastest option hands down.  However, it does not
+# 		have colors.
+# 	2. network drive
+# 		compgen -f and raw ls have similar performances.  However, to
+# 		get color/type ls -Ap will run slower.  compgen -df is the slowest
+# 		and has no colors.
+#
+# 		choose ls to search for completion options.
 
 NUMERIC_COMPLETE_DEFAULT=
 NUMERIC_COMPLETE_PAGER=
@@ -217,10 +231,8 @@ numeric_calc_shape()
 }
 
 # Mimic prompt text and commandline (needs bash >= 4.4)
-numeric_mimic_prompt_pager()
+numeric_mimic_prompt()
 {
-	printf '\n'
-	cat
 	local modeprompt="$(bind -v | grep show-mode-in-prompt)"
 	modeprompt="${modeprompt##* }"
 	if [[ "${modeprompt,,}" = 'on' ]]
@@ -297,31 +309,33 @@ numeric_display_choices()
 		then
 			if [[ "${lessver%%.*}" -ge 600 ]]
 			then
-				pager=(less -R -~ --header 2)
+				numeric_print_table 1 | less -R -~ --header 2
 			else
-				pager=(less -R -~ +1)
+				numeric_print_table 1 | less -R -~ +1
 			fi
 		elif [[ "$(type -t more)" = 'file' ]]
 		then
-			pager=(more)
+			numeric_print_table 1 | more
 		else
-			pager=(numeric_mimic_prompt_pager)
+			printf '\n'
+			numeric_print_table
+			numeric_mimic_prompt
 		fi
 	else
-		pager=(numeric_mimic_prompt_pager)
+		printf '\n'
+		numeric_print_table
+		numeric_mimic_prompt
 	fi
-
-
+}
+numeric_print_table()
+{
 	local currow=0
 	while [[ ${currow} -lt "${rows}" ]]
 	do
 		if [[ "${currow}" -eq 0 ]]
 		then
-			if [[ "${pager[0]}" != 'numeric_mimic_prompt_pager' ]]
-			then
-				printf 'Press "q" to return.  '
-			fi
-			printf 'Enter the number choice then press tab to select.\n\n'
+			printf '%sEnter the number choice then press tab to select.\n\n' \
+				"${1:+Press \"q\" to return.  }"
 		fi
 		local curcol=0
 		while [[ ${curcol} -lt ${cols} ]]
@@ -338,7 +352,7 @@ numeric_display_choices()
 		done
 		printf '\n'
 		currow=$((currow+1))
-	done | "${pager[@]}"
+	done
 }
 
 numeric_search_ls() {
