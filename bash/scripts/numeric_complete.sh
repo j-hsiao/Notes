@@ -20,15 +20,15 @@
 # 		choices cache will remain and will be used for choices and
 # 		completion until a different directory is searched.
 # 	NUMERIC_COMPLETE_ALIAS
-# 		If this is defined and non-empty, then the value will be used
-# 		as an alias to the empty string.  Insert this in front of
-# 		commands to activate numeric completion.  Otherwise, numeric
-# 		complete will be registered as the default completion.
+# 		The alias to use for activating numeric completion.  This will
+# 		be aliased to the empty string.  Defaults to 'n'.
 # 		example:
 # 			NUMERIC_COMPLETE_ALIAS=myalias
 # 			source numeric_complete.sh
 # 			myalias ls [tab]  -> numeric completion
-# 			ls [tab] -> normal bash completion
+# 	NUMERIC_COMPLETE_DEFAULT
+# 		0/1, default 1. If 1, then also register numeric_complete as the
+# 		default completion function.
 # 	NUMERIC_COMPLETE_PAGER=()
 # 		This contains the paging command for displaying potential
 # 		choices.  By default, it is empty (print to terminal).  Set it
@@ -476,10 +476,11 @@ numeric_complete() {
 	local restore=${COMP_LINE:${COMP_POINT}:1}
 	printf '%s\e[D' "${restore:- }"
 }
-if [[ "${NUMERIC_COMPLETE_ALIAS}" ]]
+
+alias ${NUMERIC_COMPLETE_ALIAS:-n}=''
+complete -o filenames -F numeric_complete ${NUMERIC_COMPLETE_ALIAS:-n}
+
+if [[ "${NUMERIC_COMPLETE_DEFAULT:-1}" -eq 1 ]]
 then
-	alias ${NUMERIC_COMPLETE_ALIAS}=''
-	complete -o filenames -F numeric_complete ${NUMERIC_COMPLETE_ALIAS}
-else
 	complete -D -o filenames -F numeric_complete
 fi
