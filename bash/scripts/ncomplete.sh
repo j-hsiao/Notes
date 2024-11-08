@@ -8,11 +8,17 @@
 # choices with a number.  Activating tab completion again after
 # appending a number will choose that choice.  Modifying the current
 # completion word will cause dir searching again which may be slow for
-# network drives.  However, pressing tab without modification will use
-# cached results.
+# network drives.  An initial tab completion will cache the choices.
+# Making a choice will clear the cache.
 # ------------------------------
 # Relevant variables:
 # ------------------------------
+# 	NUMERIC_COMPLETE_CACHE_CHOICES
+# 		If 0, then caching will only be done for the purposes of making
+# 		a choice.  If no choice is made, then the directories will be
+# 		searched again for completion choices.  Otherwise, if 1, the
+# 		choices cache will remain and will be used for choices and
+# 		completion until a different directory is searched.
 # 	NUMERIC_COMPLETE_DEFAULT
 # 		If this is defined and non-empty, before the script is run, then
 # 		numeric completion will be defined as the default.
@@ -24,15 +30,18 @@
 # 			ls asd[tab]
 # 		numeric completion:
 # 			n ls asd[tab]
-# 	NUMERIC_COMPLETE_PAGER=
-# 		If empty, then just print the choices as well as the prompt and
-# 		command line.  Note that this might not result in the prompt and
-# 		commandline being exactly the same as before the completion.
-# 		Otherwise, the choices will be fed into less, falling back to more
-# 		or just print to command line as a last resort.  Using less/more
-# 		will leave the current command line intact but starting up the
-# 		extra program might add to the latency of displaying choices.
-# 	numeric_completion_choices
+# 	NUMERIC_COMPLETE_PAGER=()
+# 		This contains the paging command for displaying potential
+# 		choices.  By default, it is empty (print to terminal).  Set it
+# 		to a command of your choice or call numeric_complete_set_pager
+# 		to set it.  numeric_complete_set_pager will default to less if
+# 		available. Fall back to just printing to the terminal.
+# 		more doesn't restore the terminal screen so it will screw up the
+# 		prompt if piped to it. But if have to restore the prompt anyways
+# 		might as well just print to terminal.  more would only allow
+# 		quitting before reaching the end.  Plus, the columns and
+# 		alignment seemed to be off when testing, so just don't use more.
+# 	numeric_complete_choices
 # 		This is an array that will cache the last directory search for
 # 		matches.  This way, directories are only searched once.
 # 		Making a numeric choice will just search the cached result. This
@@ -113,13 +122,47 @@
 #
 # 		choose ls to search for completion options.
 
-NUMERIC_COMPLETE_DEFAULT=
-NUMERIC_COMPLETE_PAGER=
-numeric_completion_choices=()
+NUMERIC_COMPLETE_DEFAULT=${NUMERIC_COMPLETE_DEFAULT-}
+NUMERIC_COMPLETE_PAGER=()
+NUMERIC_COMPLETE_CACHE_CHOICES=${NUMERIC_COMPLETE_CACHE_CHOICES-0}
+
+numeric_complete_choices=()
+
+# I've found that process substitution seems to take
+# a significant amount of time, so just save these values
+# somewhere...
+#
+NUMERIC_COMPLETE_SHOW_MODE_IN_PROMPT="$(bind -v 2>&1)"
+NUMERIC_COMPLETE_IGNORE_CASE="${NUMERIC_COMPLETE_SHOW_MODE_IN_PROMPT#*completion-ignore-case }"
+NUMERIC_COMPLETE_IGNORE_CASE="${NUMERIC_COMPLETE_IGNORE_CASE:0:2}"
+
+NUMERIC_COMPLETE_SHOW_MODE_IN_PROMPT="${NUMERIC_COMPLETE_SHOW_MODE_IN_PROMPT#*show-mode-in-prompt }"
+NUMERIC_COMPLETE_SHOW_MODE_IN_PROMPT="${NUMERIC_COMPLETE_SHOW_MODE_IN_PROMPT:0:2}"
 
 
 
-numeric_set_extglob() {
+
+#Automatically set the pager for displaying choices.
+numeric_complete_set_pager()
+{
+	NUMERIC_COMPLETE_PAGER=()
+	local lessname lessver lessother
+	if read lessname lessver lessother < <(less --version 2>&1)
+	then
+		if [[ "${lessver}" =~ ^[0-9]+$ ]]
+		then
+			if [[ "${lessver}" -ge 600 ]]
+			then
+				NUMERIC_COMPLETE_PAGER=(less -R -~ --header 2)
+			else
+				NUMERIC_COMPLETE_PAGER=(less -R -~ +1)
+			fi
+		fi
+	fi
+}
+
+
+numeric_complete_set_extglob() {
 	declare -n Nreset_extglob="${1}"
 	if [[ "${BASHOPTS}" =~ ^.*extglob.*$ ]]
 	then
@@ -130,11 +173,11 @@ numeric_set_extglob() {
 	fi
 }
 
-# numeric_parse_word completion_word
+# numeric_complete_parse_word completion_word
 #
 # Parse the completion word into dirname and base.
 # If no dirname, then it will be empty.
-numeric_parse_word() {
+numeric_complete_parse_word() {
 	if [[ "${1:${#1}-1}" = '/' ]]
 	then
 		dname="${1}"
@@ -151,11 +194,11 @@ numeric_parse_word() {
 	fi
 }
 
-# numeric_max num_array_name start stop output
+# numeric_complete_max num_array_name start stop output
 #
 # Calculate the maximum of an array of numeric values >= 0 of the
 # range from start to stop.
-numeric_max()
+numeric_complete_max()
 {
 	declare -n output="${4}"
 	declare -n ref_array="${1}"
@@ -171,20 +214,20 @@ numeric_max()
 	done
 }
 
-# numeric_calc_shape strwidths start stop rowout colout
+# numeric_complete_calc_shape strwidths start stop rowout colout
 # Calculate the rows and cols to display.
 # strwidths: array of lengths of str
 # start/stop: range in strwidths to display (start included, stop excluded)
 # rowout/colout: output variables to store row/col values
-numeric_calc_shape()
+# Expect termwidth to be defined to columns of terminal
+numeric_complete_calc_shape()
 {
-	declare -n Narr="${1}" Nrowout="${4}" Ncolout="${5}" Ncolwidths="${6}" Nprewidth="${7}" Ntermwidth="${8}"
+	declare -n Narr="${1}" Nrowout="${4}" Ncolout="${5}" Ncolwidths="${6}" Nprewidth="${7}"
 	local nchoices="$((${3} - ${2}))" maxwidth
-	numeric_max Narr "${2}" "${3}" maxwidth
-	Ntermwidth=$(tput cols)
+	numeric_complete_max Narr "${2}" "${3}" maxwidth
 	Nprewidth=$(("${#nchoices}" + 1))
-	local ncols=$((Ntermwidth / (maxwidth+Nprewidth)))
-	if [[ "${ncols}" -lt 1 || $(("${ncols}"-1)) -gt $((Ntermwidth % (maxwidth+Nprewidth))) ]]
+	local ncols=$((termwidth / (maxwidth+Nprewidth)))
+	if [[ "${ncols}" -lt 1 || $(("${ncols}"-1)) -gt $((termwidth % (maxwidth+Nprewidth))) ]]
 	then
 		if [[ "${ncols}" -le 1 ]]
 		then
@@ -205,17 +248,17 @@ numeric_calc_shape()
 		idx=$((idx+1))
 	done
 
-	while [[ "${ncols}" -lt "${nchoices}" && "$(( ((Nprewidth + 1) * ncols) - 1))" -le $((Ntermwidth)) ]]
+	while [[ "${ncols}" -lt "${nchoices}" && "$(( ((Nprewidth + 1) * ncols) - 1))" -le $((termwidth)) ]]
 	do
 		local ncols=$((ncols+1))
 		nrows="$(((nchoices / ncols) + ((nchoices % ncols) > 0)))"
 		if [[ $(((nrows * ncols) - nchoices)) -lt nrows ]]
 		then
 			local netwidth=0 start=${2} curwidth tcolwidths=()
-			local textspace=$((Ntermwidth - ((ncols*(Nprewidth+1)) - 1)))
+			local textspace=$((termwidth - ((ncols*(Nprewidth+1)) - 1)))
 			while [[ "${start}" -lt "${3}" && "${netwidth}" -le "${textspace}" ]]
 			do
-				numeric_max Narr "${start}" "$(( (start+nrows) < "${3}" ? (start+nrows) : "${3}" ))" curwidth
+				numeric_complete_max Narr "${start}" "$(( (start+nrows) < "${3}" ? (start+nrows) : "${3}" ))" curwidth
 				tcolwidths+=("${curwidth}")
 				netwidth=$((netwidth + curwidth))
 				start=$((start + nrows))
@@ -230,18 +273,18 @@ numeric_calc_shape()
 	done
 }
 
+
 # Mimic prompt text and commandline (needs bash >= 4.4)
-numeric_mimic_prompt()
+# Expect termwidth to be defined to columns of terminal
+numeric_complete_mimic_prompt()
 {
-	local modeprompt="$(bind -v | grep show-mode-in-prompt)"
-	modeprompt="${modeprompt##* }"
-	if [[ "${modeprompt,,}" = 'on' ]]
+	if [[ "${NUMERIC_COMPLETE_SHOW_MODE_IN_PROMPT}" == 'on' ]]
 	then
-		modeprompt=' '
+		local modeprompt=' '
 	else
-		modeprompt=
+		local modeprompt=
 	fi
-	local replicate="${modeprompt}${PS1@P}${COMP_LINE}" ncols=$(tput cols) nlines=0
+	local replicate="${modeprompt}${PS1@P}${COMP_LINE}" nlines=0
 	while [[ -n "${replicate}" ]]
 	do
 		local seg="${replicate%%$'\n'*}"
@@ -251,7 +294,7 @@ numeric_mimic_prompt()
 		else
 			replicate="${replicate#*$'\n'}"
 		fi
-		nlines="$((nlines + ${#seg}/ncols + (${#seg}%ncols > 0)))"
+		nlines="$((nlines + ${#seg}/termwidth + (${#seg}%termwidth > 0)))"
 	done
 	local restore=$'\e['"${nlines}"'A'
 	while [[ "${nlines}" -gt 0 ]]
@@ -270,19 +313,29 @@ numeric_mimic_prompt()
 }
 
 # Some column command might not handle proper alignment with colors
-numeric_display_choices()
+numeric_complete_display_choices()
 {
 	local reset_shopt
-	numeric_set_extglob reset_shopt
-	local strwidths=("${numeric_completion_choices[@]//$'\e'\[*([0-9;])[a-zA-Z]/}") idx=2
+	numeric_complete_set_extglob reset_shopt
+	local strwidths=("${numeric_complete_choices[@]//$'\e'\[*([0-9;])[a-zA-Z]/}") idx=2
 	"${reset_shopt[@]}"
 	while [[ "${idx}" -lt "${#strwidths[@]}" ]]
 	do
 		strwidths[idx]="${#strwidths[idx]}"
 		idx=$((idx+1))
 	done
-	local rows cols widths
-	numeric_calc_shape strwidths 2 "${#strwidths[@]}" rows cols widths prewidth termwidth
+	local rows cols widths prewidth termwidth
+	if [[ "${BASHOPTS}" =~ ^(.+:)?checkwinsize(:.+)?$ || "${-}" =~ ^.*i.*$ ]]
+	then
+		termwidth="${COLUMNS}"
+	else
+		# If using tab completion, then kinda expect it to be
+		# interactive.  Man says if interactive, then COLUMNS will be
+		# set appropriately so ideally this should never happen
+		# anyways.
+		termwidth=$(tput cols)
+	fi
+	numeric_complete_calc_shape strwidths 2 "${#strwidths[@]}" rows cols widths prewidth
 	local numwidth="$((prewidth-1))" prepad=(0) padspace=$((termwidth - (cols*prewidth)))
 	for idx in "${widths[@]}"
 	do
@@ -302,32 +355,16 @@ numeric_display_choices()
 		idx=$((idx-1))
 	done
 
-	if [[ -n "${NUMERIC_COMPLETE_PAGER}" ]]
+	if [[ "${#NUMERIC_COMPLETE_PAGER[@]}" -gt 0 ]]
 	then
-		local lessname lessver lessother pager
-		if read lessname lessver lessother < <(less --version)
-		then
-			if [[ "${lessver%%.*}" -ge 600 ]]
-			then
-				numeric_print_table 1 | less -R -~ --header 2
-			else
-				numeric_print_table 1 | less -R -~ +1
-			fi
-		elif [[ "$(type -t more)" = 'file' ]]
-		then
-			numeric_print_table 1 | more
-		else
-			printf '\n'
-			numeric_print_table
-			numeric_mimic_prompt
-		fi
+		numeric_complete_print_table 1 | "${NUMERIC_COMPLETE_PAGER[@]}"
 	else
 		printf '\n'
-		numeric_print_table
-		numeric_mimic_prompt
+		numeric_complete_print_table
+		numeric_complete_mimic_prompt
 	fi
 }
-numeric_print_table()
+numeric_complete_print_table()
 {
 	local currow=0
 	while [[ ${currow} -lt "${rows}" ]]
@@ -341,12 +378,12 @@ numeric_print_table()
 		while [[ ${curcol} -lt ${cols} ]]
 		do
 			idx=$(( (curcol*rows) + currow ))
-			if [[ "$((idx+2))" -lt "${#numeric_completion_choices[@]}" ]]
+			if [[ "$((idx+2))" -lt "${#numeric_complete_choices[@]}" ]]
 			then
 				# printf does not parse ansi so must calculate padding
 				# manually
 				printf '%'"${prepad[curcol]}"'s%'"${numwidth}"'d %s%'"$(("${widths[curcol]}" - "${strwidths[idx+2]}"))"'s' \
-					'' "$((idx+1))" "${numeric_completion_choices[idx+2]}" ''
+					'' "$((idx+1))" "${numeric_complete_choices[idx+2]}" ''
 			fi
 			curcol=$((curcol+1))
 		done
@@ -355,31 +392,29 @@ numeric_print_table()
 	done
 }
 
-numeric_search_ls() {
+numeric_complete_search_ls() {
 	# ls with a glob will expand the glob searching the dir once
 	# and then ls which goes through the dir again.  To only do
 	# one pass (?faster?) for network drive, need to list the
 	# containing directory and then manually filter.
 	local dname base
-	numeric_parse_word "${1}"
+	numeric_complete_parse_word "${1}"
 
-	numeric_completion_choices=("${1}" "${dname}")
+	numeric_complete_choices=("${1}" "${dname}")
 	local lsargs=()
 	if [[ -n "${dname}" ]]
 	then
 		lsargs=("${dname}")
 	fi
 
-	readarray -O 2 -t numeric_completion_choices < <(ls -Ap --color=always "${lsargs[@]}" 2>/dev/null)
+	readarray -O 2 -t numeric_complete_choices < <(ls -Ap --color=always "${lsargs[@]}" 2>/dev/null)
 
-	local iter=2 setting=2 size="${#numeric_completion_choices[@]}" reset_shopt
-	numeric_set_extglob reset_shopt
-	local raw=("${numeric_completion_choices[@]//$'\e'\[*([0-9;])[a-zA-Z]}")
+	local iter=2 setting=2 size="${#numeric_complete_choices[@]}" reset_shopt
+	numeric_complete_set_extglob reset_shopt
+	local raw=("${numeric_complete_choices[@]//$'\e'\[*([0-9;])[a-zA-Z]}")
 	"${reset_shopt[@]}"
 	# check if case insensitive?
-	local caseinsensitive="$(bind -v 2>&1)"
-	caseinsensitive="${caseinsensitive#*completion-ignore-case }"
-	if [[ "${caseinsensitive::2}" = 'on' ]]
+	if [[ "${NUMERIC_COMPLETE_IGNORE_CASE}" = 'on' ]]
 	then
 		raw=("${raw[@],,}")
 		base="${base,,}"
@@ -388,55 +423,55 @@ numeric_search_ls() {
 	do
 		if [[ "${raw[iter]}" =~ ^"${base}".* ]]
 		then
-			numeric_completion_choices[setting]="${numeric_completion_choices[iter]}"
+			numeric_complete_choices[setting]="${numeric_complete_choices[iter]}"
 			setting=$[setting+1]
 		fi
 		iter=$[iter+1]
 	done
 	while [[ "${setting}" -lt "${size}" ]]
 	do
-		unset 'numeric_completion_choices[setting]'
+		unset 'numeric_complete_choices[setting]'
 		setting=$[setting+1]
 	done
 }
 
 
-numeric_set_COMPREPLY()
+numeric_complete_set_COMPREPLY()
 {
 	local reset_shopt
-	numeric_set_extglob reset_shopt
-	COMPREPLY=("${numeric_completion_choices[1]}${numeric_completion_choices[${1}]//$'\e'\[*([0-9;])[a-zA-Z]}")
+	numeric_complete_set_extglob reset_shopt
+	COMPREPLY=("${numeric_complete_choices[1]}${numeric_complete_choices[${1}]//$'\e'\[*([0-9;])[a-zA-Z]}")
 	"${reset_shopt[@]}"
 }
 
 numeric_complete() {
 	printf '*%s' $'\e[D'
-	local extra="${2#${numeric_completion_choices[0]}}"
+	local extra="${2#${numeric_complete_choices[0]}}"
 
-	if [[ ("${extra}" != "${2}" || "${numeric_completion_choices[0]}" = '' ) && "${extra}" =~ ^[0-9]+$ && "${extra}" -lt "${#numeric_completion_choices[@]}" ]]
+	if [[ ("${extra}" != "${2}" || "${numeric_complete_choices[0]}" = '' ) && "${extra}" =~ ^[0-9]+$ && "${extra}" -lt "${#numeric_complete_choices[@]}" ]]
 	then
-		numeric_set_COMPREPLY $((extra+1))
-		numeric_completion_choices=()
-	else
-		# if [[ "${#numeric_completion_choices[@]}" -eq 0 ||  "${2}" != "${numeric_completion_choices[0]}" ]]
-		# then
-		# 	numeric_search_ls "${2}"
-		# fi
-
-		# if rm or dir changes etc, then would need to look again...
-		# so maybe don't save the cache unless choosing...
-		numeric_search_ls "${2}"
-		if [[ "${#numeric_completion_choices[@]}" -eq 3 ]]
+		numeric_complete_set_COMPREPLY $((extra+1))
+		if [[ "${NUMERIC_COMPLETE_CACHE_CHOICES}" -eq 0 ]]
 		then
-			numeric_set_COMPREPLY 2
-			numeric_completion_choices=()
-		else
-			if [[ "${#numeric_completion_choices[@]}" -gt 3 ]]
+			numeric_complete_choices=()
+		fi
+	else
+		if [[ "${NUMERIC_COMPLETE_CACHE_CHOICES}" -eq 0 || "${2}" != "${numeric_complete_choices[0]}" ]]
+		then
+			numeric_complete_search_ls "${2}"
+		fi
+		if [[ "${#numeric_complete_choices[@]}" -eq 3 ]]
+		then
+			numeric_complete_set_COMPREPLY 2
+			if [[ "${NUMERIC_COMPLETE_CACHE_CHOICES}" -eq 0 ]]
 			then
-				numeric_display_choices
-				# printf '%s\n' "${numeric_completion_choices[@]:2}" | cat -n | tr '\t' ' ' | column | less
+				numeric_complete_choices=()
 			fi
-			numeric_completion_choices+=("${tmp[@]}")
+		else
+			if [[ "${#numeric_complete_choices[@]}" -gt 3 ]]
+			then
+				numeric_complete_display_choices
+			fi
 			COMPREPLY=()
 		fi
 	fi
