@@ -1,8 +1,12 @@
 -0- general
+	-0.0- observations
 	-0.1- events
 -1- figure
 -2- axes
 -3- canvas
+-4- artists
+-5- animations
+	-5.1- blitting
 
 ______________________________
 -0- general
@@ -14,7 +18,65 @@ ______________________________
 		canvas = window
 		figure = collection of axes
 		axes = a single plot
-		artist = something that is drawn
+		artist = something that is drawn (returned by plotting functions)
+			NOTE: axes and figures are artists too
+
+	The process of drawing has a few stages.
+	First the memory buffer(s) representing the drawn figure(s).
+	Next, the finished drawing must be displayed.
+
+	In generally, methods only draw and do not display.  If ion(), then
+	they will display too.
+
+	------------------------------
+	-0.0- observations
+		pause causes drawing of any non-animated artists.
+
+		artists will draw any non-animated child artists when they are drawn (probably).
+
+		artists behave differently depending on whether animated or not.
+			set_animated(True|False)
+
+			nothing explicitly drawn:
+				result: always blank
+
+			Draw axes only:
+			fig.draw_artist(axes):
+			fig.draw_artist(ax)
+			              figure      axes        plot    result
+			animated?     n           n           n       drawn
+			              n           n           y       axes only
+			              n           y           n       drawn
+			              n           y           y       axes only
+			              y           n           n       drawn
+			              y           n           y       axes only
+			              y           y           n       drawn
+			              y           y           y       axes only
+
+			draw line before axes:
+				ax.draw_artist(line)
+				fig.draw_artist(ax)
+			              figure      axes        plot    result
+			animated?     n           n           n       drawn
+			              n           n           y       axes only
+			              n           y           n       drawn
+			              n           y           y       axes only
+			              y           n           n       drawn
+			              y           n           y       axes only
+			              y           y           n       drawn
+			              y           y           y       axes only
+
+			draw line after axes?:
+				fig.draw_artist(ax)
+				ax.draw_artist(line)
+			result: always drawn
+
+			NOTE: fig.draw_artist(line) instead of ax.draw_artist(line) has the same
+			      exact outcomes.
+
+		fig.canvas.blit() seems to actually cause rendering of the canvas to
+		the screen.
+
 
 	______________________________
 	-0.1- events
@@ -79,6 +141,16 @@ ______________________________
 -1- figure
 	A figure is a collection of axes (plots) arranged in some way.
 	useful methods:
+		The figure.bbox gives information about the size of the figure
+			bbox = fig.bbox
+			bbox.x1 == bbox.x0 + bbox.width
+			bbox.y1 == bbox.y0 + bbox.height
+
+			bbox.height == fig.get_dpi() * fig.get_figwidth()
+			bbox.width == fig.get_dpi() * fig.get_figheight()
+
+
+
 		add_subfigure
 		add_subplot(rows, cols, idx)
 		           (idxnum) (3-digit num: <rows><cols><idx>)
@@ -192,12 +264,18 @@ ______________________________
 			fill between horizontal curves
 		fillbetweenx
 			fill between vertical curves
-		bar
-			bar plot (histogram)?
+		bar(numlabel, counts) -> matplotlib.container.BarContainer
+			numlabel determines position of each bar.
+			counts determines height of each bar.
 		barh
 			horizontal bar plot
 		bar_label
 			label a barplot
+		hist(data, ...) ->
+				(counts,
+				bin_edges,
+				matplotlib.container.BarContainer)
+			plot a histogram
 		stem
 			stem plot
 		eventplot
@@ -221,7 +299,15 @@ ______________________________
 -3- canvas
 	figure.canvas
 
+	draw: re-draw non-animated artists, NOTE: this will clear
+	      any animated artists out of the buffer.
+	blit: render region of current buffer
+
 	get_width_height(*, physical=False)
+
+	copy_from_bbox(bbox):
+		Get a portion of rendered window.
+		NOTE: this can be np.asarrayed
 
 	generate events:
 		close_event(guiEvent=None)
@@ -237,3 +323,130 @@ ______________________________
 		Return a connection id for the function
 	mpl_disconnect(cid):
 		remove callback of the cid
+------------------------------
+-4- artists
+	lines.Line2D (plot())
+		set_data
+		set_xdata
+		set_ydata
+
+	container.BarContainer (hist(), bar())
+
+	collections.PathCollection (scatter())
+		set_offsets
+
+	image.AxesImage (imshow())
+		set_data
+
+	text.Annotation (annotate())
+		update_positions
+
+	patches.Rectangle (barh())
+		set_angle
+		set_bounds
+		set_height
+		set_width
+		set_x
+		set_y
+		set_xy
+
+	patches.Polygon (fill())
+		set_xy
+
+	patches.Ellipse (add_patch())
+		set_angle
+		set_center
+		set_height
+		set_width
+
+	text.Text (set_title(), text())
+		set_text
+
+------------------------------
+-5- animations
+	from matplotlib import animation
+	2 methods:
+	------------------------------
+	FuncAnimation
+		each artist would need to be updated invidually
+		generate data for initial showing,
+		modify on successive frames
+		more efficient (only 1 artist, then modifies)
+
+		steps:
+			1. plot a static plot, but save artists returned by plot funcs
+			2. define function to update artists (artist.set_*)
+			3. create a FuncAnimation
+			4. plt.show(), or Animation.save
+
+		ex.
+			def update(framenum):
+				data = data_for_[framenum]
+				artist.set_data(data)
+				return (artists, to, draw)
+
+
+	------------------------------
+	ArtistAnimation
+		generate iterable artists to draw each frame.
+		less efficient (many different artists), but more flexible...???
+		basically like successive show() etc
+
+		ex:
+			artists = []
+			for framenum in whatever:
+				framedata = data_to_show_at[framenum]
+				artists.append(axes.plot(*framedata))
+
+			animation.ArtistAnimation(fig=fig, artists=artists, interval=1)
+			plt.show()
+
+	------------------------------
+	-5.1- blitting
+		partial rendering of permanent unchanging parts
+		then draw the changing parts on top
+
+		1. draw the bg, exclude artists (set_animated)
+		2. save copy of RBGA buffer
+		3. restore RGBA buffer
+		4. redraw animated artists (axes.draw_artist, figure.draw_artist)
+		5. show result
+
+		check for blitting support:
+			fig.canvas.supports_blit
+
+		ex.
+			# create objs
+			fig, ax = plt.subplots()
+
+			# create artist, require explicit drawing
+			artist = ax.plot(data, animated=True)
+
+			# create window
+			plt.show(block=False)
+
+			# ensure everything is drawn/sized properly etc
+			plt.pause(0.1)
+
+			# get the bg
+			bg = fig.canvas.copy_from_bbox(fig.bbox)
+
+			ax.draw_artist(artist)
+
+			fig.canvas.blit(fig.bbox)
+
+			while animating:
+				fig.canvas.restore_region(bg)
+				ln.set_ydata(...)
+				ax.draw_artist(ln)
+				fig.canvas.blit(fig.bbox)
+
+				fig.canvas.flush_events()
+					OR
+				plt.pause(.1)
+
+		NOTE: plt.pause REQUIRES artists to be not animated
+		(artist.set_animated(False)). Otherwise, the artist will
+		disappear during the pause.
+		but... at that point, the animation should just
+		remain True and don't need to ax.dra_artist(ln)
