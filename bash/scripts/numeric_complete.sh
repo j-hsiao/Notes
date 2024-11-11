@@ -443,10 +443,15 @@ numeric_complete_set_COMPREPLY()
 }
 
 numeric_complete() {
-	printf '*%s' $'\e[D'
-	local extra="${2#${numeric_complete_choices[0]}}"
+	local reset_shopt
+	numeric_complete_set_extglob reset_shopt
+	local target="${2/#~*(\/)/${HOME}/}"
+	"${reset_shopt[@]}"
 
-	if [[ ("${extra}" != "${2}" || "${numeric_complete_choices[0]}" = '' ) && "${extra}" =~ ^[0-9]+$ && "${extra}" -lt "${#numeric_complete_choices[@]}" ]]
+	printf '*%s' $'\e[D'
+	local extra="${target#${numeric_complete_choices[0]}}"
+
+	if [[ ("${extra}" != "${target}" || "${numeric_complete_choices[0]}" = '' ) && "${extra}" =~ ^[0-9]+$ && "${extra}" -lt "${#numeric_complete_choices[@]}" ]]
 	then
 		numeric_complete_set_COMPREPLY $((extra+1))
 		if [[ "${NUMERIC_COMPLETE_CACHE_CHOICES}" -eq 0 ]]
@@ -454,9 +459,9 @@ numeric_complete() {
 			numeric_complete_choices=()
 		fi
 	else
-		if [[ "${NUMERIC_COMPLETE_CACHE_CHOICES}" -eq 0 || "${2}" != "${numeric_complete_choices[0]}" ]]
+		if [[ "${NUMERIC_COMPLETE_CACHE_CHOICES}" -eq 0 || "${target}" != "${numeric_complete_choices[0]}" ]]
 		then
-			numeric_complete_search_ls "${2}"
+			numeric_complete_search_ls "${target}"
 		fi
 		if [[ "${#numeric_complete_choices[@]}" -eq 3 ]]
 		then
