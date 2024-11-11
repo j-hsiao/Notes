@@ -438,7 +438,12 @@ numeric_complete_set_COMPREPLY()
 {
 	local reset_shopt
 	numeric_complete_set_extglob reset_shopt
-	COMPREPLY=("${numeric_complete_choices[1]}${numeric_complete_choices[${1}]//$'\e'\[*([0-9;])[a-zA-Z]}")
+	local dname=${numeric_complete_choices[1]}
+	if [[ "${2}" =~ ^'~' ]]
+	then
+		dname="${dname/#${HOME}*(\/)/\~/}"
+	fi
+	COMPREPLY=("${dname}${numeric_complete_choices[${1}]//$'\e'\[*([0-9;])[a-zA-Z]}")
 	"${reset_shopt[@]}"
 }
 
@@ -453,7 +458,7 @@ numeric_complete() {
 
 	if [[ ("${extra}" != "${target}" || "${numeric_complete_choices[0]}" = '' ) && "${extra}" =~ ^[0-9]+$ && "${extra}" -lt "${#numeric_complete_choices[@]}" ]]
 	then
-		numeric_complete_set_COMPREPLY $((extra+1))
+		numeric_complete_set_COMPREPLY $((extra+1)) "${2}"
 		if [[ "${NUMERIC_COMPLETE_CACHE_CHOICES}" -eq 0 ]]
 		then
 			numeric_complete_choices=()
@@ -465,7 +470,7 @@ numeric_complete() {
 		fi
 		if [[ "${#numeric_complete_choices[@]}" -eq 3 ]]
 		then
-			numeric_complete_set_COMPREPLY 2
+			numeric_complete_set_COMPREPLY 2 "${2}"
 			if [[ "${NUMERIC_COMPLETE_CACHE_CHOICES}" -eq 0 ]]
 			then
 				numeric_complete_choices=()
