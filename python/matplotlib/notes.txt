@@ -3,6 +3,8 @@
 	-0.1- events
 -1- figure
 -2- axes
+	-2.1- Axes plotting methods
+	-2.2- other methods
 -3- canvas
 -4- artists
 -5- animations
@@ -193,7 +195,8 @@ ______________________________
 
 ______________________________
 -2- axes
-	Axes methods:
+	------------------------------
+	-2.1- Axes plotting methods
 		plot(x, [y, [format]], scalex=True, scaley=True, data=None, **kwargs)
 			x, y: list of x,y coordinates
 				if y not given, then use x as y and index as x
@@ -292,6 +295,10 @@ ______________________________
 			horizontal lines at each y
 		fill
 			fill polygons
+
+	------------------------------
+	-2.2- other methods
+		set_title('title')
 
 
 
