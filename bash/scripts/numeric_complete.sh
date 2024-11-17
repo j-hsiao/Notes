@@ -28,7 +28,7 @@
 # 			myalias ls [tab]  -> numeric completion
 # 	NUMERIC_COMPLETE_DEFAULT
 # 		0/1, default 1. If 1, then also register numeric_complete as the
-# 		default completion function.
+# 		default completion function. Defaults to 0.
 # 	NUMERIC_COMPLETE_PAGER=()
 # 		This contains the paging command for displaying potential
 # 		choices.  By default, it is empty (print to terminal).  Set it
@@ -495,7 +495,7 @@ numeric_complete() {
 alias ${NUMERIC_COMPLETE_ALIAS:-n}=''
 complete -o filenames -F numeric_complete ${NUMERIC_COMPLETE_ALIAS:-n}
 
-if [[ "${NUMERIC_COMPLETE_DEFAULT:-1}" -eq 1 ]]
+if [[ "${NUMERIC_COMPLETE_DEFAULT:-0}" -eq 1 ]]
 then
 	complete -D -o filenames -F numeric_complete
 fi
