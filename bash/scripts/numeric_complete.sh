@@ -326,6 +326,11 @@ numeric_complete_display_choices()
 	if [[ "${BASHOPTS}" =~ ^(.+:)?checkwinsize(:.+)?$ || "${-}" =~ ^.*i.*$ ]]
 	then
 		termwidth="${COLUMNS}"
+		if [[ -z "${termwidth}" ]]
+		then
+			termwidth=$(tput cols)
+			COLUMNS="${termwidth}"
+		fi
 	else
 		# If using tab completion, then kinda expect it to be
 		# interactive.  Man says if interactive, then COLUMNS will be
