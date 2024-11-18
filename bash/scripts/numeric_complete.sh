@@ -27,8 +27,17 @@
 # 			source numeric_complete.sh
 # 			myalias ls [tab]  -> numeric completion
 # 	NUMERIC_COMPLETE_DEFAULT
-# 		0/1, default 1. If 1, then also register numeric_complete as the
-# 		default completion function. Defaults to 0.
+# 		A readline key sequence, defaulting to "\C-j\C-k".
+# 		(control-j control-k) If set, numeric_complete will be
+# 		registered as a default completion and
+# 		"${NUMERIC_COMPLETE_DEFAULT}" will be bound to complete.
+# 		"${COMP_KEY}" will be used to determine whether the default
+# 		completion or numeric completion should be used.  Because
+# 		COMP_KEY only looks at the last key used,
+# 		NUMERIC_COMPLETE_DEFAULT should not end with '\t' or '\C-i'.
+# 		The standard tab completion from the tab key will do normal
+# 		completion (compgen -o default), and the key sequence specified
+# 		by NUMERIC_COMPLETE_DEFAULT will do numeric complete.
 # 	NUMERIC_COMPLETE_PAGER=()
 # 		This contains the paging command for displaying potential
 # 		choices.  By default, it is empty (print to terminal).  Set it
@@ -190,6 +199,10 @@ numeric_complete_parse_word() {
 			dname="${dname}/"
 		fi
 	fi
+	if [[ "${dname:0:1}" != '/' ]]
+	then
+		dname="${PWD}/${dname}"
+	fi
 }
 
 # numeric_complete_max num_array_name start stop output
@@ -315,6 +328,7 @@ numeric_complete_display_choices()
 {
 	local reset_shopt
 	numeric_complete_set_extglob reset_shopt
+	# TODO: calc unicode strwidths
 	local strwidths=("${numeric_complete_choices[@]//$'\e'\[*([0-9;])[a-zA-Z]/}") idx=2
 	"${reset_shopt[@]}"
 	while [[ "${idx}" -lt "${#strwidths[@]}" ]]
@@ -364,9 +378,41 @@ numeric_complete_display_choices()
 	else
 		printf '\n'
 		numeric_complete_print_table
-		numeric_complete_mimic_prompt
+		local multitab
+		printf -v multitab '%d' "'?"
+		if [[ "${COMP_TYPE}" -ne "${multitab}" ]]
+		then
+			numeric_complete_mimic_prompt
+		fi
 	fi
 }
+
+# TODO print non-ascii utf-8 characters
+# incorrect size -> busted columns
+#
+#https://stackoverflow.com/questions/36380867/how-to-get-the-number-of-columns-occupied-by-a-character-in-terminal
+#widths = [
+#     (126, 1), (159, 0), (687, 1), (710, 0), (711, 1),
+#     (727, 0), (733, 1), (879, 0), (1154, 1), (1161, 0),
+#     (4347, 1), (4447, 2), (7467, 1), (7521, 0), (8369, 1),
+#     (8426, 0), (9000, 1), (9002, 2), (11021, 1), (12350, 2),
+#     (12351, 1), (12438, 2), (12442, 0), (19893, 2), (19967, 1),
+#     (55203, 2), (63743, 1), (64106, 2), (65039, 1), (65059, 0),
+#     (65131, 2), (65279, 1), (65376, 2), (65500, 1), (65510, 2),
+#     (120831, 1), (262141, 2), (1114109, 1),
+# ]
+
+# # ACCESSOR FUNCTIONS
+
+# def get_width( o ):
+#     """Return the screen column width for unicode ordinal o."""
+#     global widths
+#     if o == 0xe or o == 0xf:
+#         return 0
+#     for num, wid in widths:
+#         if o <= num:
+#             return wid
+#     return 1
 numeric_complete_print_table()
 {
 	local currow=0
@@ -384,7 +430,8 @@ numeric_complete_print_table()
 			if [[ "$((idx+2))" -lt "${#numeric_complete_choices[@]}" ]]
 			then
 				# printf does not parse ansi so must calculate padding
-				# manually
+				# manually  Column is thrown off by ansi so wrong
+				# widths.
 				printf '%'"${prepad[curcol]}"'s%'"${numwidth}"'d %s%'"$(("${widths[curcol]}" - "${strwidths[idx+2]}"))"'s' \
 					'' "$((idx+1))" "${numeric_complete_choices[idx+2]}" ''
 			fi
@@ -400,8 +447,6 @@ numeric_complete_search_ls() {
 	# and then ls which goes through the dir again.  To only do
 	# one pass (?faster?) for network drive, need to list the
 	# containing directory and then manually filter.
-	local dname base
-	numeric_complete_parse_word "${1}"
 
 	numeric_complete_choices=("${1}" "${dname}")
 	local lsargs=()
@@ -439,17 +484,31 @@ numeric_complete_search_ls() {
 }
 
 
+# Set COMPREPLY array.
+# numeric_complete_set_COMPREPLY [choice (int)] [curword]
 numeric_complete_set_COMPREPLY()
 {
 	local reset_shopt
 	numeric_complete_set_extglob reset_shopt
-	local dname=${numeric_complete_choices[1]}
-	if [[ "${2}" =~ ^'~' ]]
-	then
-		dname="${dname/#${HOME}*(\/)/\~/}"
-	fi
-	COMPREPLY=("${dname}${numeric_complete_choices[${1}]//$'\e'\[*([0-9;])[a-zA-Z]}")
+	local basechoice="${numeric_complete_choices[${1}]//$'\e'\[*([0-9;])[a-zA-Z]}"
 	"${reset_shopt[@]}"
+
+	if [[ "${2:${#2}-1}" = '/' ]]
+	then
+		COMPREPLY=("${2}${basechoice}")
+	else
+		COMPREPLY=("${2%/*}")
+		if [[ "${COMPREPLY[0]}" = "${2}" ]]
+		then
+			COMPREPLY=("${basechoice}")
+		else
+			COMPREPLY=("${COMPREPLY[0]}/${basechoice}")
+		fi
+	fi
+	if [[ "${COMPREPLY[0]:${#COMPREPLY[0]}-1}" != '/' ]]
+	then
+		COMPREPLY[0]="${COMPREPLY[0]} "
+	fi
 }
 
 numeric_complete() {
@@ -469,23 +528,51 @@ numeric_complete() {
 			numeric_complete_choices=()
 		fi
 	else
-		if [[ "${NUMERIC_COMPLETE_CACHE_CHOICES}" -eq 0 || "${target}" != "${numeric_complete_choices[0]}" ]]
+		if [[ "${COMP_KEY}" -ne 9 || ${NUMERIC_COMPLETE_ALIAS:-n} = "${1}" ]]
 		then
-			numeric_complete_search_ls "${target}"
-		fi
-		if [[ "${#numeric_complete_choices[@]}" -eq 3 ]]
-		then
-			numeric_complete_set_COMPREPLY 2 "${2}"
-			if [[ "${NUMERIC_COMPLETE_CACHE_CHOICES}" -eq 0 ]]
+			local dname base
+			numeric_complete_parse_word "${2}"
+			if [[ "${NUMERIC_COMPLETE_CACHE_CHOICES}" -eq 0 || "${dname}" != "${numeric_complete_choices[1]}" ]]
 			then
-				numeric_complete_choices=()
+				numeric_complete_search_ls "${target}"
 			fi
-		else
-			if [[ "${#numeric_complete_choices[@]}" -gt 3 ]]
+			if [[ "${#numeric_complete_choices[@]}" -eq 3 ]]
 			then
-				numeric_complete_display_choices
+				numeric_complete_set_COMPREPLY 2 "${2}"
+				if [[ "${NUMERIC_COMPLETE_CACHE_CHOICES}" -eq 0 ]]
+				then
+					numeric_complete_choices=()
+				fi
+			else
+				if [[ "${#numeric_complete_choices[@]}" -gt 3 ]]
+				then
+					numeric_complete_display_choices
+				fi
+				# if COMP_TYPE is multitab, then all the COMPREPLY choices
+				# will be printed out.  Want to avoid this, so empty string
+				# as only choice + up cursor to "undo" the extra printed lines.
+				# -o nospace + empty string for some reason:
+				# 1. does not delete current word ?is this a bug?
+				#    if Non-empty, even if shorter than "${2}", it will replace
+				#    but empty string does not.
+				# 2. does not modify the current line.
+				# if without -o nospace, then a space will be added at current
+				# position on command line = messed up.
+				local multitab
+				printf -v multitab '%d' "'?"
+				if [[ "${COMP_TYPE}" = "${multitab}" ]]
+				then
+					# cygwin seems to print extra lines
+					# so need to move up more
+					if [[ "${OS}" = *'Windows'* ]]
+					then
+						printf $'\e[2A'
+					else
+						printf $'\e[A'
+					fi
+				fi
+				COMPREPLY=('')
 			fi
-			COMPREPLY=()
 		fi
 	fi
 	local restore=${COMP_LINE:${COMP_POINT}:1}
@@ -493,9 +580,10 @@ numeric_complete() {
 }
 
 alias ${NUMERIC_COMPLETE_ALIAS:-n}=''
-complete -o filenames -F numeric_complete ${NUMERIC_COMPLETE_ALIAS:-n}
+complete -o default -o nospace -F numeric_complete ${NUMERIC_COMPLETE_ALIAS:-n}
 
-if [[ "${NUMERIC_COMPLETE_DEFAULT:-0}" -eq 1 ]]
+if [[ -n "${NUMERIC_COMPLETE_DEFAULT-\\C-j\\C-k}" ]]
 then
-	complete -D -o filenames -F numeric_complete
+	complete -D -o default -o nospace -F numeric_complete
+	bind \""${NUMERIC_COMPLETE_DEFAULT-\\C-j\\C-k}"'":complete'
 fi

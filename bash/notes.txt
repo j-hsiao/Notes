@@ -939,31 +939,75 @@ https://www.gnu.org/software/bash/manual/html_node/Programmable-Completion-Built
 
 				Remeber that COMP_TYPE is set before the completions are returned.
 
-				COMP_TYPE char    desc
-				9         TAB     normal completion (first tab)
-				33        !       readline show-all-if-ambiguous is set.
-				37        %       menu completion
-				63        ?       multiple tabs
-				64        @       show-all-if-unmodified is set.  On the first tab
-				                  and also if any prefix-completion was done, then
-				                  @ will be given again.  Afterwards, all ?
-
+				COMP_TYPE char    ambiguous unmodified  desc
+				9         TAB     off       off         normal completion (first tab)
+				33        !       on        any         readline show-all-if-ambiguous is set initial tab
+				37        %       any       any         Always given when menu-complete command.
+				                                        ambiguous/unmodified change what is displayed on
+				                                        the initial tab.  Subsequent tab always loops
+				                                        through the given initial choices.
+				63        ?       any       any         may follow after 9, 33, or 64, only after
+				                                        no changes are made (no longer common prefix)
+				64        @       off       on          show-all-if-unmodified is set.  initial tab.
 				NOTE: after a delay, tab completion will "reset"
-				Behavior:
-					multiple completions:
-						9   complete up to common prefix
-						33  print choices, start new line
-						37
-						63  print choices, start a new
-						64  If no extra prefix can be done, print choices, start newline
-					no completions
-						9   do nothing
-						33  do nothing
-						37
-						63  do nothing
-						64  do nothing
-					single completion
-						complete the word
+
+				settings:
+					Bindings can be to `complete` or `menu-complete` to trigger the
+					different completion mechanisms.
+
+					show-all-if-ambiguous: on or off
+														show-all-if-
+
+					cases:
+						m: multiple choices, extra completion up to common prefix
+						p: multiple choices, already prefix completed
+						o: one choice, has completion space
+						s: one choice, no completion space(already complete)
+						z: zero choices, no completions
+					observations: on partial completion, tab is reset and must be pressed again
+					to create the "same choice" condition, only afterwards would be COMP_TYPE 63
+
+					method            ambiguous   unmodified  COMP_TYPE   case
+					`complete`        on          any         33          m: prefix+display+reset
+					                                                      p: display+reset
+					                                                      o: prefix
+					                                                      s: nothing
+					                                                      z: nothing
+					                                          63          m: n/a
+					                                                      p: display+reset
+					                                                      o: n/a
+					                                                      s: display+reset
+					                                                      z: nothing
+					                  off         on          63          m: na/
+					                                                      p: display+reset
+					                                                      o: n/a
+					                                                      s: display+reset
+					                                                      z: nothing
+					                                          64          m: prefix
+					                                                      p: display+reset
+					                                                      o: complete
+					                                                      s: nothing
+					                                                      z: nothing
+					                              off         9           m: prefix
+					                                                      p: nothing
+					                                                      o: prefix
+					                                                      s: nothing
+					                                                      z: nothing
+					                                          63          m: n/a
+					                                                      p: display+reset
+					                                                      o: n/a
+					                                                      s: display+reset
+					                                                      z: nothing
+					`menu complete`   on          any         37          m: prefix+display+reset
+					                                                      p: display+reset
+					                                                      o: prefix
+					                                                      s: nothing
+					                                                      z: nothing
+					                  off         any         37          m: prefix
+					                                                      p: nothing
+					                                                      o: prefix
+					                                                      s: nothing
+					                                                      z: nothing
 				descriptions from:
 				https://unix.stackexchange.com/questions/250262/how-to-use-bashs-complete-or-compgen-c-command-option
 				TAB     normal completion
