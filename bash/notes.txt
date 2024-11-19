@@ -49,6 +49,8 @@ contents
 		-4.69.3- stty
 -5- tips/tricks
 	-5.1- reset
+-6- builtins
+	-6.1- printf
 
 ______________________________
 -0- general
@@ -1347,3 +1349,24 @@ ______________________________
 			stty sane   sets some terminal settings to default values.
 			reset       (tset)reset the entire terminal (as if reopened from scratch)
 			tput reset  man says uses reset from tset
+
+------------------------------
+-6- builtins
+	------------------------------
+	-6.1- printf
+	printf using a format and arguments.
+	undocumented:
+		Convert a character into an int/unicode code point
+		Use the %d/%i, argument should be single quote followed
+		by a character.  Only the first character is converted.
+		Other characters are ignored.
+		eg.
+			printf '%d' "'c"
+			99
+
+			somevar='hello'
+			printf '%i' "'${somevar}"
+			104
+
+			printf '%i' "'你"
+			20320
