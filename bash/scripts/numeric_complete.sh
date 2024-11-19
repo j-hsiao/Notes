@@ -133,6 +133,8 @@
 NUMERIC_COMPLETE_PAGER=()
 NUMERIC_COMPLETE_CACHE_CHOICES=${NUMERIC_COMPLETE_CACHE_CHOICES-0}
 
+# 0: Last prefix command line (calculate enterred number)
+# 1: directory fullpath
 numeric_complete_choices=()
 
 # I've found that process substitution seems to take
@@ -234,22 +236,35 @@ numeric_complete_max()
 numeric_complete_calc_shape()
 {
 	declare -n Narr="${1}" Nrowout="${4}" Ncolout="${5}" Ncolwidths="${6}" Nprewidth="${7}"
+	local minpad=2
 	local nchoices="$((${3} - ${2}))" maxwidth
 	numeric_complete_max Narr "${2}" "${3}" maxwidth
 	Nprewidth=$(("${#nchoices}" + 1))
 	local ncols=$((termwidth / (maxwidth+Nprewidth)))
-	if [[ "${ncols}" -lt 1 || $(("${ncols}"-1)) -gt $((termwidth % (maxwidth+Nprewidth))) ]]
+
+	while [[ "${ncols}" -ge 1 && $((termwidth - (ncols * (maxwidth + Nprewidth + minpad) - minpad))) -lt 0 ]]
+	do
+		ncols=$((ncols-1))
+	done
+	if [[ "${ncols}" -eq 0 ]]
 	then
-		if [[ "${ncols}" -le 1 ]]
-		then
-			Nrowout="${nchoices}"
-			Ncolout=1
-			return
-		else
-			ncols=$((ncols-1))
-		fi
+		Nrowout="${nchoices}"
+		Ncolout=1
+		Ncolwidths=("${maxwidth}")
+		return
+	elif [[ "${ncols}" -ge "${nchoices}" ]]
+	then
+		Ncolwidths=("${Narr[@]:2}")
+		Nrowout=1
+		Ncolout="${nchoices}"
+		return
 	fi
 	Nrowout="$(((nchoices / ncols) + ((nchoices % ncols) > 0)))"
+	while [[ $((Nrowout * ncols - nchoices - Nrowout)) -ge 0 ]]
+	do
+		ncols=$((ncols-1))
+		Nrowout="$(((nchoices / ncols) + ((nchoices % ncols) > 0)))"
+	done
 	Ncolout="${ncols}"
 	local idx=0
 	Ncolwidths=()
@@ -259,14 +274,14 @@ numeric_complete_calc_shape()
 		idx=$((idx+1))
 	done
 
-	while [[ "${ncols}" -lt "${nchoices}" && "$(( ((Nprewidth + 1) * ncols) - 1))" -le $((termwidth)) ]]
+	while [[ "${ncols}" -lt "${nchoices}" && "$((termwidth - (maxwidth + ((Nprewidth + minpad) * ncols) - minpad)))" -ge 0 ]]
 	do
 		local ncols=$((ncols+1))
 		nrows="$(((nchoices / ncols) + ((nchoices % ncols) > 0)))"
 		if [[ $(((nrows * ncols) - nchoices)) -lt nrows ]]
 		then
 			local netwidth=0 start=${2} curwidth tcolwidths=()
-			local textspace=$((termwidth - ((ncols*(Nprewidth+1)) - 1)))
+			local textspace=$((termwidth - ((ncols*(Nprewidth+minpad)) - minpad)))
 			while [[ "${start}" -lt "${3}" && "${netwidth}" -le "${textspace}" ]]
 			do
 				numeric_complete_max Narr "${start}" "$(( (start+nrows) < "${3}" ? (start+nrows) : "${3}" ))" curwidth
@@ -430,9 +445,14 @@ numeric_complete_display_choices()
 		idx=$((idx+1))
 	done
 	idx=$((cols-1))
+	local maxpad=4
 	while [[ "${idx}" -gt 0 ]]
 	do
 		prepad[idx]="$((prepad[idx] - ${prepad[idx-1]}))"
+		if [[ "${prepad[idx]}" -gt "${maxpad}" ]]
+		then
+			prepad[idx]="${maxpad}"
+		fi
 		idx=$((idx-1))
 	done
 
@@ -453,6 +473,7 @@ numeric_complete_display_choices()
 
 numeric_complete_print_table()
 {
+	local choices_idx_offset=2
 	local currow=0
 	while [[ ${currow} -lt "${rows}" ]]
 	do
@@ -465,13 +486,15 @@ numeric_complete_print_table()
 		while [[ ${curcol} -lt ${cols} ]]
 		do
 			idx=$(( (curcol*rows) + currow ))
-			if [[ "$((idx+2))" -lt "${#numeric_complete_choices[@]}" ]]
+			if [[ "$((idx + choices_idx_offset))" -lt "${#numeric_complete_choices[@]}" ]]
 			then
 				# printf does not parse ansi so must calculate padding
 				# manually  Column is thrown off by ansi so wrong
 				# widths.
 				printf '%'"${prepad[curcol]}"'s%'"${numwidth}"'d %s%'"$(("${widths[curcol]}" - "${strwidths[idx+2]}"))"'s' \
-					'' "$((idx+1))" "${numeric_complete_choices[idx+2]}" ''
+					'' "$((idx+1))" "${numeric_complete_choices[idx + choices_idx_offset]}" ''
+			else
+				break
 			fi
 			curcol=$((curcol+1))
 		done
@@ -486,7 +509,7 @@ numeric_complete_search_ls() {
 	# one pass (?faster?) for network drive, need to list the
 	# containing directory and then manually filter.
 
-	numeric_complete_choices=("${1}" "${dname}")
+	numeric_complete_choices=("${COMP_LINE:0:COMP_POINT}" "${dname}")
 	local lsargs=()
 	if [[ -n "${dname}" ]]
 	then
@@ -556,9 +579,13 @@ numeric_complete() {
 	"${reset_extglob[@]}"
 
 	printf '*%s' $'\e[D'
-	local extra="${target#${numeric_complete_choices[0]}}"
-
-	if [[ ("${extra}" != "${target}" || "${numeric_complete_choices[0]}" = '' ) && "${extra}" =~ ^[0-9]+$ && "${extra}" -lt "${#numeric_complete_choices[@]}" ]]
+	local extra="${COMP_LINE:0:COMP_POINT}"
+	local extra="${extra#${numeric_complete_choices[0]}}"
+	if [[ "${extra}" != "${COMP_LINE:0:COMP_POINT}" \
+		&& "${extra}" =~ ^[0-9]+$ \
+		&& "${extra}" -lt "${#numeric_complete_choices[@]}" \
+		&& "${extra}" -gt 0 \
+	]]
 	then
 		numeric_complete_set_COMPREPLY $((extra+1)) "${2}"
 		if [[ "${NUMERIC_COMPLETE_CACHE_CHOICES}" -eq 0 ]]
