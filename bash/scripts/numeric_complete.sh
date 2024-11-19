@@ -168,15 +168,15 @@ numeric_complete_set_pager()
 	fi
 }
 
-
-numeric_complete_set_extglob() {
-	declare -n Nreset_extglob="${1}"
-	if [[ "${BASHOPTS}" =~ ^.*extglob.*$ ]]
+numeric_complete_toggle_shopt() {
+	local option="${1}"
+	declare -n Nreset_extglob="${2}"
+	if [[ "${BASHOPTS}" =~ ^.*"${option}".*$ ]]
 	then
 		Nreset_extglob=()
 	else
-		shopt -s extglob
-		Nreset_extglob=(shopt -u extglob)
+		shopt -s "${option}"
+		Nreset_extglob=(shopt -u "${option}")
 	fi
 }
 
@@ -323,19 +323,83 @@ numeric_complete_mimic_prompt()
 		$'\e[u'
 }
 
-# Some column command might not handle proper alignment with colors
-numeric_complete_display_choices()
+# Calculate string widths, supporting unicode.
+# https://stackoverflow.com/questions/36380867/how-to-get-the-number-of-columns-occupied-by-a-character-in-terminal
+NUMERIC_COMPLETE_STR_WIDTH=(
+	126     1   159     0   687     1   710     0   711     1
+	727     0   733     1   879     0   1154    1   1161    0
+	4347    1   4447    2   7467    1   7521    0   8369    1
+	8426    0   9000    1   9002    2   11021   1   12350   2
+	12351   1   12438   2   12442   0   19893   2   19967   1
+	55203   2   63743   1   64106   2   65039   1   65059   0
+	65131   2   65279   1   65376   2   65500   1   65510   2
+	120831  1   262141  2   1114109 1
+)
+# TODO maybe binary search would be faster?
+numeric_complete_str_width()
 {
-	local reset_shopt
-	numeric_complete_set_extglob reset_shopt
-	# TODO: calc unicode strwidths
-	local strwidths=("${numeric_complete_choices[@]//$'\e'\[*([0-9;])[a-zA-Z]/}") idx=2
-	"${reset_shopt[@]}"
-	while [[ "${idx}" -lt "${#strwidths[@]}" ]]
+	declare -n width="${2}"
+	local idx=0 length="${#1}" char
+	width=0
+	while [[ "${idx}" -lt "${length}" ]]
 	do
-		strwidths[idx]="${#strwidths[idx]}"
+		printf -v char '%d' "'${1:idx:1}"
+		if [[ "${char}" -ne 0xe && "${char}" -ne 0xf ]]
+		then
+			local search=0
+			while [[ "${search}" -lt "${#NUMERIC_COMPLETE_STR_WIDTH[@]}" ]]
+			do
+				if [[ "${char}" -le "${NUMERIC_COMPLETE_STR_WIDTH[search]}" ]]
+				then
+					width=$((width + "${NUMERIC_COMPLETE_STR_WIDTH[search+1]}"))
+					break
+				fi
+				search=$((search+2))
+			done
+		fi
 		idx=$((idx+1))
 	done
+}
+# This requires patsub_replacement, doesn't seem to affect the runtime much...
+# numeric_complete_str_width2()
+# {
+# 	numeric_complete_toggle_shopt patsub_replacement reset_patsub_replacement
+# 	declare -n width="${2}"
+# 	width=0
+# 	local chars
+# 	printf -v chars '%d ' ${1//?/\'& }
+# 	for val in ${chars}
+# 	do
+# 		local search=0
+# 		while [[ "${search}" -lt "${#NUMERIC_COMPLETE_STR_WIDTH[@]}" ]]
+# 		do
+# 			if [[ "${val}" -le "${NUMERIC_COMPLETE_STR_WIDTH[search]}" ]]
+# 			then
+# 				width=$((width + "${NUMERIC_COMPLETE_STR_WIDTH[search+1]}"))
+# 				break
+# 			fi
+# 			search=$((search+2))
+# 		done
+# 	done
+# 	"${reset_patsub_replacement[@]}"
+# }
+
+
+numeric_complete_display_choices()
+{
+	local reset_extglob
+	numeric_complete_toggle_shopt extglob reset_extglob
+	local strwidths=("${numeric_complete_choices[@]//$'\e'\[*([0-9;])[a-zA-Z]/}") idx=2
+	"${reset_extglob[@]}"
+
+	local strwidth
+	while [[ "${idx}" -lt "${#strwidths[@]}" ]]
+	do
+		numeric_complete_str_width "${strwidths[idx]}" strwidth
+		strwidths[idx]="${strwidth}"
+		idx=$((idx+1))
+	done
+
 	local rows cols widths prewidth termwidth
 	if [[ "${BASHOPTS}" =~ ^(.+:)?checkwinsize(:.+)?$ || "${-}" =~ ^.*i.*$ ]]
 	then
@@ -387,32 +451,6 @@ numeric_complete_display_choices()
 	fi
 }
 
-# TODO print non-ascii utf-8 characters
-# incorrect size -> busted columns
-#
-#https://stackoverflow.com/questions/36380867/how-to-get-the-number-of-columns-occupied-by-a-character-in-terminal
-#widths = [
-#     (126, 1), (159, 0), (687, 1), (710, 0), (711, 1),
-#     (727, 0), (733, 1), (879, 0), (1154, 1), (1161, 0),
-#     (4347, 1), (4447, 2), (7467, 1), (7521, 0), (8369, 1),
-#     (8426, 0), (9000, 1), (9002, 2), (11021, 1), (12350, 2),
-#     (12351, 1), (12438, 2), (12442, 0), (19893, 2), (19967, 1),
-#     (55203, 2), (63743, 1), (64106, 2), (65039, 1), (65059, 0),
-#     (65131, 2), (65279, 1), (65376, 2), (65500, 1), (65510, 2),
-#     (120831, 1), (262141, 2), (1114109, 1),
-# ]
-
-# # ACCESSOR FUNCTIONS
-
-# def get_width( o ):
-#     """Return the screen column width for unicode ordinal o."""
-#     global widths
-#     if o == 0xe or o == 0xf:
-#         return 0
-#     for num, wid in widths:
-#         if o <= num:
-#             return wid
-#     return 1
 numeric_complete_print_table()
 {
 	local currow=0
@@ -457,10 +495,10 @@ numeric_complete_search_ls() {
 
 	readarray -O 2 -t numeric_complete_choices < <(ls -Ap --color=always "${lsargs[@]}" 2>/dev/null)
 
-	local iter=2 setting=2 size="${#numeric_complete_choices[@]}" reset_shopt
-	numeric_complete_set_extglob reset_shopt
+	local iter=2 setting=2 size="${#numeric_complete_choices[@]}" reset_extglob
+	numeric_complete_toggle_shopt extglob reset_extglob
 	local raw=("${numeric_complete_choices[@]//$'\e'\[*([0-9;])[a-zA-Z]}")
-	"${reset_shopt[@]}"
+	"${reset_extglob[@]}"
 	# check if case insensitive?
 	if [[ "${NUMERIC_COMPLETE_IGNORE_CASE}" = 'on' ]]
 	then
@@ -488,10 +526,10 @@ numeric_complete_search_ls() {
 # numeric_complete_set_COMPREPLY [choice (int)] [curword]
 numeric_complete_set_COMPREPLY()
 {
-	local reset_shopt
-	numeric_complete_set_extglob reset_shopt
+	local reset_extglob
+	numeric_complete_toggle_shopt extglob reset_extglob
 	local basechoice="${numeric_complete_choices[${1}]//$'\e'\[*([0-9;])[a-zA-Z]}"
-	"${reset_shopt[@]}"
+	"${reset_extglob[@]}"
 
 	if [[ "${2:${#2}-1}" = '/' ]]
 	then
@@ -512,10 +550,10 @@ numeric_complete_set_COMPREPLY()
 }
 
 numeric_complete() {
-	local reset_shopt
-	numeric_complete_set_extglob reset_shopt
+	local reset_extglob
+	numeric_complete_toggle_shopt extglob reset_extglob
 	local target="${2/#~*(\/)/${HOME}/}"
-	"${reset_shopt[@]}"
+	"${reset_extglob[@]}"
 
 	printf '*%s' $'\e[D'
 	local extra="${target#${numeric_complete_choices[0]}}"
