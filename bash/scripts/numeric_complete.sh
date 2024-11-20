@@ -13,49 +13,59 @@
 # ------------------------------
 # Relevant variables:
 # ------------------------------
-# 	NUMERIC_COMPLETE_CACHE_CHOICES
-# 		If 0, then caching will only be done for the purposes of making
-# 		a choice.  If no choice is made, then the directories will be
-# 		searched again for completion choices.  Otherwise, if 1, the
-# 		choices cache will remain and will be used for choices and
-# 		completion until a different directory is searched.
-# 	NUMERIC_COMPLETE_ALIAS
-# 		The alias to use for activating numeric completion.  This will
-# 		be aliased to the empty string.  Defaults to 'n'.
-# 		example:
-# 			NUMERIC_COMPLETE_ALIAS=myalias
-# 			source numeric_complete.sh
-# 			myalias ls [tab]  -> numeric completion
-# 	NUMERIC_COMPLETE_DEFAULT
-# 		A readline key sequence, defaulting to "\C-j\C-k".
-# 		(control-j control-k) If set, numeric_complete will be
-# 		registered as a default completion and
-# 		"${NUMERIC_COMPLETE_DEFAULT}" will be bound to complete.
-# 		"${COMP_KEY}" will be used to determine whether the default
-# 		completion or numeric completion should be used.  Because
-# 		COMP_KEY only looks at the last key used,
-# 		NUMERIC_COMPLETE_DEFAULT should not end with '\t' or '\C-i'.
-# 		The standard tab completion from the tab key will do normal
-# 		completion (compgen -o default), and the key sequence specified
-# 		by NUMERIC_COMPLETE_DEFAULT will do numeric complete.
-# 	NUMERIC_COMPLETE_PAGER=()
-# 		This contains the paging command for displaying potential
-# 		choices.  By default, it is empty (print to terminal).  Set it
-# 		to a command of your choice or call numeric_complete_set_pager
-# 		to set it.  numeric_complete_set_pager will default to less if
-# 		available. Fall back to just printing to the terminal.
-# 		more doesn't restore the terminal screen so it will screw up the
-# 		prompt if piped to it. But if have to restore the prompt anyways
-# 		might as well just print to terminal.  more would only allow
-# 		quitting before reaching the end.  Plus, the columns and
-# 		alignment seemed to be off when testing, so just don't use more.
-# 	numeric_complete_choices
-# 		This is an array that will cache the last directory search for
-# 		matches.  This way, directories are only searched once.
-# 		Making a numeric choice will just search the cached result. This
-# 		should make numeric completion on network drives a bit faster
-# 		rather than having to read the directory twice: once to display
-# 		choices, and again to complete the choice.
+# 	Keys:
+# 		These must be set prior to sourcing this script.  They will be
+# 		used to call `bind` with the corresponding arguments to activate
+# 		completion.  These variables are keys for bindings to numeric
+# 		completion and should be a single character long.  If using vim,
+# 		type control-v before hitting the key/key combo.  Alternatively,
+# 		if the key code is already known, the bash syntax $'\xNN' where
+# 		NN is the hex key code can also be used.  ($'\x0a' = a newline,
+# 		same as $'\n')
+#
+# 		NUMERIC_COMPLETE_PREFIX (C-l)
+# 			All numeric completion bindings start with this key.
+# 		NUMERIC_COMPLETE_DEFAULT (C-k)
+# 			A key for default numeric completion.  The default will always
+# 			read the corresponding directory for completion.
+# 	Settings
+# 		NUMERIC_COMPLETE_ALIAS
+# 			The alias to use for activating numeric completion.  This will
+# 			be aliased to the empty string.  Defaults to 'n'.
+# 			example:
+# 				NUMERIC_COMPLETE_ALIAS=myalias
+# 				source numeric_complete.sh
+# 				myalias ls [tab]  -> numeric completion
+# 		NUMERIC_COMPLETE_PAGER=()
+# 			This contains the paging command for displaying potential
+# 			choices.  By default, it is empty (print to terminal).  Set it
+# 			to a command of your choice or call numeric_complete_set_pager
+# 			to set it.  numeric_complete_set_pager will default to less if
+# 			available. Fall back to just printing to the terminal.
+# 			more doesn't restore the terminal screen so it will screw up the
+# 			prompt if piped to it. But if have to restore the prompt anyways
+# 			might as well just print to terminal.  more would only allow
+# 			quitting before reaching the end.  Plus, the columns and
+# 			alignment seemed to be off when testing, so just don't use more.
+# 	Data
+# 		numeric_complete_choices
+# 			This is an array that will cache the last directory search for
+# 			matches.  This way, directories are only searched once.
+# 			Making a numeric choice will just search the cached result. This
+# 			should make numeric completion on network drives a bit faster
+# 			rather than having to read the directory twice: once to display
+# 			choices, and again to complete the choice.
+# 	Performance
+# 		Some values need to be calculated via command substitution.
+# 		However, command substitution is slow and can have a significant
+# 		impact on the responsiveness of completion.  Calculating these
+# 		values once improves performance but as a result, any changes
+# 		are ignored after the script has been sourced.
+#
+# 		NUMERIC_COMPLETE_SHOW_MODE_IN_PROMPT
+# 			on/of, This is parsed from the output of `bind -v`.
+# 		NUMERIC_COMPLETE_IGNORE_CASE
+# 			on/of, this is parsed from the output of `bind -v`.
 # ------------------------------
 # Examples:
 # ------------------------------
@@ -130,26 +140,59 @@
 #
 # 		choose ls to search for completion options.
 
-NUMERIC_COMPLETE_PAGER=()
-NUMERIC_COMPLETE_CACHE_CHOICES=${NUMERIC_COMPLETE_CACHE_CHOICES-0}
 
+# ------------------------------
+# variables
+# ------------------------------
+# ------------------------------
+# keys
+# ------------------------------
+NUMERIC_COMPLETE_PREFIX="${NUMERIC_COMPLETE_PREFIX:-}"
+NUMERIC_COMPLETE_DEFAULT="${NUMERIC_COMPLETE_DEFAULT-}"
+
+# ------------------------------
+# settings
+# ------------------------------
+NUMERIC_COMPLETE_ALIAS="${NUMERIC_COMPLETE_ALIAS:-n}"
+NUMERIC_COMPLETE_PAGER=()
+
+# ------------------------------
+# data
+# ------------------------------
 # 0: Last prefix command line (calculate enterred number)
 # 1: directory fullpath
 numeric_complete_choices=()
 
-# I've found that process substitution seems to take
-# a significant amount of time, so just save these values
-# somewhere...
-#
+
+# ------------------------------
+# performance
+# ------------------------------
 NUMERIC_COMPLETE_SHOW_MODE_IN_PROMPT="$(bind -v 2>&1)"
 NUMERIC_COMPLETE_IGNORE_CASE="${NUMERIC_COMPLETE_SHOW_MODE_IN_PROMPT#*completion-ignore-case }"
 NUMERIC_COMPLETE_IGNORE_CASE="${NUMERIC_COMPLETE_IGNORE_CASE:0:2}"
-
 NUMERIC_COMPLETE_SHOW_MODE_IN_PROMPT="${NUMERIC_COMPLETE_SHOW_MODE_IN_PROMPT#*show-mode-in-prompt }"
 NUMERIC_COMPLETE_SHOW_MODE_IN_PROMPT="${NUMERIC_COMPLETE_SHOW_MODE_IN_PROMPT:0:2}"
 
 
+# ------------------------------
+# Functions
+# ------------------------------
 
+# Convert a number into a character and store in output
+# numeric_complete_num2char <num> [output=RESULT]
+numeric_complete_num2char()
+{
+	declare -n numeric_complete_num2char_val="${2:-RESULT}"
+	printf -v numeric_complete_num2char_val '%x' "${1}"
+	printf -v numeric_complete_num2char_val '\x'"${numeric_complete_num2char_val}"
+}
+# Convert a character into a number and store in output
+# numeric_complete_char2num <char> [output=RESULT]
+numeric_complete_char2num()
+{
+	declare -n numeric_complete_char2num_val="${2:-RESULT}"
+	printf -v numeric_complete_char2num_val '%d' "'${1}"
+}
 
 #Automatically set the pager for displaying choices.
 numeric_complete_set_pager()
@@ -581,33 +624,28 @@ numeric_complete() {
 	printf '*%s' $'\e[D'
 	local extra="${COMP_LINE:0:COMP_POINT}"
 	local extra="${extra#${numeric_complete_choices[0]}}"
+	local key
+	numeric_complete_num2char "${COMP_KEY}" key
+
+	local choices_idx_offset=2
 	if [[ "${extra}" != "${COMP_LINE:0:COMP_POINT}" \
 		&& "${extra}" =~ ^[0-9]+$ \
-		&& "${extra}" -lt "${#numeric_complete_choices[@]}" \
 		&& "${extra}" -gt 0 \
+		&& "${extra}" -le $(("${#numeric_complete_choices[@]}" - choices_idx_offset)) \
 	]]
 	then
 		numeric_complete_set_COMPREPLY $((extra+1)) "${2}"
-		if [[ "${NUMERIC_COMPLETE_CACHE_CHOICES}" -eq 0 ]]
-		then
-			numeric_complete_choices=()
-		fi
+		numeric_complete_choices=()
 	else
-		if [[ "${COMP_KEY}" -ne 9 || ${NUMERIC_COMPLETE_ALIAS:-n} = "${1}" ]]
+		if [[ "${key}" != $'\t' || ${NUMERIC_COMPLETE_ALIAS:-n} = "${1}" ]]
 		then
 			local dname base
 			numeric_complete_parse_word "${2}"
-			if [[ "${NUMERIC_COMPLETE_CACHE_CHOICES}" -eq 0 || "${dname}" != "${numeric_complete_choices[1]}" ]]
-			then
-				numeric_complete_search_ls "${target}"
-			fi
+			numeric_complete_search_ls "${target}"
 			if [[ "${#numeric_complete_choices[@]}" -eq 3 ]]
 			then
 				numeric_complete_set_COMPREPLY 2 "${2}"
-				if [[ "${NUMERIC_COMPLETE_CACHE_CHOICES}" -eq 0 ]]
-				then
-					numeric_complete_choices=()
-				fi
+				numeric_complete_choices=()
 			else
 				if [[ "${#numeric_complete_choices[@]}" -gt 3 ]]
 				then
@@ -644,11 +682,11 @@ numeric_complete() {
 	printf '%s\e[D' "${restore:- }"
 }
 
-alias ${NUMERIC_COMPLETE_ALIAS:-n}=''
-complete -o default -o nospace -F numeric_complete ${NUMERIC_COMPLETE_ALIAS:-n}
+alias ${NUMERIC_COMPLETE_ALIAS}=''
+complete -o default -o nospace -F numeric_complete ${NUMERIC_COMPLETE_ALIAS}
 
-if [[ -n "${NUMERIC_COMPLETE_DEFAULT-\\C-j\\C-k}" ]]
+if [[ -n "${NUMERIC_COMPLETE_DEFAULT}" ]]
 then
 	complete -D -o default -o nospace -F numeric_complete
-	bind \""${NUMERIC_COMPLETE_DEFAULT-\\C-j\\C-k}"'":complete'
+	bind \""${NUMERIC_COMPLETE_PREFIX}${NUMERIC_COMPLETE_DEFAULT}"'":complete'
 fi
