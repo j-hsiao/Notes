@@ -140,6 +140,17 @@
 #
 # 		choose ls to search for completion options.
 
+# TODO:
+# 1. Caching, separate reading directory from the completion choices.
+# 2. Calculate lengths only once, reduce calc times etc?
+# 3. Implement caching behavior:
+#    If directory changed (numeric_complete_choices[1]), read new dir.
+#    Otherwise, check if cur word prefix changed somehow.
+#    If added to cur word, refine choices in numeric_complete_choices
+#    If removed, refine from cached dir read.
+#    If no change, no updates needed.
+# 4. Use printf %q, quote the returned completion.
+
 
 # ------------------------------
 # variables
@@ -159,8 +170,8 @@ NUMERIC_COMPLETE_PAGER=()
 # ------------------------------
 # data
 # ------------------------------
-# 0: Last prefix command line (calculate enterred number)
-# 1: directory fullpath
+# idx 0: Last prefix command line (calculate newly typed text)
+# idx 1: directory fullpath
 numeric_complete_choices=()
 
 
