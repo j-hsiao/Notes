@@ -1,5 +1,4 @@
 #!/bin/bash
-
 # ------------------------------
 # Numeric tab completion.
 # ------------------------------
@@ -9,7 +8,9 @@
 # appending a number will choose that choice.  Modifying the current
 # completion word will cause dir searching again which may be slow for
 # network drives.  An initial tab completion will cache the choices.
-# Making a choice will clear the cache.
+# Making a choice will clear the cache.  Public functions/variables
+# will be prefixed with 'NUMERIC_COMPLETE_'.  Internal functions/variables
+# will be prefixed with _NC_
 # ------------------------------
 # Relevant variables:
 # ------------------------------
@@ -23,20 +24,20 @@
 # 		NN is the hex key code can also be used.  ($'\x0a' = a newline,
 # 		same as $'\n')
 #
-# 		NUMERIC_COMPLETE_PREFIX (C-l)
+# 		NUMERIC_COMPLETE_prefix (C-l)
 # 			All numeric completion bindings start with this key.
-# 		NUMERIC_COMPLETE_DEFAULT (C-k)
+# 		NUMERIC_COMPLETE_default (C-k)
 # 			A key for default numeric completion.  The default will always
 # 			read the corresponding directory for completion.
 # 	Settings
-# 		NUMERIC_COMPLETE_ALIAS
+# 		NUMERIC_COMPLETE_alias
 # 			The alias to use for activating numeric completion.  This will
 # 			be aliased to the empty string.  Defaults to 'n'.
 # 			example:
-# 				NUMERIC_COMPLETE_ALIAS=myalias
+# 				NUMERIC_COMPLETE_alias=myalias
 # 				source numeric_complete.sh
 # 				myalias ls [tab]  -> numeric completion
-# 		NUMERIC_COMPLETE_PAGER=()
+# 		NUMERIC_COMPLETE_pager=()
 # 			This contains the paging command for displaying potential
 # 			choices.  By default, it is empty (print to terminal).  Set it
 # 			to a command of your choice or call numeric_complete_set_pager
@@ -55,12 +56,7 @@
 # 			should make numeric completion on network drives a bit faster
 # 			rather than having to read the directory twice: once to display
 # 			choices, and again to complete the choice.
-# 	Performance
-# 		Some values need to be calculated via command substitution.
-# 		However, command substitution is slow and can have a significant
-# 		impact on the responsiveness of completion.  Calculating these
-# 		values once improves performance but as a result, any changes
-# 		are ignored after the script has been sourced.
+# 	Readline Settings
 #
 # 		NUMERIC_COMPLETE_SHOW_MODE_IN_PROMPT
 # 			on/of, This is parsed from the output of `bind -v`.
@@ -116,7 +112,6 @@
 #
 # 	As usual, completion should properly quote any weird names.
 
-
 # ------------------------------
 # ?possible improvements?
 # ------------------------------
@@ -158,57 +153,117 @@
 # ------------------------------
 # keys
 # ------------------------------
-NUMERIC_COMPLETE_PREFIX="${NUMERIC_COMPLETE_PREFIX:-}"
-NUMERIC_COMPLETE_DEFAULT="${NUMERIC_COMPLETE_DEFAULT-}"
+NUMERIC_COMPLETE_prefix="${NUMERIC_COMPLETE_prefix:-}"
+NUMERIC_COMPLETE_default="${NUMERIC_COMPLETE_default-}"
 
 # ------------------------------
 # settings
 # ------------------------------
-NUMERIC_COMPLETE_ALIAS="${NUMERIC_COMPLETE_ALIAS:-n}"
-NUMERIC_COMPLETE_PAGER=()
+# Some commands already have some complete function defined
+# for it so default completion won't use numeric completion.
+# Insert this alias in front to activate numeric completion.
+NUMERIC_COMPLETE_alias="${NUMERIC_COMPLETE_alias:-n}"
+NUMERIC_COMPLETE_pager=()
 
 # ------------------------------
-# data
+# track the current choices.
 # ------------------------------
-# idx 0: Last prefix command line (calculate newly typed text)
+_NC_choices=()
+
+# ------------------------------
+# cache the directory reads + lengths in this array
+# ------------------------------
+# idx 0: Command line up to the last cursor
 # idx 1: directory fullpath
-numeric_complete_choices=()
-
+# choices, lengths
+_NC_cache=()
 
 # ------------------------------
-# performance
+# Readline Settings
 # ------------------------------
-NUMERIC_COMPLETE_SHOW_MODE_IN_PROMPT="$(bind -v 2>&1)"
-NUMERIC_COMPLETE_IGNORE_CASE="${NUMERIC_COMPLETE_SHOW_MODE_IN_PROMPT#*completion-ignore-case }"
-NUMERIC_COMPLETE_IGNORE_CASE="${NUMERIC_COMPLETE_IGNORE_CASE:0:2}"
-NUMERIC_COMPLETE_SHOW_MODE_IN_PROMPT="${NUMERIC_COMPLETE_SHOW_MODE_IN_PROMPT#*show-mode-in-prompt }"
-NUMERIC_COMPLETE_SHOW_MODE_IN_PROMPT="${NUMERIC_COMPLETE_SHOW_MODE_IN_PROMPT:0:2}"
+# Override bind to set cached settings whenever called.
+if [[ "$(type _NC_orig_bind 2>/dev/null)" != 'function' ]]
+then
+	case "$(type -t bind)" in
+	# possible values: `alias', `keyword', `function', `builtin', `file' or `'
+		file|builtin)
+			# Generally should only ever be in this case.
+			_NC_orig_bind()
+			{
+				command bind "${@}"
+			}
+			;;
+		function)
+			if [[ ! "$(declare -f bind)" =~ .*'_NC_orig_bind ' ]]
+			then
+				printf 'Warning, experimental overriding function bind.\n'
+				eval _NC_orig_"$(declare -f bind)"
+			else
+				printf 'bind is a function that already references _NC_orig_bind\n'
+			fi
+			;;
+		alias)
+			printf 'Warning, experimental overriding alias bind.\n'
+			_NC_orig_bind_alias=$(alias bind)
+			_NC_orig_bind()
+			{
+				alias bind="${_NC_orig_bind_alias}"
+				bind
+				unalias bind
+			}
+			unalias bind
+			;;
+		*)
+			printf 'Warning, overriding bind but not sure if it will work.\n'
+			_NC_orig_bind()
+			{
+				command bind "${@}"
+			}
+			;;
+	esac
+
+	bind()
+	{
+		_NC_orig_bind "${@}"
+		local ret=$?
+		local data="$(_NC_orig_bind -v)"
+		_NC_completion_ignore_case="${data#*completion-ignore-case }"
+		_NC_completion_ignore_case="${_NC_completion_ignore_case:0:2}"
+
+		_NC_show_mode_in_prompt="${data#*show-mode-in-prompt }"
+		_NC_show_mode_in_prompt="${_NC_show_mode_in_prompt:0:2}"
+		return "${ret}"
+	}
+	bind
+fi
 
 
 # ------------------------------
 # Functions
 # ------------------------------
 
-# Convert a number into a character and store in output
-# numeric_complete_num2char <num> [output=RESULT]
-numeric_complete_num2char()
+# ------------------------------
+# keycode to character conversion
+# ------------------------------
+_NC_num2char() # <num> [output_varname=RESULT]
+# Convert a number into a character and store in output_varname
 {
-	declare -n numeric_complete_num2char_val="${2:-RESULT}"
-	printf -v numeric_complete_num2char_val '%x' "${1}"
-	printf -v numeric_complete_num2char_val '\x'"${numeric_complete_num2char_val}"
+	local -n _NC__num2char_val="${2:-RESULT}"
+	printf -v _NC__num2char_val '%x' "${1}"
+	printf -v _NC__num2char_val '\x'"${_NC__num2char_val}"
 }
-# Convert a character into a number and store in output
-# numeric_complete_char2num <char> [output=RESULT]
-numeric_complete_char2num()
+_NC_char2num() # <num> [output_varname=RESULT]
+# Convert a character into a number and store in output_varname
 {
-	declare -n numeric_complete_char2num_val="${2:-RESULT}"
-	printf -v numeric_complete_char2num_val '%d' "'${1}"
+	local -n _NC__char2num_val="${2:-RESULT}"
+	printf -v _NC__char2num_val '%d' "'${1}"
 }
 
-#Automatically set the pager for displaying choices.
-numeric_complete_set_pager()
+#Set the pager for displaying choices.
+NUMERIC_COMPLETE_set_pager()
+# Set NUMERIC_COMPLETE_pager variable to use less if available.
 {
-	NUMERIC_COMPLETE_PAGER=()
+	NUMERIC_COMPLETE_pager=()
 	local lessname lessver lessother
 	if read lessname lessver lessother < <(less --version 2>&1)
 	then
@@ -216,185 +271,240 @@ numeric_complete_set_pager()
 		then
 			if [[ "${lessver}" -ge 600 ]]
 			then
-				NUMERIC_COMPLETE_PAGER=(less -R -~ --header 2)
+				NUMERIC_COMPLETE_pager=(less -R -~ --header 2)
 			else
-				NUMERIC_COMPLETE_PAGER=(less -R -~ +1)
+				NUMERIC_COMPLETE_pager=(less -R -~ +1)
 			fi
 		fi
 	fi
 }
 
-numeric_complete_toggle_shopt() {
-	local option="${1}"
-	declare -n Nreset_extglob="${2}"
-	if [[ "${BASHOPTS}" =~ ^.*"${option}".*$ ]]
+# allow pushing/popping changing shopt values.
+_NC_shopt_stack=()
+_NC_push_shopt() # [(-|+)setting_name] ...
+# Set(+) or unset(-) shopt options
+{
+	local choice name add turnon= turnoff=
+	for choice in "${@}"
+	do
+		add="${choice:0:1}"
+		name="${choice:1}"
+
+		if [[ "${BASHOPTS}" =~ ^.*"${name}".*$ ]]
+		then
+			turnon+=" ${name}"
+		else
+			turnoff+=" ${name}"
+		fi
+
+		if [[ "${add}" = '-' ]]
+		then
+			shopt -u "${name}"
+		else
+			shopt -s "${name}"
+		fi
+	done
+	choice="${#_NC_shopt_stack[@]}"
+	if [[ "${#turnon}" -gt 0 ]]
 	then
-		Nreset_extglob=()
-	else
-		shopt -s "${option}"
-		Nreset_extglob=(shopt -u "${option}")
+		_NC_shopt_stack+=("shopt -s ${turnon}")
 	fi
+
+	if [[ "${#turnoff}" -gt 0 ]]
+	then
+		_NC_shopt_stack+=("shopt -u ${turnoff}")
+	fi
+	_NC_shopt_stack+=("${choice}")
 }
 
-# numeric_complete_parse_word completion_word
-#
-# Parse the completion word into dirname and base.
-# If no dirname, then it will be empty.
-numeric_complete_parse_word() {
+_NC_pop_shopt()
+# Reset shopt values to before the last push_shopt
+{
+	local target=${_NC_shopt_stack[-1]}
+	unset '_NC_shopt_stack[-1]'
+	while [[ "${#_NC_shopt_stack[@]}" -gt "${target}" ]]
+	do
+		${_NC_shopt_stack[-1]}
+		unset '_NC_shopt_stack[-1]'
+	done
+}
+
+_NC_pathsplit() # <path> [dname_var] [basename_var]
+# Parse <path> into dirnme and basename.
+# dirname will be a full path as obtained from ${PWD} and end with a /.
+{
+	local -n _NC__dname="${2:-dname}" _NC__bname="${3:-bname}"
 	if [[ "${1:${#1}-1}" = '/' ]]
 	then
-		dname="${1}"
-		base=''
+		_NC__dname="${1}"
+		_NC__bname=''
 	else
-		dname="${1%/*}"
-		base="${1##*/}"
-		if [[ "${dname}" = "${1}" ]]
+		_NC__dname="${1%/*}"
+		_NC__bname="${1##*/}"
+		if [[ "${_NC__dname}" = "${1}" ]]
 		then
-			dname=''
+			_NC__dname=''
 		else
-			dname="${dname}/"
+			_NC__dname+='/'
 		fi
 	fi
-	if [[ "${dname:0:1}" != '/' ]]
+	if [[ "${_NC__dname:0:1}" != '/' ]]
 	then
-		dname="${PWD}/${dname}"
+		_NC__dname="${PWD}/${_NC__dname}"
 	fi
 }
 
-# numeric_complete_max num_array_name start stop output
-#
-# Calculate the maximum of an array of numeric values >= 0 of the
-# range from start to stop.
-numeric_complete_max()
+_NC_max() # <int_array_name> <start> <stop> [output=RESULT]
+# Calculate the maximum value from [start, stop).
 {
-	declare -n output="${4}"
-	declare -n ref_array="${1}"
+	local -n _NC__output="${4:-RESULT}" _NC__array="${1}"
+	local stop=$((${3} < "${#_NC__array[@]}" ? "${3}" : ${#_NC__array[@]}))
+	if (("${2}" >= "${stop}"))
+	then
+		_NC__output=
+		return
+	fi
 	local idx="${2}"
-	output=0
-	while [[ "${idx}" -lt "${3}" ]]
+	_NC__output="${_NC__array[idx]}"
+	while ((idx < "${stop}"))
 	do
-		if [[ "${ref_array[idx]}" -gt "${output}" ]]
+		if ((_NC__output < "${_NC__array[idx]}"))
 		then
-			output="${ref_array[idx]}"
+			_NC__output="${_NC__array[idx]}"
 		fi
-		idx=$((idx+1))
+		((++idx))
 	done
 }
 
-# numeric_complete_calc_shape strwidths start stop rowout colout
-# Calculate the rows and cols to display.
-# strwidths: array of lengths of str
-# start/stop: range in strwidths to display (start included, stop excluded)
-# rowout/colout: output variables to store row/col values
-# Expect termwidth to be defined to columns of terminal
-numeric_complete_calc_shape()
+_NC_calc_shape() # <strwidth_array> <start> <stop> <termwidth> <minpad>
+#                  [rowout=rows] [colwidths=colwidths] [prewidth=prewidth]
+# Calculate the rows and columns to display strings with lengths given
+# in <strwidth_array> from [<start>, <stop>) such that the result is
+# at most <termwidth> wide with at least <minpad> spaces bewteen each
+# column.  A column will consist of a prefix of width <prewidth> and
+# the corresponding text.  The outputs will be <rowout>: the number of
+# rows, <colout>: the number of columns, <colwidth>: an array of the
+# widths of each column (text portion only), and <prewidth>: the width
+# of the prefix for each column.  The net width will be at least
+# <prewidth>*<colout> + sum(${colwidths[@]}) + (<colout> - 1) * <minpad>
 {
-	declare -n Narr="${1}" Nrowout="${4}" Ncolout="${5}" Ncolwidths="${6}" Nprewidth="${7}"
-	local minpad=2
-	local nchoices="$((${3} - ${2}))" maxwidth
-	numeric_complete_max Narr "${2}" "${3}" maxwidth
-	Nprewidth=$(("${#nchoices}" + 1))
-	local ncols=$((termwidth / (maxwidth+Nprewidth)))
-
-	while [[ "${ncols}" -ge 1 && $((termwidth - (ncols * (maxwidth + Nprewidth + minpad) - minpad))) -lt 0 ]]
+	local -n _NC__arr="${1}"
+	local start="${2}" stop="${3}" termwidth="${4}" minpad="${5}"
+	local -n _NC__rows="${6:-rows}" \
+		_NC__colwidths="${7:-colwidths}" _NC__prewidth="${8:-prewidth}"
+	_NC__colwidths=()
+	local nchoices=$((stop - start)) maxwidth
+	_NC_max _NC__arr "${2}" "${3}" maxwidth
+	_NC__prewidth=$(("${#nchoices}" + 1))
+	local colcheck=$((termwidth / (maxwidth + _NC__prewidth)))
+	while ((colcheck >= 1
+		&& ((_NC__prewidth + maxwidth + minpad)*colcheck ) - minpad > termwidth))
 	do
-		ncols=$((ncols-1))
+		((--colcheck))
 	done
-	if [[ "${ncols}" -eq 0 ]]
+	if ((colcheck == 0))
 	then
-		Nrowout="${nchoices}"
-		Ncolout=1
-		Ncolwidths=("${maxwidth}")
+		_NC__rows=nchoices
+		_NC__colwidths=("${maxwidth}")
 		return
-	elif [[ "${ncols}" -ge "${nchoices}" ]]
+	elif ((colcheck >= nchoices))
 	then
-		Ncolwidths=("${Narr[@]:2}")
-		Nrowout=1
-		Ncolout="${nchoices}"
+		_NC__rows=1
+		_NC__colwidths=("${_NC__arr[@]:start:stop-start}")
 		return
 	fi
-	Nrowout="$(((nchoices / ncols) + ((nchoices % ncols) > 0)))"
-	while [[ $((Nrowout * ncols - nchoices - Nrowout)) -ge 0 ]]
+	_NC__rows="$(((nchoices/colcheck) + ((nchoices % colcheck) > 0)))"
+	while ((_NC__rows*colcheck - nchoices >= _NC__rows))
 	do
-		ncols=$((ncols-1))
-		Nrowout="$(((nchoices / ncols) + ((nchoices % ncols) > 0)))"
+		((--colcheck))
+		_NC__rows="$(((nchoices / colcheck) + ((nchoices % colcheck) > 0)))"
 	done
-	Ncolout="${ncols}"
-	local idx=0
-	Ncolwidths=()
-	while [[ "${idx}" -lt "${ncols}" ]]
+	while (("${#_NC__colwidths[@]}" < colcheck))
 	do
-		Ncolwidths+=("${maxwidth}")
-		idx=$((idx+1))
+		_NC__colwidths+=("${maxwidth}")
 	done
-
-	while [[ "${ncols}" -lt "${nchoices}" && "$((termwidth - (maxwidth + ((Nprewidth + minpad) * ncols) - minpad)))" -ge 0 ]]
+	while ((colcheck < nchoices && termwidth >= maxwidth + colcheck*(_NC__prewidth+minpad) - minpad))
 	do
-		local ncols=$((ncols+1))
-		nrows="$(((nchoices / ncols) + ((nchoices % ncols) > 0)))"
-		if [[ $(((nrows * ncols) - nchoices)) -lt nrows ]]
+		local rowcheck=$((nchoices/colcheck + (nchoices % colcheck > 0)))
+		if ((rowcheck*colcheck - nchoices < nrows))
 		then
-			local netwidth=0 start=${2} curwidth tcolwidths=()
-			local textspace=$((termwidth - ((ncols*(Nprewidth+minpad)) - minpad)))
-			while [[ "${start}" -lt "${3}" && "${netwidth}" -le "${textspace}" ]]
+			local netwidth=0 idx=${start} curwidth tcolwidths=() \
+				textspace=$((termwidth - (colcheck*(minpad+_NC__prewidth) - minpad)))
+			while ((idx < stop && netwidth < textspace))
 			do
-				numeric_complete_max Narr "${start}" "$(( (start+nrows) < "${3}" ? (start+nrows) : "${3}" ))" curwidth
+				_NC_max _NC__arr ${idx} $((idx+rowcheck < stop ? idx+rowcheck : stop )) curwidth
 				tcolwidths+=("${curwidth}")
-				netwidth=$((netwidth + curwidth))
-				start=$((start + nrows))
+				((netwidth += curwidth))
+				((idx += rowcheck))
 			done
-			if [[ "${netwidth}" -le ${textspace} && "${start}" -ge "${3}" ]]
+			if ((netwidth <= textspace && idx >= stop))
 			then
-				Nrowout="${nrows}"
-				Ncolout="${ncols}"
-				Ncolwidths=("${tcolwidths[@]}")
+				_NC__rows="${rowcheck}"
+				_NC__colwidths=("${tcolwidths[@]}")
 			fi
 		fi
+		((++colcheck))
 	done
 }
 
+_NC_count_lines() # <text> <width> [out=RESULT]
+# Count the number of lines taking \n and termwidth into consideration.
+{
+	local text="${1}" width="${2}"
+	local -n _NC__out="${3:-RESULT}"
+	_NC__out=0
+	while (("${#text}" > 0))
+	do
+		local seg="${text%%$'\n'*}"
+		if (("${#seg}" == 0))
+		then
+			((++_NC__out))
+		else
+			((_NC__out += "${#seg}" / width + ("${#seg}" / width > 0)  ))
+		fi
+		if ((${#text} == "${#seg}" + 1))
+		then
+			((++_NC__out))
+		fi
+		text="${text:${#seg}+1}"
+	done
+}
 
+_NC_mimic_prompt() # <width>
 # Mimic prompt text and commandline (needs bash >= 4.4)
 # Expect termwidth to be defined to columns of terminal
-numeric_complete_mimic_prompt()
 {
-	if [[ "${NUMERIC_COMPLETE_SHOW_MODE_IN_PROMPT}" == 'on' ]]
+	local pre=
+	if [[ "${_NC_show_mode_in_prompt}" = 'on' ]]
 	then
-		local modeprompt=' '
-	else
-		local modeprompt=
+		pre+=' '
 	fi
-	local replicate="${modeprompt}${PS1@P}${COMP_LINE}" nlines=0
-	while [[ -n "${replicate}" ]]
-	do
-		local seg="${replicate%%$'\n'*}"
-		if [[ "${seg}" = "${replicate}" ]]
-		then
-			replicate=
-		else
-			replicate="${replicate#*$'\n'}"
-		fi
-		nlines="$((nlines + ${#seg}/termwidth + (${#seg}%termwidth > 0)))"
-	done
-	local restore=$'\e['"${nlines}"'A'
-	while [[ "${nlines}" -gt 0 ]]
-	do
-		printf '\n'
-		nlines=$((nlines-1))
-	done
+	local save=$'\e[s'
+	if (("${BASH_VERSINFO[0]:-3}" > 4 || ("${BASH_VERSINFO[0]:-3}" == 4 && "${BASH_VERSINFO[1]:-3}" >= 4)))
+	then
+		local numlines
+		_NC_count_lines "${PS1@P}${pre}${COMP_LINE}" "${1}" numlines
+		local restore=$'\e['"${numlines}"A
+		while ((numlines > 0))
+		do
+			printf '\n'
+			((--numlines))
+		done
+		printf '%s' \
+			"${restore}" \
+			"${PS1@P}" \
+			"${pre}"
+	fi
 	printf '%s' \
-		"${restore}" \
-		"${PS1@P}" \
-		"${modeprompt}" \
-		"${COMP_LINE:0:${COMP_POINT}}" \
+		"${COMP_LINE:0:COMP_POINT}" \
 		$'\e[s' \
-		"${COMP_LINE:${COMP_POINT}}" \
+		"${COMP_LINE:COMP_POINT}" \
 		$'\e[u'
 }
 
 # Calculate string widths, supporting unicode.
 # https://stackoverflow.com/questions/36380867/how-to-get-the-number-of-columns-occupied-by-a-character-in-terminal
-NUMERIC_COMPLETE_STR_WIDTH=(
+_NC_STRLEN_LUT=(
 	126     1   159     0   687     1   710     0   711     1
 	727     0   733     1   879     0   1154    1   1161    0
 	4347    1   4447    2   7467    1   7521    0   8369    1
@@ -404,72 +514,249 @@ NUMERIC_COMPLETE_STR_WIDTH=(
 	65131   2   65279   1   65376   2   65500   1   65510   2
 	120831  1   262141  2   1114109 1
 )
-# TODO maybe binary search would be faster?
-numeric_complete_str_width()
+
+#_NC_find_length()
+# linear search impl
+#{
+#	local -n _NC__out="${2:-RESULT}"
+#	if (("${1}" == 0xf || "${1}" == 0xe))
+#	then
+#		_NC__out=0
+#		return
+#	fi
+#	local idx=0 count="${#_NC_STRLEN_LUT[@]}"
+#	while ((idx < count))
+#	do
+#		if (("${1}" <= "${_NC_STRLEN_LUT[idx]}"))
+#		then
+#			_NC__out="${_NC_STRLEN_LUT[idx+1]}"
+#			return
+#		fi
+#		((idx+=2))
+#	done
+#}
+
+_NC_find_length()
+# binary search impl
 {
-	declare -n width="${2}"
-	local idx=0 length="${#1}" char
-	width=0
-	while [[ "${idx}" -lt "${length}" ]]
+	local -n _NC__out="${2:-RESULT}"
+	if (("${1}" == 0xf || "${1}" == 0xe))
+	then
+		_NC__out=0
+		return
+	elif (("${1}" <= "${_NC_STRLEN_LUT[0]}"))
+	then
+		# common case
+		_NC__out="${_NC_STRLEN_LUT[1]}"
+		return
+	fi
+	local low high mid
+	low=0
+	high=$(("${#_NC_STRLEN_LUT[@]}" / 2))
+	while ((low < high))
 	do
-		printf -v char '%d' "'${1:idx:1}"
-		if [[ "${char}" -ne 0xe && "${char}" -ne 0xf ]]
+		((mid = (high + low) / 2))
+		if (("${1}" < "${_NC_STRLEN_LUT[mid*2]}"))
 		then
-			local search=0
-			while [[ "${search}" -lt "${#NUMERIC_COMPLETE_STR_WIDTH[@]}" ]]
-			do
-				if [[ "${char}" -le "${NUMERIC_COMPLETE_STR_WIDTH[search]}" ]]
-				then
-					width=$((width + "${NUMERIC_COMPLETE_STR_WIDTH[search+1]}"))
-					break
-				fi
-				search=$((search+2))
-			done
+			((high = mid))
+		elif (("${1}" > "${_NC_STRLEN_LUT[mid*2]}"))
+		then
+			((low = mid+1))
+		else
+			_NC__out="${_NC_STRLEN_LUT[mid*2 + 1]}"
+			return
 		fi
-		idx=$((idx+1))
+	done
+	_NC__out="${_NC_STRLEN_LUT[mid*2+1]}"
+}
+
+
+
+if (( "${BASH_VERSINFO[0]:-4}" > 5 || ("${BASH_VERSINFO[0]:-4}" == 5 && ${BASH_VERSINFO[1]:-1} >= 2 )))
+then
+	_NC_strlen()
+	{
+		local -n _NC__width="${2:-RESULT}"
+		_NC__width=0
+		local chars char charlen
+		_NC_push_shopt +patsub_replacement
+		printf -v chars '%d ' ${1//?/\'& }
+		_NC_pop_shopt
+		for char in ${chars}
+		do
+			_NC_find_length "${char}" charlen
+			((_NC__width += charlen))
+		done
+	}
+else
+	_NC_strlen() # <string> [result=RESULT]
+	# Calculate the length of a string considering utf8 unicode
+	# but no ansi escape codes. remove them first.
+	{
+		local -n _NC__width="${2:-RESULT}"
+		local idx=0 length="${#1}" char charlen
+		_NC__width=0
+		while ((idx < length))
+		do
+			printf -v char '%d' "'${1:idx:1}"
+			_NC_find_length "${char}" charlen
+			((_NC__width += charlen))
+			((++idx))
+		done
+	}
+fi
+
+
+_NC_read_dir() # <dname>
+# Search directory and process results.
+{
+	local dname="${1}"
+	_NC_cache=("${_NC_cache[0]}" "${dname}")
+	local lsargs=()
+	if [[ -n "${dname}" ]]
+	then
+		lsargs=("${dname}")
+	fi
+	readarray -O 2 -t _NC_cache < <(ls -Ap --color=always "${lsargs[@]}" 2>/dev/null)
+	_NC_push_shopt +extglob
+	local raw=("${_NC_cache[@]//$'\e'\[*([0-9;])[a-zA-Z]}")
+	_NC_pop_shopt
+	local idx=2 end="${#_NC_cache[@]}" length
+	while ((idx < end))
+	do
+		_NC_strlen "${raw[idx]}" length
+		_NC_cache+=("${length}")
+		((++idx))
 	done
 }
-# This requires patsub_replacement, doesn't seem to affect the runtime much...
-# numeric_complete_str_width2()
-# {
-# 	numeric_complete_toggle_shopt patsub_replacement reset_patsub_replacement
-# 	declare -n width="${2}"
-# 	width=0
-# 	local chars
-# 	printf -v chars '%d ' ${1//?/\'& }
-# 	for val in ${chars}
-# 	do
-# 		local search=0
-# 		while [[ "${search}" -lt "${#NUMERIC_COMPLETE_STR_WIDTH[@]}" ]]
-# 		do
-# 			if [[ "${val}" -le "${NUMERIC_COMPLETE_STR_WIDTH[search]}" ]]
-# 			then
-# 				width=$((width + "${NUMERIC_COMPLETE_STR_WIDTH[search+1]}"))
-# 				break
-# 			fi
-# 			search=$((search+2))
-# 		done
-# 	done
-# 	"${reset_patsub_replacement[@]}"
-# }
 
-
-numeric_complete_display_choices()
+_NC_refine_choices() # <base>
+# Refine choices into _NC_choices.
+# If _NC_choices is not empty, then refine those choices.
+# Otherwise, refine choices taken from the _NC_cache.
+# After refinement, the first half of _NC_choices will be a sequence of
+# choices that share a prefix with <base>.  The second half will be a
+# one to one sequence of visual string lengths per matching choice.
 {
-	local reset_extglob
-	numeric_complete_toggle_shopt extglob reset_extglob
-	local strwidths=("${numeric_complete_choices[@]//$'\e'\[*([0-9;])[a-zA-Z]/}") idx=2
-	"${reset_extglob[@]}"
-
-	local strwidth
-	while [[ "${idx}" -lt "${#strwidths[@]}" ]]
+	if (("${#_NC_choices[@]}" > 0))
+	then
+		# refine choices from chosen
+		local start=0 mid=$(("${#_NC_choices[@]}" / 2))
+		local -n _NC__choice_src=_NC_choices
+	else
+		# newly refined choices
+		local start=2 mid=$((1 + ("${#_NC_cache[@]}" / 2)))
+		local -n _NC__choice_src=_NC_cache
+	fi
+	local assign=0 idx="${start}"
+	while ((idx < mid))
 	do
-		numeric_complete_str_width "${strwidths[idx]}" strwidth
-		strwidths[idx]="${strwidth}"
-		idx=$((idx+1))
+		# ignore ANSI color codes when matching
+		if [[ "${_NC__choice_src[idx]}" =~ ^($'\e'\[[0-9:;]*[a-zA-Z])*"${1}".*($'\e'\[[0-9:;]*[a-zA-Z])*/?$ ]]
+		then
+			_NC_choices[assign]="${_NC__choice_src[idx]}"
+			_NC_choices[mid + assign]="${_NC__choice_src[mid + idx - start]}"
+			((++assign))
+		fi
+		((++idx))
+	done
+	idx=0
+	while ((idx < assign))
+	do
+		_NC_choices[assign+idx]="${_NC_choices[mid+idx]}"
+		((++idx))
+	done
+	idx=$((assign*2))
+	mid=$((mid+assign < "${#_NC_choices[@]}" ? "${#_NC_choices[@]}" : mid+assign))
+	while ((idx < mid))
+	do
+		unset _NC_choices[idx]
+		((++idx))
+	done
+}
+
+
+# Set COMPREPLY array.
+# numeric_complete_set_COMPREPLY [choice (int)] [curword]
+_NC_set_COMPREPLY() # <choice (int)> [curword]
+# Set COMPREPLY to _NC_choices[<choice>], stripping any ansi color codes.
+{
+	_NC_push_shopt +extglob
+	local basechoice="${_NC_choices[${1}]//$'\e'\[*([0-9:;])[a-zA-Z]}"
+	_NC_pop_shopt
+
+	if [[ "${2}" =~ .*/.* ]]
+	then
+		COMPREPLY=("${2%/*}/${basechoice}")
+	else
+		COMPREPLY=("${basechoice}")
+	fi
+	#if [[ "${COMPREPLY[0]:${#COMPREPLY[0]}-1}" != '/' ]]
+	#then
+	#	COMPREPLY[0]="${COMPREPLY[0]} "
+	#fi
+}
+
+_NC_print_table() # <arr> <rows> <colwidthsarray> <prewidth> <termwidth>
+# Print _NC_choices in rows, cols
+# rows: The number of rows to print.
+# colwidthsarray: The variable name of an array containing column widths,
+#                 1 int per column (text only).
+# prewidth: The width for numbering the choices.
+# termwidth: The current width of the terminal
+{
+	local -n _NC__items="${1}" _NC__colwidths="${3}"
+	local maxpad=4 rows="${2}" cols="${#_NC__colwidths[@]}" prewidth="${4}"
+	local padspace=$(("${5}" - prewidth * cols)) textwidth
+	for textwidth in "${_NC__colwidths[@]}"
+	do
+		((padspace -= textwidth))
+	done
+	local prepad=('') tmp idx=1
+	while ((idx < cols))
+	do
+		tmp=$((idx * padspace / (cols-1)))
+		tmp=$((tmp > maxpad ? maxpad : tmp))
+		printf -v tmp "%${tmp}s" ''
+		prepad+=("${tmp}")
+		((++idx))
 	done
 
-	local rows cols widths prewidth termwidth
+	if [[ -t 1 ]]
+	then
+		printf 'T'
+	else
+		printf 'Press \"q\" to return to command ilne.\nThen t'
+	fi
+	printf 'ype the number for the desired choice and press tab to select.\n\n'
+
+	local currow=0 lenstart=$(("${#_NC__items[@]}" / 2))
+	while ((currow < rows))
+	do
+		local curcol=0
+		while ((curcol < cols))
+		do
+			idx=$(( (curcol*rows) + currow ))
+			if ((idx < "${#_NC__items[@]}" / 2))
+			then
+				rpad=$((_NC__colwidths[curcol] - _NC__items[idx+lenstart]))
+				printf "${prepad[curcol]}%${prewidth}s%s%${rpad}s" \
+					"${idx} " "${_NC__items[idx]}"
+			else
+				break
+			fi
+			((++curcol))
+		done
+		printf '\n'
+		((++currow))
+	done
+}
+
+
+_NC_display_choices()
+# Display the completion choices in _NC_choices
+{
+	local termwidth
 	if [[ "${BASHOPTS}" =~ ^(.+:)?checkwinsize(:.+)?$ || "${-}" =~ ^.*i.*$ ]]
 	then
 		termwidth="${COLUMNS}"
@@ -485,219 +772,82 @@ numeric_complete_display_choices()
 		# anyways.
 		termwidth=$(tput cols)
 	fi
-	numeric_complete_calc_shape strwidths 2 "${#strwidths[@]}" rows cols widths prewidth
-	local numwidth="$((prewidth-1))" prepad=(0) padspace=$((termwidth - (cols*prewidth)))
-	for idx in "${widths[@]}"
-	do
-		padspace=$((padspace - idx))
-	done
-
-	idx=1
-	while [[ "${idx}" -lt "${cols}" ]]
-	do
-		prepad+=("$(((idx * padspace) / (cols-1)))")
-		idx=$((idx+1))
-	done
-	idx=$((cols-1))
-	local maxpad=4
-	while [[ "${idx}" -gt 0 ]]
-	do
-		prepad[idx]="$((prepad[idx] - ${prepad[idx-1]}))"
-		if [[ "${prepad[idx]}" -gt "${maxpad}" ]]
-		then
-			prepad[idx]="${maxpad}"
-		fi
-		idx=$((idx-1))
-	done
-
-	if [[ "${#NUMERIC_COMPLETE_PAGER[@]}" -gt 0 ]]
+	if (("${#_NC_choices[@]}" > 0))
 	then
-		numeric_complete_print_table 1 | "${NUMERIC_COMPLETE_PAGER[@]}"
-	else
-		printf '\n'
-		numeric_complete_print_table
-		local multitab
-		printf -v multitab '%d' "'?"
-		if [[ "${COMP_TYPE}" -ne "${multitab}" ]]
+		local rows colwidths prewidth
+		_NC_calc_shape _NC_choices $(("${#_NC_choices[@]}" / 2)) \
+			"${#_NC_choices[@]}" "${termwidth}" 2 rows colwidths prewidth
+		if [[ "${#NUMERIC_COMPLETE_pager[@]}" -gt 0 ]]
 		then
-			numeric_complete_mimic_prompt
-		fi
-	fi
-}
-
-numeric_complete_print_table()
-{
-	local choices_idx_offset=2
-	local currow=0
-	while [[ ${currow} -lt "${rows}" ]]
-	do
-		if [[ "${currow}" -eq 0 ]]
-		then
-			printf '%sEnter the number choice then press tab to select.\n\n' \
-				"${1:+Press \"q\" to return.  }"
-		fi
-		local curcol=0
-		while [[ ${curcol} -lt ${cols} ]]
-		do
-			idx=$(( (curcol*rows) + currow ))
-			if [[ "$((idx + choices_idx_offset))" -lt "${#numeric_complete_choices[@]}" ]]
-			then
-				# printf does not parse ansi so must calculate padding
-				# manually  Column is thrown off by ansi so wrong
-				# widths.
-				printf '%'"${prepad[curcol]}"'s%'"${numwidth}"'d %s%'"$(("${widths[curcol]}" - "${strwidths[idx+2]}"))"'s' \
-					'' "$((idx+1))" "${numeric_complete_choices[idx + choices_idx_offset]}" ''
-			else
-				break
-			fi
-			curcol=$((curcol+1))
-		done
-		printf '\n'
-		currow=$((currow+1))
-	done
-}
-
-numeric_complete_search_ls() {
-	# ls with a glob will expand the glob searching the dir once
-	# and then ls which goes through the dir again.  To only do
-	# one pass (?faster?) for network drive, need to list the
-	# containing directory and then manually filter.
-
-	numeric_complete_choices=("${COMP_LINE:0:COMP_POINT}" "${dname}")
-	local lsargs=()
-	if [[ -n "${dname}" ]]
-	then
-		lsargs=("${dname}")
-	fi
-
-	readarray -O 2 -t numeric_complete_choices < <(ls -Ap --color=always "${lsargs[@]}" 2>/dev/null)
-
-	local iter=2 setting=2 size="${#numeric_complete_choices[@]}" reset_extglob
-	numeric_complete_toggle_shopt extglob reset_extglob
-	local raw=("${numeric_complete_choices[@]//$'\e'\[*([0-9;])[a-zA-Z]}")
-	"${reset_extglob[@]}"
-	# check if case insensitive?
-	if [[ "${NUMERIC_COMPLETE_IGNORE_CASE}" = 'on' ]]
-	then
-		raw=("${raw[@],,}")
-		base="${base,,}"
-	fi
-	while [[ "${iter}" -lt "${size}" ]]
-	do
-		if [[ "${raw[iter]}" =~ ^"${base}".* ]]
-		then
-			numeric_complete_choices[setting]="${numeric_complete_choices[iter]}"
-			setting=$[setting+1]
-		fi
-		iter=$[iter+1]
-	done
-	while [[ "${setting}" -lt "${size}" ]]
-	do
-		unset 'numeric_complete_choices[setting]'
-		setting=$[setting+1]
-	done
-}
-
-
-# Set COMPREPLY array.
-# numeric_complete_set_COMPREPLY [choice (int)] [curword]
-numeric_complete_set_COMPREPLY()
-{
-	local reset_extglob
-	numeric_complete_toggle_shopt extglob reset_extglob
-	local basechoice="${numeric_complete_choices[${1}]//$'\e'\[*([0-9;])[a-zA-Z]}"
-	"${reset_extglob[@]}"
-
-	if [[ "${2:${#2}-1}" = '/' ]]
-	then
-		COMPREPLY=("${2}${basechoice}")
-	else
-		COMPREPLY=("${2%/*}")
-		if [[ "${COMPREPLY[0]}" = "${2}" ]]
-		then
-			COMPREPLY=("${basechoice}")
+			_NC_print_table _NC_choices "${rows}" colwidths "${prewidth}" "${termwidth}" \
+				| "${NUMERIC_COMPLETE_pager[@]}"
 		else
-			COMPREPLY=("${COMPREPLY[0]}/${basechoice}")
+			printf '\n'
+			_NC_print_table _NC_choices "${rows}" colwidths "${prewidth}" "${termwidth}"
+			if ((COMP_TYPE == 9))
+			then
+				printf '\n'
+				_NC_mimic_prompt "${termwidth}"
+			else
+				printf '\e[A'
+			fi
+			restore=
 		fi
 	fi
-	if [[ "${COMPREPLY[0]:${#COMPREPLY[0]}-1}" != '/' ]]
-	then
-		COMPREPLY[0]="${COMPREPLY[0]} "
-	fi
 }
-
 numeric_complete() {
-	local reset_extglob
-	numeric_complete_toggle_shopt extglob reset_extglob
-	local target="${2/#~*(\/)/${HOME}/}"
-	"${reset_extglob[@]}"
-
-	printf '*%s' $'\e[D'
-	local extra="${COMP_LINE:0:COMP_POINT}"
-	local extra="${extra#${numeric_complete_choices[0]}}"
-	local key
-	numeric_complete_num2char "${COMP_KEY}" key
-
-	local choices_idx_offset=2
+	 _NC_push_shopt +extglob
+	local target="${2/#~*(\/)/${HOME}\/}"
+	_NC_pop_shopt
+	printf '*\e[D'
+	local restore=${COMP_LINE:COMP_POINT:1}
+	restore="${restore:- }"
+	local extra="${COMP_LINE:0:COMP_POINT}" key choices_idx_offset=2
+	extra="${extra#${_NC_cache[0]}}"
+	_NC_cache[0]="${COMP_LINE:0:COMP_POINT}"
+	_NC_num2char "${COMP_KEY}" key
 	if [[ "${extra}" != "${COMP_LINE:0:COMP_POINT}" \
 		&& "${extra}" =~ ^[0-9]+$ \
-		&& "${extra}" -gt 0 \
-		&& "${extra}" -le $(("${#numeric_complete_choices[@]}" - choices_idx_offset)) \
+		&& "${extra}" -ge 0 \
+		&& "${extra}" -lt $(("${#_NC_choices[@]}")) \
 	]]
 	then
-		numeric_complete_set_COMPREPLY $((extra+1)) "${2}"
-		numeric_complete_choices=()
+		_NC_set_COMPREPLY "${extra}" "${2}"
+		_NC_choices=()
 	else
-		if [[ "${key}" != $'\t' || ${NUMERIC_COMPLETE_ALIAS:-n} = "${1}" ]]
+		if [[ "${key}" != $'\t' || "${NUMERIC_COMPLETE_alias:-n}" = "${1}" ]]
 		then
 			local dname base
-			numeric_complete_parse_word "${2}"
-			numeric_complete_search_ls "${target}"
-			if [[ "${#numeric_complete_choices[@]}" -eq 3 ]]
+			_NC_pathsplit "${2}" dname base
+			if [[ "${dname}" != "${_NC_cache[1]}" ]]
 			then
-				numeric_complete_set_COMPREPLY 2 "${2}"
-				numeric_complete_choices=()
-			else
-				if [[ "${#numeric_complete_choices[@]}" -gt 3 ]]
-				then
-					numeric_complete_display_choices
-				fi
-				# if COMP_TYPE is multitab, then all the COMPREPLY choices
-				# will be printed out.  Want to avoid this, so empty string
-				# as only choice + up cursor to "undo" the extra printed lines.
-				# -o nospace + empty string for some reason:
-				# 1. does not delete current word ?is this a bug?
-				#    if Non-empty, even if shorter than "${2}", it will replace
-				#    but empty string does not.
-				# 2. does not modify the current line.
-				# if without -o nospace, then a space will be added at current
-				# position on command line = messed up.
-				local multitab
-				printf -v multitab '%d' "'?"
-				if [[ "${COMP_TYPE}" = "${multitab}" ]]
-				then
-					# cygwin seems to print extra lines
-					# so need to move up more
-					if [[ "${OS}" = *'Windows'* ]]
-					then
-						printf $'\e[2A'
-					else
-						printf $'\e[A'
-					fi
-				fi
-				COMPREPLY=('')
+				_NC_read_dir "${dname}"
+				_NC_choices=()
 			fi
+			_NC_refine_choices "${base}"
+			if (("${#_NC_choices[@]}" == 2))
+			then
+				_NC_set_COMPREPLY 0 "${2}"
+				_NC_choices=()
+			else
+				_NC_display_choices
+				COMPREPLY=('' ' ')
+			fi
+		else
+			COMPREPLY=()
 		fi
 	fi
-	local restore=${COMP_LINE:${COMP_POINT}:1}
-	printf '%s\e[D' "${restore:- }"
+	if [[ -n "${restore}" ]]
+	then
+		printf '%s\e[D' "${restore}"
+	fi
 }
 
-alias ${NUMERIC_COMPLETE_ALIAS}=''
-complete -o default -o nospace -F numeric_complete ${NUMERIC_COMPLETE_ALIAS}
+alias ${NUMERIC_COMPLETE_alias}=''
+complete -o default -o filenames -F numeric_complete ${NUMERIC_COMPLETE_alias}
 
-if [[ -n "${NUMERIC_COMPLETE_DEFAULT}" ]]
+if [[ -n "${NUMERIC_COMPLETE_default}" ]]
 then
-	complete -D -o default -o nospace -F numeric_complete
-	bind \""${NUMERIC_COMPLETE_PREFIX}${NUMERIC_COMPLETE_DEFAULT}"'":complete'
+	complete -D -o default -o filenames -F numeric_complete
+	bind \""${NUMERIC_COMPLETE_prefix}${NUMERIC_COMPLETE_default}"'":complete'
 fi
