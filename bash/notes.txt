@@ -1025,6 +1025,32 @@ https://www.gnu.org/software/bash/manual/html_node/Programmable-Completion-Built
 				COMP_WORDS: array of current commandline
 				COMP_CWORD: index of current word in COMP_WORDS
 				COMPREPLY : the completion candidates
+				            An empty string will be completed as if it is the
+				            same as the current word except when displayed,
+				            for example, by show-all-if-ambiguous or multitab.
+				            Any non-empty string will replace current word.
+				            Duplicates will be merged into a single value.
+				            The empty string shares a prefix with all other
+				            strings(empty prefix).  As a result, no change in the
+				            current word will happen if empty string is in
+				            the list with some other non-empty string.
+				            Thus, returning COMPREPLY=('' ' ') act like the 'p' case
+				            in the above table and the displayed choices are all
+				            blank/invisible.  The prompt will also be redrawn.
+
+				            ex:
+				            COMPREPLY=('')
+				                current word is completed as is (adds a space if nospace is not set)
+				                note that it DOES NOT replace the current word with nothing.
+				            COMPREPLY=(' ')
+				                current word is replaced with a single space
+				            COMPREPLY=('' ' ')
+				                current word is unchanged, may display an empty line printing out
+				                the 2 choices: '' and ' '
+
+			              ANSI keycodes in COMPREPLY are printed as visible chars
+			              ex. escape ($'\e') will be printed as '^['
+
 		-G pat expand for completions
 		-P: prefix prepended to completion results
 		-S: suffix to append to completion results
