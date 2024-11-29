@@ -224,6 +224,8 @@ function! s:AddCommentV() range
 		endif
 		let check += 1
 	endwhile
+	exe a:firstline 'mark ['
+	exe a:lastline 'mark ]'
 endfunction
 
 function! s:AddCommentLine()
@@ -337,6 +339,8 @@ function! s:RmCommentV() range
 		let curline = getline(curno)
 		let curno = s:RmLineV(curno, singles, multis, a:firstline, a:lastline)
 	endwhile
+	exe a:firstline 'mark ['
+	exe a:lastline 'mark ]'
 endfunction
 
 
@@ -466,16 +470,16 @@ function! s:Surround(char1, ...)
 	return printf("\<Esc>%s|a%s\<Esc>%s|i%s\<Esc>", col2, ending, col1, a:char1)
 endfunction
 
-if maparg("C-K>'", 'v') == ''
+if maparg("<C-K>'", 'v') == ''
 	vnoremap <expr> <C-K>' <SID>Surround("'")
 endif
-if maparg('C-K>"', 'v') == ''
+if maparg('<C-K>"', 'v') == ''
 	vnoremap <expr> <C-K>" <SID>Surround('"')
 endif
-if maparg('C-K>(', 'v') == ''
+if maparg('<C-K>(', 'v') == ''
 	vnoremap <expr> <C-K>( <SID>Surround('(', ')')
 endif
-if maparg('C-K>[', 'v') == ''
+if maparg('<C-K>[', 'v') == ''
 	vnoremap <expr> <C-K>[ <SID>Surround('[', ']')
 endif
 
