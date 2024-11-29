@@ -3,8 +3,8 @@ contents
 
 -0- general
 	-0.1- logic
-	-0.2- variable
-		-0.2.0- scopes
+	-0.2- variables
+		-0.2.0- scopes/assignment
 		-0.2.1- strings
 		-0.2.2- numbers
 		-0.2.3- arrays
@@ -99,6 +99,11 @@ ______________________________
 		creation:
 			declare varname
 			varname=value
+		creation from other var
+			printf format string and save under var name
+				printf -v "${variable_containing_target_name}" 'format_string' args...
+			read with herestring
+				read [flags...] "${variable_containing_target_name}" <<<"string to save to var"
 		deletion:
 			unset varname
 		expansions:
@@ -191,37 +196,87 @@ ______________________________
 
 		______________________________
 		-0.2.0- scopes
-			Depending on how the variable is set,
+			Scope determines where variables are visible.
+			In general, there are 3 observed scopes.
+			1: local
+			   Local variables only exist for functions.  They
+			   can only be seen within the function where they were
+			   created as well as by any functions called from there.
+			2: global
+			   Global variables are seen everywhere.  They can be
+			   shadowed by other variables.
 
-			Functions see parent (caller) scope.
-			declare varname=val defaults to local variables.
-			declare -g varname=val creates global variables
-			read "${varname}" <<<"value"
+			Assignment scopes:
+				Assignments will result in a local or global variable, but
+				behavior can differ.
 
-			ex:
-				blah.sh:
+				example:
+					outer()
+					{
+						local localvar
+						inner
+					}
+					innest() {
+					}
+					outer
 
-				v1=1
-				function func2()
-				{
-					v1=newvalue   # seen in func1 and blah.sh
-					v2=newvalue   # seen in func1, but not blah.sh (was local to func1)
-					v3=newvalue   # seen in func1 and blah.sh
+				local assignment:
+					local assignment always results in a local variable:
+						local var=value     (only within a function)
+						declare var=value   (if within a function)
+					ex:
+					inner() { local var=val; innest; }
+					var is visible:
+						1. within innest
+						2. within inner, after local var=val;
 
-					declare v1=newvalue # Neither func1 nor func2 see the new values
-					declare v2=newvalue # Neither func1 nor func2 see the new values
-					declare v3=newvalue # Neither func1 nor func2 see the new values
+					Note, local variables can exist on multiple levels.
+					ex. outer() { local var; inner; }
+					inner() { local var; }
+					the var in inner is a different local variable to the var in outer.
 
-					IFS= read v1 <<<newvalue # same as v1=newvalue
-					IFS= read v2 <<<newvalue # same as v2=newvalue
-					IFS= read v3 <<<newvalue # same as v3=newvalue
-				}
-				function func1()
-				{
-					local v2=1
-					v3=1
-					func2
-				}
+				global assignment:
+					Always results in global variable, will not modify any local
+					variables.
+						declare -g var=val
+						declare var=val (if outside a function)
+
+					inner() { declare -g var=val; innest; }
+					var is visible:
+						1. within innest
+						2. within inner, after declare -g var=val
+						3. within outer after inner
+						4. within the script, after outer
+
+				natural assignment:
+					Natural assignments will assign to the first local variable looking
+					through ancestor scopes.  If none are found, then the variable will
+					become global.
+					examples:
+						var=val
+						eval "${varname}=${val}"
+						printf -v "${varname}" '%s...' "$[val}" ...
+						read "${varname}" <<<"${val}"
+						declare -n ref="${varname}"; ref="${val}"
+							NOTE: 'ref' is a name reference variable. ref itself is a local
+							variable, but varname, the referenced name will be assigned
+							naturally
+
+					ex1:
+						inner() { var=val; innest; }
+						var is visible:
+							1. within innest
+							2. within inner, after var=val
+							3. within outer, after inner
+							4. within the script, after outer
+
+					ex2:
+						inner() { localvar=val; innest; }
+						var is visible:
+							1. within innest
+							2. within inner, after localvar=val
+							3. within outer, (note that changes by inner will be visible
+							   after the inner call)
 
 		______________________________
 		-0.2.1- strings
