@@ -528,6 +528,8 @@ function! s:AddIndentVisual(ignore_comments, ...) range
 			let curline += 1
 		endwhile
 	endif
+		exe a:firstline 'mark ['
+		exe a:lastline 'mark ]'
 endfunction
 
 vnoremap <Plug>TabispaAddIndent; :call <SID>AddIndentVisual(v:false)<CR>
@@ -593,6 +595,8 @@ function! s:RemoveIndentVisual(ignore_comments, ...) range
 			let curline += 1
 		endwhile
 	endif
+	exe a:firstline 'mark ['
+	exe a:lastline 'mark ]'
 endfunction
 
 vnoremap <Plug>TabispaRemoveIndent; :call <SID>RemoveIndentVisual(v:false)<CR>
