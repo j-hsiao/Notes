@@ -818,7 +818,7 @@ numeric_complete() {
 		if [[ "${key}" != $'\t' || "${NUMERIC_COMPLETE_alias:-n}" = "${1}" ]]
 		then
 			local dname base
-			_NC_pathsplit "${2}" dname base
+			_NC_pathsplit "${target}" dname base
 			if [[ "${dname}" != "${_NC_cache[1]}" ]]
 			then
 				_NC_read_dir "${dname}"
