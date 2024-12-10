@@ -153,8 +153,8 @@
 # ------------------------------
 # keys
 # ------------------------------
-NUMERIC_COMPLETE_prefix="${NUMERIC_COMPLETE_prefix:-}"
-NUMERIC_COMPLETE_default="${NUMERIC_COMPLETE_default-}"
+NUMERIC_COMPLETE_prefix="${NUMERIC_COMPLETE_prefix:-;}"
+NUMERIC_COMPLETE_default="${NUMERIC_COMPLETE_default-l}"
 
 # ------------------------------
 # settings
