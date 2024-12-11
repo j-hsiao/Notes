@@ -1,0 +1,420 @@
+https://eigen.tuxfamily.org/dox/group__QuickRefPage.html
+------------------------------
+contents
+------------------------------
+-0- general
+	-0.1- Template Parameters
+	-0.2- Initialization
+	-0.3- Size and Shape
+	-0.4- Matrix/Array Conversion
+	-0.5- Accessing Elements
+	-0.6- Blocks
+	-0.7- Expressions
+-1- Matrix operations
+-2- Array Operations
+
+------------------------------
+-0- general
+------------------------------
+scalar means a single int/float/double, etc
+
+Matrix and Array can use the same data and only represent
+different sets of operations.  They have the same template
+parameters and some generic attributes
+
+Eigen uses expression templates.  This means evaluation only happens
+at assignment.  Be wary of in-place assignments.  (ex. a = a.transpose()).
+Eigen may have dedicated in-place operations like a.transposeInPlace().
+
+matrix and array are convertible with .matrix() or .array()
+expressions too
+BESIDES ASSIGNMENT, mixing is not allowed (must be matrix op matrix or
+array op array)
+
+	------------------------------
+	-0.1- Template Parameters
+	------------------------------
+	template<class Scalar, int rows, int cols, int options, int maxrows, int maxcols>
+	struct Matrix|Array{...};
+
+		rows/cols:
+		------------------------------
+		rows/cols can be Dynamic (a Eigen-defined constant)
+		The actual rows/cols must be passed to the constructor.
+		dynamic/static rows/cols can be mixed as needed.
+
+		NOTE: Eigen recommends using static sizes if size < 32.
+
+		Matrix<float, Dynamic, Dynamic> mymat(rows, cols);
+		Matrix<float, 5, Dynamic> mymat(5, cols);
+
+		vectors just have 1 col
+		row vectors are "distinct" from vectors and have row of 1.
+
+		options:
+		------------------------------
+		Bitfield:
+			RowMajor: store row-major data.
+
+		max rows/cols:
+		------------------------------
+		Specify a maximum bound on size allowing dynamic size using fixed data.
+		(stack-allocated = "fast")
+
+
+	------------------------------
+	-0.2- Initialization
+	------------------------------
+		initializer list for rows/cols
+			Matrix<...> mat{
+				{a, b, c},
+				{d, e, f},
+				{g, h, i},
+			};
+
+		For vectors, can just use a single row
+			VectorXd col{{a, b, c, d}};
+			RowVectorXd row{{a, b, c, d}};
+
+		Comma-initialization: ?initialize flattened, value by value?
+			Matrix<...> m;
+			m << a, b, c, d, e, ...;
+
+			NOTE: this is always row-major filling.
+			Can also use rows, etco
+
+			mat<tp, M, N> x;
+			x << rowvec1, rowvec2;
+
+			or matrices? but dunno exactly about order...
+			seems like if perfectly divisible is ok?
+
+			ex:
+				Matrix<tp, 4,4> m;
+				Matrix<tp, 2,2> block;
+				m << block, block/10, block-1, block*2;
+
+				fills m block by block left to right, top to bottom
+
+		------------------------------
+		special initialization (special exprs)
+		------------------------------
+		STATIC: some static-shaped array/matrix type
+		DYNAMIC: some dynamic-shaped array/matrix type
+
+			STATIC::Zero();
+			DYNAMIC::Zero(length);
+			DYNAMIC::Zero(rows, cols);
+
+			STATIC::Constant(val);
+			DYNAMIC::Constant(rows, cols, val);
+
+			Random
+			Identity
+			LinSpaced(size, low, high)
+
+		------------------------------
+		Other
+		------------------------------
+		.setZero()
+		.setIdentity()
+		.setLinSpaced()
+
+	------------------------------
+	-0.3- Size and Shape
+	------------------------------
+		height = mat.rows()
+		width = mat.cols()
+		count = mat.size() (rows*cols)
+
+		Dynamic sized array/matrices can be resized using .resize:
+			matrix.resize(rows, cols)
+			vector.resize(count)
+
+			*NOTE: resize() can be called on static-sized arrays if size is
+			the same.
+
+		matarr.reshaped<options>(new_rows, new_cols)
+			defaults to column major
+			If shape is omitted, ravels/flattens the data.
+
+
+
+	------------------------------
+	-0.4- Matrix/Array Conversion
+	------------------------------
+		Arrays/Array expressions have a .matrix() method
+		Matrices/Matrix expressions have a .array() method
+		Use these to convert between the two sets of operations.
+
+		All operations only operate on soley arrays or matrices
+		so add .array()/.matrix() appropriately
+
+		* ONLY assignment does not distinguish between the two sets.
+
+	------------------------------
+	-0.5- Accessing Elements
+	------------------------------
+	Individual elements can be accessed by using operator() with indices.
+		operator()(rows, cols)
+			rows/cols can be:
+				scalar                              that single row/col
+				Eigen::all                          slice on that dimension
+				Sequences                           Slice with a step
+					Eigen::seq
+					Eigen::seqN
+					Eigen::placeholders::lastN
+				1d Eigen::matrix/Eigen::array       list of indices to use
+					std::vector/std::array
+					scalar array (int[N])
+					anything with interface
+						integral operator[](integral) const
+						integral size() const
+
+			operator()(N)
+				operate on flattened data? (storage order matters)
+
+		Extra sequences:
+		------------------------------
+		seq(first, last, [incr=1])
+			from first to last, change by incr. NOTE: last is INCLUDED
+
+		seqN(first, count, [incr=1])
+			Take count values from first advancing by incr
+
+		Eigen::last
+			refers to last index (can form exprs with it)
+			ex. Eigen::last / 2 = index at middle
+
+		Eigen::lastN(size, [incr=1])
+			The last <size> items
+			incr: ???
+				docs say:
+				lastN(n, 3) means "Last n columns taking 1 column over 3"
+				but... wut?
+
+		Constant size/increment: use Eigen::fix<val>
+			?? but const value wouldn't??
+
+		------------------------------
+		Examples:
+		------------------------------
+			let matrix = M x N matrix
+			matrix(Eigen::placeholders::all, indices):
+				For each row, values at indices
+				output is M x len(indices)
+
+	------------------------------
+	-0.6- Blocks
+	------------------------------
+	blocks are basically row/col slices on an array/matrix.
+
+	.block(row,col,height,width)        .block<height,width>(row,col)
+
+	columns/rows
+	------------------------------
+	.col(col)
+	.row(row)
+
+	corners
+	------------------------------
+	.topLeftCorner(rows, cols)         .topLeftCorner<rows, cols>()
+	.bottomLeftCorner(rows, cols)      .bottomLeftCorner<rows, cols>()
+	.topRightCorner(rows, cols)        .topRightCorner<rows, cols>()
+	.bottomRightCorner(rows, cols)     .bottomRightCorner<rows, cols>()
+
+	.topRows(rows)          .topRows<rows>()
+	.bottomRows(rows)       .bottomRows<rows>()
+	.leftCols(cols)         .leftCols<cols>()
+	.rightCols(cols)        .rightCols<cols>()
+	.middleCols(i,cols)     .middleCols<cols>(i)
+	.middleRows(i,rows)     .middleRows<rows>(i)
+
+	vectors
+	------------------------------
+	.head(n)        .head<n>()
+	.tail(n)        .tail<n>()
+	.segment(i,n)   .segment<n>(i)
+
+	------------------------------
+	-0.7- Expressions
+	------------------------------
+	Eigen use lazily evaluated expressions (allows cache-friendly optimization)
+	use .eval() to explicitly create the corresponding matrix/array
+	or assign the expr to an existing array/matrix.
+
+	NOTE: for temporary initialized expressions
+	ex. (MatrixXf(rows,cols) << a,b, c, d, ...), use .finished() instead to
+	"get the actual matrix object once the comma initialization of our temporary
+	submatrix is done"
+
+
+------------------------------
+-1- Common operations
+------------------------------
+	add/sub
+	------------------------------
+		thing + thing           thing += thing          -thing
+		thing - thing           thing -= thing
+
+	scalar mul/div
+	------------------------------
+		mat * scalar        mat *= scalar       scalar * mat
+		mat / scalar        mat /= scalar
+
+	reductions
+	------------------------------
+		sum()
+		prod()
+		maxCoeff()
+		minCoeff()
+		mean()
+		trace()
+		norm()
+		squaredNorm()
+		all()
+		any()
+		count()                 count True elements
+		lpNorm<p>()
+		lpNorm<Infinity>() (abs().maxCoeff())
+
+		partial reduction
+		------------------------------
+		colwise()|rowwise().reduction(...)
+			colwise: like np.???(..., axis=0)
+			rowwise: like np.???(..., axis=1)
+
+
+	integral components
+	------------------------------
+		real()
+		imag()
+		conjugate()
+
+	Visitors
+	------------------------------
+	like argmax/argmin, np.nonzero(), etc
+		ex. of argmax:
+			Eigen::Index row, col
+			mat.maxCoeff(&row, &col);
+
+	Broadcasting
+	------------------------------
+	Eigen broadcasting is not automatic.
+		Must use colwise()/rowwise() and then
+		whatever operation.
+
+		ex: add column vector to each column:
+		mat.colwise() += vec
+
+
+	examples
+	------------------------------
+		closest point:
+		Matrix<tp, dim, num> points;
+		Matrix<tp, dim, 1> point;
+
+		Eigen::Index argmin;
+		(points.colwise() - point).colwise().squaredNorm().minCoeff(&argmin);
+
+
+------------------------------
+-2- Matrix operations
+------------------------------
+	matmul
+	------------------------------
+		mat * mat
+		mat * col           row *= mat
+		row * mat           mat *= mat
+
+		NOTE: mat * mat is a special case and will create a temporary.
+		use noalias() to assign without temporary
+
+	dot/cross
+	------------------------------
+		vec1.dot(vec2)
+		vec1.cross(vec2)
+
+	norms
+	------------------------------
+		norm()
+		squaredNorm()
+		normalized()
+		normalize() (inplace)
+
+	transpose
+	------------------------------
+		transpose()
+		adjoint()
+		transposeInPlace()
+		adjointInPlace()
+
+	coefficient-wise (cwise)
+	------------------------------
+		cwiseMin(mat2|scalar)
+		cwiseMax(mat2|scalar)
+		cwiseAbs2()
+		cwiseAbs()
+		cwiseSqrt()
+		cwiseInverse()
+		cwiseProduct(mat2)
+		cwiseQuotient(mat2)
+		cwiseEqual(mat2)
+		cwiseNotEqual(mat2)
+
+
+------------------------------
+-3- Array Operations
+------------------------------
+Arrays are for element-wise operations.
+They use the same constructors/template arguments as Matrix.
+	------------------------------
+	-2.1- operations
+	------------------------------
+	add/sub
+	------------------------------
+		Array + Scalar
+		Scalar + Array
+		Array - Scalar
+		Scalar - Array
+
+	mul
+	------------------------------
+		Array * array   *element-wise multiplication
+
+	others
+	------------------------------
+		methods             standalone functions
+		abs2()
+		abs()               abs(arr)
+		sqrt()              sqrt(arr)
+		log()               log(arr)
+		log10()             log10(arr)
+		exp()               exp(arr)
+		pow(arr2|scalar)    pow(arr|scalar, arr|scalar)
+
+		square()
+		cube()
+		inverse()
+
+		sin()               sin(arr)
+		cos()               cos(arr)
+		tan()               tan(arr)
+		asin()              asin(arr)
+		acos()              acos(arr)
+		atan()              atan(arr)
+		sinh()              sinh(arr)
+		cosh()              cosh(arr)
+		tanh()              tanh(arr)
+		arg()               arg(arr)
+
+		floor()             floor(arr)
+		ceil()              ceil(arr)
+		round()             round(arr)
+
+		isFinite()          isFinite(arr)
+		isInf()             isInf(arr)
+		isNan()             isNan(arr)
+
+		min(other)          min of this and other
+		max(other)          max of this and other
