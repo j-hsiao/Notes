@@ -31,6 +31,11 @@ expressions too
 BESIDES ASSIGNMENT, mixing is not allowed (must be matrix op matrix or
 array op array)
 
+Observations:
+	Matrices CANNOT operate on different types. ie matmul of double mat
+	with float mat will fail. (not compile).  Also Matrix multiply cannot
+	be assigned to an Array.
+
 	------------------------------
 	-0.1- Template Parameters
 	------------------------------
@@ -133,6 +138,10 @@ array op array)
 
 			*NOTE: resize() can be called on static-sized arrays if size is
 			the same.
+
+			Also note, resize WILL DESTROY DATA!
+			use .conservativeResize(newrows, newcols)
+			NoChange_t can be used to indicate no change.
 
 		matarr.reshaped<options>(new_rows, new_cols)
 			defaults to column major
