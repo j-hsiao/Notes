@@ -5,11 +5,12 @@ p = argparse.ArgumentParser()
 p.add_argument('-d', '--delay', type=float, help='repeat delay in seconds', default=10)
 p.add_argument('-j', '--jitter', type=int, default=2)
 p.add_argument('-v', '--verbose', action='store_true')
+p.add_argument(
+    '-w', '--wiggle_delay', type=float, default=10,
+    help='delay in resuming wiggle after detecting manual movement.')
 args = p.parse_args()
 args.delay = str(int(args.delay * 1000))
-
-sized = '{}x10+0+0'.format(args.jitter+10)
-
+args.wiggle_delay = str(int(args.wiggle_delay * 1000))
 
 class Callback(object):
     DEFS = {}
@@ -60,12 +61,19 @@ def check(shift=1):
         if args.verbose:
             print('\tto', x, y)
         r.event_generate('<Motion>', x=x, y=y, warp=True)
+        delay = args.delay
+    else:
+        delay = args.wiggle_delay
     state['pos'] = x,y
-    r.tk.call('after', args.delay, check, str(-shift))
+    r.tk.call('after', delay, check, str(-shift))
 
 r = tk.Tk()
+t = tk.Label(r, text='Double click to close.')
+state['pos'] = t.winfo_pointerxy()
+t.grid()
+sized = '{}x{}+0+0'.format(t.winfo_reqwidth(), t.winfo_reqheight())
 r.overrideredirect(True)
-r.geometry('1x1+0+0')
+left()
 r.attributes('-topmost', True)
 Callback.create_all(r)
 r.tk.call('after', '1', check, str(args.jitter))
