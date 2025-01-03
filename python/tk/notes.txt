@@ -1,4 +1,5 @@
 Contents
+-0- tcl
 -1- general
 	-1.0- Terms
 	-1.1- Widgets
@@ -42,6 +43,26 @@ Contents
 	-3.12- Scrollbar
 	-3.13- Spinbox
 	-3.14- Text
+
+______________________________
+-0- tcl
+	Tcl is the actual ?gui engine? used by tkinter.
+	Each Tk instance has a .tk attribute which seems to be the tcl interpreter.
+	The tcl interpreter has a call() method which will take the arguments and
+	call tcl commands (check tcl docs)
+
+	ex:
+		import tkinter as tk
+		r = tk.Tk()
+		r.tk.call('bind', '.', '<Button-1>', 'command args script')
+
+	Each argument to call() will be converted to str and treated as a
+	separate argument for the tcl interpreter regardless of spaces etc.
+	The above call() is equivalent to:
+
+		r.tk.call('bind', r, '<Button-1>', 'command args script')
+
+
 ______________________________
 -1- general
 	tk is a wrapper over tcl.
