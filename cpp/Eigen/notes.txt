@@ -12,6 +12,7 @@ contents
 	-0.7- Expressions
 -1- Matrix operations
 -2- Array Operations
+-3- Ref/Map
 
 ------------------------------
 -0- general
@@ -427,3 +428,18 @@ They use the same constructors/template arguments as Matrix.
 
 		min(other)          min of this and other
 		max(other)          max of this and other
+
+------------------------
+-3- Ref/Map
+
+Eigen::Ref<mattype, opts=0, Stride<s1, s2>> allow writing non-templated
+code that can apply to Matrix or blocks.
+
+Eigen::Map<mattype, opts=0, Stride<s1,s2>> Allows wrapping a pointer in
+an Eigen-like matrix.
+
+Note that Ref can also wrap a Map, but Map cannot directly wrap a Ref.
+Mixing Eigen::RowMajor/Eigen::ColMajor is NOT allowed, even if it is
+possible to set the corresponding strides to match data.
+
+Ref does not seem to work well with 0 strides, Map can handle though.
