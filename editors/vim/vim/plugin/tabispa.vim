@@ -140,7 +140,11 @@ imap <expr> <C-H> <SID>BackspaceAlignmentDispatch('CH')
 "to align to then next/previous word of previous line.
 function! s:AlignTo(position, prevline, nxt)
 	let col = 0
-	for part in split(a:prevline, '\m\s\+\zs')
+	"Jump to endings of whitespace OR word starts
+	for part in split(a:prevline, '\m\%(\s\+\zs\|\<\)')
+	"Jump to endings of whitespace
+	"for part in split(a:prevline, '\m\s\+\zs')
+	"Jump to start of start of "words"
 	"for part in split(a:prevline, '\m\<')
 		let size = strdisplaywidth(part, col)
 		if col + size > a:position || col+size == a:position && !a:nxt
