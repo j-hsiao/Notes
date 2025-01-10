@@ -10,6 +10,7 @@ contents
 	-0.5- Accessing Elements
 	-0.6- Blocks
 	-0.7- Expressions
+	-0.10- Miscellaneous/gotchas
 -1- Matrix operations
 -2- Array Operations
 -3- Ref/Map
@@ -257,6 +258,36 @@ Observations:
 	ex. (MatrixXf(rows,cols) << a,b, c, d, ...), use .finished() instead to
 	"get the actual matrix object once the comma initialization of our temporary
 	submatrix is done"
+
+	------------------------------
+	-0.10- Miscellaneous/gotchas
+	------------------------------
+	Iteration/begin()/end()/stl
+
+	stl iterators seem to be wonky if expression ever goes through transpose()
+	ex:
+		T mat2d;
+
+		OKAY:
+			mat2d.colwise().begin() == mat2d.colwise().begin()
+
+		OKAY:
+			auto thing = mat2d.transpose().colwise();
+			thing.begin() == thing.begin();
+
+		BAD:
+			auto thing = mat2d.transpose();
+			thing.colwise().begin() == thing.colwise().begin();
+
+		BAD:
+			tp it1, it2;
+			{
+				auto thing = mat2d.transpose().colwise();
+				it1 = thing.begin();
+				it2 = thing.end();
+			}
+			do stuff with it
+
 
 
 ------------------------------
