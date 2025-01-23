@@ -248,15 +248,15 @@ fi
 _NC_num2char() # <num> [output_varname=RESULT]
 # Convert a number into a character and store in output_varname
 {
-	local -n _NC__num2char_val="${2:-RESULT}"
-	printf -v _NC__num2char_val '%x' "${1}"
-	printf -v _NC__num2char_val '\x'"${_NC__num2char_val}"
+	local -n _NC_num2char__val="${2:-RESULT}"
+	printf -v _NC_num2char__val '%x' "${1}"
+	printf -v _NC_num2char__val '\x'"${_NC_num2char__val}"
 }
 _NC_char2num() # <num> [output_varname=RESULT]
 # Convert a character into a number and store in output_varname
 {
-	local -n _NC__char2num_val="${2:-RESULT}"
-	printf -v _NC__char2num_val '%d' "'${1}"
+	local -n _NC_char2num__val="${2:-RESULT}"
+	printf -v _NC_char2num__val '%d' "'${1}"
 }
 
 #Set the pager for displaying choices.
@@ -357,22 +357,22 @@ _NC_pathsplit() # <path> [dname_var] [basename_var]
 _NC_max() # <int_array_name> <start> <stop> [output=RESULT]
 # Calculate the maximum value from [start, stop).
 {
-	local -n _NC__output="${4:-RESULT}" _NC__array="${1}"
-	local stop=$((${3} < "${#_NC__array[@]}" ? "${3}" : ${#_NC__array[@]}))
-	if (("${2}" >= "${stop}"))
+	local -n _NC_max__output="${4:-RESULT}" _NC_max__array="${1}"
+	local _NC_max__stop=$((${3} < "${#_NC_max__array[@]}" ? "${3}" : ${#_NC_max__array[@]}))
+	if (("${2}" >= "${_NC_max__stop}"))
 	then
-		_NC__output=
+		_NC_max__output=
 		return
 	fi
-	local idx="${2}"
-	_NC__output="${_NC__array[idx]}"
-	while ((idx < "${stop}"))
+	local _NC_max__idx="${2}"
+	_NC_max__output="${_NC_max__array[_NC_max__idx]}"
+	while ((_NC_max__idx < "${_NC_max__stop}"))
 	do
-		if ((_NC__output < "${_NC__array[idx]}"))
+		if ((_NC_max__output < "${_NC_max__array[_NC_max__idx]}"))
 		then
-			_NC__output="${_NC__array[idx]}"
+			_NC_max__output="${_NC_max__array[_NC_max__idx]}"
 		fi
-		((++idx))
+		((++_NC_max__idx))
 	done
 }
 
@@ -388,85 +388,87 @@ _NC_calc_shape() # <strwidth_array> <start> <stop> <termwidth> <minpad>
 # of the prefix for each column.  The net width will be at least
 # <prewidth>*<colout> + sum(${colwidths[@]}) + (<colout> - 1) * <minpad>
 {
-	local -n _NC__arr="${1}"
-	local start="${2}" stop="${3}" termwidth="${4}" minpad="${5}"
-	local -n _NC__rows="${6:-rows}" \
-		_NC__colwidths="${7:-colwidths}" _NC__prewidth="${8:-prewidth}"
-	_NC__colwidths=()
-	local nchoices=$((stop - start)) maxwidth
-	_NC_max _NC__arr "${2}" "${3}" maxwidth
-	_NC__prewidth=$(("${#nchoices}" + 1))
-	local colcheck=$((termwidth / (maxwidth + _NC__prewidth)))
-	while ((colcheck >= 1
-		&& ((_NC__prewidth + maxwidth + minpad)*colcheck ) - minpad > termwidth))
+	local -n _NC_calc_shape__arr="${1}"
+	local _NC_calc_shape__start="${2}" _NC_calc_shape__stop="${3}" \
+		_NC_calc_shape__termwidth="${4}" _NC_calc_shape_minpad="${5}"
+	local -n _NC_calc_shape__rows="${6:-rows}" \
+		_NC_calc_shape__colwidths="${7:-colwidths}" _NC_calc_shape__prewidth="${8:-prewidth}"
+	_NC_calc_shape__colwidths=()
+	local _NC_calc_shape_nchoices=$((_NC_calc_shape__stop - _NC_calc_shape__start)) \
+		_NC_calc_shape__maxwidth
+	_NC_max _NC_calc_shape__arr "${2}" "${3}" _NC_calc_shape__maxwidth
+	_NC_calc_shape__prewidth=$(("${#_NC_calc_shape_nchoices}" + 1))
+	local _NC_calc_shape__colcheck=$((_NC_calc_shape__termwidth / (_NC_calc_shape__maxwidth + _NC_calc_shape__prewidth)))
+	while ((_NC_calc_shape__colcheck >= 1
+		&& ((_NC_calc_shape__prewidth + _NC_calc_shape__maxwidth + _NC_calc_shape_minpad)*_NC_calc_shape__colcheck ) - _NC_calc_shape_minpad > _NC_calc_shape__termwidth))
 	do
-		((--colcheck))
+		((--_NC_calc_shape__colcheck))
 	done
-	if ((colcheck == 0))
+	if ((_NC_calc_shape__colcheck == 0))
 	then
-		_NC__rows=nchoices
-		_NC__colwidths=("${maxwidth}")
+		_NC_calc_shape__rows=_NC_calc_shape_nchoices
+		_NC_calc_shape__colwidths=("${_NC_calc_shape__maxwidth}")
 		return
-	elif ((colcheck >= nchoices))
+	elif ((_NC_calc_shape__colcheck >= _NC_calc_shape_nchoices))
 	then
-		_NC__rows=1
-		_NC__colwidths=("${_NC__arr[@]:start:stop-start}")
+		_NC_calc_shape__rows=1
+		_NC_calc_shape__colwidths=("${_NC_calc_shape__arr[@]:_NC_calc_shape__start:_NC_calc_shape__stop-_NC_calc_shape__start}")
 		return
 	fi
-	_NC__rows="$(((nchoices/colcheck) + ((nchoices % colcheck) > 0)))"
-	while ((_NC__rows*colcheck - nchoices >= _NC__rows))
+	_NC_calc_shape__rows="$(((_NC_calc_shape_nchoices/_NC_calc_shape__colcheck) + ((_NC_calc_shape_nchoices % _NC_calc_shape__colcheck) > 0)))"
+	while ((_NC_calc_shape__rows*_NC_calc_shape__colcheck - _NC_calc_shape_nchoices >= _NC_calc_shape__rows))
 	do
-		((--colcheck))
-		_NC__rows="$(((nchoices / colcheck) + ((nchoices % colcheck) > 0)))"
+		((--_NC_calc_shape__colcheck))
+		_NC_calc_shape__rows="$(((_NC_calc_shape_nchoices / _NC_calc_shape__colcheck) + ((_NC_calc_shape_nchoices % _NC_calc_shape__colcheck) > 0)))"
 	done
-	while (("${#_NC__colwidths[@]}" < colcheck))
+	while (("${#_NC_calc_shape__colwidths[@]}" < _NC_calc_shape__colcheck))
 	do
-		_NC__colwidths+=("${maxwidth}")
+		_NC_calc_shape__colwidths+=("${_NC_calc_shape__maxwidth}")
 	done
-	while ((colcheck < nchoices && termwidth >= maxwidth + colcheck*(_NC__prewidth+minpad) - minpad))
+	while ((_NC_calc_shape__colcheck < _NC_calc_shape_nchoices && _NC_calc_shape__termwidth >= _NC_calc_shape__maxwidth + _NC_calc_shape__colcheck*(_NC_calc_shape__prewidth+_NC_calc_shape_minpad) - _NC_calc_shape_minpad))
 	do
-		local rowcheck=$((nchoices/colcheck + (nchoices % colcheck > 0)))
-		if ((rowcheck*colcheck - nchoices < nrows))
+		local _NC_calc_shape__rowcheck=$((_NC_calc_shape_nchoices/_NC_calc_shape__colcheck + (_NC_calc_shape_nchoices % _NC_calc_shape__colcheck > 0)))
+		if ((_NC_calc_shape__rowcheck*_NC_calc_shape__colcheck - _NC_calc_shape_nchoices < nrows))
 		then
-			local netwidth=0 idx=${start} curwidth tcolwidths=() \
-				textspace=$((termwidth - (colcheck*(minpad+_NC__prewidth) - minpad)))
-			while ((idx < stop && netwidth < textspace))
+			local _NC_calc_shape__netwidth=0 idx=${_NC_calc_shape__start} _NC_calc_shape__curwidth _NC_calc_shape__tcolwidths=() \
+				textspace=$((_NC_calc_shape__termwidth - (_NC_calc_shape__colcheck*(_NC_calc_shape_minpad+_NC_calc_shape__prewidth) - _NC_calc_shape_minpad)))
+			while ((idx < _NC_calc_shape__stop && _NC_calc_shape__netwidth < textspace))
 			do
-				_NC_max _NC__arr ${idx} $((idx+rowcheck < stop ? idx+rowcheck : stop )) curwidth
-				tcolwidths+=("${curwidth}")
-				((netwidth += curwidth))
-				((idx += rowcheck))
+				_NC_max _NC_calc_shape__arr ${idx} $((idx+_NC_calc_shape__rowcheck < _NC_calc_shape__stop ? idx+_NC_calc_shape__rowcheck : _NC_calc_shape__stop )) _NC_calc_shape__curwidth
+				_NC_calc_shape__tcolwidths+=("${_NC_calc_shape__curwidth}")
+				((_NC_calc_shape__netwidth += _NC_calc_shape__curwidth))
+				((idx += _NC_calc_shape__rowcheck))
 			done
-			if ((netwidth <= textspace && idx >= stop))
+			if ((_NC_calc_shape__netwidth <= textspace && idx >= _NC_calc_shape__stop))
 			then
-				_NC__rows="${rowcheck}"
-				_NC__colwidths=("${tcolwidths[@]}")
+				_NC_calc_shape__rows="${_NC_calc_shape__rowcheck}"
+				_NC_calc_shape__colwidths=("${_NC_calc_shape__tcolwidths[@]}")
 			fi
 		fi
-		((++colcheck))
+		((++_NC_calc_shape__colcheck))
 	done
 }
 
 _NC_count_lines() # <text> <width> [out=RESULT]
 # Count the number of lines taking \n and termwidth into consideration.
 {
-	local text="${1}" width="${2}"
-	local -n _NC__out="${3:-RESULT}"
-	_NC__out=0
-	while (("${#text}" > 0))
+	local _NC_count_lines__text="${1}" _NC_count_lines__width="${2}"
+	local -n _NC_count_lines__out="${3:-RESULT}"
+	_NC_count_lines__out=0
+	while (("${#_NC_count_lines__text}" > 0))
 	do
-		local seg="${text%%$'\n'*}"
-		if (("${#seg}" == 0))
+		local _NC_count_lines__seg="${_NC_count_lines__text%%$'\n'*}"
+		if (("${#_NC_count_lines__seg}" == 0))
 		then
-			((++_NC__out))
+			((++_NC_count_lines__out))
 		else
-			((_NC__out += "${#seg}" / width + ("${#seg}" / width > 0)  ))
+			((_NC_count_lines__out += "${#_NC_count_lines__seg}" / _NC_count_lines__width + ("${#_NC_count_lines__seg}" / _NC_count_lines__width > 0)  ))
 		fi
-		if ((${#text} == "${#seg}" + 1))
+		if ((${#_NC_count_lines__text} == "${#_NC_count_lines__seg}" + 1))
 		then
-			((++_NC__out))
+			((++_NC_count_lines__out))
 		fi
-		text="${text:${#seg}+1}"
+		_NC_count_lines__text="${_NC_count_lines__text:${#_NC_count_lines__seg}+1}"
 	done
 }
 
@@ -539,35 +541,35 @@ _NC_STRLEN_LUT=(
 _NC_find_length()
 # binary search impl
 {
-	local -n _NC__out="${2:-RESULT}"
+	local -n _NC_find_length__out="${2:-RESULT}"
 	if (("${1}" == 0xf || "${1}" == 0xe))
 	then
-		_NC__out=0
+		_NC_find_length__out=0
 		return
 	elif (("${1}" <= "${_NC_STRLEN_LUT[0]}"))
 	then
 		# common case
-		_NC__out="${_NC_STRLEN_LUT[1]}"
+		_NC_find_length__out="${_NC_STRLEN_LUT[1]}"
 		return
 	fi
-	local low high mid
-	low=0
-	high=$(("${#_NC_STRLEN_LUT[@]}" / 2))
-	while ((low < high))
+	local _NC_find_length__low _NC_find_length__high _NC_find_length__mid
+	_NC_find_length__low=0
+	_NC_find_length__high=$(("${#_NC_STRLEN_LUT[@]}" / 2))
+	while ((_NC_find_length__low < _NC_find_length__high))
 	do
-		((mid = (high + low) / 2))
-		if (("${1}" < "${_NC_STRLEN_LUT[mid*2]}"))
+		((_NC_find_length__mid = (_NC_find_length__high + _NC_find_length__low) / 2))
+		if (("${1}" < "${_NC_STRLEN_LUT[_NC_find_length__mid*2]}"))
 		then
-			((high = mid))
-		elif (("${1}" > "${_NC_STRLEN_LUT[mid*2]}"))
+			((_NC_find_length__high = _NC_find_length__mid))
+		elif (("${1}" > "${_NC_STRLEN_LUT[_NC_find_length__mid*2]}"))
 		then
-			((low = mid+1))
+			((_NC_find_length__low = _NC_find_length__mid+1))
 		else
-			_NC__out="${_NC_STRLEN_LUT[mid*2 + 1]}"
+			_NC_find_length__out="${_NC_STRLEN_LUT[_NC_find_length__mid*2 + 1]}"
 			return
 		fi
 	done
-	_NC__out="${_NC_STRLEN_LUT[mid*2+1]}"
+	_NC_find_length__out="${_NC_STRLEN_LUT[_NC_find_length__mid*2+1]}"
 }
 
 
@@ -576,16 +578,16 @@ if (( "${BASH_VERSINFO[0]:-4}" > 5 || ("${BASH_VERSINFO[0]:-4}" == 5 && ${BASH_V
 then
 	_NC_strlen()
 	{
-		local -n _NC__width="${2:-RESULT}"
-		_NC__width=0
-		local chars char charlen
+		local -n _NC_strlen__width="${2:-RESULT}"
+		_NC_strlen__width=0
+		local _NC_strlen__chars _NC_strlen__char _NC_strlen__charlen
 		_NC_push_shopt +patsub_replacement
-		printf -v chars '%d ' ${1//?/\'& }
+		printf -v _NC_strlen__chars '%d ' ${1//?/\'& }
 		_NC_pop_shopt
-		for char in ${chars}
+		for _NC_strlen__char in ${_NC_strlen__chars}
 		do
-			_NC_find_length "${char}" charlen
-			((_NC__width += charlen))
+			_NC_find_length "${_NC_strlen__char}" _NC_strlen__charlen
+			((_NC_strlen__width += _NC_strlen__charlen))
 		done
 	}
 else
@@ -593,15 +595,15 @@ else
 	# Calculate the length of a string considering utf8 unicode
 	# but no ansi escape codes. remove them first.
 	{
-		local -n _NC__width="${2:-RESULT}"
-		local idx=0 length="${#1}" char charlen
-		_NC__width=0
-		while ((idx < length))
+		local -n _NC_strlen__width="${2:-RESULT}"
+		local _NC_strlen__idx=0 _NC_strlen__length="${#1}" _NC_strlen__char _NC_strlen__charlen
+		_NC_strlen__width=0
+		while ((_NC_strlen__idx < _NC_strlen__length))
 		do
-			printf -v char '%d' "'${1:idx:1}"
-			_NC_find_length "${char}" charlen
-			((_NC__width += charlen))
-			((++idx))
+			printf -v _NC_strlen__char '%d' "'${1:_NC_strlen__idx:1}"
+			_NC_find_length "${_NC_strlen__char}" _NC_strlen__charlen
+			((_NC_strlen__width += _NC_strlen__charlen))
+			((++_NC_strlen__idx))
 		done
 	}
 fi
@@ -641,37 +643,37 @@ _NC_refine_choices() # <base>
 	if (("${#_NC_choices[@]}" > 0))
 	then
 		# refine choices from chosen
-		local start=0 mid=$(("${#_NC_choices[@]}" / 2))
-		local -n _NC__choice_src=_NC_choices
+		local _NC_refine_choices__start=0 _NC_refine_choices__mid=$(("${#_NC_choices[@]}" / 2))
+		local -n _NC_refine_choices__choice_src=_NC_choices
 	else
 		# newly refined choices
-		local start=2 mid=$((1 + ("${#_NC_cache[@]}" / 2)))
-		local -n _NC__choice_src=_NC_cache
+		local _NC_refine_choices__start=2 _NC_refine_choices__mid=$((1 + ("${#_NC_cache[@]}" / 2)))
+		local -n _NC_refine_choices__choice_src=_NC_cache
 	fi
-	local assign=0 idx="${start}"
-	while ((idx < mid))
+	local _NC_refine_choices__assign=0 _NC_refine_choices__idx="${_NC_refine_choices__start}"
+	while ((_NC_refine_choices__idx < _NC_refine_choices__mid))
 	do
 		# ignore ANSI color codes when matching
-		if [[ "${_NC__choice_src[idx]}" =~ ^($'\e'\[[0-9:;]*[a-zA-Z])*"${1}".*($'\e'\[[0-9:;]*[a-zA-Z])*/?$ ]]
+		if [[ "${_NC_refine_choices__choice_src[_NC_refine_choices__idx]}" =~ ^($'\e'\[[0-9:;]*[a-zA-Z])*"${1}".*($'\e'\[[0-9:;]*[a-zA-Z])*/?$ ]]
 		then
-			_NC_choices[assign]="${_NC__choice_src[idx]}"
-			_NC_choices[mid + assign]="${_NC__choice_src[mid + idx - start]}"
-			((++assign))
+			_NC_choices[_NC_refine_choices__assign]="${_NC_refine_choices__choice_src[_NC_refine_choices__idx]}"
+			_NC_choices[_NC_refine_choices__mid + _NC_refine_choices__assign]="${_NC_refine_choices__choice_src[_NC_refine_choices__mid + _NC_refine_choices__idx - _NC_refine_choices__start]}"
+			((++_NC_refine_choices__assign))
 		fi
-		((++idx))
+		((++_NC_refine_choices__idx))
 	done
-	idx=0
-	while ((idx < assign))
+	_NC_refine_choices__idx=0
+	while ((_NC_refine_choices__idx < _NC_refine_choices__assign))
 	do
-		_NC_choices[assign+idx]="${_NC_choices[mid+idx]}"
-		((++idx))
+		_NC_choices[_NC_refine_choices__assign+_NC_refine_choices__idx]="${_NC_choices[_NC_refine_choices__mid+_NC_refine_choices__idx]}"
+		((++_NC_refine_choices__idx))
 	done
-	idx=$((assign*2))
-	mid=$((mid+assign < "${#_NC_choices[@]}" ? "${#_NC_choices[@]}" : mid+assign))
-	while ((idx < mid))
+	_NC_refine_choices__idx=$((_NC_refine_choices__assign*2))
+	_NC_refine_choices__mid=$((_NC_refine_choices__mid+_NC_refine_choices__assign < "${#_NC_choices[@]}" ? "${#_NC_choices[@]}" : _NC_refine_choices__mid+_NC_refine_choices__assign))
+	while ((_NC_refine_choices__idx < _NC_refine_choices__mid))
 	do
-		unset _NC_choices[idx]
-		((++idx))
+		unset _NC_choices[_NC_refine_choices__idx]
+		((++_NC_refine_choices__idx))
 	done
 }
 
@@ -705,21 +707,24 @@ _NC_print_table() # <arr> <rows> <colwidthsarray> <prewidth> <termwidth>
 # prewidth: The width for numbering the choices.
 # termwidth: The current width of the terminal
 {
-	local -n _NC__items="${1}" _NC__colwidths="${3}"
-	local maxpad=4 rows="${2}" cols="${#_NC__colwidths[@]}" prewidth="${4}"
-	local padspace=$(("${5}" - prewidth * cols)) textwidth
-	for textwidth in "${_NC__colwidths[@]}"
+	local -n _NC_print_table__items="${1}" _NC_print_table__colwidths="${3}"
+	local _NC_print_table__maxpad=4 _NC_print_table__rows="${2}" \
+		_NC_print_table__cols="${#_NC_print_table__colwidths[@]}" \
+		_NC_print_table__prewidth="${4}" \
+		_NC_print_table__padspace=$(("${5}" - _NC_print_table__prewidth * _NC_print_table__cols)) \
+		_NC_print_table__textwidth
+	for _NC_print_table__textwidth in "${_NC_print_table__colwidths[@]}"
 	do
-		((padspace -= textwidth))
+		((_NC_print_table__padspace -= _NC_print_table__textwidth))
 	done
-	local prepad=('') tmp idx=1
-	while ((idx < cols))
+	local _NC_print_table__prepad=('') _NC_print_table__tmp _NC_print_table__idx=1
+	while ((_NC_print_table__idx < _NC_print_table__cols))
 	do
-		tmp=$((idx * padspace / (cols-1)))
-		tmp=$((tmp > maxpad ? maxpad : tmp))
-		printf -v tmp "%${tmp}s" ''
-		prepad+=("${tmp}")
-		((++idx))
+		_NC_print_table__tmp=$((_NC_print_table__idx * _NC_print_table__padspace / (_NC_print_table__cols-1)))
+		_NC_print_table__tmp=$((_NC_print_table__tmp > _NC_print_table__maxpad ? _NC_print_table__maxpad : _NC_print_table__tmp))
+		printf -v _NC_print_table__tmp "%${_NC_print_table__tmp}s" ''
+		_NC_print_table__prepad+=("${_NC_print_table__tmp}")
+		((++_NC_print_table__idx))
 	done
 
 	if [[ -t 1 ]]
@@ -730,25 +735,25 @@ _NC_print_table() # <arr> <rows> <colwidthsarray> <prewidth> <termwidth>
 	fi
 	printf 'ype the number for the desired choice and press tab to select.\n\n'
 
-	local currow=0 lenstart=$(("${#_NC__items[@]}" / 2))
-	while ((currow < rows))
+	local _NC_print_table__currow=0 _NC_print_table__lenstart=$(("${#_NC_print_table__items[@]}" / 2))
+	while ((_NC_print_table__currow < _NC_print_table__rows))
 	do
-		local curcol=0
-		while ((curcol < cols))
+		local _NC_print_table__curcol=0
+		while ((_NC_print_table__curcol < _NC_print_table__cols))
 		do
-			idx=$(( (curcol*rows) + currow ))
-			if ((idx < "${#_NC__items[@]}" / 2))
+			_NC_print_table__idx=$(( (_NC_print_table__curcol*_NC_print_table__rows) + _NC_print_table__currow ))
+			if ((_NC_print_table__idx < "${#_NC_print_table__items[@]}" / 2))
 			then
-				rpad=$((_NC__colwidths[curcol] - _NC__items[idx+lenstart]))
-				printf "${prepad[curcol]}%${prewidth}s%s%${rpad}s" \
-					"${idx} " "${_NC__items[idx]}"
+				rpad=$((_NC_print_table__colwidths[_NC_print_table__curcol] - _NC_print_table__items[_NC_print_table__idx+_NC_print_table__lenstart]))
+				printf "${_NC_print_table__prepad[_NC_print_table__curcol]}%${_NC_print_table__prewidth}s%s%${rpad}s" \
+					"${_NC_print_table__idx} " "${_NC_print_table__items[_NC_print_table__idx]}"
 			else
 				break
 			fi
-			((++curcol))
+			((++_NC_print_table__curcol))
 		done
 		printf '\n'
-		((++currow))
+		((++_NC_print_table__currow))
 	done
 }
 
