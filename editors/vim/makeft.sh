@@ -28,6 +28,6 @@ for info in "${settings[@]}"
 do
 	ft=${info%% *}
 	settings="${info#* }"
-	echo "${ft}"
-	echo "setlocal" "${settings}" | tee ${OUTDIR}/${ft}.vim
+	printf 'setlocal %s\n' "${settings#${settings%%[^[:blank:]]*}}" > "${OUTDIR}/${ft}.vim"
+	printf '%7s: setlocal %s\n' "${ft}" "${settings#${settings%%[^[:blank:]]*}}"
 done
