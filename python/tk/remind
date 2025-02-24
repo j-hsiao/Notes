@@ -76,7 +76,11 @@ p.add_argument(
 )
 p.add_argument(
     '--maxsleep', type=float, default=3600.0,
-    help='maximum sleep duration before checking time again.')
+    help='maximum sleep duration when splitting sleep.')
+p.add_argument(
+    '--splitsleep', type=float, default=60.0,
+    help='''Split sleeping to improve sleep accuracy (more frequent
+        time checks when above splitsleep)''')
 "
 
 DATE_PARSE="
@@ -191,7 +195,7 @@ now = time.time()
 target = now + tdelta.total_seconds()
 while now < target:
     sleeptime = target-now
-    if sleeptime > 60:
+    if sleeptime > args.splitsleep:
         sleeptime = min(sleeptime / 2, args.maxsleep)
     time.sleep(sleeptime)
     now = time.time()
@@ -232,8 +236,8 @@ if [ -n "${JOB}" ]
 then
 	if [ -z "${HELP}" ]
 	then
-    	# put this script into the background
-    	# run py in current script = job remains
+		# put this script into the background
+		# run py in current script = job remains
 		bash -c "kill -s SIGSTOP $$; kill -s SIGCONT $$&" &
 		wait
 	fi
