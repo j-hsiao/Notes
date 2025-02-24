@@ -74,6 +74,9 @@ p.add_argument(
         ' accidentally fg, you might need to cancel and re-schedule it.'
     )
 )
+p.add_argument(
+    '--maxsleep', type=float, default=3600.0,
+    help='maximum sleep duration before checking time again.')
 "
 
 DATE_PARSE="
@@ -187,7 +190,10 @@ ${GET_TDELTA}
 now = time.time()
 target = now + tdelta.total_seconds()
 while now < target:
-    time.sleep(target-now)
+    sleeptime = target-now
+    if sleeptime > 60:
+        sleeptime = min(sleeptime / 2, args.maxsleep)
+    time.sleep(sleeptime)
     now = time.time()
 
 r = tk.Tk()
