@@ -350,7 +350,7 @@ function! jhsiaoutil#MultiStart(lineno, multi, ...)
 		let maxdif = 1000
 	endif
 	let check = a:lineno-1
-	let lastline = max(1, check - maxdif)
+	let lastline = max([1, check - maxdif])
 	while lastline <= check
 		let parts = matchlist(getline(check), a:multi['any'])
 		if len(parts)
