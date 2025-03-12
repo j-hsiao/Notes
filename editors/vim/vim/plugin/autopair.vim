@@ -43,7 +43,7 @@ function s:OpenPair(char1, char2)
 	endif
 	let nxt = strpart(getline('.'), col('.')-1, 1)
 	if nxt !~ '\w' && nxt !~ s:opening
-		return a:char1 . a:char2 . "\<Left>"
+		return a:char1 . a:char2 . "\<C-G>U\<Left>"
 	else
 		return a:char1
 	endif
@@ -57,7 +57,7 @@ function s:ClosePair(char)
 		return a:char
 	endif
 	if strpart(getline('.'), col('.')-1, 1) == a:char
-		return "\<Right>"
+		return "\<C-G>U\<Right>"
 	else
 		return a:char
 	endif
@@ -81,17 +81,17 @@ function s:SamePair(char)
 	let curcol = col('.')
 	let after = strpart(curline, curcol-1, 1)
 	if after == a:char && (curcol == 1 || strpart(curline, curcol-2, 1) != '\')
-		return "\<Right>"
+		return "\<C-G>U\<Right>"
 	elseif after !~ '\S' || after =~ s:closing
 		if strpart(curline, curcol-3, 2) == repeat(a:char, 2)
 			let before = strpart(curline, curcol-4, 1)
 			if before !~ '[^({[[:space:]=,]' && after !~ '[^\])},[:space:]]'
-				return repeat(a:char, 4) . repeat("\<Left>", 3)
+				return repeat(a:char, 4) . repeat("\<C-G>U\<Left>", 3)
 			endif
 		endif
 		let before = strpart(curline, curcol-2, 1)
 		if before !~ '[^({[[:space:]=,]' && after !~ '[^\])},[:space:]]'
-			return a:char . a:char . "\<Left>"
+			return a:char . a:char . "\<C-G>U\<Left>"
 		endif
 	endif
 	return a:char
