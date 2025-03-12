@@ -479,6 +479,7 @@ _NC_mimic_prompt() # <width>
 	local pre=
 	if [[ "${_NC_show_mode_in_prompt}" = 'on' ]]
 	then
+		# ?TODO? appropriate pre if emacs or vim mode?
 		pre+=' '
 	fi
 	local save=$'\e[s'
@@ -854,5 +855,6 @@ complete -o default -o filenames -F numeric_complete ${NUMERIC_COMPLETE_alias}
 if [[ -n "${NUMERIC_COMPLETE_default}" ]]
 then
 	complete -D -o default -o filenames -F numeric_complete
-	bind \""${NUMERIC_COMPLETE_prefix}${NUMERIC_COMPLETE_default}"'":complete'
+	bind -m emacs \""${NUMERIC_COMPLETE_prefix}${NUMERIC_COMPLETE_default}"'":"\e \C-an \C-x\C-x\C-f\C-f\t"'
+	bind -m vi-insert \""${NUMERIC_COMPLETE_prefix}${NUMERIC_COMPLETE_default}"'":"\emz0in \e`zlla\t"'
 fi
