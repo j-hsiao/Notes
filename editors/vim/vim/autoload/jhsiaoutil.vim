@@ -173,7 +173,7 @@ function! jhsiaoutil#ParseComments()
 		let comlist = &l:comments
 	endif
 	for part in split(comlist, ',', v:true)
-		let [flags, chars] = split(part, ':', v:true)
+		let [flags, chars] = matchlist(part, '\m^\([^:]*\):\(.*\)$')[1:2]
 		let info = {
 			\ 'flags': flags,
 			\ 'val': chars}
