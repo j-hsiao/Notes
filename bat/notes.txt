@@ -49,12 +49,9 @@ They can be used with if or for to perform multiple actions.
 	------------------------------
 	-0.2- quoting
 	------------------------------
-	Every command seems to parse command line arguments in their own way.
-	Example:
-		cd some path with spaces in its name
-
-		This seems to succeed, no quoting necessary.  It does not get split up
-		into multiple arguments.
+	?There IS NO QUOTING?  Quotes are not inherently part of the cmd language.
+	Instead, quotes *might* be parsed by whatever command you are running.
+	Need to see the help of whatever command you are using.
 
 ------------------------------
 -1- variables
@@ -100,8 +97,25 @@ They can be used with if or for to perform multiple actions.
 		------------------------------
 		-1.2.2- Parameter expansions
 		------------------------------
-		A variable can be sliced:
-			%varname:~start,length%
+		In CMD: `set /?`
+
+		global sub      %varname:str1=str2%
+		slicing         %varname:~start,length%
+		                negative values will have the variable length added to it.
+		                (negative length will actually be stopping point from end of var.)
+
+	------------------------------
+	-1.3- special variables
+	------------------------------
+	Special variables require enabled extensions
+		%CD%
+		%DATE%
+		%TIME%
+		%RANDOM%
+		%ERRORLEVEL%
+		%CMDEXTVERSION%
+		%CMDCMDLINE%
+		%HIGHESTNUMANODENUMBER%
 
 ------------------------------
 -2- if
