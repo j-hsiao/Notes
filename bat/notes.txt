@@ -1,0 +1,149 @@
+contents
+-0- general
+	-0.1- setlocal
+	-0.2- quoting
+-1- variables
+	-1.1- setting variables
+	-1.2- expanding variables
+		-1.2.1- Delayed expansion
+		-1.2.2- Parameter expansions
+-2- if
+-3- for
+
+
+------------------------------
+-0- general
+------------------------------
+.bat files are windows batch files.
+They are usually run using cmd.exe
+
+Parentheses are group commands together
+(
+	command1
+	command2
+	command3
+)
+They can be used with if or for to perform multiple actions.
+
+	------------------------------
+	-0.1- setlocal
+	------------------------------
+	This begins local environment changes (IN A BATCH FILE)
+	Changes are reverted at corresponding `endlocal` command.  At the end
+	of any batch file, an implicit `endlocal` will be run if applicable.
+
+	This takes optional arguments:
+		[enable|disable]extensions          (cmd /E:[ON|OFF])
+		[enable|disable]delayedexpansion    (cmd /V:[ON|OFF])
+
+	On failure to set any arguments, ERRORLEVEL will be 0 on success, 1 otherwise.
+	Old versions will not set ERRORLEVEL and do not support the arguments.
+	Set ERRORLEVEL to 1 before trying setlocal so that you can tell
+	it succeeded or not.
+
+	from `setlocal /?`:
+		VERIFY OTHER 2>nul
+		SETLOCAL ENABLEEXTENSIONS
+		IF ERRORLEVEL 1 echo Unable to enable extensions
+
+	------------------------------
+	-0.2- quoting
+	------------------------------
+	Every command seems to parse command line arguments in their own way.
+	Example:
+		cd some path with spaces in its name
+
+		This seems to succeed, no quoting necessary.  It does not get split up
+		into multiple arguments.
+
+------------------------------
+-1- variables
+------------------------------
+	------------------------------
+	-1.1- setting variables
+	------------------------------
+	Set variables using the `set` command. Note that everything including
+	whitespace to the right of = is included in the value of the set
+	variable.
+
+		set variable=  some expression etc
+
+	variable will be the value "  some expression etc"
+
+	------------------------------
+	-1.2- expanding variables
+	------------------------------
+	Variables are expanded using %varname%.  This happens AT THE TIME OF PARSING.
+
+	Example:
+		set x=1         -> x is 1
+		(
+			set x=2       -> x is 2
+			echo %x%      -> parsed as echo 1, echos 1
+			echo !x!      -> delayed expansion, echos 2.
+		)
+
+		The `echo %x%` is parsed as part of the parentheses expression.
+		This means that `set x=2` has not run yet.  As a result, It is
+		parsed as literally `echo 1` which is why it echos 1 instead of 2.
+
+
+		------------------------------
+		-1.2.1- Delayed expansion
+		------------------------------
+		Delayed expansion allows expanding variables at the point of use
+		rather than at parsing time.  This is probably off by default.
+		To turn it on:
+			1. run cmd with the /V:ON flag.
+			2. use `setlocal enabledelayedexpansion` (IN A BATCH SCRIPT ONLY)
+
+		------------------------------
+		-1.2.2- Parameter expansions
+		------------------------------
+		A variable can be sliced:
+			%varname:~start,length%
+
+------------------------------
+-2- if
+------------------------------
+if is a command.  Use `if /?` for more info
+
+Basic if commands:
+
+	IF [NOT] ERRORLEVEL number command
+		Check of ERRORLEVEL is >= `number`
+
+	IF [NOT] string1==string2 command
+		Check if the strings are equivalent
+
+	IF [NOT] EXIST filename command
+		Check if the file exists
+
+
+An ELSE clause can exist, but MUST BE ON THE SAME LINE.
+Use parentheses to put the ELSE on a different line:
+IF ... (
+) ELSE ...  <- counts as same line as the IF.
+
+
+REQUIRES EXTENSIONS:
+IF [/I] str1 cmp str2 command
+	Allows more comparisons than just ==
+		cmp     action
+		EQU     ==
+		NEQ     !=
+		LSS     <
+		LEQ     <=
+		GTR     >
+		GEQ     >=
+
+	Comparisons are "generic", default to string comparison, but if both
+	strings are ints, switch to int comparison
+
+IF CMDEXTVERSION number command
+IF DEFINED variable command
+
+------------------------------
+-3- for
+------------------------------
+for is a command.  Use `for /?` for more info
