@@ -1,0 +1,120 @@
+contents
+-0- general
+-1- format
+	-1.1- keys
+-2- other
+
+https://specifications.freedesktop.org/desktop-entry-spec/latest/index.html
+------------------------------
+-0- general
+------------------------------
+Desktop entries are used like icons for ubuntu/linux-like desktops.
+They should be
+	(filename).desktop
+	(filename).directory (if Type=Directory)
+
+filename should be "reverse dns" convention
+([a-zA-Z0-9]_, but do not start with a digit
+
+ex: if google made googledrive desktop entry:
+com.google.GoogleDrive.desktop
+
+------------------------------
+-1- format
+------------------------------
+syntax:
+	#this is a comment
+
+	[groupname]
+	field=value and spaces are included
+
+Comments begin with a #
+
+Blank lines are ignored
+
+groupname: Name of a group of field=value pairs.
+[Desktop Entry] is required.  Others may exist but would be ignored.
+The [Desktop Entry] should be the very first non-ignored thing in the file.
+
+fields must be [a-zA-Z0-9-]
+
+value types are:
+	string        ASCII non-control characters
+	localestring  UTF-8 user-displayable
+	iconstring    absolute paths or symbolic names, UTF-8
+	boolean       true | false, all lower case
+	numeric       must be recognized by %f of scanf in C locale
+
+Strings support escapes:
+	\s        space
+	\n        new line
+	\t        tab
+	\r        carraige return
+	\\        backslash
+	\;        semicolon
+
+multiple values are separated by semicolon
+
+	------------------------------
+	-1.1- keys
+	------------------------------
+	required:
+		Type (string)
+			Application
+			Link
+			Directory
+		Name (localestring)
+			Name of the application
+		URL
+			the url (If Type==Link)
+	Others:
+		Version string
+			The Desktop entry specification version (1.5)
+			NOT the application version
+		GenericName (localestring)
+			generic name (functionality) ex. "Web Browser"
+		NoDisplay (bool)
+			Don't display in menu
+		Comment (localestring)
+			tooltip
+		Icon (iconstring)
+			path to an icon or icon name
+		Hidden (bool)
+			effectively deleted
+		Exec (string)
+			commandline, can have arguments separated by space
+			Must quote reserved characters
+			reserved characters: space, tab, newline, \'"><~|&;$*?#()`
+			Use a backslash to escape these.
+			Because type is a "string", and strings also allow escaping.
+			must double-escape:
+			ex; \\\\
+				value is a string type-> "\\"
+				parse value as argument to Exec -> "\"
+
+			Field codes: replaced when called by manager
+				%f  A single file.  If multiple files selected, launch an instance per file.
+				%F  A list of files. 1 instance, replace %F with a list of files.
+				%u  Same as %f but URL
+				%U  Same as %F but URL
+
+		Path (string)
+			Working directory to run in.
+		Terminal (bool)
+			run in a terminal.
+		Implements (string(s))
+			interfaces that are implemented
+		Keywords (localestring(s))
+			keywords should not be redundant with name/genericname
+			used for searching
+
+------------------------------
+-2- other
+------------------------------
+Type=Application
+	1. Enable execution (chmod 7XX *.desktop)
+	2. On Ubuntu, gnome desktop, allow launch
+	   On desktop, right click the .desktop file
+	   choose Allow Launching or whatever it is.
+	   XFCE4 doesn't need to do this step.
+	   Haven't tested any other desktop environments
