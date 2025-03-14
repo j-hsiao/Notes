@@ -118,3 +118,8 @@ Type=Application
 	   choose Allow Launching or whatever it is.
 	   XFCE4 doesn't need to do this step.
 	   Haven't tested any other desktop environments
+
+Alternative?
+	xfce4: can just right click desktop, "create launcher..."
+	fill in some fields.
+	when lauch, will say not executable etc, choose "mark executable"
