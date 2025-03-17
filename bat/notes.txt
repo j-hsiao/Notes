@@ -161,3 +161,49 @@ IF DEFINED variable command
 -3- for
 ------------------------------
 for is a command.  Use `for /?` for more info
+
+FOR /F "options" %var IN (...) DO command args
+
+	/F: Set flags for the for loop.
+		eol=c               specify eol character (only 1 char allowed)
+		skip=n              Skip n lines
+		delims=xx           delimiter set, replaces default of space and tab
+		tokens=x,y,m-n*     Specify which tokens to assign to variables.
+		                    x,y: specific token index, m-n: range, *: all remaining
+		                    ie: for /F "tokens=TOKENS usebackq" %a in (`echo hello world goodbye world`) DO (
+		                            echo "%a" "%b" "%c" "%d")
+		                        TOKENS == *:        "hello world goodbye world" "%b" "%c" "%d"
+			                        All of the tokens get assigned to %a
+		                        TOKENS == 1,2       "hello" "world" "%c" "%d"
+			                        Indexing starts at 1.
+			                        1 is assigned to a
+			                        2 is assigned to b
+		                        TOKENS == 2-3*      "world" "goodbye" "world" "%d"
+			                        Indexing starts at 1 and includes the end.
+			                        2 is assigned to a
+			                        3 is assigned to b
+			                        remainder assigned to c
+		usebackq            Change smenatics of the (...) portion of the for loop
+		                    old:
+			                    (file-set)
+			                    ("string")
+			                    ('command')
+		                    new:
+			                    (file-set)
+			                    ('string')
+			                    (`command`)
+
+	Extra forms if extensions are turned on:
+		FOR /D %var IN (...) DO command args
+			any * in () expands to directories instead of files
+
+		FOR /R [[drive:]path] %var IN (...) DO command args
+			Execute recursively in each directory rooted at [[drive:]path].
+			Defaults to current directory
+
+		FOR /L %var IN (start, step, stop) DO command args
+			uses numbers from start to stop inclusive
+
+	%var: var must be a single-letter value.
+	      The iteration results will be tokenized and assigned sequentially to
+	      the given %var variable depending on the "tokens=??" flag
