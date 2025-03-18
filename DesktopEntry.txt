@@ -8,6 +8,8 @@ https://specifications.freedesktop.org/desktop-entry-spec/latest/index.html
 ------------------------------
 -0- general
 ------------------------------
+NOTE: You can probably create one via GUI by right clicking on the desktop...
+
 Desktop entries are used like icons for ubuntu/linux-like desktops.
 They should be
 	(filename).desktop

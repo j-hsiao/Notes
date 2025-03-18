@@ -2,6 +2,7 @@ contents
 -0- general
 	-0.1- setlocal
 	-0.2- quoting
+	-0.3- batchfile
 -1- variables
 	-1.1- setting variables
 	-1.2- expanding variables
@@ -52,6 +53,14 @@ They can be used with if or for to perform multiple actions.
 	?There IS NO QUOTING?  Quotes are not inherently part of the cmd language.
 	Instead, quotes *might* be parsed by whatever command you are running.
 	Need to see the help of whatever command you are using.
+
+	------------------------------
+	-0.3- batchfile
+	------------------------------
+	Batch files have extension ".bat".
+	You can refer to arguments with %N.
+	NOTE because % has this special meaning inside a batch file, using % in a for loop
+	must be escaped.
 
 ------------------------------
 -1- variables
@@ -161,6 +170,9 @@ IF DEFINED variable command
 -3- for
 ------------------------------
 for is a command.  Use `for /?` for more info
+
+REMEMBER: because of special % meaning in batch script, any % must be escaped using %%.
+(see -0.3-)
 
 FOR /F "options" %var IN (...) DO command args
 

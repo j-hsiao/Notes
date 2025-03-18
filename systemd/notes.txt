@@ -1,8 +1,8 @@
 systemd service
 -0- example
 -1- options
-	-1.1- Unit
-	-1.2- Service
+	-1.1- Service
+	-1.2- Unit
 	-1.3- Install
 -2- systemctl
 
@@ -29,39 +29,58 @@ example:
 	WantedBy=target (probably multi-user.target)
 ______________________________
 -1- options:
+	Required sections: [Service]
+	Optional sections: [Unit] and [Install]
 	______________________________
-	-1.1- Unit
+	-1.1- Service
+		Type                    Notify that service startup has finished.
+			simple                  immediately after fork
+			exec                    After binary is executed (after fork AND execve)
+			forking                 discouraged
+			oneshot                 After main process exits
+			dbus                    Must have BusName=, up after BusName is acquired
+			notify                  after send READY=1 via sd_notify
+			notify-reload           same as notify, but when get SIGHUP,
+			                        sd_notify RELOADING=1, MONOTONIC_USEC= (like clock_gettime)
+			                        then lastly, READY=1
+			idle
+		RestartSec              Sleep time after ending before restart.
+		                        Unitless seconds (90 for 90 seconds) or timespan (5min 2s 3ms)
+		RestartSteps            Number of steps to increment restart delay up to the max. 0=off
+		RestartMaxDelaySec      The max restart delay.  "infinity" to disable.
+		ExecStart               Commands to execute.  Type=oneshot can have multiple
+		                        Otherwise, must have exactly 1.
+		                        Can be prefixed with a - to ignore failures and
+		                        continue running exec lines.
+		ExecStartPre            Execute before or after the ExecStart command
+		  /ExectStartPost       lines. Multiple are allowed regardless of type
+		ExecStop                Command lines for/after stopping.  Optional.  Afterwards,
+		  /ExecStopPost         any remaining processes will be killed.
+	______________________________
+	-1.2- Unit
+		Description             short description, human readable
+		Documentation           space-separated list of URIs
+		Wants                   space-separated weak dependencies
+		                        or just specify multiple times
+		Requires                Same as Wants, but strong dependency
+		Before/After            Must start before or after given
+		                        space-separated services
 		StartLimitBurst         restart count threshold
 		StartLimitIntervalSec   if StartLimitBurst restarts within
 		                        interval, then stop trying to restart
 		                        forever.
-		After                   begin after the corresponding item
-	______________________________
-	-1.2- Service
-		Type            Notify that service startup has finished.
-			simple          immediately after fork
-			exec            After binary is executed (after fork AND execve)
-			forking         discouraged
-			oneshot         After main process exits
-			dbus            Must have BusName=, up after BusName is acquired
-			notify          after send READY=1 via sd_notify
-			notify-reload   same as notify, but when get SIGHUP,
-			                sd_notify RELOADING=1, MONOTONIC_USEC= (like clock_gettime)
-			                then lastly, READY=1
-			idle
-		RestartSec              restart after seconds if ends
-		ExecStart       Commands to execute.  Type=oneshot can have multiple
-		                Otherwise, must have exactly 1.
-		                Can be prefixed with a - to ignore failures and
-		                continue running exec lines.
 	______________________________
 	-1.3- Install
-		WantedBy                the run level to start at:
-		                        0: runlevel0.target, poweroff.target
-		                        1: runlevel1.target, rescue.target
-		                        2,3,4: runlevel[2|3|4].target, multi-user.target
-		                        5: runlevel5.target, graphical.target
-		                        6: runlevel6.target, reboot.target
+		WantedBy                list of unit names to add this as a dependency.
+		  /RequiredBy           Usually use the run level to start at:
+		  /UpheldBy               0: runlevel0.target, poweroff.target
+		                          1: runlevel1.target, rescue.target
+		                          2,3,4: runlevel[2|3|4].target, multi-user.target
+		                          5: runlevel5.target, graphical.target
+                              6: runlevel6.target, reboot.target
+		Alias                   space-separated list, symlinks will be created
+		                        or specify multiple times
+		
 
 ______________________________
 -2- systemctl
