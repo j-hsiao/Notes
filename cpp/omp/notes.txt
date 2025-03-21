@@ -1,0 +1,429 @@
+contents
+-0- general
+	-0.0- terms
+	-0.1- syntax
+-1- clauses
+	-1.1- if([directive-name-modifier:]scalar-expr)
+	-1.2- data-scope clauses
+		-1.2.1- private/firstprivate/lastprivate(cdvlist)
+		-1.2.2- default
+		-1.2.3- shared
+	-1.3- reduction(operator: cdvlist)
+
+-1- parallelization
+	-1.0- scheduling
+	-1.1- #pragma omp parallel
+	-1.2- #pragma omp for
+	-1.3- #pragma omp parallel for
+	-1.4- #pragma omp master
+-2- synchronization
+	-2.1- #pragma omp atomic
+-4- data scope
+
+
+https://www.ibm.com/docs/en/zos/3.1.0?topic=descriptions-pragma-directives-parallel-processing
+
+https://www.openmp.org/specifications/
+* gcc uses implements 4.5
+
+------------------------------
+-0- general
+------------------------------
+gcc: Compile with -fopenmp and include -lpthread
+	------------------------------
+	-0.0- terms
+	------------------------------
+
+	cdvlist: comma-delimited variable list
+
+
+	structured block
+		executable statement single entry and single exit
+	enclosing context
+		innermost scope wrapping openmp directive
+	directive
+		#pragma [the directive goes here, usually starting with omp]
+	construct
+		Directive (lexical, same file in the same {}) of a directive
+		Not entirely clear, but I think it may be the directive + the {}
+		(but not the contents of the {})
+	region
+		The contents of the {} from a construct
+	combined construct:
+		exactly the same as consecutive separated #pragmas
+		example: #pragma omp parallel for
+	composite construct:
+		almost the same as consecutive separated #pragmas with some extra semantics
+		example: #pragma omp for simd
+
+	------------------------------
+	-0.1- syntax
+	------------------------------
+	Generally take the form of:
+	#pragma (directive) [args...]
+	{
+		block of code...
+	}
+
+	directive: an omp command, usually: omp name
+	examples:
+		omp parallel        omp task
+		omp for             omp single
+
+------------------------------
+-1- clauses
+------------------------------
+	Clauses are used to modify the omp directive.
+		#pragma directive [clause(s)]...
+	Some clauses can be used by different pragmas
+
+	------------------------------
+	-1.1- if([directive-name-modifier:]scalar-expr)
+	------------------------------
+	[directive-name-modifier:]: if the construct is a combined/composite construct
+	otherwise do not add the modifier
+
+	------------------------------
+	-1.2- final(expr)
+	------------------------------
+
+	------------------------------
+	-1.2- private/firstprivate/lastprivate(cdvlist)
+	------------------------------
+	These create private variables for each thread.
+	In the case of firstprivate, the variables should be shared
+	(so they can be initialized to a common value)
+	These only indicate that the variables should be private, they still
+	must be declared.  In the case of lastprivate, the value of the
+	corresponding variable will be set to the last iteration.
+	ex:
+		int j = 0;
+		int k = 1;
+		int l = 2;
+		#pragma omp parallel
+		{
+			#pragma omp for firstprivate(j) private(k) lastprivate(l)
+			for (int i=0; i<20; ++i)
+			{
+				l = i;
+			}
+		}
+
+	l is set to 19 (last iteration value)
+	k, j are unchanged (were private to the for loop)
+	------------------------------
+	-1.3- default
+	------------------------------
+	default(shared|none)
+
+	Default sharing of variables.
+	none requires explicit sharing except for:
+		const
+		loop control var
+	------------------------------
+	-1.4- shared
+	------------------------------
+	shared(cdvlist)
+
+	list of variables shared between threads
+
+	------------------------------
+	-1.5- reduction(operator: cdvlist)
+	------------------------------
+	Create a private copy for each listed variable, initialized to
+	`initializer` in the table below.  Reduce each private variable
+	into the initial variable using the specified reduction operator.
+
+	Perform reduction on each listed variable
+	if min/max, then must be:
+		[long|short] [[un]signed] (bool|char|int|float|double),
+	shared in enclosing context, non-const, non-pointer.
+
+	operator  initializer                     effect
+		+       0                               a += b
+		*       1                               a *= b
+		-       0                               a -= b
+		&       0                               a &= b
+		|       0                               a |= b
+		^       0                               a ^= b
+		&&      1                               a = a && b
+		||      0                               a = a || b
+		max     std::numeric_limits<tp>::min()  a = a > b ? a : b
+		min     std::numeric_limits<tp>::max()  a = a < b ? a : b
+
+	------------------------------
+	-1.6- nowait
+	------------------------------
+	skip implied exit barrier
+
+
+------------------------------
+-1- parallelization
+------------------------------
+	------------------------------
+	-1.0- scheduling
+	------------------------------
+		schedule(method[,n=1])
+			auto            let compiler/runtime system choose
+			dynamic         divided into chunks (iters/threads), first come
+			                first served manner, n = chunk size.
+			guided          Same as dynamic, but chunk differently down to
+			                chunk size n:
+				                remaining_iters = total_iters
+				                while remaining_iters:
+					                next_chunk = ceil(remaining_iters / num_threads)
+					                remaining_iters -= next_chunk
+			runtime         Read environment variable OMP_SCHEDULE
+			static          Cut chunks and round-robin to threads.
+
+		n can be a variable, expr but must be integral
+
+		static has least overhead
+		dynamic has more overhead, but better if different iterations might do
+			more or less work
+		guided: "can be faster because less overhead"
+			Walks a "middle road" between static and dynamic
+			(first chunk is same as static, but later chunks are more dynamic-like)
+
+	------------------------------
+	-1.1- #pragma omp parallel
+	------------------------------
+	#pragma omp parallel [clause(s)]
+		Create a "parallel section".
+		A block of code that has a corresponding "team" of threads.
+		unique clauses:
+			num_threads(expr)
+				Set the (max) number of threads. expr must be integral.
+			copyin(cdvlist)
+				Copy values from primary thread into private variables
+
+
+		common clauses:
+			private/firstprivate/lastprivate
+			reduction(op:cdvlist)
+
+	------------------------------
+	-1.2- #pragma omp for
+	------------------------------
+		assumes already in a parallel block
+		#pragma omp for [clause(s)] loop
+			unique clause:
+				collapse(n)
+					Collapse multiple layers of for loop, but with restrictions:
+						0. Only 1 collapse can be used.
+						1. loops must be immediately present (ie not within a called function)
+						2. Must be rectangular (start/stop must be independent, no early break/return)
+						3. perfect nesting (no other statements between loops)
+						4. continue can only appear in the most-nested included loop of collapse clause
+						5. Cannot use with stream_unroll, unroll, unrollandfuse, nounrollandfuse
+
+						?Ordered construct must appear inside all associated loops?
+						?lastprivate each new list item from last iteration is assigned to original list item?
+				ordered
+					indicate that #pragma omp ordered (-3.5-) is inside this loop
+				schedule: (-2.0- scheduling)
+			shared clauses:
+				private/firstprivate/lastprivate(cdvlist)
+				reduction (op:cdvlist)
+
+
+		______________________________
+		loop constraints:
+			for (init; cond; incr)
+				init: v=expr | tp v = expr; tp is signed
+				cond: v<=>expr
+				incr: pre/post ++/--, v+=, v-=, v = v +/- expr
+			expr is const ("loop invariant")
+
+
+	------------------------------
+	-1.3- #pragma omp parallel for
+	------------------------------
+	Same as
+	#pragma omp parallel
+	#pragma omp for
+
+	(but nowait clause not allowed (makes no sense anyways))
+
+	------------------------------
+	-1.4- #pragma omp master
+	------------------------------
+	Only run this in the master thread, similar to single
+
+	------------------------------
+	-1.5- #pragma omp section(s)
+	------------------------------
+	#pragma omp sections [clause(s)]
+	Indicate the next block consists of various
+		#pragma omp section
+	blocks.  Each of the section blocks will be distributed
+	among the cores.  All section blocks must be
+	immediately within the sections block.  It cannot
+	be found inside a called function.
+
+	This is useful for running independent tasks concurrently.
+
+	common clauses:
+		private/firstprivate/lastprivate
+		reduction
+		nowait
+
+	------------------------------
+	-1.6- #pragma omp parallel sections
+	------------------------------
+	same as
+	#pragma omp parallel
+	#pragma omp sections
+
+	------------------------------
+	-1.7- #pragma omp single
+	------------------------------
+	#pragma omp single [clause(s)]
+		unique clauses:
+			copyprivate(list)
+				Copy private variables from the executing thread
+				to all other threads (from the chosen thread)
+				eg. thread 7 enters the omp single block, then copy
+				thread 7's variables in list to the other threads.
+		common clauses:
+			private
+
+	------------------------------
+	-1.8- #pragma omp task
+	------------------------------
+	#pragma omp task [clause(s)]
+		Next block is a "task", can be run concurrently by any thread.
+		ibm says requires "SMP" compiler option
+
+		clauses:
+			final(expr)
+				If expr, then the task is a FINAL TASK (included).
+			if(expr)
+				If false, then create an UNDEFERRED TASK.
+			mergeable
+				If an UNDEFERRED TASK, use same data environment as the generating region
+			untied
+				not tied to any thread, when suspended, can resume on any thread.
+				ignored for final or included tasks.
+		common clauses
+			firstprivate/private(cdvlist)
+			if(expr)
+				... the IBM docs conflict, one part says if (expr), then undeferred
+				but then directly under it it says undeferred if not expr
+				From my understanding, this really means
+				if(expr) { create a new task and put in queue; } else { run right now; }
+			shared
+
+		NOTE:
+			if and final are evaluated outside task region in unspecified order.
+
+	task types:
+		final/included: basically inlined/#included (thus the term `included task`)
+		                It is guaranteed to be run by the thread that encounters it.
+		undeferred: Creates a new task and run it immediately, suspending the generating
+		            task. The docs have no guarantee on which thread runs the deferred
+		            task, only that the generating region is resumed only after the undeferred
+		            task is completed.
+		included: execution is sequentially included in generating region
+		          It is undeferred AND results from a final task
+		merged: same adta environment as generating task
+
+------------------------------
+-3- synchronization
+------------------------------
+	------------------------------
+	-3.1- #pragma omp atomic
+	------------------------------
+		Use with scalar types
+
+		#pragma omp atomic [(update)|read|write|capture] {}
+
+			a: the atomic var
+			x: some other var (does not involve a)
+			expr: some expresion (does not involve a)
+
+			update: default
+				++a, a++, a--, a +=, a -=, a = a * x, ...
+			read: read the data
+				x = a
+			write: write the data
+				a = expr
+			capture: update and capture original or final
+				(read + update)
+				x = (assignment/update expression)
+				x = {read; update/write}
+				x = {update/write; read}
+
+
+		examples:
+			#pragma omp atomic
+			x[index[i]] += y;
+			p[i] -= 1.0f;
+
+			#pragma omp atomic read
+			tmpdst = x[idx];
+
+			#pragma omp atomic write
+			x[idx] = something;
+
+			#pragma omp atomic update
+			x[idx] *= 2;
+
+			#pragma omp atomic capture
+			tmpdst = x[idx]++
+	------------------------------
+	-3.2- #pragma omp barrier
+	------------------------------
+	Wait at barrier until all other threads (in current region/"team")
+	arrive.
+	It MUST appear INSIDE a block.
+	------------------------------
+	-3.3- #pragma omp critical
+	------------------------------
+	#pragma omp critical [name]
+	Indicates the block is a critical section.  Only a single thread can
+	execute at once.  This can be used to do #pragma atomic, but is more
+	expensive.
+
+	------------------------------
+	-3.4- #pragma omp flush
+	------------------------------
+	#pragma omp flush var1,var2,var3,....
+
+	NOTE: pointers are flushed as pointers, not pointed-to objects.
+	implicit at:
+		omp barrier
+		into/out of omp critical
+		exit from:
+			omp parallel
+			omp for
+			omp sections
+			omp single
+	MUST be INSIDE a block.
+
+
+	------------------------------
+	-3.5- #pragma omp ordered
+	------------------------------
+	Must execute in sequential (by iteration counter) order
+	Must be in a omp [parallel] ordered for 
+
+	------------------------------
+	-3.6- #pragma omp taskwait
+	------------------------------
+	wait for child tasks to be completed.
+
+	------------------------------
+	-3.6- #pragma omp yield
+	------------------------------
+	Pause current task, do another task.
+	kind of like sleep(0) to allow other thread to run.
+
+------------------------------
+-4- data scope
+------------------------------
+	------------------------------
+	#pragma omp threadprivate
+	------------------------------
+	#pragma omp threadprivate(cdvlist)
+	Make the listed variables thread-private.
