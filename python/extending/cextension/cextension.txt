@@ -32,10 +32,12 @@ python c extensions
 	-3.0- instantiation
 	-3.1- PyModuleDef
 	-3.2- PyInit
+	-3.3- Adding members.
 -4- compilation/installation
 -5- GIL
 -6- C api (for other modules)
 -7- installation
+-8- types
 
 _____________________________
 -0- general
@@ -47,6 +49,12 @@ _____________________________
 		since it can modify standard headers via macros etc
 
 	Python is a C interface, so "bool" is actually int
+
+	Generally, only decref at the very very very end as late as possible
+	assign values before decrefing the original value etc.
+
+	use things as soon as possible before removing/decref to avoid segfault
+	/accessing freed memory
 	______________________________
 	-0.0- notation:
 		______________________________
@@ -388,10 +396,10 @@ ______________________________
 		3 thread-local vars:
 			exception type, object, and traceback
 
-		To raise an exception call one of:
-			PyErr_SetString()
+		To raise an exception call one of: (do not change refs to type)
+			PyErr_SetString(PyObject *type, const char *message)
 				take object and cstring
-			PyErr_SetFromErrno()
+			PyErr_SetFromErrno(PyObject *type)
 				take exc object, check errno
 			PyErr_SetObject()
 				take exc and value
@@ -403,6 +411,9 @@ ______________________________
 				failed malloc/calloc etc
 			PyErr_NewException('full.name', NULL, NULL);
 				A new exception type.
+
+		Builtin Exceptions:
+
 
 		custom exceptions:
 			Have some kind of static PyObject* to hold the exception class.
@@ -448,6 +459,13 @@ ______________________________
 				-1 (size of per-interpreter state or -1),
 				PyMethodDef*
 			};
+	______________________________
+	-3.2- PyInit
+
+	______________________________
+	-3.3- Adding members.
+		int PyModule_AddObjectRef(moduleptr, "name", (PyObject*) thing)
+			< 0 if error
 
 ______________________________
 -4- compilation/installation
@@ -510,3 +528,116 @@ ______________________________
 			T_LONGLONG
 			T_ULONGLONG
 			T_PYSSIZET
+
+______________________________
+-8- types
+	Types should be represented by a struct:
+		ex:
+			struct MyType
+			{
+				PyObject_HEAD
+			};
+		NOTE: PyObject_HEAD declares basic PyObject required variables. (be sure no semicolon)
+
+	______________________________
+	-8.1- PyTypeObject struct:
+		ex:
+			struct PyTypeObject {
+				.ob_base = PyVarObject_HEAD_INIT(NULL, 0)
+				.tp_name = "module.Typename",
+				.tp_doc = PyDoc_STR("docstr"),
+				.tp_basicsize = sizeof(MyType),
+				.tp_itemsize = 0,
+				.tp_flags = PyTPFLAGS_DEFAULT,
+				.tp_new = PyType_GenericNew,
+			};
+		NOTE: python recommends using the C99-style designated initializers
+		      format to initialize the PyTypeObject struct.  This allows
+		      only specifying what you need.
+		fields:
+			ob_base: must exist and be PyVarObject_HEAD_INIT(NULL, 0)
+			         dunno if the NULL, 0 part is required though...
+			tp_name: should be modulename.typename, must be like this
+			         for pickle/pydoc compatibility
+			tp_basicsize: Size of each object. (fixed)
+			              NOTE: should be larger than base class to allow python
+			              multiple inheritance
+			tp_itemsize: variable-size objects, 0 otherwise.
+			tp_flags: flags to indicate enabled members
+			          PyTPFLAGS_DEFAULT
+			          PyTPFLAGS_BASETYPE: can be used as base class
+			                              (requires no assumption on actual type passed in...???)
+			tp_doc: docstr
+			tp_dealloc: deallocator for the struct type
+			            cast to (destructor)
+			tp_alloc: allocate struct type
+			tp_free: free data
+			         Py_TYPE(objptr)->tp_free(PyObject*)
+			tp_init: __init__ initialize the obj
+			         cast to (initproc), should take args and kwargs
+			tp_new: __new__ allocate/create the obj
+			        Always take args and kwargs
+			        NOTE: if allow inheritance etc, call base __new__
+			        should be statically called or type->tp_base->tp_new
+			        (But... isn't second not statically called? what
+			        is going on here? description seems a bit weird...)
+			tp_members: c-array of PyMemberDef
+			            Note these might be deleted (del something.attr)
+			            resulting in them becoming NULL
+			tp_getset: array of PyGetSetDef array
+			           getter/setter functions for custom attr processing.
+			           {"name", (getter) getfunc, (setter) setfunc, "docstr", data}
+			           data = user data/custom data, passed to getter and setter.
+			           getter/setter should be:
+			           static PyObject *func(structobj*, void *userdata)
+			tp_methods: c-array of PyMethodDef
+
+	______________________________
+	-8.2- type members
+		PyMemberDef[] = {
+			{"name", Py_T_OBJECT_EX, offsetof(struct, member), 0, "description")}
+		}
+
+	______________________________
+	-8.3- type methods
+		Methods take a self pointer of the representative struct and
+		usually args
+		PyMethodDef
+
+
+
+
+
+	-8.4- creating the type
+		Preparing/creating the type:
+			PyType_Ready(PyTypeObject*)
+				fills in various members to default values.
+
+		example module:
+			static PyModuleDef custommodule = {
+				.m_base = PyModuleDef_HEAD_INIT,
+				.m_name = "custom",
+				.m_doc = "Example module that creates an extension type.",
+				.m_size = -1,
+			};
+
+			PyMODINIT_FUNC
+			PyInit_custom(void)
+			{
+				PyObject *m;
+				if (PyType_Ready(&CustomType) < 0)
+					return NULL;
+
+				m = PyModule_Create(&custommodule);
+				if (m == NULL)
+					return NULL;
+
+				if (PyModule_AddObjectRef(m, "Custom", (PyObject *) &CustomType) < 0) {
+					Py_DECREF(m);
+					return NULL;
+				}
+
+				return m;
+			}
+
+
