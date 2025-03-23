@@ -1,6 +1,10 @@
 contents
-	-1- virtual desktops
-	-2- menus
+-1- virtual desktops
+-2- menus
+-3- miscellaneous
+-4- file explorer
+-5- dialog boxes
+-6- personal setup
 
 
 
@@ -62,3 +66,52 @@ alt+enter           open properties on selected item
 alt+acess key       select that option
                     eg: ctrl+o = open file dialog
                     alt+o = open (if filename empty, jump to that bar)
+
+------------------------------
+-6- personal setup
+------------------------------
+
+------------------------------
+shortcuts
+------------------------------
+	C:\users\"username"\AppData\Roaming\Microsoft\Windows\Start Menu\Programs
+	make dir: Terminals
+	make shortcuts
+	wt located at:
+		C:\Program Files\WindowsApps\Microsoft.WindowsTerminal_1.12....
+		best way to get path is probably just start menu, open location...
+
+	command line:
+		wt nt -p "PROFILE_NAME"
+
+	------------------------------
+	cygwin shortcut
+	------------------------------
+	Cygwin needs to use cygstart:
+		Using bash or mintty etc will cause the started process to continue existing
+		repeated presses of the shortcut will do nothing.  Cygstart will spawn and
+		create a new window, then exist.  Subsequent hotkey presses will still work then.
+
+		C:\cygwin64\bin\cygstart.exe /bin/mintty -e /bin/bash -li
+
+------------------------------
+wt setup:
+------------------------------
+	profiles:
+		WSL-Ubuntu:
+			command line:
+				C:\WINDOWS\system32\wsl.exe -d Ubuntu
+
+			turn off "Hide profile from dropdown"
+
+		cygbash
+			command line:
+				C:\cygwin64\bin\bash.exe -li
+
+	appearance->cursor shape->filled box
+
+------------------------------
+wsl setup
+------------------------------
+	mount:
+		net use Z: '\\wsl$\Ubuntu' /PERSISTENT:YES
