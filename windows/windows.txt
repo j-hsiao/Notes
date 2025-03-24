@@ -76,13 +76,23 @@ shortcuts
 ------------------------------
 	C:\users\"username"\AppData\Roaming\Microsoft\Windows\Start Menu\Programs
 	make dir: Terminals
+
+	Shortcut keys seem to only be read if the shortcut is lcoated inside
+	the start menu dir or if it's in the task bar.
+
 	make shortcuts
-	wt located at:
-		C:\Program Files\WindowsApps\Microsoft.WindowsTerminal_1.12....
-		best way to get path is probably just start menu, open location...
+		wt located at:
+			C:\Program Files\WindowsApps\Microsoft.WindowsTerminal_1.12....
+			best way to get path is probably just start menu, open location...
+
+		The full path changes as wt is updated, so probably just use rely on
+		PATH.
 
 	command line:
 		wt nt -p "PROFILE_NAME"
+
+	nt: new tab
+	-p: choose the profile
 
 	------------------------------
 	cygwin shortcut
@@ -90,7 +100,8 @@ shortcuts
 	Cygwin needs to use cygstart:
 		Using bash or mintty etc will cause the started process to continue existing
 		repeated presses of the shortcut will do nothing.  Cygstart will spawn and
-		create a new window, then exist.  Subsequent hotkey presses will still work then.
+		create a new window, then exit.  Subsequent hotkey presses will be able to
+		open a new window
 
 		C:\cygwin64\bin\cygstart.exe /bin/mintty -e /bin/bash -li
 
@@ -101,6 +112,8 @@ wt setup:
 		WSL-Ubuntu:
 			command line:
 				C:\WINDOWS\system32\wsl.exe -d Ubuntu
+
+				-d: use this distribution
 
 			turn off "Hide profile from dropdown"
 
@@ -113,5 +126,8 @@ wt setup:
 ------------------------------
 wsl setup
 ------------------------------
-	mount:
+	mount wsl in windows:
 		net use Z: '\\wsl$\Ubuntu' /PERSISTENT:YES
+
+	to mount windows drive in wsl:
+		sudo mount -t drvfs "Z:" /mnt/z
