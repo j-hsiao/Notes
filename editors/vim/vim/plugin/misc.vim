@@ -496,3 +496,14 @@ cnoremap <expr> u<CR> getcmdtype() == ':' && getcmdline() == '' ? "up<Bslash><lt
 "Make insert-mode C-u and C-w  undoable
 inoremap <C-U> <C-G>u<C-u>
 inoremap <C-W> <C-G>u<C-W>
+
+" Set the ' mark when number + j/k
+function! s:JumpJK(rep, key)
+	if a:rep != 0
+		return "m'" . a:rep . a:key
+	else
+		return a:key
+	endif
+endfunction
+nnoremap <expr> j <SID>JumpJK(v:count, "j")
+nnoremap <expr> k <SID>JumpJK(v:count, "k")
