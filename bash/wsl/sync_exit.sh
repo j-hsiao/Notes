@@ -26,54 +26,60 @@
 # 	first terminal bash session which means that the functions should
 # 	all be defined always in this case.
 #
-synclog()
-{
-	flock /dev/shm/.log_sync_exit bash -c '
-		printf "%s %d\\n" "${0}" "${1}" >> /dev/shm/.log_sync_exit
-	' "${1}" "$$"
-}
 
-synclog sourced_sync_exit
-flocksync_incr_count()
-{
-	synclog flock_incr
-	flock /dev/shm/.sync_exit bash -c '
-		number=$(cat /dev/shm/.sync_exit)
-		if [[ "${number}" =~ ^[0-9]+$ ]]
-		then
-			((++number))
-			echo "${number}" > /dev/shm/.sync_exit
-		else
-			echo "Initialize .sync_exit file."
-			echo 0 > /dev/shm/.sync_exit
-		fi
-		'
-}
+if [[ "$(df --output=fstype /dev/shm | tail -n 1)" != tmpfs ]]
+then
+	echo "Error! /dev/shm is not a tmpfs"
+else
+	synclog()
+	{
+		flock /dev/shm/.log_sync_exit bash -c '
+			printf "%s %d\\n" "${0}" "${1}" >> /dev/shm/.log_sync_exit
+		' "${1}" "$$"
+	}
 
-flocksync_decr_count()
-{
-	synclog flock_decr
-	flock /dev/shm/.sync_exit bash -c '
-		number=$(cat /dev/shm/.sync_exit)
-		if [[ "${number}" =~ ^[0-9]+$ ]]
-		then
-			((--number))
-			echo "${number}" > /dev/shm/.sync_exit
-			if [[ "${number}" -eq 0 ]]
+	synclog sourced_sync_exit
+	flocksync_incr_count()
+	{
+		synclog flock_incr
+		flock /dev/shm/.sync_exit bash -c '
+			number=$(cat /dev/shm/.sync_exit)
+			if [[ "${number}" =~ ^[0-9]+$ ]]
 			then
-				sync
+				((++number))
+				echo "${number}" > /dev/shm/.sync_exit
+			else
+				echo "Initialize .sync_exit file."
+				echo 0 > /dev/shm/.sync_exit
 			fi
-		else
-			printf "WARNING! sync number is not numeric (${number})\\npress return to continue..."
-			read
-		fi
-		'
-}
+			'
+	}
 
-flocksync_incr_count
+	flocksync_decr_count()
+	{
+		synclog flock_decr
+		flock /dev/shm/.sync_exit bash -c '
+			number=$(cat /dev/shm/.sync_exit)
+			if [[ "${number}" =~ ^[0-9]+$ ]]
+			then
+				((--number))
+				echo "${number}" > /dev/shm/.sync_exit
+				if [[ "${number}" -eq 0 ]]
+				then
+					sync
+				fi
+			else
+				printf "WARNING! sync number is not numeric (${number})\\npress return to continue..."
+				read
+			fi
+			'
+	}
 
-exit()
-{
-	flocksync_decr_count
-	command exit
-}
+	flocksync_incr_count
+
+	exit()
+	{
+		flocksync_decr_count
+		command exit
+	}
+fi
