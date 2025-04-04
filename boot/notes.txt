@@ -1,0 +1,77 @@
+contents
+-1- partitions
+-2- bootable media
+	-2.1- GPT
+		-2.1.1- Windows
+		-2.1.2- Linux
+
+
+
+------------------------------
+-1- partitions
+------------------------------
+Disks (flash drive, usb, hdd, ssd, etc) can be split into partitions.
+Generally, 2 formats:
+	MBR: old, max 4 primary partitions
+	     must have extended partition to have more
+	     Only primary partitions are bootable
+	     2TB partition size limit
+	GPT: new, up to 128 partitions
+	     partitions are marked with a "Type" flag
+	     Mark EFI FAT32 for bootable partition.
+
+	volume: a "block" that has a file system (could consist of multiple partitions)
+	partition: a physical chunk in a disk
+
+
+------------------------------
+-2- bootable media
+------------------------------
+Bootable media generally means:
+	------------------------------
+	-2.1- GPT
+	------------------------------
+	1. GPT
+		------------------------------
+		-2.1.1- Windows
+		------------------------------
+			Start an admin prompt (windows+x a)
+			1. Download the ISO, note the size
+			2. Create a partition:
+				diskpart
+					Start interactive prompt for disk managing.
+					help | help <command args etc...>
+					list disk
+					select disk N
+					create volume simple size=(Size of the iso) [disk=N] [align=N]
+						NOTE: don't create an EFI partition here
+						because windows does not allow interacting with EFI partition
+						so do NOT do create partition efi
+					list part
+					select part N
+					filesystems
+					format fs=FAT32 LABEL=label quick
+					set id=c12a7328-f81f-11d2-ba4b-00a0c93ec93b
+				disk management
+					might need to clear or shrink existing partition
+					right click unallocated
+					create a FAT32 partition
+			Extract iso into the partition after creating as FAT32
+			Use 7z or something to extract ISO into the EFI
+		------------------------------
+		-2.1.2- Linux
+		------------------------------
+
+	2. MBR: TODO maybe
+
+------------------------------
+-3- GUI
+------------------------------
+linux
+	display manager: graphical login screen, starts the desktop
+	                 environment  after login
+	                 examples: gdm, lightdm, sddm
+	window manager: the windows after login
+	                examples: i3, mutter kwin
+	login manager: usually same as display manager, handles user login
+	               sessions or multiple users etc
