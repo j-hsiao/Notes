@@ -507,3 +507,25 @@ function! s:JumpJK(rep, key)
 endfunction
 nnoremap <expr> j <SID>JumpJK(v:count, "j")
 nnoremap <expr> k <SID>JumpJK(v:count, "k")
+
+
+" For some weird reason, on debian?linux?ubuntu?wsl?...
+" from insert mode, <C-[> followed by O will enter some weird
+" state as if there is some kind of mapping. It will wait for
+" more keys, and, for example: will insert a 1 and
+" <C-[>Oq 
+" q: 1
+" w: 7
+" r: 2
+" t: 4
+" u: 5
+" o: /
+" p: 0
+" Q: <F2>
+" R: <F3>
+" ...
+" it does not break undo...
+" and then return back to insert mode1asdf
+" It only happens if .vimrc exists, even if it is completely empty.
+" use this mapping to prevent this weird behavior
+inoremap <C-[>O <C-[>O
