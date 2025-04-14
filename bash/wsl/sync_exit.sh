@@ -60,7 +60,7 @@ else
 		synclog flock_decr
 		flock /dev/shm/.sync_exit bash -c '
 			number=$(cat /dev/shm/.sync_exit)
-			if [[ "${number}" =~ ^[0-9]+$ ]]
+			if [[ "${number}" =~ ^"-"?[0-9]+$ ]]
 			then
 				((--number))
 				echo "${number}" > /dev/shm/.sync_exit
@@ -70,6 +70,7 @@ else
 				fi
 			else
 				printf "WARNING! sync number is not numeric (${number})\\npress return to continue..."
+				synclog "Bad sync number \"${number}\""
 				read
 			fi
 			'
@@ -77,9 +78,5 @@ else
 
 	flocksync_incr_count
 
-	exit()
-	{
-		flocksync_decr_count
-		command exit
-	}
+	trap "flocksync_decr_count; $(trap -p EXIT | sed "s/[^']*'\(.*\)'[^']*/\1/")" EXIT
 fi
