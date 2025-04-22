@@ -9,6 +9,7 @@ contents
 	-1.5- comments
 	-1.6- including
 	-1.7- wildcards
+	-1.8- commands
 -2- functions
 	-2.1- wildcard
 	-2.2- patsubst
@@ -129,6 +130,16 @@ ______________________________
 		wildcard happens in rules, but not variables
 		use $(wildcard <pattern...> <pattern...> ...) to get expansion
 		when setting variable
+	______________________________
+	-1.8- commands
+		[options]bash command
+		commands go after the rule.
+		prefix:
+			@: don't echo
+			-: ignore exit status (keep going even if fail)
+			+: always execute, even if -n, -t, or -q flags
+
+
 ______________________________
 -2- functions
 	call a function with $(<funcname> args...)
