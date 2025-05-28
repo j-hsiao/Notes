@@ -4,6 +4,7 @@ contents
 	-1.2- variable
 		-1.2.1- flavors
 		-1.2.2- automatic
+		-1.2.3- predefined variables
 	-1.3- line continuation
 	-1.4- phony
 	-1.5- comments
@@ -15,9 +16,10 @@ contents
 	-2.2- patsubst
 
 
-______________________________
+------------------------------
 -1- syntax
-	______________________________
+	Make DOES NOT HANDLE QUOTES, all quotes are passed verbatim
+	------------------------------
 	-1.1- rule
 		target ... : prereqs ...
 			recipe
@@ -44,7 +46,7 @@ ______________________________
 			normal | order-only
 			order-only only orders target, doesn't check for out-of-date.
 
-	______________________________
+	------------------------------
 	-1.2- variable
 		define:
 			varname = info
@@ -55,7 +57,7 @@ ______________________________
 			varname +=
 			varname !=
 
-		______________________________
+		------------------------------
 		-1.2.1- flavors:
 			= recursively defined
 				Will be expanded again
@@ -82,7 +84,7 @@ ______________________________
 
 			($$ for literal $)
 
-		______________________________
+		------------------------------
 		-1.2.2- automatic
 			$@: target of the rule
 			$<: first prerequisite
@@ -98,8 +100,15 @@ ______________________________
 		SIDENOTE:
 			all the automatic variables are still variables
 			ie $< is the same as $(<)
+		------------------------------
+		-1.2.3- predefined variables
+			$(MAKEFILE_LIST)
+			a list of loaded makefiles
+			$(word $(words $(MAKEFILE_LIST)),$(MAKEFILE_LIST))
+			will be the last word in the $(MAKEFILE_LIST)
+			aka, the current makefile (assuming no include)
 
-	______________________________
+	------------------------------
 	-1.3- line continuation
 		use trailing backslash \
 		use $\ to have new line without whitespace
@@ -111,26 +120,26 @@ ______________________________
 					var := one$ word
 				->
 					var := oneword        # ("$ " expands variable called " " to nothing)
-	______________________________
+	------------------------------
 	-1.4- phony
 		specify a target is phony:
 			.PHONY: name
 		PHONY targets will not get confused with files of the same name
-	______________________________
+	------------------------------
 	-1.5- comments
 		comments start with #
-	______________________________
+	------------------------------
 	-1.6- including
 		include other make files (like C #include)
 			include filenames...
-	______________________________
+	------------------------------
 	-1.7- wildcards
 		*, ?, [...]
 		* results in sorted for that expression only
 		wildcard happens in rules, but not variables
 		use $(wildcard <pattern...> <pattern...> ...) to get expansion
 		when setting variable
-	______________________________
+	------------------------------
 	-1.8- commands
 		[options]bash command
 		commands go after the rule.
@@ -140,15 +149,19 @@ ______________________________
 			+: always execute, even if -n, -t, or -q flags
 
 
-______________________________
+------------------------------
 -2- functions
 	call a function with $(<funcname> args...)
-	______________________________
+	------------------------------
 	-2.1- wildcard
 		$(wildcard args...): wildcard expansion on each arg
 		raw wildcard no match = use raw pattern
 		wildcard function no match = blank
-	______________________________
+	------------------------------
 	-2.2- patsubst
 		$(patsubst pat,replace,vals)
 		eg.:  $(patsubst %.c,%.o,$(wildcard *.c))
+
+	------------------------------
+	-2.3- shell
+		$(shell shell command line goes here)

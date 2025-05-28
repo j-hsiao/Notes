@@ -15,6 +15,8 @@ contents
 -2- Array Operations
 -3- Ref/Map
 
+-10- miscellaneous
+
 ------------------------------
 -0- general
 ------------------------------
@@ -474,3 +476,34 @@ Mixing Eigen::RowMajor/Eigen::ColMajor is NOT allowed, even if it is
 possible to set the corresponding strides to match data.
 
 Ref does not seem to work well with 0 strides, Map can handle though.
+
+
+Ref Is a Map, but a Map is not a Ref.
+Ref is just a Map but adds auto-setting values from Eigen::EigenBase<>
+instances.
+
+
+
+------------------------------
+-10- miscellaneous
+------------------------------
+	------------------------------
+	-10.1- ref vs value with constness
+	------------------------------
+	Eigen has various reference types usually something like
+	templname<base, ...>
+
+	Const can be applied to the outer template or inner wrapped class resulting
+	in 4 possibilities:
+
+		templname<base, ...>
+		const templname<base, ...>
+		templname<const base, ...>
+		const templname<const base, ...>
+
+	The (const) templname<base, ...> will return references when indexing, iterating, etc.
+	ie: std::is_reference<decltype(mat(0,0))>::value == true
+
+	However, the templname<const base> will NOT return references.  Instead,
+	they just return actual values.
+	ie: std::is_reference<decltype(mat(0,0))>::value == false
