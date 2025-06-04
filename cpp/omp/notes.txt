@@ -4,7 +4,8 @@ contents
 	-0.1- syntax
 -1- clauses
 	-1.1- if([directive-name-modifier:]scalar-expr)
-	-1.2- data-scope clauses
+	-1.2- final(expr)
+	-1.3- data-scope clauses
 		-1.2.1- private/firstprivate/lastprivate(cdvlist)
 		-1.2.2- default
 		-1.2.3- shared
@@ -88,8 +89,30 @@ gcc: Compile with -fopenmp and include -lpthread
 	------------------------------
 
 	------------------------------
-	-1.2- private/firstprivate/lastprivate(cdvlist)
+	-1.3- private/firstprivate/lastprivate(cdvlist)
 	------------------------------
+	NOTE: new variables are created and "owned" by the corresponding region.
+	ie. lifetime is tied to that region
+	as opposed to (shared), where the lifetime is tied to the calling region.
+
+	References are treated as non-references (ie, create/allocate a new copy
+	of the referenced thing)  Even if firstprivate, a reference will point
+	to a new instance.
+
+	A pointer is a pointer, so the pointer itself would get copied (firstprivate)
+
+	for cpp, basically, it is as if
+
+	#pragma omp directive blah blah, [first|last]private(arg)
+	{
+		auto local_arg = arg;
+	}
+	ie:
+		arg   -> local_arg
+		T*    -> T*
+		T     -> T
+		T&    -> T
+
 	These create private variables for each thread.
 	In the case of firstprivate, the variables should be shared
 	(so they can be initialized to a common value)
@@ -292,6 +315,11 @@ gcc: Compile with -fopenmp and include -lpthread
 	-1.8- #pragma omp task
 	------------------------------
 	#pragma omp task [clause(s)]
+
+		pay attention to argument lifetime
+		may need #pragma omp taskwait to ensure tasks are called
+		before lifetime of arguments end.
+
 		Next block is a "task", can be run concurrently by any thread.
 		ibm says requires "SMP" compiler option
 
