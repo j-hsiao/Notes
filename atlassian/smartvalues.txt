@@ -1,0 +1,393 @@
+https://support.atlassian.com/cloud-automation/docs/jira-smart-values-conditional-logic/#equals
+https://mustache.github.io/mustache.5.html
+
+contents
+------------------------------
+-0- general
+	-0.1- tags
+		-0.1.1- variables
+-1- atlassian extensions
+-2- logic and conditionals
+	-2.1- if
+	-2.2- not
+	-2.3- equals
+	-2.4- exists
+	-2.5- and
+	-2.6- or
+-3- text
+-4- math
+-5- lists
+
+
+------------------------------
+-0- general
+jira uses "SmartValues" which uses mustache library:
+
+The "smartvalue" ends at the first instance of }}
+not even escaping works
+
+function syntax are as expected, variables should not be quoted
+etc
+
+	------------------------------
+	-0.1- tags
+	Tags are surrounded with double curly braces.
+		ex: {{varname}}
+		    {{#varname}}
+		    {{#if}}
+		    {{/}}
+		    {{#=}}
+		------------------------------
+		-0.1.1- variables
+			Variables are {{varname}}.
+			Higher scopes will be searched until a variable match is found.
+			Empty if no match.
+
+			Escaping:
+				All variables are HTML escaped by default, use triple braces or
+				& to prevent escaping.
+				ie. {{{rawvalue}}} OR {{& rawvalue}}
+
+			dots
+				dotted names can be used the same as nested dict lookup with dot
+				notation.
+
+			lambdas
+				Functions will be invoked with 0 arguments, return value is used
+				as the object.
+
+			sections
+				{{#sectionname}} starts a section.
+				{{/sectionname}} ends a section.
+
+				falsey: ignore the block
+				truthy non-list non-lambday:
+					Use the named item as the current context.
+					ex.
+						code:
+						{{#person}}
+							Hi {{name}}!
+						{{/person}}
+						state:
+							{
+								"person": {"name": "me"}
+							}
+						result:
+							Hi me!
+
+				list: iterate over items in the list ({{.}} will expand to the current item)
+					ex1:                        ex2:
+					  code:                       code:
+					    {{#repo}}                   {{#repo}}
+					      <b>{{name}}</b>             <b>{{.}}</b>
+					    {{/repo}}                   {{/repo}}
+					  state:                      state:
+					    {                           {
+					      "repo": [                   "repo": ["name1", "name2", "name3"]
+					        {"name": "name1"},      }
+					        {"name": "name2"},    result:
+					        {"name": "name3"},      <b>name1</b>
+					      ]                         <b>name2</b>
+					    }                           <b>name3</b>
+					  result:
+					    <b>name1</b>
+					    <b>name2</b>
+					    <b>name3</b>
+				lambdas
+					function will be invoked and passed the block of text (literal)
+					If returns a string, then replace the block with the string and
+					expand again.
+					ex.
+						code:
+						{{#wrapped}}{{name}} is awesome.{{/wrapped}}
+						state:
+						{
+							"name": "Willy",
+							"wrapped": function(text) {
+								return "<b>" + text + "</b"
+							}
+						}
+						result:
+							<b>Willy is awesome</b>
+						explanation:
+							1. wrapped('{{name}} is awesome')     wrapped is given the raw block text
+							2. <b>{{name}} is awesome</b>         wrapped returns this string
+							3. <b>Willy is awesome</b>            the string is expanded.
+			inverted sections
+				Same syntax as sections, but use ^ instead of #
+				These can be used kind of like an else case
+				Only render the text if the variable is falsey.
+				{{#repo}}
+					<b>{{name}}</b>
+				{{/repo}}
+				{{^repo}}
+					repo is falsey
+				{{/repo}}
+
+				<b>{{name}}</b> if repo exists and not falsey
+				repo is falsey otherwise
+			comments
+				{{!comments go here}}
+
+			The {{}} delimiters can be changed
+			{{=<% %>=}}
+			changes delims to <% and %>
+			<%={{ }}=%>
+			changes them back
+------------------------------
+-1- atlassian extensions
+	Default values
+		{{name|defaultvalue}}
+
+	Numbers
+		{{#=}}stuff that should become a number (math okay){{/}}
+
+------------------------------
+-2- logic and conditionals
+	------------------------------
+	-2.1- if
+		if(varname)
+		if(varname, truthy)
+		if(varname, truthy, falsey)
+
+	------------------------------
+	-2.2- not
+		not(expr)
+	------------------------------
+	-2.3- equals
+		equals("text", var)
+	------------------------------
+	-2.4- exists
+		exists(var)
+	------------------------------
+	-2.5- and
+		and(v1, v2)
+	------------------------------
+	-2.6- or
+		or(v1, v2)
+------------------------------
+-3- text
+	.abbreviate(maxlen)
+	.charAt(idx)
+	.capitalize()
+	.concat(nxtstr)
+	.endsWith(str)
+	.htmlEncode()
+	.indexOf(str)                 find substr
+	.isAlpha()
+	.isAlphanumeric()
+	.isEmpty()
+	.isNotEmpty()
+	.isNumeric()
+	.jsonEncode()
+	.lastIndexOf(string)          indexOf, from the right
+	.left(len)                    str[:length]
+	.leftPad(len, pad)
+	.length()
+	.match("str")                 returns first group (\1) of all matches
+	.quote()
+	.remove(str)                  remove all occurrences
+	.replace(tgt, repl)           replace raw
+	.replaceAll(regex, repl)      replace regex
+	.reverse()                    str[::-1]
+	.right(len)                   str[-len:]
+	.rightPad(len, pad)
+	.split(sep)                   literal split
+	.startsWith(prefix)
+	.substring(start, end)        slicing
+	.substringAfter(sep)          split(sep, 1)[1]
+	.substringAfterLast(sep)      rsplit(sep, 1)[1]
+	.substringBefore(sep)         split(sep, 1)[0]
+	.substringBeforeLast(sep)     rsplit(sep, 1)[0]
+	.substringBetween(beg, end)
+	.toLowerCase()
+	.toUpperCase()
+	.trim()
+	.urlEncode()
+	.xmlEncode()
+
+	Some have standalone versions
+	ex:
+		jsonEncode:
+		{{#jsonEncode}}
+			text to jsonencode goes here
+		{{/}}
+------------------------------
+-4- math
+	example:
+		{{#=}}
+			{{varname}} + 2.3
+		{{/}}
+	operators:
+		+-*/%
+		^ (power, not bitwise xor) 2^3 = 2 to the power of 3 = 8
+	comparison:
+		== != < <= > >=
+	logic:
+		&& ||
+	functions:
+		not(...)                    sin(...)
+		if(..., truthy, falsey)     cos(...)
+		random()                    tan(...)
+		min(a, b, c,...)            asin(...)
+		max(a, b, c,...)            acos(...)
+		abs(...)                    atan(...)
+		round(...)                  sinh(...)
+		floor(...)                  cosh(...)
+		ceil(...)                   tanh(...)
+		log(...)                    rad(...)
+		log10(...)                  deg(...)
+		sqrt(...)
+	constants:
+		e
+		PI
+		TRUE
+		FALSE
+		NULL
+
+------------------------------
+-5- lists
+	.join(sep)        join strs with sep
+	.get(idx)
+	.getFromEnd(idx)  (0 = last item)
+	.first
+	.last
+	.size
+	.average
+	.max
+	.min
+	.sum
+	.distinct
+
+
+------------------------------
+Get a page by title:
+------------------------------
+	GET : https://smartanywhere.atlassian.net/wiki/api/v2/pages?title=testing3:TESTING3-13
+	RESPONSE:
+		{
+			"results": [
+				{
+					"parentType": "page",
+					"parentId": "995131712",
+					"ownerId": "5fea8a30f7ea2a010762768f",
+					"lastOwnerId": null,
+					"createdAt": "2025-01-14T06:57:22.144Z",
+					"authorId": "5fea8a30f7ea2a010762768f",
+					"position": 2055,
+					"id": "995295312",
+					"version": {
+						"number": 2,
+						"message": "",
+						"minorEdit": false,
+						"authorId": "5fea8a30f7ea2a010762768f",
+						"createdAt": "2025-01-14T07:05:15.527Z"
+					},
+					"spaceId": "995131403",
+					"body": {},
+					"status": "current",
+					"title": "testing3:TESTING3-13",
+					"_links": {
+						"editui": "/pages/resumedraft.action?draftId=995295312",
+						"webui": "/spaces/T/pages/995295312/testing3+TESTING3-13",
+						"edituiv2": "/spaces/T/pages/edit-v2/995295312",
+						"tinyui": "/x/UABTOw"
+					}
+				}
+			],
+			"_links": {
+				"base": "https://smartanywhere.atlassian.net/wiki"
+			}
+		}
+
+------------------------------
+get space info:
+------------------------------
+	GET : http://smartanywhere.atlassian.net/wiki/api/v2/spaces?keys=key
+	RESPONSE:
+		{
+			"results": [
+				{
+					"createdAt": "2025-01-14T03:11:04.638Z",
+					"authorId": "5fea8a30f7ea2a010762768f",
+					"homepageId": "995131712",
+					"icon": null,
+					"description": null,
+					"status": "current",
+					"name": "testing3_jira_link_confluence",
+					"key": "T",
+					"id": "995131403",
+					"type": "global",
+					"_links": {
+						"webui": "/spaces/T"
+					},
+					"currentActiveAlias": "T"
+				}
+			],
+			"_links": {
+				"base": "https://smartanywhere.atlassian.net/wiki"
+			}
+		}
+------------------------------
+Create a page inside a space:
+------------------------------
+	POST : http://smartanywhere.atlassian.net/wiki/api/v2/pages
+	DATA:
+		{
+			"spaceId": "{{webResponse.result.get(0).id}}",
+			"status": "current",
+			"title": "{{issue.project.name}}:{{issue.key}}",
+			"body": {
+				"representation": "storage",
+				"value": "confluence initial data"
+			}
+		}
+	RESPONSE:
+		{
+			"parentType": "page",
+			"parentId": "995131712",
+			"ownerId": "5fea8a30f7ea2a010762768f",
+			"lastOwnerId": null,
+			"createdAt": "2025-01-15T03:25:11.325Z",
+			"authorId": "5fea8a30f7ea2a010762768f",
+			"version": {
+				"number": 1,
+				"message": "",
+				"minorEdit": false,
+				"authorId": "5fea8a30f7ea2a010762768f",
+				"createdAt": "2025-01-15T03:25:11.325Z"
+			},
+			"position": 2264,
+			"spaceId": "995131403",
+			"status": "current",
+			"body": {
+				"storage": {
+					"representation": "storage",
+					"value": "<p><a href=\"google.com\">google</a></p><h1>This is heading 1</h1><p>some text for heading1</p>"
+				}
+			},
+			"title": "testing create",
+			"id": "995885061",
+			"_links": {
+				"editui": "/pages/resumedraft.action?draftId=995885061",
+				"webui": "/spaces/T/pages/995885061/testing+create",
+				"edituiv2": "/spaces/T/pages/edit-v2/995885061",
+				"tinyui": "/x/BQBcOw",
+				"base": "https://smartanywhere.atlassian.net/wiki"
+			}
+		}
+
+Add a link to a jira issue:
+	POST : https://smartanywhere.atlassian.net/rest/api/3/issue/{{issue.key}}/remotelink
+	data:
+		{
+			"object": {
+				"title": "Confluence: {{issue.project.name}}:{{issue.key}}",
+				"url": "{{webResponse.body._links.base}}{{webResponse.body._links.webui}}"
+			}
+		}
+	RESPONSE:
+		{
+			'id': 10229,
+			'self': 'https://smartanywhere.atlassian.net/rest/api/3/issue/TESTING3-14/remotelink/10229'
+		}
