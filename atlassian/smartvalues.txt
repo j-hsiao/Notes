@@ -17,6 +17,7 @@ contents
 -3- text
 -4- math
 -5- lists
+-6- json
 
 
 ------------------------------
@@ -179,7 +180,7 @@ etc
 	.isEmpty()
 	.isNotEmpty()
 	.isNumeric()
-	.jsonEncode()
+	.jsonEncode()                 (NOTE: doesn't add quotes)
 	.lastIndexOf(string)          indexOf, from the right
 	.left(len)                    str[:length]
 	.leftPad(len, pad)
@@ -259,6 +260,35 @@ etc
 	.sum
 	.distinct
 
+------------------------------
+-6- json
+	Encoding objects to json text:
+		.asJsonString()                 text -> "{{text.jsonEncode()}}"
+		.asJsonStringArray()            list -> list of strings
+		.asJsonArray()                  list -> list of num (must be numeric)
+		.asJsonObject(key)              creates single-key object {"key": obj}
+		.asJsonObjectArray(key)         list[obj] -> [{key: obj1}, {key: obj2}, ...]
+
+	Decoding objects
+		jsonStringToObject(str)
+			Note: atlassian automation variables are TEXT ONLY.  This means that
+			to access a variable as a json object, the text must be parsed every
+			single action.  To parse it only once per action, the context section
+			syntax can be used.
+			ex:
+				variable = {
+					"This": "is",
+					"a": "string",
+					"that": "is",
+					"json": "formatted"
+				}
+				in an action:
+					{{#jsonStringToObject(variable)}}
+						{{this}} == is
+						{{a}} == string
+						{{that}} == is
+						{{json}} == formatted
+					{{/}}
 
 ------------------------------
 Get a page by title:
