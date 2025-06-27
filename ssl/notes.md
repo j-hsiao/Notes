@@ -109,6 +109,37 @@ To create an intermediate certificate, in the `SERVER_CSR_CONFIG.txt`
 add `keyCertSign` to `keyUsage` list and change `basicConstarints` value
 from `CA:FALSE` to `CA:TRUE`
 
+In the case of an intermediate certificate, you may need to include all
+the certificates up to the "trusted" certificate.
+For example:
+
+CA gives you a root certificate (intermediate certificate).  This root
+certificate is verified by the CA which is ideally already trusted by
+browsers.  Use the root certificate to create/sign a new certificate
+for your sever.
+
+The certificate chain is:
+
+`Server certificate` -> `root certificate` -> `CA certificate`
+
+Clients must validate all the way until a trusted certificate.
+This means that if the `root certificate` is not on any browser, it should
+also be included by your sever.
+
+```
+cat server_certificate.pem root_certificate.pem > final_certificate.pem
+```
+
+When creating a socket, use the `final_certificate.pem` as the certificate.
+
+```
+context = ssl.SSLContext(ssl.PROTOCOL_TLS_SERVER)
+context.load_cert_chain("final_certificate.pem", keyfile, ...)
+```
+
+The `final_certificate.pem` should contain all certificates up until the
+one that would be trusted by the browser.
+
 # Install the CA cert
 Browsers need to have the CA.pem file to trust anything that was signed
 with the CA.pem file.
