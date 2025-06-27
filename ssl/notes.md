@@ -1,21 +1,19 @@
 certificates for https etc
 
-##############################
-contents:
--1- vocab
--2- CA
-	-2.1- create a key
-	-2.2- create a certificate
--3- signed certificates
-	-3.1- create a key for server
-	-3.2- create a csr
-	-3.3- sign the csr
--4- installing ca
+# contents:
+1. [vocab](#vocab)
+2. [CA](#CA)
+   1. [create CA key](#create-ca-key)
+   2. [create CA certificate](#create-ca-certificate)
+3. signed certificates
+   1. create a key for server
+   2. create a csr
+   3. sign the csr
+4. installing ca
 
 
 
-______________________________
--1- vocab
+# vocab
 	CA:
 		certifying authority, entity that signs certificates
 		and is trusted, once CA is installed on a device
@@ -31,11 +29,10 @@ ______________________________
 		a request that a CA signs. The result of the signing
 		is the certificate that a server uses to identify itself
 		as trustworthy
-______________________________
--2- CA
 
-	______________________________
-	-2.1- create a key:
+# CA
+
+## create CA key
 		command:
 			openssl genrsa -des3 -out myCA.key 2048
 		note: create a passphrase to prevent
@@ -43,8 +40,7 @@ ______________________________
 			sign certificates without your
 			permission)
 
-	______________________________
-	-2.2- create a certificate:
+## create CA certificate
 		command:
 			openssl req -x509 -new -nodes -key KEY_FILE_FROM_PREVIOUS_STEP \
 				-sha256 -days NDAYS -out CA.pem
@@ -69,7 +65,7 @@ ______________________________
 
 	______________________________
 	-3.3- sign the csr:
-		create a config file: name.ext
+		create a config file: YOUR_CONFIG_FILE.txt
 			contents:
 				authorityKeyIdentifier=keyid,issuer
 				basicConstraints=CA:FALSE
@@ -79,9 +75,15 @@ ______________________________
 				[alt_names]
 				DNS.1 = name1 of server
 				DNS.2 = name2 of server
+				...
+				IP.1 = ip1 of server
+				IP.2 = ip2 of server
+				...
 			steps:
 				fill in the nameX of website values
 				as many as there are names for the server
+				NOTE: IP or DNS must match or there will browser will warn that the name(s)
+				      are invalid or something like that.
 		command:
 			openssl x509 -req -in CSR_FILE_FROM_-3.2- -CA PEM_FROM_-2.2- \
 				-CAkey KEY_FROM_-2.1- -CAcreateserial -out CERTNAME \
@@ -100,5 +102,5 @@ ______________________________
 	-4.2- firefox
 		preferences->privacy & security->security->certificates->view certificates
 		import cert
-
-
+	-4.3- edge
+		settings -> privacy, search, services -> manage certificates
