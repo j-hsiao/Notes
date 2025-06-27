@@ -9,6 +9,7 @@ certificates for https etc
    1. [create a key for server](#create-a-key-for-server)
    2. [create a csr](#create-a-csr)
    3. [sign the csr](#sign-the-csr)
+      1. [Intermediate CA](#intermediate-ca)
 4. [Install the CA cert](#install-the-ca-cert)
    1. [chrome](#chrome)
    2. [firefox](#firefox)
@@ -35,12 +36,18 @@ certificates for https etc
 # CA
 
 ## create CA key
-command: `openssl genrsa -des3 -out CA_KEY_NAME.key 2048`
+This is the private key that the CA would use.
+```
+openssl genrsa -des3 -out CA_KEY_NAME.key 2048
+```
 note: create a passphrase to prevent someone from using your key to sign
       certificates without your permission)
 
 ## create CA certificate
-command: `openssl req -x509 -new -nodes -key CA_KEY_NAME.key -sha256 -days NDAYS -out CA.pem`
+This is the certificate that the will be imported as "trusted" by the clients' browsers.
+```
+openssl req -x509 -new -nodes -key CA_KEY_NAME.key -sha256 -days NDAYS -out CA.pem
+```
 
 You will be prompted to answer some questions.  Most are optional.  The
 `Common Name` is required.
@@ -53,10 +60,16 @@ You will be prompted to answer some questions.  Most are optional.  The
 # signed server certificate
 
 ## create a key for server
-command: `openssl genrsa -out SERVER_KEY.key 2048`
+This is the private key for the server.
+```
+openssl genrsa -out SERVER_KEY.key 2048
+```
 
 ## create a csr
-command: `openssl req -new -key SERVER_KEY.key -out SERVER_CSR.csr`
+This is a request to an existing CA to give you a certificate.
+```
+openssl req -new -key SERVER_KEY.key -out SERVER_CSR.csr
+```
 
 ## sign the csr:
 create a config file: `SERVER_CSR_CONFIG.txt`
@@ -78,14 +91,24 @@ IP.2 = ip2 of server
 At least one of IP or DNS values must match the actual server ip/name (ex: some.name.com)
 Otherwise, the browser will give a warning.
 
-
-
 command:
 ```
 openssl x509 -req -in SERVER_CSR.csr -CA CA.pem \
     -CAkey CA_KEY_NAME.key -CAcreateserial -out SERVER_CERT_NAME.pem \
     -days NUMDAYS -sha256 -extfile SERVER_CSR_CONFIG.txt
 ```
+
+`SERVER_CERT_NAME.pem` is the certificate to be used for the server.
+
+### Intermediate CA
+Often times, a CA does not sign the server certificate directly.  Instead, they give
+an intermediate certificate.  You can then use the intermediate certificate to sign
+any certificate that you need.
+
+To create an intermediate certificate, in the `SERVER_CSR_CONFIG.txt`
+add `keyCertSign` to `keyUsage` list and change `basicConstarints` value
+from `CA:FALSE` to `CA:TRUE`
+
 # Install the CA cert
 Browsers need to have the CA.pem file to trust anything that was signed
 with the CA.pem file.
