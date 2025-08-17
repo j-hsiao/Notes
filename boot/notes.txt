@@ -4,6 +4,9 @@ contents
 	-2.1- GPT
 		-2.1.1- Windows
 		-2.1.2- Linux
+-3- GUI
+
+-4- UEFI
 
 
 
@@ -75,3 +78,114 @@ linux
 	                examples: i3, mutter kwin
 	login manager: usually same as display manager, handles user login
 	               sessions or multiple users etc
+
+------------------------------
+-4- UEFI
+------------------------------
+	https://wiki.debian.org/SecureBoot
+
+	UEFI is a boot format
+	Generally, it searches for a EFI partition FAT32 formatted
+	for .efi files that are executables to perform booting.
+	Generally should be located at /EFI/$vendor/$bootloader.efi
+	ex: debian:
+		amd64 \EFI\debian\grubx64.efi
+		i386  \EFI\debian\grubia23.efi
+		arm64 \EFI\debian\grubaa64.efi
+		armhf \EFI\debian\grubarm.efi
+
+		amd64  \EFI\boot\bootx64.efi
+		i386   \EFI\boot\bootia23.efi
+		arm64  \EFI\boot\bootaa64.efi
+		armhf  \EFI\boot\bootarm.efi
+		nscv64 \EFI\boot\bootriscv64.efi
+
+	------------------------------
+	-4.1- Secure Boot
+	------------------------------
+	Secure boot is basically registering a public key to use
+	for verifying the efi files and kernel modules
+	Unsigned kernel modules (like drivers (nvidia) etc)
+	would be disallowed
+
+		*history*: Most only had microsoft keys registered and
+		secure boot enabled by default = cannot run linux.
+		workaround = a "shim" signed by microsoft containing
+		other keys
+
+	Check secure boot state:
+		sudo mokutil --sb-state
+
+		also can look at /var/log/syslog or something
+		or sudo dmesg
+			"loading X.509 cert 'name of cert' ..."
+
+		------------------------------
+		-4.1.1- MOK
+		------------------------------
+		MOK = Machine Owner Key
+			mokutil can queue keys for registering, but
+			they must be verified at boot time
+
+		check registered keys
+			sudo mokutil --list-enrolled
+			sudo mokutil --test-key path/to/key
+
+		default location:
+			debian:
+				/var/lib/dkms/mok.key
+				/var/lib/dkms/mok.pub
+			ubuntu:
+				/var/lib/shim-signed/mok/
+					MOK.der
+					MOK.pem
+					MOK.priv
+
+		* some packages (like oracle virtualbox) expect ubuntu loc
+
+		Generate a mok manually:
+			sudo dkms generate_mok
+
+		custom MOK:
+			openssl req -nodes -new -x509 -newkey rsa:2048 -keyout MOK.priv -outform DER -out MOK.der -days 36500 -subj "/CN=My Name/"
+			openssl x509 -inform der -in MOK.der -out MOK.pem
+
+			* 4096 not supported 2022-06-21, fail to boot, use 2048 for now
+
+
+		Auto generated if not exist when making kernel module
+			DKMS (Dynamic Kernel Module System) builds/compiles modules
+			individually.  Compile happens on user machine, cannot use
+			any distro's private key to sign. Must use MOK
+
+			DKMS auto generation configuration:
+			/etc/dkms/framework.conf:
+				mok_signing_key="/var/lib..MOK.priv"
+				mok_certificate="/var/lib/...MOK.der"
+				sign_tool="/etc/dkms/sign_helper.sh"
+
+			/etc/dkms/sign_helper.sh
+				#!/bin/bash
+				/lib/modules/"$1"/build/scripts/sign-file sha512 /root/.mok/client.priv /root/.mok/client.der "$2"
+
+		Enrolling the MOK:
+			sudo mokutil --import /var/lib/dkms/mok.pub
+		check keys queued for confirmation
+			sudo mokutil --list-new
+		reboot
+			select enroll MOK
+
+		------------------------------
+		Manually signing a kernel
+		------------------------------
+
+			VERSION="$(uname -r)"
+			SHORT_VERSION="$(uname -r | cut -d . -f 1-2)"
+			MODULES_DIR=/lib/modules/$VERSION
+			KBUILD_DIR=/usr/lib/linux-kbuild-$SHORT_VERSION
+
+			sudo apt install sbsigntool
+
+		------------------------------
+		Manually signing a module
+		------------------------------
