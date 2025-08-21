@@ -89,6 +89,8 @@ AV options:
 	-i input
 	-stream_loop number   : 0: no loop
 	                        -1: infinite
+	-use_wallclock_as_timestamps
+		Use read time of the frames as the timestamp...??
 	-c/-codec[:stream] codec
 		copy for copy, otherwise codec
 	-t duration
