@@ -504,40 +504,518 @@ ______________________________
 			#define method (*(returntype *(args))interface[N])
 
 
-______________________________
--8- members
-	PyMemberDef
-	{name, type, offset, flags, doc}
-
-		type:
-			T_SHORT
-			T_INT
-			T_LONG
-			T_FLOAT
-			T_DOUBLE
-			T_STRING
-			T_OBJECT      (None if not exist)
-			T_OBJECT_EX   (AttributeError if not exist)
-			T_CHAR
-			T_BYTE
-			T_UBYTE
-			T_UINT
-			T_USHORT
-			T_ULONG
-			T_BOOL
-			T_LONGLONG
-			T_ULONGLONG
-			T_PYSSIZET
-
-______________________________
+------------------------------
 -8- types
-	Types should be represented by a struct:
-		ex:
-			struct MyType
+------------------------------
+	Things to keep in mind:
+		Types are objects too.  Generally they will all be instances of struct PyTypeObject.
+		The actual instances will need to have a struct too.
+
+	Type objects will be instances of PyTypeObject.
+	Actual instances should have this structure:
+	struct MyInstanceStruct {
+		PyObject_HEAD
+		PyVarObject_HEAD    //use var version if variable size otherwise use non-var version (be sure no ;)
+		...
+
+	};
+
+	Types can be static or heap.
+	Heap types should be created via:
+		PyType_FromSpec()
+		PyType_FromSpecWithBases()
+		PyType_FromModuleAndSpec()
+		PyType_FromMetaclass()
+
+	------------------------------
+	-8.1- Relevant types
+	------------------------------
+	PyObject:
+		equivalent to:
+		struct PyObject {
+			void *obj;
+			Py_ssize_t refcount;
+		};
+
+		The most basic python object pointer.
+		PyObject is for objects with constant runtime size
+		add macro PyObject_HEAD to the front of relevant classes.
+
+	PyVarObject:
+		equivalent to:
+		struct PyVarObject: PyObject {
+			Py_ssize_t ob_size;
+		};
+
+		PyVarObject is for objects with varying runtime size.
+		add macro PyVarObject_HEAD to the front of relevant classes.
+		ob_size is used for dynamic types.
+
+	PyBaseObject_Type
+		The C equivalent of python object type.
+
+	PyTypeObject
+		This is a struct whose instances represent a type.  Its
+		members are refered to as "slots".
+
+	------------------------------
+	-8.2- slots
+	------------------------------
+	The documentation is not clear on what exactly a "slot" is...
+	But from reading, it seems like it means data member of the
+	type instance.  "PyObject slot" seems to mean that the variable is
+	held by the PyObject struct of the PyTypeObject struct.
+
+	NOTE: not all slots need to be set.  Generally they will default to null.
+	However, when calling PyType_Ready, some "inheritance" will be performed by
+	reading avlues from tp_base (at least a PyBaseObject_Type).
+
+		------------------------------
+		-8.2.1- PyObject slots
+		------------------------------
+		Py_ssize_t ob_refcnt
+			This is the refcount of the type instance.  This is changed by decref/incref.
+			Instances should refer to their type so this is at least the number of
+			existing instances.
+			PyObject_HEAD_INIT sets it to 1
+
+		PyTypeObject *PyObject.ob_type
+			Type objects generally are PyType_Type instances so this will
+			usually be &PyType_Type
+			INHERITED from tp_base if null.
+
+		PyObject *_ob_next
+		PyObject *_ob_prev
+			#ifdef Py_TRACE_REF
+			used for doubly-linked list of all dynamic (runtime) objects
+			mostly for debugging.
+		------------------------------
+		-8.2.2- PyVarObject slots
+		------------------------------
+		Py_ssize_t ob_size
+			0 for statically allocated type objects.
+			Otherwise "special meaning" for dynamically allocated type objects.
+
+			Py_SIZE()
+			Py_SET_SIZE()
+
+		------------------------------
+		-8.2.3- PyTypeObject slots
+		------------------------------
+		const char *tp_name
+			UTF-8 C string name of the class.
+			For dynamically allocated type objects, this should just be the name.
+			The module/package etc part should be in __module__.
+			NOTE: __module__ is required to allow pickling.
+			For statically allocated type objects, it should be the entire fully-qualified
+			name including package, module, etc.
+			`__module__, __name__ = tp_name.rsplit('.', 1)`
+
+		Py_ssize_t tp_basicsize
+		Py_ssize_t tp_itemsize
+			tp_itemsize is actually a bool and indicates whether instances
+			have a fixed size or not.  tp_basicsize is the size if not tp_itemsize.
+			???  Otherwise, instances must have ob_size.
+			     Instance size is tp_basicsize + N*tp_itemsize where N is
+			     the "length" of object.
+			tp_basicsize should include any required by tp_base
+			basically, `tp_basicsize = sizeof(C struct that represents instances)`.
+			tp_basicsize must be a multiple of _Alignof(PyObject).
+			INHERITED if 0 (independently)
+
+		void tp_dealloc(Pyobject*)
+			Pointer to function to destruct instances.
+			Called when decrefed to 0 refcount.
+			Remember to free any owned references.
+			free any resources.
+			call tp_free (if no Py_TPFLAGS_BASETYPE, then can call object deallocator directly)
+			call PyObject_GC_UnTrack() if support gc (Py_TPFLAGS_HAVE_GC)
+			if Py_TPFLAGS_HEAPTYPE (dynamic type? type is heap allocated?), Py_DECREF() the type object.
+			examples:
+				static void foo_dealloc(foo_object *self) {
+					PyObject_GC_UnTrack(self);
+					Py_CLEAR(self->ref);
+					Py_TYPE(self)->tp_free((PyObject*)self);
+				}
+				static void foo_dealloc(foo_object *self) {
+					PyTypeObject *tp = Py_TYPE(self);
+					// free self
+					tp->tp_free(self);
+					Py_DECREF(tp);
+				}
+			INHERITED if nullptr
+
+		Py_ssize_t tp_vectorcall_offset
+			optional offset of ?per-instance function? for vectorcall protocol.
+			Only used if Py_TPFLAGS_HAVE_VECTORCALL, in which case it must be > 0.
+
+			Py_TPFLAGS_HAVE_VECTORCALL and vectorcallfunc are both required for
+			vectorcall.  If missing one, then will fallback to tp_call.
+
+			tp_call should always be set if vectorcall to allow for fallback.
+
+			INHERITED always. (But Py_TPFLAGS_HAVE_VECTORCALL is not so would need to set it separately)
+
+
+		PyObject* tp_getattr(PyObject *self, char *attr)
+			DEPRECATED
+			char* version of tp_getattro
+			INHERITED if tp_getattr and tp_getattro both NULL
+
+		int tp_setattr(PyObject *self, char *attr, PyObject *value)
+			DEPRECATED
+			char* version of tp_setattro
+			INHERITED if tp_setattr and tp_setattro both NULL
+
+		PyAsyncMethods* tp_as_async
+			Pointer to PyAsyncMethods struct.
+			NOT INHERITED ??BUT?? contained fields inherited individually
+
+		PyObject* tp_repr(PyObject*)
+			Return a PyObject* str.
+			Should be a str so that eval(s) restores the obj.
+			Otherwise should be "<str containing type and value>"
+			INHERITED
+			defaults to "<TYPENAME object at ADDRESS>"
+
+		PyNumberMethods *tp_as_number
+			Pointer to struct containing number methods.
+			NOT INHERITED ??BUT?? contained fields inherited individually
+
+		PySequenceMethods* tp_as_sequence
+			Pointer to struct with sequence methods.
+			NOT INHERITED ??BUT?? contained fields inherited individually
+
+		PyMappingMethods *tp_as_mapping
+			Pointer to struct with mapping methods.
+			NOT INHERITED ??BUT?? contained fields inherited individually
+
+		Py_hash_t tp_hash(Pyobject*)
+			Function returning a Py_hash_t 
+			-1 indicates error.
+			NOTE: tp_richcompare is also required to be hashable.
+			INHERITED if both tp_hash and tp_richcompare must be NULL
+
+		PyObject* tp_call(PyObject *self, PyObject *args, PyObject *kwargs)
+			used for call protocol
+			INHERITED
+
+		PyObject* tp_str(PyObject*)
+			Same as repr but for str.
+			DEFAULTS to PyObject_Repr
+
+		PyObject* tp_getattro(PyObject *obj, PyObject *attr)
+			getattr
+			INHERITED if both tp_getattr and tp_getattro are NULL
+			NOTE:
+				PyBaseObject_Type uses PyObject_GenericGetAttr()
+
+		PyObject* tp_getattro(PyObject *obj, PyObject *attr, PyObject *val)
+			setattr
+			INHERITED if both tp_setattr and tp_setattro are NULL
+			NOTE:
+				PyBaseObject_Type uses PyObject_GenericSetAttr()
+
+		PyBufferProcs *tp_as_buffer
+			Struct of methods for buffer protocol.
+			NOT INHERITED ??BUT?? contained fields inherited individually
+
+		unsigned long tp_flags
+			Indicate that some (new) fields ("extension structures") are valid (defaults to 0 so backward compatible)
+			Most bits "inherited individually".
+			"Extension structures" only inherited if the bits are inherited.
+
+			Py_TPFLAGS_HAVE_GC together with tp_traverse and tp_clear
+
+			DEFAULT: Py_TPFLAGS_DEFAULT | Py_TPFLAGS_BASETYPE
+
+			Py_TPFLAGS_HEAPTYPE
+				If dynamic type. Should support garbage collection (mod.class, but class.module so ref cycled)
+				gets incref/decrefed as instances are created/destroyed
+
+			Py_TPFLAGS_BASETYPE
+				allow use as base class.
+
+			Py_TPFLAGS_READY
+				finished initialization by PyType_Ready()
+			Py_TPFLAGS_READYING
+				mid-initialization by PyType_Ready()
+
+			Py_TPFLAGS_HAVE_GC
+				instances must be managed via Pyobject_GC_New()/PyObject_GC_Del()
+				Should also set: tp_traverse, tp_clear
+
+			Py_TPFLAGS_DEFAULT
+				default values
+				Currently:
+					Py_TPFLAGS_HAVE_STACKLESS_EXTENSION
+
+			Py_TPFLAGS_METHOD_DESCRIPTOR
+				Unbound method (3.8).
+				Allows avoiding a temporary bound method.
+				meth.__get__(obj, cls)(*args, *kwargs) == meth(obj, *args, *kwargs)
+				meth.__get__(None, cls)(*args, *kwargs) == meth(*args, *kwargs)
+				INHERITED if Py_TPFLAGS_IMMUTABLETYPE and tp_descr_get
+
+			Py_TPFLAGS_MANAGED_DICT
+				have a `~object.__dict__` attribute managed by VM
+				must set Py_TPFLAGS_HAVE_GC
+				3.12
+				INHERITED if not parent.tp_dictoffset
+
+			Py_TPFLAGS_MANAGED_WEAKREF
+				Allow weak reference
+				3.12
+				INHERITED if not parent.tp_weaklistoffset
+
+			Py_TPFLAGS_ITEMS_AT_END
+				Instances must be a PyVarObject
+				3.12
+				INHERITED
+
+			Py_TPFLAGS_LONG_SUBCLASS
+			Py_TPFLAGS_LIST_SUBCLASS
+			Py_TPFLAGS_TUPLE_SUBCLASS
+			Py_TPFLAGS_BYTES_SUBCLASS
+			Py_TPFLAGS_UNICODE_SUBCLASS
+			Py_TPFLAGS_DICT_SUBCLASS
+			Py_TPFLAGS_BASE_EXC_SUBCLASS
+			Py_TPFLAGS_TYPE_SUBCLASS
+				used for Py<type>_Check() for quick check that inherited
+				from basic types. faster than PyType()...and traverse to tp_base
+
+			Py_TPFLAGS_HAVE_FINALIZE
+				deprecated
+				tp_finalize is valid
+
+			Py_TPFLAGS_HAVE_VECTORCALL
+				INHERITED if tp_call is inherited.
+
+			Py_TPFLAGS_IMMUTABLETYPE
+				If the Type itself is immutable.
+				NOT INHERITED
+				3.10
+
+			Py_TPFLAGS_DISALLOW_INSTANTIATION
+				tp_new = NULL, no __new__ (ex. abstract class)
+				NOT INHERITED
+				3.10
+
+			Py_TPFLAGS_MAPPING
+				match mapping patterns with match statement (3.10)
+				NOTE: mutually exclusive with Py_TPFLAGS_SEQUENCE
+				3.10
+
+			Py_TPFLAGS_SEQUENCE
+				match sequence patterns with match statement (3.10)
+				NOTE: mutually exclusive with Py_TPFLAGS_MAPPING
+				3.10
+
+			Py_TPFLAGS_VALID_VERSION_TAG
+				internal, ignore this.
+				"like" a dirtybit for the type? use PyType_Modified()
+
+		const char *tp_doc
+			docstring
+			NOT INHERITED
+
+		int tp_traverse(PyObject *self, visitproc visit, void *arg)
+			to support gc. used to detect ref cycles.
+			usually just calls Py_VISIT() on each owned reference that
+			might be in a ref cycle.
+			don't forget Py_TYPE if heap allocated type
+			INHERITED if Py_TPFLAGS_HAVE_GC and tp_clear are inherited
+
+		int tp_clear(Pyobject*)
+			should decref owned references and set them to NULL
+			(NOTE: set to NULL and then decref because otherwise might loop)
+			ex: decref member -> gc traverse->free self->but not NULL yet so repeat forever
+			INHERITED if Py_TPFLAGS_HAVE_GC and tp_traverse are inherited
+
+		PyObject* tp_richcompare(PyObject *self, PyObject *other, int op)
+			Return Py_True or Py_False, or Py_NotImplemented, or NULL if error(and set exception)
+			op: Py_LT, Py_LE, Py_EQ, Py_NE, Py_GT, Py_GE
+			Py_RETURN_RICHCOMPARE(A, B, op) macro can help
+			INHERITED if tp_hash is inherited
+
+		Py_ssize_t tp_weaklistoffset
+			Py_TPFLAGS_MANAGED_WEAKREF is preferred.
+			offset in INSTANCE to "weak reference list head" for the instance
+			(is NOT tp_weaklist, which is weak refs to the TYPE)
+			DEFAULT: <0 if Py_TPFLAGS_MANAGED_WEAKREF
+
+		PyObject *tp_iter(PyObject*)
+			Get an iterator
+			INHERITED
+
+		PyObject* tp_iternext(Pyobject*)
+			advance an iterator (self is an iterator)
+			NULL on end
+			INHERITED
+
+		PyMethodDef *tp_methods
+			methods of the class.
+			NOT INHERITED DIRECTLY (only through attr lookup)
+
+		PyMemberDef *tp_members
+			members of class
+				NOT INHERITED (only through attr lookup)
+
+		PyGetSetDef *tp_getset
+			Descriptor members
+			NOT INHERITED (only through attr lookup)
+
+		PyTypeObject *tp_base
+			The base class
+			DEFAULT (by PyType_Ready()) PyBaseObject_Type.
+
+		Pyobject *tp_dict
+			the __dict__ for the type.  It is created by PyType_Ready().
+			Initialize it to NULL
+			Otherwise, stored in PyInterpreterState.
+			PyType_GetDict() to get access.
+			NOTE: NOT SAFE TO MODIFY THIS DICT
+
+		PyObject* tp_descr_get(Pyobject *self, Pyobject *obj, Pyobject *type)
+			the __get__() method for descriptors.
+			INHERITED
+		int tp_descr_set(Pyobject *self, Pyobject *obj, PyObject *value)
+			setter/deleter for property
+			INHERITED
+
+		Py_ssize_t tp_dictoffset
+			Prefer Py_TPFLAGS_MANAGED_DICT.
+			NULL or -1 if Py_TPFLAGS_MANAGED_DICT, similar to the weakref
+
+		int tp_init(Pyobject *self, PyObject *args, PyObject *kwargs)
+			`__init__()`
+			0 = success, -1 = error (also set exc)
+			INHERITED
+
+		Pyobject* tp_alloc(PyTypeObject *tp, Py_ssize_t nitems)
+			INHERITED if static, else PyType_GenericAlloc()
+			(PyBaseObject_Type uses PyType_GenericAlloc()
+
+		PyObject* tp_new(PyTypeObject *subtype, PyObject *args, Pyobject *kwargs)
+			call subtype->tp_alloc(subtype, nitems) and then minimal initialization
+			(only stuff that can't be done by tp_init (ex. immutable stuff))
+
+			INHERITED except if static and no tp_base or tp_base is object
+
+		void tp_free(void *self)
+			free the stuff
+			INHERITED if static
+			If dynamic, forced based on Py_TPFLAGS_HAVE_GC
+
+		int tp_is_gc(PyObject*)
+			Is the instance gc collectible? (ie. were all instances created
+			using PyObject_GC_New?)
+			INHERITED
+
+		PyObject *tp_bases
+			Tuple of base types. generally, don't do this for static types
+			NOT INHERITED
+
+		PyObject *tp_mro
+			tuple of expanded base types.  Calculated by PyType_Ready()
+
+		PyObject *tp_cache
+			ignore this
+
+		void *tp_subclasses
+			ignore this
+
+		PyObject *tp_weaklist
+			weak reference list to this type object
+
+		void tp_del(Pyobject *self)
+			deprecated
+
+		unsigned int tp_version_tag
+			ignore this
+
+		void tp_finalize(Pyobject *self)
+			__del__
+			do not mutate exception status:
+			```
 			{
-				PyObject_HEAD
-			};
-		NOTE: PyObject_HEAD declares basic PyObject required variables. (be sure no semicolon)
+				PyObject *tp, *exc, *tb;
+				PyErr_Fetch(&tp, &exc, &tb);
+				//do stuff
+				PyErr_Restore(&tp, &exc, &tb);
+			}
+			```
+			3.4
+			INHERITED
+
+		PyObject* tp_vectorcall(Pyobject *self, PyObject * const *args, size_t nargsf, Pyobject *kwargs)
+			replace __new__ and __init__ for the type using
+			vectorcall protocol.
+
+		insigned char tp_watched
+			ignore
+
+
+	------------------------------
+	-8.3- Protocol structs
+	------------------------------
+	Protocol structs have member function pointers that allow
+	use of instances as protocol objects.  Usually the Py(Proto)_Func(args...)
+	methods would probably just get the type, and then get the proto methods
+	then call them.
+		------------------------------
+		-8.3.1- PyNumberMethods
+		------------------------------
+		nb_add                  nb_int
+		nb_subtract             nb_reserved
+		nb_multiply             nb_float
+		nb_remainder            nb_inplace_add
+		nb_divmod               nb_inplace_subtract
+		nb_power                nb_inplace_multiply
+		nb_negative             nb_inplace_remainder
+		nb_positive             nb_inplace_power
+		nb_absolute             nb_inplace_lshift
+		nb_bool                 nb_inplace_rshift
+		nb_invert               nb_inplace_and
+		nb_lshift               nb_inplace_xor
+		nb_rshift               nb_inplace_or
+		nb_and                  nb_floor_divide
+		nb_xor                  nb_true_divide
+		nb_or                   nb_inplace_floor_divide
+		                        nb_inplace_true_divide
+		                        nb_index
+		                        nb_matrix_multiply
+		                        nb_inplace_matrix_multiply
+		------------------------------
+		-8.3.2- PyMappingMethods
+		------------------------------
+		mp_length
+		mp_subscript
+		mp_ass_subscript
+
+		------------------------------
+		-8.3.2- PySequenceMethods
+		------------------------------
+		sq_length
+		sq_concat
+		sq_repeat
+		sq_item
+		sq_ass_item
+		sq_contains
+		sq_inplace_concat
+		sq_inplace_repeat
+
+		------------------------------
+		-8.3.3- PyBufferProcs
+		------------------------------
+		bf_getbuffer
+		bf_releasebuffer
+
+		------------------------------
+		-8.3.4- PyAsyncMethods
+		------------------------------
+
+
 
 	______________________________
 	-8.1- PyTypeObject struct:
@@ -597,6 +1075,18 @@ ______________________________
 		PyMemberDef[] = {
 			{"name", Py_T_OBJECT_EX, offsetof(struct, member), 0, "description")}
 		}
+		PyMemberDef
+		{name, type, offset, flags, doc}
+			type:
+				T_SHORT                                         T_BYTE
+				T_INT                                           T_UBYTE
+				T_LONG                                          T_UINT
+				T_FLOAT                                         T_USHORT
+				T_DOUBLE                                        T_ULONG
+				T_STRING                                        T_BOOL
+				T_OBJECT      (None if not exist)               T_LONGLONG
+				T_OBJECT_EX   (AttributeError if not exist)     T_ULONGLONG
+				T_CHAR                                          T_PYSSIZET
 
 	______________________________
 	-8.3- type methods
@@ -604,10 +1094,7 @@ ______________________________
 		usually args
 		PyMethodDef
 
-
-
-
-
+	------------------------------
 	-8.4- creating the type
 		Preparing/creating the type:
 			PyType_Ready(PyTypeObject*)
