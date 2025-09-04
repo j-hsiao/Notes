@@ -3,6 +3,7 @@ contents
 	-2- stream selelction
 	-3- other
 	-4- filters
+	-5- streaming
 
 ______________________________
 -1-general
@@ -127,6 +128,8 @@ V options:
 
 	input:
 		-framerate input framerate when framerate unavailable like image sequence
+		-stream_loop loop the input, -1 = infinite, 0 = noloop
+
 
 
 Video Segmentation:
@@ -177,3 +180,73 @@ ______________________________
 			implicit values: val1:val2:val3...
 				(1 to 1 mapping with declared arguments of the filter (read docs for order))
 			implicit values must come before explicit.
+
+------------------------------
+-5- streaming
+------------------------------
+	source: https://trac.ffmpeg.org/wiki/StreamingGuide
+	------------------------------
+	-5.1- tcp
+	------------------------------
+	The receiver sets up a tcp listening socket waiting for incoming video.
+
+	RECEIVER:
+		ffmpeg -i tcp://RECEIVERhost:port?listen
+
+	SENDER:
+		ffmpeg -i INPUT -f mpegts tcp://RECEIVERhost:port
+
+	NOTES:
+		testing, can't find a format besides mpegts that works
+		tried:
+			h264: started streaming, then connection reset
+
+	------------------------------
+	-5.2- rtp
+	------------------------------
+	ffmpeg -i INPUT ... -f rtp rtp://host:port
+
+	I cannot get this to work.
+	It starts streaming, but reading it is unsuccessful
+	Direct connection:
+		SENDER
+			ffmpeg -i INPUT ... -f rtp rtp://host:port
+		RECEIVER:
+			ffmpeg -i rtp rtp://host:port
+		RESULT:
+			[rtp @ 0x5b7f507fb200] Unable to receive RTP payload type 96
+			without an SDP file describing it rtp://localhost:8888/live.sdp:
+			Invalid data found when processing input
+
+		rtp://host:port
+			Just got a timeout and no video
+
+		copy the sdp output to a file:
+			rtp protocol not on whitelist
+
+	------------------------------
+	-5.3- udp
+	------------------------------
+	The receiver sets up a udp listening socket, waiting for incoming video.
+
+	RECEIVER:
+		ffmpeg -i INPUT ... -f mpegts udp://RECEIVERhost:port
+
+	SENDER:
+		ffmpeg -i udp://RECEIVERhost:port
+
+
+	------------------------------
+	-5.4- listening rtsp
+	------------------------------
+	The receiver opens a server listening for an sdp.
+
+	RECEIVER:
+		ffmpeg -rtsp_flags listen -i rtsp://localhost:8888/live.sdp
+
+		use rtsp://localhost:8888/live.sdp?tcp for tcp
+
+	SENDER:
+		ffmpeg -i INPUT -f rtsp rtsp://localhost:8888/live.sdp
+
+		add -rtsp_transport tcp for tcp
