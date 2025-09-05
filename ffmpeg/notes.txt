@@ -1,12 +1,29 @@
 contents
-	-1- general
-	-2- stream selelction
-	-3- other
-	-4- filters
-	-5- streaming
+-1- general
+-2- stream selelction
+-3- options
+-4- other
+	-4.1- webcam:
+	-4.2- ffplay:
+	-4.3- lavfi:
+-5- filters
+	-5.1- sync
+-6- streaming
+	-6.1- tcp
+	-6.2- rtp
+	-6.3- udp
+	-6.4- listening rtsp
+	-6.5- rtsp
+		-6.5.1- mediamtx
+		-6.5.2- keyframes
+-7- concatenation
+	-7.1- demuxer
+	-7.2- protocol
+	-7.3- filter
 
-______________________________
--1-general
+------------------------------
+-1- general
+------------------------------
 
 ffmpeg [global options] [[input options] -i input] {[output options] -o output}
 
@@ -20,8 +37,9 @@ all options are reset at each file
 
 copying: use -codec copy: only perform mux/demux, no decode/encode
 
-______________________________
--2-stream selection
+------------------------------
+-2- stream selection
+------------------------------
 	-vn/ -an / -sn / -dn
 	skips video, audio, subtitle, data streams
 
@@ -36,8 +54,9 @@ ______________________________
 		example:
 			-map 1:a -c:a copy
 				selects audio stream from file 1 and copies it
-______________________________
--3-options
+------------------------------
+-3- options
+------------------------------
 	numerical options:
 		all numerical options can accept a suffix of the units
 		ie :
@@ -130,8 +149,6 @@ V options:
 		-framerate input framerate when framerate unavailable like image sequence
 		-stream_loop loop the input, -1 = infinite, 0 = noloop
 
-
-
 Video Segmentation:
 	output format: segment
 	useful:
@@ -149,9 +166,12 @@ Video Segmentation:
 		video segments.
 
 
-______________________________
--3-other
-webcam:
+------------------------------
+-4-other
+------------------------------
+	------------------------------
+	-4.1- webcam:
+	------------------------------
 	ffmpeg -f v4l2 -input_format h264 -video_size [width]x[height] -framerate fps -i /dev/video[x] [typical output stuffs]
 	ffmpeg -f v4l2 -list_formats all -i /dev/video[x]
 
@@ -162,31 +182,277 @@ webcam:
 	ffmpeg -f dshow -list_devices true -i dummy
 	ffmpeg -f dshow -list_options true -i video="name of webcam"
 
-ffplay:
+	------------------------------
+	-4.2- ffplay:
+	------------------------------
 	-window_title title
 	-seek_interval seconds      seconds to seek when left/right arrow
 
-______________________________
--4- filters
-	-vf               simple filter: 1 input, 1 output
+	------------------------------
+	-4.3- lavfi:
+	------------------------------
+	lavfi format uses a filtergraph as the input to create video.
+	ex. 5 seconds of pink frame:
+		ffmpeg -f lavfi -t 5 -i color=pink
+
+------------------------------
+-5- filters
+------------------------------
+	-filter:v         filter for video, same as -vf
+	-filter:a         filter for audio, same as -af
 	-filter_complex   complex filter: multiple inputs/outputs
+
+	-filter:[av] are tied to each video/audio individually.
+	If N videos, then N filters are created, one per video source.
 
 	filterchain: separated by ',' 1in, 1out chained together
 	filtergraph: multiple filter chains interconnected, separated by ';'
 	filter: a single filter
 		[in1][in2]...filter_class_name@idnickname=arguments[out1][out2]...
+		inputs/outputs
+			syntaxes:
+			N         the input/output index
+			N:[av]:M  the Nth input audio/video stream M
+			[name]    Give a name to the outputs
 		arguments:
 			explicit values: argname1=val1:argname2=val2:...
 			implicit values: val1:val2:val3...
 				(1 to 1 mapping with declared arguments of the filter (read docs for order))
 			implicit values must come before explicit.
 
+		list of argments can be quoted with ''
+
+	Note that whitespace is ignored so you can split lines for readability.
+
+	Characters are escaped with '\'
+	NOTE: values are parsed:
+	1. by the shell
+	2. by the graph (to get filter+options)
+	3. by the option
+
+	ex: https://ffmpeg.org/ffmpeg-filters.html#Description
+		target value: this is a 'string': may contain one, or more, special characters
+
+		option:
+			text=this is a \'string\'\: may contain one, or more, special characters
+
+		graph:
+			drawtext=text=this is a \\\'string\\\'\\: may contain one\, or more\, special characters
+
+			NOTE: idk why the \: -> \\: instead of \\\:??
+
+		shell:
+			-vf "drawtext=text=this is a \\\\\\'string\\\\\\'\\\\: may contain one\\, or more\\, special characters"
+
+		NOTE that some(?most?) filters allow putting options into a text file instead.
+
+
+	------------------------------
+	-5.0- expressions
+	------------------------------
+		------------------------------
+		-5.0.1- numerical exprs
+		------------------------------
+		Many filter options can take expresions as values.
+		Expressions include the standard add, subtract, multiply, divide (+-*/)
+		as well as some function-like expressions
+			gte(v1, v2)
+			gt(v1, v2)
+			if(bool, trueval, falseval)
+
+		------------------------------
+		-5.0.2- colors
+		------------------------------
+		ffmpeg -colors for named colors
+
+		Otherwise, colors are [0x|#]RRGGBB[AA][@0.A]
+		where 0.A = alpha value as float 0-1
+
+
+	------------------------------
+	-5.1- sync
+	------------------------------
+	For filters with multiple inputs, the durations etc might be different
+	These options are common and must be specified via name, positional is not allowed.
+
+		eof_action      repeat  repeat last frame until all same length
+		                endall  go til the shortest source
+		                pass    "pass the main input through" ?? what does that mean? duplicate?
+
+		shortest        0/1     same as eof_action=endall?
+		repeatlast      0/1     same as eof_action=repeat?
+		ts_sync_mode    default nearest lower or equal timestamp
+		                nearest nearest timestamp
+
+
+	------------------------------
+	-5.2- useful filters
+	------------------------------
+		video sources:
+			cellauto
+			mptestsrc
+			testsrc
+
+			This is undocumented but it seems like there is also a color=c=value,... source filter
+			that lavfi can use to get a solid-color frame...
+
+		addroi
+			xywh      left, top, width, height of the roi
+			          expressions are allowed involving iw and ih (input width/height)
+			          ex: iw/2 = half the input width
+			qoffset   quantization offset, -1 = least quantization (best quality), 1 = most quant (worst quality)
+			clear     true/false, clear any preexisting rois
+
+		blend       blend frames from 2 sources
+		tblend      blend consecutive frames from same source
+			c{0..3}_mode      The blending mode for the specific channels of the sources.
+			all_mode          ex. r, g, b, etc. all = all the channels use the same value.
+			                  example values are: addition, interpolate, average, normal,
+			                  and, or, overlay, reflect, etc
+
+			c{0..3}opacity    opacity for specific pixel, only with pixel
+			all_opacity       blend modes.
+
+			c{0..3}_expr      blend expression. allowed variables:
+			                  N: sequential number of filtered frame, from 0
+			                  XY: pixel coordinates
+			                  WH: width/height of image
+			                  SW/SH: width/height scale, ratio of current plane dim to luma plane
+			                         (ex, 1,1 for luma planes and .5,.5 for chroma planes for yuv420p)
+                        T: time in seconds
+                        TOP,A: top layer (first input) pixel value
+                        BOTTOM,B :bottom layer (2nd input) pixel value
+		boxblur
+			luma_radius, lr       The size of the box, must be >= 0, and less than half the corresponding plane.
+			chroma_radius, cr     usable variables: w,h (input shape), cw,ch (chroma shape),
+			alpha_radius, ar      hsub/vsub chroma subsample values
+
+
+			luma_power, lp        The number of applications
+			chroma_power, cp
+			alpha_power, ap
+		colorchannelmixer
+			rr rg rb ra       take the pixel as a vector and apply matrix transform onto it
+			gr gg gb ga
+			br bg bb ba
+			ar ag ab aa
+
+		convolution         apply convolution
+			{0..3}m       matrix for channel {0..3}, only 3x3, 5x5, 7x7 square are allowed
+			              or if flattened, then any odd number of weights.
+			{0..3}rdiv    multiplier per plane after conv, 0 or unset implies 1/sum
+			{0..3}bias    bias per plane after scale
+			{0..3}mode    square | row | column
+
+		convolve        use 2nd stream as "impulse" for convolution
+			planes    which planes to process
+			impulse   which frames, first | all
+
+		crop
+			w, out_w  output width/height eval once
+			h, out_h
+
+			x, y      left, top of cropping region, eval per frame
+
+			expr vars:
+				x, y                    x, y calculated for each frame
+				in_w, in_h, iw, ih      input shape
+				out_w, out_h, ow, oh    output shape
+				a                       aspect ratio (iw/ih)
+				sar                     input sample aspect ratio
+				dar                     display aspect ratio (iw/ih)*sar
+				hsv, vsub               hor/vert chromsa subsample values
+				n                       number of input frame
+				t                       timestamp, NAN if unknown
+
+			keep_aspect   0/1 force display aspect ratio to be the same
+			exact         do not round
+
+		drawtext
+			box           0/1     draw a box using background color
+			boxborderw    int     width of box border
+			boxcolor      color   defaults to white
+			line_spacing  int     line spacing in pixels, 0
+			text_align    flag    2 chars, vertical, horizontal:
+			                      TMB for top middle, bottom
+			                      LCR for left, center, right
+			y_align       text        text top (default)
+			              baseline    text bottom
+			              font        baseline + ascent
+			borderw       int     ? how dif to boxborderw?
+			bordercolor   color
+			expansion     none    ?as is?
+			              normal  TODO
+			fix_bounds    0/1     check/fix text coords to avoid clipping
+			fontcolor     color   default black
+			fontcolor_expr expr   expression for color overrides fontcolor if set
+			font          name    Sans by default
+			alpha         0-1     alpha blending
+			fontsize      int     default 16
+			shadowcolor   color   default black
+			boxw          int     width around text
+			boxh          int     height around text
+			shadowx       int     shadow offset
+			shadowy       int     shadow offset
+			start_number  int     starting value for n/frame_num
+			tabsize       int     size of a tab (default 4)
+			timecode      str     timecode representation ??
+			timecode_rate int     min 1 ??
+			tc24hmax      0/1     wrap at 24 hours
+			text          str     text to write, utf-8
+			textfile      fname   file with text to draw
+			reload        int     reload textfile every `reload` frames
+			xy            int     where to write text
+
+			variables:
+				dar             display aspect ratio w/h*sar
+				hsub/vsub       hor/vert subsample values
+				line_h, lh      text line height
+				main_h h H      input height
+				main_w w W      input width
+				max_glyph_a     from baseline to top of char >0
+				max_glyph_d     from baseline to bottom of char (like bottom of g)  <0
+				max_glyph_h     max_glyph_a - max_glyph_d
+				max_glyph_w     max width of a char
+				font_a          same as max_glyph_a?
+				font_d          same as max_glyph_d?
+				top_a           max ascender of first text line
+				bottom_d        max descender of last text line
+				n               number of frames
+				rand(min,max)   random value
+				sar             input aspect ratio
+				t               timestamp in seconds
+				th text_h       text height
+				tw text_w       text width
+				xy              the xy from options
+				pict_type       1-character current frame type
+				pkt_pos         current packet's position from start
+				duration        current packet's duration
+				pkt_size        size of packet
+
+			text expansion
+				none: verbatim, no expansion
+				normal:
+					use %{func:arg1:arg2...} to call functions
+					functions:
+						expr, e                an expression (text width/height not available because not calculated yet)
+						expir_int_format, eif(xpr, fmt, width)
+							fmt is x X d or u
+						gmtime
+							use a strftime c function format string
+							extended to support %[1-6]N = N digits of fractional component
+						localtime
+							similar to gmtime
+						n, frame_num
+						pict_type
+						pts
+
 ------------------------------
--5- streaming
+-6- streaming
 ------------------------------
 	source: https://trac.ffmpeg.org/wiki/StreamingGuide
 	------------------------------
-	-5.1- tcp
+	-6.1- tcp
 	------------------------------
 	The receiver sets up a tcp listening socket waiting for incoming video.
 
@@ -202,30 +468,40 @@ ______________________________
 			h264: started streaming, then connection reset
 
 	------------------------------
-	-5.2- rtp
+	-6.2- rtp
 	------------------------------
-	ffmpeg -i INPUT ... -f rtp rtp://host:port
+	send via rtp
 
-	I cannot get this to work.
-	It starts streaming, but reading it is unsuccessful
-	Direct connection:
-		SENDER
-			ffmpeg -i INPUT ... -f rtp rtp://host:port
+		SENDER:
+			ffmpeg -i INPUT ... -f rtp rtp://host:port > sdpfile.sdp
 		RECEIVER:
-			ffmpeg -i rtp rtp://host:port
-		RESULT:
-			[rtp @ 0x5b7f507fb200] Unable to receive RTP payload type 96
-			without an SDP file describing it rtp://localhost:8888/live.sdp:
-			Invalid data found when processing input
+			ffmpeg -protocol_whitelist udp,file,rtp -i sdpfile.sdp ...
 
-		rtp://host:port
-			Just got a timeout and no video
+		NOTE:
+			Any additional receiver fails with
+				[udp @ 0x61d188c13400] bind failed: Address already in use
+				live.sdp: Invalid data found when processing input
 
-		copy the sdp output to a file:
-			rtp protocol not on whitelist
+	ALTERNATIVE
+		SENDER:
+			ffmpeg -i INPUT ... -f rtp rtp://host:port > sdpfile.sdp
+
+		INTERMEDIATE:
+			httpserver serving the sdp file:
+			python -m http.server
+
+		RECEIVER:
+			ffmpeg -i http://server:port/sdpfile.sdp ...
+
+		NOTE:
+			Any additional receivers fail with:
+				[tcp @ 0x593550b9bd00] Connection to tcp://localhost:8000 failed: Connection refused
+				http://localhost:8000/live.sdp: Connection refused
+
+	NOTE: these do not work on vlc
 
 	------------------------------
-	-5.3- udp
+	-6.3- udp
 	------------------------------
 	The receiver sets up a udp listening socket, waiting for incoming video.
 
@@ -237,7 +513,7 @@ ______________________________
 
 
 	------------------------------
-	-5.4- listening rtsp
+	-6.4- listening rtsp
 	------------------------------
 	The receiver opens a server listening for an sdp.
 
@@ -250,3 +526,96 @@ ______________________________
 		ffmpeg -i INPUT -f rtsp rtsp://localhost:8888/live.sdp
 
 		add -rtsp_transport tcp for tcp
+
+	------------------------------
+	-6.5- rtsp
+	------------------------------
+	FFmpeg does NOT have an rtsp server.  Instead, the output -f rtsp
+	is a "publishing rtsp client", using rtsp ANNOUNCE.  A separate rtsp
+	server is required to serve the the stream.
+	-rtsp_flags listen on the receiver for `-6.4- listening rtsp` means
+	it acts as its own rtsp server.  It's also why only 1 receiver
+	is allowed for that case.
+
+		------------------------------
+		-6.5.1- mediamtx
+		------------------------------
+		is a simple no-dependency rtsp server that seems to be fairly good.
+
+		https://github.com/bluenviron/mediamtx/releases
+
+		The release tar.gz has a single executable.
+		Start it up, ?maybe change config?
+
+		Notes:
+			ffmpeg streaming to port 8554 (tcp) works
+			However, the 8000 (udp/rtp) and 8001 (udp/rtcp) does not seem
+			to work... not sure why.  I tried the `-rtsp_transport udp`, changing
+			the url to `rtp://`, etc, always failed with:
+				[tcp @ 0x5d2154afed40] Connection to tcp://172.22.140.22:8001?timeout=0 failed: Connection refused
+				Could not write header for output file #0 (incorrect codec parameters ?): Connection refused
+				Error initializing output stream 0:0 --
+			but tcp seems to work well at least...
+
+		------------------------------
+		-6.5.2- keyframes
+		------------------------------
+		Because using an rtsp server means clients can start streaming any
+		time, keyframes matter.  Using ffmpeg to encode using h264, there is
+		only a single key frame at the very beginning.  The result is that
+		it has to loop to the very beginning before clients can start
+		decoding frames/view the stream.
+
+		h264
+			-g frames
+			-keyint_max frames
+			-x264-params 'keyint=x:min-keyint=y'
+		h265
+			-x265-params 'keyint=x:min-keyint=y'
+		vp9
+			-g frames
+			-keyint_max frames
+
+------------------------------
+-7- concatenation
+------------------------------
+ffmpeg concatenation has 2 methods
+	------------------------------
+	-7.1- demuxer
+	------------------------------
+	Use a txt file to concate files.
+	Allows different formats (mp4, mkv, etc)
+	requires same codec and timebase.
+	syntax:
+		# comments
+		file 'path/to/file'
+
+	ffmpeg -f concat -safe 0 -i lst.txt -c copy out.mp4
+
+	-safe0 can be omitted if all paths are relative.
+
+	------------------------------
+	-7.2- protocol
+	------------------------------
+	like posix `cat`, so only certain streams work...
+
+	------------------------------
+	-7.3- filter
+	------------------------------
+	reencoding is required.
+	number of streams must match
+	may need scale or scale2ref filters to ensure same size/framerate
+
+	example filter:
+		ffmpeg -i f1 -i f2
+			-filter_complex [0:v:0][0:a:0][1:v:0][1:a:0]concat=n=2:v=1:a=1[outv][outa]
+			-map [outv] -ma [outa] out.mkv
+
+		[N:av:0]
+			specifies to use the v:0 or a:0 of the Nth -i
+		concat=n=2
+			indicates 2 segments
+		v=1:a=1
+			indicates 1 video 1 audio per segment
+
+		The order would be determined by the input specification.
