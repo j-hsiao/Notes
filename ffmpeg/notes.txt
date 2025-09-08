@@ -396,6 +396,12 @@ Video Segmentation:
 	-5.2- useful filters
 	------------------------------
 		video sources:
+			color         lavfi but... there is no "color" filter in the documentation!!
+				c color     the color
+				s size      WIDTHxHEIGHT
+
+				NOTE: it seemslike after size, adding another color
+				just overwrites color...
 			cellauto
 			mptestsrc
 			testsrc
