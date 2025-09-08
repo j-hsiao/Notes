@@ -1,0 +1,44 @@
+contents
+-0- general
+-1- linux
+-2- windows
+-3- specific apps
+
+------------------------------
+-0- general
+------------------------------
+Proxies in general are machines that will make connections on behalf of other machines.
+
+ex.
+machine A has internet access.
+machine B does not
+
+Machine A and B are on the same internal network
+
+Machine A can act as a proxy to machine B allowing machine B to access internet through
+machine A.
+
+
+------------------------------
+-1- linux
+------------------------------
+	use network manager and settings
+
+------------------------------
+-2- windows
+------------------------------
+	use settings
+
+------------------------------
+-3- specific apps
+------------------------------
+	------------------------------
+	-3.1- apt
+	------------------------------
+	/etc/apt/apt.conf
+	Acquire::http::Proxy "http://yourproxyaddress:proxyport";
+
+	------------------------------
+	-3.2- pip
+	------------------------------
+	`--proxy http://username:password@proxy.server:port`
