@@ -137,6 +137,26 @@ V options:
 		framerate (hertz, fraction, abbreviation)
 	-video_size size
 		[width]x[height]
+			OR
+		ntsc      720x480          uxga   1600x1200    hd1080  1920x1080
+		pal       720x576          qxga   2048x1536    2k      2048x1080
+		qntsc     352x240          sxga   1280x1024    2kflat  1998x1080
+		qpal      352x288          qsxga  2560x2048    2kscope 2048x858
+		sntsc     640x480          hsxga  5120x4096    4k      4096x2160
+		spal      768x576          wvga   852x480      4kflat  3996x2160
+		film      352x240          wxga   1366x768     4kscope 4096x1716
+		ntsc-film 352x240          wsxga  1600x1024    nhd     640x360
+		sqcif     128x96           wuxga  1920x1200    hqvga   240x160
+		qcif      176x144          woxga  2560x1600    wqvga   400x240
+		cif       352x288          wqsxga 3200x2048    fwqvga  432x240
+		4cif      704x576          wquxga 3840x2400    hvga    480x320
+		16cif     1408x1152        whsxga 6400x4096    qhd     960x540
+		qqvga     160x120          whuxga 7680x4800    2kdci   2048x1080
+		qvga      320x240          cga    320x200      4kdci   4096x2160
+		vga       640x480          ega    640x350      uhd2160 3840x2160
+		svga      800x600          hd480  852x480      uhd4320 7680x4320
+		xga       1024x768         hd720  1280x720
+
 	-vcodec
 		video codec, alias for -codec:v
 	-pixel_format[stream]
@@ -255,10 +275,97 @@ Video Segmentation:
 		------------------------------
 		Many filter options can take expresions as values.
 		Expressions include the standard add, subtract, multiply, divide (+-*/)
-		as well as some function-like expressions
-			gte(v1, v2)
-			gt(v1, v2)
-			if(bool, trueval, falseval)
+		as well as some function-like expressions.  NOTE bools are just int 0/1
+		Expressions can be separated with ; for intermediate calculations (especially with ld/st functions)
+		binary operators    + - * / ^
+		unary operators     + -
+
+		NOTE: * and + are like && and || for "truthy" bools (caveat, not if negative and positive...)
+
+		functions
+			abs(x)
+			acos(x)
+			asin(x)
+			atan(x)
+			atan2(y,x)
+			between(x,min,max)    min <= x <= max
+			bitand(x,y)
+			bitor(x,y)
+			ceil(xpr)
+			clip(x,min,max)
+			cos(x)
+			cosh(x)
+			eq(x,y)
+			exp(x)
+			floor(xpr)
+			gauss(x)
+			gcd(x,y)
+			gt(x,y)       >
+			gte(x,y)      >=
+			hypot(x,y)    sqrt(x**2 + y**2)
+			if(x,y)       x?y:0
+			if(x,y,z)     x?y:z
+			ifnot(x,y)    !x ? y : 0
+			ifnot(x,y,z)  !x ? y : z
+			isinf(x)
+			isnan(x)
+			ld(idx)       idxth internal variable
+			lerp(x,y,z)   linear interpolation between x and y by z (x + (y-x)*z)
+			log(x)
+			lt(x,y)       <
+			lte(x,y)      <=
+			max(x,y)
+			min(x,y)
+			mod(x,y)
+			not(xpr)
+			pow(x,y)
+			print(t)
+			print(t,l)    print t at loglevel
+			random(idx)   pseudorandom value 0-1, idx=internal variable for seed state
+			randomi(idx, min, max) same as random, but ints, and from min to max
+			root(xpr,max) Find a n input so that expr(ld(0)) is between 0 and max ??
+			round(expr)
+			sgn(x)        sign
+			sin(x)
+			sinh(x)
+			sqrt(x)
+			squish(x)     1/(1+e**(4x))
+			st(idx, expr) store expr to idxth internal variable
+			tan(x)
+			tanh(x)
+			taylor(expr, x)
+			taylor(expr, x, idx)
+			time(0)       wallclock in seconds
+			trunc(expr)   round to 0
+			while(cond, xpr)
+
+		constants:
+			PI    3.14
+			E     2.718
+			PHI   1.618 (golden ratio)
+
+		prefixes    add i to use binary prefix instead (k=1000, ki=1024)
+			y 10^-24
+			z 10^-21
+			a 10^-18
+			f 10^-15
+			p 10^-12
+			n 10^-9
+			u 10^-6
+			m 10^-3
+			c 10^-2
+			d 10^-1
+			h 10^2
+			k 10^3
+			K 10^3
+			M 10^6
+			G 10^9
+			T 10^12
+			P 10^15
+			E 10^18
+			Z 10^21
+			Y 10^24
+
 
 		------------------------------
 		-5.0.2- colors
@@ -446,6 +553,303 @@ Video Segmentation:
 						n, frame_num
 						pict_type
 						pts
+
+		extractplanes
+			Extract color planes (input must be compatible)
+			y, u, v, a, r, g, b
+			syntax: extractplanes=y+u+v+...
+
+		fps
+			duplicate or drop frames to achieve fps
+			fps           target fps
+			              source_fps    input fps
+			              ntsc          30000/1001
+			              pal           25.0
+			              film          24.0
+			              ntsc_film     24000/1001
+			start_time    first frame's pts (<0 to trim, >0 to pad)
+			round         rounding mode
+			              zero    truncate
+			              inf     towards nearest inf (>0 -> inf, <0 -> -inf)
+			              down    to -inf
+			              up      to inf
+			              near    nearest
+			eof_action    reading last frame
+			              round   use same rounding method as other frames.
+			              pass    "pass through last frame if input duration has not been reached yet."
+		framerate   achieve framerate by interpolating frames
+			fps           output fps
+			interp_start  start of range where output frame will be created, 0-255, default 15
+			interp_end    specify end range of interpolation 0-255, default 240
+			scene         0-100 probability for new scene
+			flags         scene_change_detect, scd    enable scene change detection
+
+		framestep   Take every Nth frame
+			step  The N for frames to take
+
+		fsync       sync input frame pts to a given file
+			file, f   the file to sync to
+
+		hflip       horizontal flip
+
+		histeq      global color histogram equalization per-frame
+
+		hstack      stack 2 vids horizontally
+			inputs    number of inputs, default 2
+			shortest  0/1 terminate on shortest input
+
+		libplacebo  gpu-accelerated filtering
+
+		loop        loop video frames
+			loop      number of loops -1=infinite, default 0
+			size      max frames, default 0
+			start     first frame of loop, default 0
+			time      When loop starts, only if start is -1
+
+			NOTE: probably caches frames in memory, don't use with large
+			      number of input frames, instead use -stream_loop input arg
+
+		mergeplanes     merge color channels
+			mapping       input to output plane mapping, default 0
+			              0xAaBbCcDd, abcd from 0-3, which input SOURCE and which input PLANE
+			format        output pixel format, default yuva444p
+			map{0..3}s    set input STREAM mapping for Nth output plane
+			map{0..3}p    set input PLANE mapping for Nth output plane
+
+		minterpolate    motion interpolation
+			fps           desired fps, a rational expr, default 60
+			...
+
+		mix         mix video sources by weight
+			inputs    int, number of input sources
+			weights   weights for each source, space-separated, repeats last weight if needed
+			scale     scaling, defaults to 1/(sum of weights) ? or (sum of weights)?, it says "multiplied"
+			          but is it actually divided?
+			planes    int, 4-bit bitmask for which planes to filter
+			duration  longest, shortest, first
+
+		multiply    multiply first stream with 2nd stream (useful for masking?)
+			scale     [0,9] scale of second video, 
+			offset    [-1,1] offset of 2nd video stream, default 0.5
+			planes    which planes to process
+
+		negate          invert input video pixel values
+			components    yuvargb
+			negate_alpha  0/1, also negate alpha, default 0
+
+		ocr         write recognized text to a metadata lavfi.ocr.text lavfi.ocr.confidence
+			datapath  tesseract data path
+			language  default "eng"
+			whitelist character whitelist
+			blacklist character blacklist
+
+		ocv             filtering using opencv
+			filter_name   dilate/erode/smooth
+			filter_params ...
+
+		overlay         place 2nd input on top of 1st input
+			xy            overlaid video location expr
+				variables:
+					main_w, W     input width
+					main_h, H     input height
+					overlay_w, W  overlay width
+					overlay_h, H  overlay height
+					xy            allow referring to the other value
+					hsbu, vsub    horz/vert chroma subsampling value
+					n             the current frame number
+					t             timestamp of frame, NAN if unknown
+			eval          init    evaluate xy once at the start
+			              frame   evaluate xy per frame
+			format        output format
+			              yuv420
+			              yuv420p10
+			              yuv422
+			              yuv422p10
+			              yuv444
+			              yuv444p10
+			              rgb
+			              gbrp
+			              auto
+			alpha         straight
+			              premultiplied
+			              auto
+			framesync options:
+				eof_action
+				shortest
+				repeatlast
+
+		pad         pad the frame
+			width, w  padded width, 0 to use the input dim
+			height, h padded height, 0 to use the input dim
+			xy        input offset within the padded area, default 0
+			          if < 0, center it
+				variables:
+				in_w in_h iw ih     input dims
+				out_w out_h ow oh   output shape
+				xy                  xy offsets or NAN if not specified yet
+				a                   iw/ih
+				sar                 input sample aspect ratio
+				dar                 input display aspect ratio (iw/ih)*sar
+				hsub vsub           horz/vert chroma subsample values
+
+			color     padding color
+			eval      when to eval x, y, w, h
+			          init
+			          frame
+			aspect    pad to a ratio
+
+		qrencode    generate qr code and put into video
+			qrcode_width q            The width of qr code with and without padding.
+			padded_qrcode_width Q     padded defaults to unpadded (default no padding)
+			xy                        The qr code position in the video
+			case_sensitive cs         0/1, whether encoding should be case sensitive
+			level l                   QR encoding error correction level, higher = more robust but larger
+			                          LMQH
+			expansion                 [none|normal]
+			text textfile             text or text template
+			background_color bc       qr code color (default white)
+			foreground_color fc       qr code color (default black)
+
+		rotate          rotate a video
+			angle a       angle in radians to rotate clockwise
+			out_w ow      output width
+			out_h oh      output height
+				variables:
+					n         frame count
+					t         timestamp in seconds
+					hsub vsub chroma subsampling
+					in_w iw   input dimensions
+					in_h ih
+					out_w ow  output dimensions
+					out_h oh
+					rotw(a)   rotated width
+					roth(a)   rotated height
+
+			bilinear      0/1 enable bilinear interpolation
+			fillcolor c   color of bg (no source pixels)
+
+		scale                   resize the input
+			width w               output video dimensions.
+			height h              0 = use the input
+			                      one -n: make the other dimension divisible by n
+			                      both -n: same as both 0
+			eval                  [init|frame]
+			interl                1: force interlaced aware scaling
+			                      0: do not
+			                      -1: detect interlaced from input
+			flags                 flags for libswscale
+			param0                input parameters for libswscale
+			param1
+			intent                ICC rendering intent when transforming between color spaces
+			                      perceptual
+			                      relative_colorimetric
+			                      absolute_colorimetric
+			                      saturation
+			size s                video size
+			in_color_matrix       input/output YCbCr color space type
+			out_color_matrix      [auto|bt709|fcc|bt601|bt470|smpte170m|smpte240m|bt2020]
+			in_range              YCbCr sample range
+			out_range             [auto/unkown|jpeg/full/pc|mpeg/limited/tv]
+			force_original_aspect_ratio   [disable|decrease|increase]
+			force_divisible_by    similar to negative value for wh, but also
+			                      respect force_original_aspect_ratio
+				variables:
+					in_w in_h iw ih   input shape
+					out_w out_h ow oh uotput shape
+					a                 input aspect ratio
+					sar               input sample aspect ratio
+					dar               iw/ih*sar
+					hsub vsub         input chroma subsample values
+					ohsub ovsub       output chroma subsample values
+					n                 framenum (eval=frame)
+					t                 time (eval=frame)
+
+		streamselect astreamselect      select video/auto stream
+			inputs        number of inputs
+			map           input indices to remap to
+
+		transpose   transpose image with optional flip
+			dir       cclock_flip 90 degrees counterclockwise and vertical flip
+			          clock       90 degrees clockwise
+			          cclock      90 degrees counterclockwise
+			          clock_flip  90 degrees clockwise + flip
+			passthrough   ignore transposing if [none|portrait|landscape]
+
+		vflip       flip vertically
+
+		vstack      stack sources vertically
+			inputs    int, number of inputs, default 2
+			shortest  0/1, terminate on shortest input?
+
+		xstack      custom stacking layout
+			inputs    int, number of inputs, default 2
+			layout    output location per input source
+			          '|' delimited strings of 'y_x'
+			          can use wX or hX to use corresponding height/width instead.
+			          can use + to sum values
+			          ex: 3 videos: 0_0|w0_0|w0+w1_0 to put 3 videos side by side.
+			grid      grid of inputs 'COLSxROWS', requires each input to match in width/height
+			          within cols/rows
+			shortest  0/1 terminate on shortest stream?
+			fill      fill color for unused pixels
+
+			NOTE: exactly one of grid or layout can be given.
+
+		zscale          same as scale, but use z.lib
+			width w       output dimensions
+			height h      0: same as input
+			              exactly one -n: maintain aspect ratio and ensure divisible by n
+			              both -n: same as 0
+			size s        widthxheight
+			dither d      [none|ordered|random|error_diffusion] dithering
+			filter f      [point|bilinear|bicubic|spline16|spline36|lanczos] resize filter type
+			range r       [input|limited|full] color range
+			primaries p   [input 709 unspecified 170m 240m 2020]
+			transfer t    
+			matrix m
+			rangein rin
+			primariesin pin
+			transferin tin
+			matrinxin min
+			chromal c
+			chromalin cin
+			npl
+			param_a
+			param_b
+			in_w in_h iw ih
+			out_w out_h ow oh
+			a
+			sar
+			dar
+			hsub vsub
+			ohsub ovsub
+
+		segment asegment    split stream into multiple streams (opposite of concat)
+			timestamps        timestamps of output segments separated by '|'
+			frames samples    split by frames/samples
+			NOTE: prefix values with a + to make it relative to previous segment
+
+		setpts asetpts      change presentation timestamp (PTS)
+			expr              Expression for the new presentation timestamp
+			strip_fps         0/1 remove framerate info
+				variables:
+					FRAME_RATE FR         input framerate if constant framerate source
+					PTS                   input PTS
+					N                     current frame index
+					NB_CONSUMED_SAMPLES   number of consumed samples excluding current
+					NB_SAMPLES S          current sample index
+					SAMPLE_RATE SR        audio sample rate
+					STARTPTS              PTS of first frame
+					STARTT                time in seconds of first frame
+					INTERLACED            whether current frame is interlaced or not
+					T                     time of current frame
+					PREV_INPTS            previous PTS
+					PREV_INT              previous time (seconds)
+					PREV_OUTPTS           previous output PTS
+					PREV_OUTT             previous output timestamp (seconds)
+					RTCSTART              wall clock (RTC) at start of movie in microseconds
+					TB                    timebase of input timestamps
+					T_CHANGE              time of first frame after command was applied
 
 ------------------------------
 -6- streaming
