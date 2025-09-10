@@ -1,13 +1,58 @@
 contents
 -1- general
--2- stream selelction
+-2- stream selection
 -3- options
 -4- other
-	-4.1- webcam:
-	-4.2- ffplay:
-	-4.3- lavfi:
+	-4.1- webcam
+	-4.2- ffplay
+	-4.3- lavfi
 -5- filters
+	-5.0- expressions
+		-5.0.1- numerical exprs
+		-5.0.2- colors
 	-5.1- sync
+	-5.2- useful filters
+		-5.2.1- video sources:
+		-5.2.2- addroi
+		-5.2.3- blend
+		-5.2.4- tblend
+		-5.2.5- boxblur
+		-5.2.6- colorchannelmixer
+		-5.2.7- convolution
+		-5.2.8- convolve
+		-5.2.9- crop
+		-5.2.10- drawtext
+		-5.2.11- extractplanes
+		-5.2.12- fps
+		-5.2.13- framerate
+		-5.2.14- framestep
+		-5.2.15- fsync
+		-5.2.16- hflip
+		-5.2.17- histeq
+		-5.2.18- hstack
+		-5.2.19- libplacebo
+		-5.2.20- loop
+		-5.2.21- mergeplanes
+		-5.2.22- minterpolate
+		-5.2.23- mix
+		-5.2.24- multiply
+		-5.2.25- negate
+		-5.2.26- ocr
+		-5.2.27- ocv
+		-5.2.28- overlay
+		-5.2.29- pad
+		-5.2.30- qrencode
+		-5.2.31- rotate
+		-5.2.32- scale
+		-5.2.33- streamselect astreamselect
+		-5.2.34- transpose
+		-5.2.35- vflip
+		-5.2.36- vstack
+		-5.2.37- xstack
+		-5.2.38- zscale
+		-5.2.39- segment asegment
+		-5.2.40- interleave
+		-5.2.41- select
 -6- streaming
 	-6.1- tcp
 	-6.2- rtp
@@ -190,7 +235,7 @@ Video Segmentation:
 -4-other
 ------------------------------
 	------------------------------
-	-4.1- webcam:
+	-4.1- webcam
 	------------------------------
 	ffmpeg -f v4l2 -input_format h264 -video_size [width]x[height] -framerate fps -i /dev/video[x] [typical output stuffs]
 	ffmpeg -f v4l2 -list_formats all -i /dev/video[x]
@@ -203,13 +248,13 @@ Video Segmentation:
 	ffmpeg -f dshow -list_options true -i video="name of webcam"
 
 	------------------------------
-	-4.2- ffplay:
+	-4.2- ffplay
 	------------------------------
 	-window_title title
 	-seek_interval seconds      seconds to seek when left/right arrow
 
 	------------------------------
-	-4.3- lavfi:
+	-4.3- lavfi
 	------------------------------
 	lavfi format uses a filtergraph as the input to create video.
 	ex. 5 seconds of pink frame:
@@ -395,7 +440,9 @@ Video Segmentation:
 	------------------------------
 	-5.2- useful filters
 	------------------------------
-		video sources:
+		------------------------------
+		-5.2.1- video sources:
+		------------------------------
 			color         lavfi but... there is no "color" filter in the documentation!!
 				c color     the color
 				s size      WIDTHxHEIGHT
@@ -409,15 +456,24 @@ Video Segmentation:
 			This is undocumented but it seems like there is also a color=c=value,... source filter
 			that lavfi can use to get a solid-color frame...
 
-		addroi
+		------------------------------
+		-5.2.2- addroi
+		------------------------------
 			xywh      left, top, width, height of the roi
 			          expressions are allowed involving iw and ih (input width/height)
 			          ex: iw/2 = half the input width
 			qoffset   quantization offset, -1 = least quantization (best quality), 1 = most quant (worst quality)
 			clear     true/false, clear any preexisting rois
 
-		blend       blend frames from 2 sources
-		tblend      blend consecutive frames from same source
+		------------------------------
+		-5.2.3- blend
+		------------------------------
+		blend frames from 2 sources
+
+		------------------------------
+		-5.2.4- tblend
+		------------------------------
+		blend consecutive frames from same source
 			c{0..3}_mode      The blending mode for the specific channels of the sources.
 			all_mode          ex. r, g, b, etc. all = all the channels use the same value.
 			                  example values are: addition, interpolate, average, normal,
@@ -435,7 +491,9 @@ Video Segmentation:
                         T: time in seconds
                         TOP,A: top layer (first input) pixel value
                         BOTTOM,B :bottom layer (2nd input) pixel value
-		boxblur
+		------------------------------
+		-5.2.5- boxblur
+		------------------------------
 			luma_radius, lr       The size of the box, must be >= 0, and less than half the corresponding plane.
 			chroma_radius, cr     usable variables: w,h (input shape), cw,ch (chroma shape),
 			alpha_radius, ar      hsub/vsub chroma subsample values
@@ -444,24 +502,33 @@ Video Segmentation:
 			luma_power, lp        The number of applications
 			chroma_power, cp
 			alpha_power, ap
-		colorchannelmixer
+		------------------------------
+		-5.2.6- colorchannelmixer
+		------------------------------
 			rr rg rb ra       take the pixel as a vector and apply matrix transform onto it
 			gr gg gb ga
 			br bg bb ba
 			ar ag ab aa
-
-		convolution         apply convolution
+		------------------------------
+		-5.2.7- convolution
+		------------------------------
+		apply convolution
 			{0..3}m       matrix for channel {0..3}, only 3x3, 5x5, 7x7 square are allowed
 			              or if flattened, then any odd number of weights.
 			{0..3}rdiv    multiplier per plane after conv, 0 or unset implies 1/sum
 			{0..3}bias    bias per plane after scale
 			{0..3}mode    square | row | column
 
-		convolve        use 2nd stream as "impulse" for convolution
+		------------------------------
+		-5.2.8- convolve
+		------------------------------
+		use 2nd stream as "impulse" for convolution
 			planes    which planes to process
 			impulse   which frames, first | all
 
-		crop
+		------------------------------
+		-5.2.9- crop
+		------------------------------
 			w, out_w  output width/height eval once
 			h, out_h
 
@@ -481,7 +548,9 @@ Video Segmentation:
 			keep_aspect   0/1 force display aspect ratio to be the same
 			exact         do not round
 
-		drawtext
+		------------------------------
+		-5.2.10- drawtext
+		------------------------------
 			box           0/1     draw a box using background color
 			boxborderw    int     width of box border
 			boxcolor      color   defaults to white
@@ -560,12 +629,16 @@ Video Segmentation:
 						pict_type
 						pts
 
-		extractplanes
-			Extract color planes (input must be compatible)
+		------------------------------
+		-5.2.11- extractplanes
+		------------------------------
+		Extract color planes (input must be compatible)
 			y, u, v, a, r, g, b
 			syntax: extractplanes=y+u+v+...
 
-		fps
+		------------------------------
+		-5.2.12- fps
+		------------------------------
 			duplicate or drop frames to achieve fps
 			fps           target fps
 			              source_fps    input fps
@@ -583,30 +656,54 @@ Video Segmentation:
 			eof_action    reading last frame
 			              round   use same rounding method as other frames.
 			              pass    "pass through last frame if input duration has not been reached yet."
-		framerate   achieve framerate by interpolating frames
+		------------------------------
+		-5.2.13- framerate
+		------------------------------
+		achieve framerate by interpolating frames
 			fps           output fps
 			interp_start  start of range where output frame will be created, 0-255, default 15
 			interp_end    specify end range of interpolation 0-255, default 240
 			scene         0-100 probability for new scene
 			flags         scene_change_detect, scd    enable scene change detection
 
-		framestep   Take every Nth frame
+		------------------------------
+		-5.2.14- framestep
+		------------------------------
+		Take every Nth frame
 			step  The N for frames to take
 
-		fsync       sync input frame pts to a given file
+		------------------------------
+		-5.2.15- fsync
+		------------------------------
+		sync input frame pts to a given file
 			file, f   the file to sync to
 
-		hflip       horizontal flip
+		------------------------------
+		-5.2.16- hflip
+		------------------------------
+		horizontal flip
 
-		histeq      global color histogram equalization per-frame
+		------------------------------
+		-5.2.17- histeq
+		------------------------------
+		global color histogram equalization per-frame
 
-		hstack      stack 2 vids horizontally
+		------------------------------
+		-5.2.18- hstack
+		------------------------------
+		stack 2 vids horizontally
 			inputs    number of inputs, default 2
 			shortest  0/1 terminate on shortest input
 
-		libplacebo  gpu-accelerated filtering
+		------------------------------
+		-5.2.19- libplacebo
+		------------------------------
+		gpu-accelerated filtering
 
-		loop        loop video frames
+		------------------------------
+		-5.2.20- loop
+		------------------------------
+		loop video frames
 			loop      number of loops -1=infinite, default 0
 			size      max frames, default 0
 			start     first frame of loop, default 0
@@ -615,18 +712,27 @@ Video Segmentation:
 			NOTE: probably caches frames in memory, don't use with large
 			      number of input frames, instead use -stream_loop input arg
 
-		mergeplanes     merge color channels
+		------------------------------
+		-5.2.21- mergeplanes
+		------------------------------
+		merge color channels
 			mapping       input to output plane mapping, default 0
 			              0xAaBbCcDd, abcd from 0-3, which input SOURCE and which input PLANE
 			format        output pixel format, default yuva444p
 			map{0..3}s    set input STREAM mapping for Nth output plane
 			map{0..3}p    set input PLANE mapping for Nth output plane
 
-		minterpolate    motion interpolation
+		------------------------------
+		-5.2.22- minterpolate
+		------------------------------
+		motion interpolation
 			fps           desired fps, a rational expr, default 60
 			...
 
-		mix         mix video sources by weight
+		------------------------------
+		-5.2.23- mix
+		------------------------------
+		mix video sources by weight
 			inputs    int, number of input sources
 			weights   weights for each source, space-separated, repeats last weight if needed
 			scale     scaling, defaults to 1/(sum of weights) ? or (sum of weights)?, it says "multiplied"
@@ -634,26 +740,41 @@ Video Segmentation:
 			planes    int, 4-bit bitmask for which planes to filter
 			duration  longest, shortest, first
 
-		multiply    multiply first stream with 2nd stream (useful for masking?)
+		------------------------------
+		-5.2.24- multiply
+		------------------------------
+		multiply first stream with 2nd stream (useful for masking?)
 			scale     [0,9] scale of second video, 
 			offset    [-1,1] offset of 2nd video stream, default 0.5
 			planes    which planes to process
 
-		negate          invert input video pixel values
+		------------------------------
+		-5.2.25- negate
+		------------------------------
+		invert input video pixel values
 			components    yuvargb
 			negate_alpha  0/1, also negate alpha, default 0
 
-		ocr         write recognized text to a metadata lavfi.ocr.text lavfi.ocr.confidence
+		------------------------------
+		-5.2.26- ocr
+		------------------------------
+		write recognized text to a metadata lavfi.ocr.text lavfi.ocr.confidence
 			datapath  tesseract data path
 			language  default "eng"
 			whitelist character whitelist
 			blacklist character blacklist
 
-		ocv             filtering using opencv
+		------------------------------
+		-5.2.27- ocv
+		------------------------------
+		filtering using opencv
 			filter_name   dilate/erode/smooth
 			filter_params ...
 
-		overlay         place 2nd input on top of 1st input
+		------------------------------
+		-5.2.28- overlay
+		------------------------------
+		place 2nd input on top of 1st input
 			xy            overlaid video location expr
 				variables:
 					main_w, W     input width
@@ -684,7 +805,10 @@ Video Segmentation:
 				shortest
 				repeatlast
 
-		pad         pad the frame
+		------------------------------
+		-5.2.29- pad
+		------------------------------
+		pad the frame
 			width, w  padded width, 0 to use the input dim
 			height, h padded height, 0 to use the input dim
 			xy        input offset within the padded area, default 0
@@ -704,7 +828,10 @@ Video Segmentation:
 			          frame
 			aspect    pad to a ratio
 
-		qrencode    generate qr code and put into video
+		------------------------------
+		-5.2.30- qrencode
+		------------------------------
+		generate qr code and put into video
 			qrcode_width q            The width of qr code with and without padding.
 			padded_qrcode_width Q     padded defaults to unpadded (default no padding)
 			xy                        The qr code position in the video
@@ -716,7 +843,10 @@ Video Segmentation:
 			background_color bc       qr code color (default white)
 			foreground_color fc       qr code color (default black)
 
-		rotate          rotate a video
+		------------------------------
+		-5.2.31- rotate
+		------------------------------
+		rotate a video
 			angle a       angle in radians to rotate clockwise
 			out_w ow      output width
 			out_h oh      output height
@@ -734,7 +864,10 @@ Video Segmentation:
 			bilinear      0/1 enable bilinear interpolation
 			fillcolor c   color of bg (no source pixels)
 
-		scale                   resize the input
+		------------------------------
+		-5.2.32- scale
+		------------------------------
+		resize the input
 			width w               output video dimensions.
 			height h              0 = use the input
 			                      one -n: make the other dimension divisible by n
@@ -770,24 +903,39 @@ Video Segmentation:
 					n                 framenum (eval=frame)
 					t                 time (eval=frame)
 
-		streamselect astreamselect      select video/auto stream
+		------------------------------
+		-5.2.33- streamselect astreamselect
+		------------------------------
+		select video/auto stream
 			inputs        number of inputs
 			map           input indices to remap to
 
-		transpose   transpose image with optional flip
+		------------------------------
+		-5.2.34- transpose
+		------------------------------
+		transpose image with optional flip
 			dir       cclock_flip 90 degrees counterclockwise and vertical flip
 			          clock       90 degrees clockwise
 			          cclock      90 degrees counterclockwise
 			          clock_flip  90 degrees clockwise + flip
 			passthrough   ignore transposing if [none|portrait|landscape]
 
-		vflip       flip vertically
+		------------------------------
+		-5.2.35- vflip
+		------------------------------
+		flip vertically
 
-		vstack      stack sources vertically
+		------------------------------
+		-5.2.36- vstack
+		------------------------------
+		stack sources vertically
 			inputs    int, number of inputs, default 2
 			shortest  0/1, terminate on shortest input?
 
-		xstack      custom stacking layout
+		------------------------------
+		-5.2.37- xstack
+		------------------------------
+		custom stacking layout
 			inputs    int, number of inputs, default 2
 			layout    output location per input source
 			          '|' delimited strings of 'y_x'
@@ -801,7 +949,10 @@ Video Segmentation:
 
 			NOTE: exactly one of grid or layout can be given.
 
-		zscale          same as scale, but use z.lib
+		------------------------------
+		-5.2.38- zscale
+		------------------------------
+		same as scale, but use z.lib
 			width w       output dimensions
 			height h      0: same as input
 			              exactly one -n: maintain aspect ratio and ensure divisible by n
@@ -830,7 +981,10 @@ Video Segmentation:
 			hsub vsub
 			ohsub ovsub
 
-		segment asegment    split stream into multiple streams (opposite of concat)
+		------------------------------
+		-5.2.39- segment asegment
+		------------------------------
+		split stream into multiple streams (opposite of concat)
 			timestamps        timestamps of output segments separated by '|'
 			frames samples    split by frames/samples
 			NOTE: prefix values with a + to make it relative to previous segment
@@ -856,6 +1010,45 @@ Video Segmentation:
 					RTCSTART              wall clock (RTC) at start of movie in microseconds
 					TB                    timebase of input timestamps
 					T_CHANGE              time of first frame after command was applied
+
+		------------------------------
+		-5.2.40- interleave
+		------------------------------
+		Interleave frames
+			n         num inputs
+			duration  [longest|shortest|first]
+
+		------------------------------
+		-5.2.41- select
+		------------------------------
+			e expr        expression evaluated per frame indicating which output
+			              to send to. ceil(expr)-1 is the target index. 0 is discarded
+			outputs n     int,number of outputs
+				variables:
+					n                 filtered frame num, starting from 0
+					selected_n        selected frame num, starting from 0
+					prev_selected_n   last selected frame
+					TB                timebase of input timestamps
+					pts               PTS of the filtered frame in TB units
+					t                 pts of filtered frame in seconds
+					prev_pts
+					prev_selected_pts
+					prev_selected_t
+					start_pts
+					start_t
+					pict_type
+					interlace_type
+					consumed_sample_n
+					samples_n
+					sample_rate
+					key
+					pos
+					scene
+					concatdec_select
+					iw
+					ih
+					view
+
 
 ------------------------------
 -6- streaming
