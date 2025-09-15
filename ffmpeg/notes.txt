@@ -172,9 +172,8 @@ AV options:
 		add offset to input file timestamp (add positive offset for delay)
 	-timestamp date
 		recording timestamp
-	-stdin
-		allow stdin interaction
-		boolean
+	-[no]stdin
+		[dis]allow stdin interaction
 V options:
 	-frames number
 		# of frames for output
