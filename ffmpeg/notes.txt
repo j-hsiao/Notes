@@ -2,6 +2,10 @@ contents
 -1- general
 -2- stream selection
 -3- options
+	-3.1- AV options
+	-3.2- V options
+	-3.3- Video Segmentation
+	-3.4- Image2 demuxer
 -4- other
 	-4.1- webcam
 	-4.2- ffplay
@@ -149,7 +153,10 @@ argument formats:
 		for a date range, add a 'T' or 't' between the two dates
 		Z at the end to indicate UTC otherwise local
 		can also indicate now
-AV options:
+
+	------------------------------
+	-3.1- AV options
+	------------------------------
 	-f fmt
 	-i input
 	-stream_loop number   : 0: no loop
@@ -174,7 +181,9 @@ AV options:
 		recording timestamp
 	-[no]stdin
 		[dis]allow stdin interaction
-V options:
+	------------------------------
+	-3.2- V options
+	------------------------------
 	-frames number
 		# of frames for output
 	-r[stream] fps
@@ -213,7 +222,9 @@ V options:
 		-framerate input framerate when framerate unavailable like image sequence
 		-stream_loop loop the input, -1 = infinite, 0 = noloop
 
-Video Segmentation:
+	------------------------------
+	-3.3- Video Segmentation
+	------------------------------
 	output format: segment
 	useful:
 
@@ -229,6 +240,21 @@ Video Segmentation:
 		this should divide the segment interval for more accurate
 		video segments.
 
+	------------------------------
+	-3.4- Image2
+	------------------------------
+	Image demuxer (input)
+		loop                bool (0/1) loop image(s)
+		pattern_type        none        as is
+		                    sequence    interpret as %[0N]d.jpg
+		                    glob        a glob 'some/path/*'
+		start_number        starting value to read from
+		start_number_range  interval range searching for first image
+
+	Image muxer (output)
+		start_number        output starting number default 1
+		update              (0/1) overwrite the output file (assume literal)
+		atomic_writing      (0/1) when updating, write to separate file first and then rename.
 
 ------------------------------
 -4-other
