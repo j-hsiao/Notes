@@ -115,11 +115,8 @@ setup_bash() {
 		scriptdirs+=("${ROOTDIR}/wsl")
 	fi
 
-	if ! grep 'notes/bash/scripts/load.sh' "${HOME}/.bashrc" &>/dev/null
-	then
-		capp "$(printf '%s\n' ". \"${ROOTDIR}/scripts/load.sh\" \\" "" "${scriptdirs[@]}" \
-			| sed '2,$s/\(.*\)/\t'\''\1'\'' \\/')" "${HOME}/.bashrc"
-	fi
+	capp "$(printf '%s\n' ". \"${ROOTDIR}/scripts/load.sh\" \\" "" "${scriptdirs[@]}" \
+		| sed '2,$s/\(.*\)/\t'\''\1'\'' \\/')" "${HOME}/.bashrc"
 }
 
 
