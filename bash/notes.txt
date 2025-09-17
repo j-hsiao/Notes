@@ -4,11 +4,13 @@ contents
 -0- general
 	-0.1- logic
 	-0.2- variables
-		-0.2.0- scopes/assignment
-		-0.2.1- strings
-		-0.2.2- numbers
-		-0.2.3- arrays
-		-0.2.4- ANSI-C quoting
+		-0.2.0- expansions
+		-0.2.1- quoting
+		-0.2.2- scopes/assignment
+		-0.2.3- strings
+		-0.2.4- numbers
+		-0.2.5- arrays
+		-0.2.6- ANSI-C quoting
 	-0.3- functions
 		-0.3.1- function outputs
 	-0.4- pattern matching
@@ -106,7 +108,9 @@ ______________________________
 				read [flags...] "${variable_containing_target_name}" <<<"string to save to var"
 		deletion:
 			unset varname
-		expansions:
+
+		______________________________
+		-0.2.0- expansions
 			normal expansion:
 				${varname}
 			indirect expansion:
@@ -195,7 +199,21 @@ ______________________________
 				pattern should be single-char, and if omitted, defaults to ?
 
 		______________________________
-		-0.2.0- scopes
+		-0.2.1- quoting
+			Variable expansion quoting can be inside or outside the expansion
+			and behaves slightly differently for arrays using [@] or [*]
+
+			"${var}"          : quoted variable expansion as a single argument
+			"${var:+a b c}"   : a single arg "a b c" if var is non-empty, else empty arg ''
+			${var:+a b c}     : 3 args a b c if var is non-empty, else nothing
+			${var:+"a b c"}   : 1 arg "a b c" if var is non-empty, else nothing
+			"${var[@]}"       : `arraysize` args, even if args have whitespace
+			"${var[*]}"       : a single arg regardless of whitespace
+			${var[*]}         : arguments, also split on whitespace
+			${var[@]}         : same as [*]
+
+		______________________________
+		-0.2.2- scopes
 			Scope determines where variables are visible.
 			In general, there are 3 observed scopes.
 			1: local
@@ -279,7 +297,7 @@ ______________________________
 							   after the inner call)
 
 		______________________________
-		-0.2.1- strings
+		-0.2.3- strings
 			operations
 				version 5.1+
 					${var@op}
@@ -295,10 +313,10 @@ ______________________________
 							a "string consisting of flag values representing parameter's attributes"
 
 		______________________________
-		-0.2.2- numbers
+		-0.2.4- numbers
 
 		______________________________
-		-0.2.3- arrays
+		-0.2.5- arrays
 			index arrays (int keys)
 				creation:
 					name[subscript]=value           create array+initialize single value
@@ -344,7 +362,7 @@ ______________________________
 				unset arr[idxOrKey]
 
 		______________________________
-		-0.2.4- ANSI-C quoting
+		-0.2.6- ANSI-C quoting
 			Not really a variable, but putting it here because similar syntax
 			Ansi quoted strings:
 				escapes:
