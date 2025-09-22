@@ -11,6 +11,7 @@ contents
 		-0.2.4- numbers
 		-0.2.5- arrays
 		-0.2.6- ANSI-C quoting
+		-0.2.7- special variables
 	-0.3- functions
 		-0.3.1- function outputs
 	-0.4- pattern matching
@@ -376,6 +377,15 @@ ______________________________
 					$'\Uhhhhhhhh'   unicode hex (1-8 digits)
 				control sequence:
 					$'\cx'          control+x
+
+		______________________________
+		-0.2.7- special variables
+		Bash has some special variables defined/?updated? by bash:
+		SHLVL           The number of nested bash shells
+		FUNCNAME        Array of functions being run. This is like a stack trace, 0 = current, 1 = parent, etc
+		BASH_SOURCE     Array of source files per function in FUNCNAME
+		BASH_REMATCH    Array of (fullregexmatch, group1, group2, ...)
+
 
 	______________________________
 	-0.3- functions
