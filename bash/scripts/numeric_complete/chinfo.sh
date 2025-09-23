@@ -64,6 +64,32 @@ _CHINFO_STRLEN_TREE=(
 chinfo_width() # char [RET]
 {
 	# Width of a character
+	local -n chinfo__out="${2:-RET}"
+	local codepoint
+	printf -v codepoint '%d' "'${1}"
+
+	if ((codepoint == 0x0f || codepoint == 0x0e))
+	then
+		chinfo__out=0
+		return
+	elif ((codepoint == 9))
+	then
+		# TODO what about tabs?
+		# tabs kind of depend on where the character
+		# starts... where the tabstop is... etc...
+		chinfo__out="${_CHINFO_TABSTOP}"
+	fi
+
 	local idx=0
-	while 
+	while ((idx <= 37))
+	do
+		if ((codepoint <= _CHINFO_STRLEN_TREE[idx]))
+		then
+			((idx=idx*2 + 1))
+		else
+			((idx=idx*2 + 2))
+		fi
+		((++idx))
+	done
+	chinfo__out="${_CHINFO_STRLEN_TREE[idx]}"
 }

@@ -385,6 +385,8 @@ ______________________________
 		FUNCNAME        Array of functions being run. This is like a stack trace, 0 = current, 1 = parent, etc
 		BASH_SOURCE     Array of source files per function in FUNCNAME
 		BASH_REMATCH    Array of (fullregexmatch, group1, group2, ...)
+		EPOCHREALTIME   floating point timestamp
+		EPOCHSECONDS    seconds precision timestamp
 
 
 	______________________________
