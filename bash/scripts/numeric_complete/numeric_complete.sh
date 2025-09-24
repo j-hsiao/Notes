@@ -1,11 +1,22 @@
 #!/bin/bash
 
 # Numeric tab completion.
-# Internal state is stored in the NCMP_STATE associative array environment variable.
-# This allows state to be saved between function calls (For example, caching the
-# result of listing a directory).
+#
 
+
+# Default cache size
+NCMP_CACHE_SIZE=10
+
+# Numeric complete cache structure:
+# NCMP_CACHE: name of caches
+# NCMP_CACHE[N]: cache slots, where [N] is an integer ranging from 0 to NCMP_CACHE_SIZE
+NCMP_CACHE=()
+
+. "${BASH_SOURCE[0]%numeric_complete.sh}chinfo.sh"
+
+# Store internal state
 declare -A NCMP_STATE
+NCMP_STATE['cacheidx']=0
 
 # The readline completion-ignore-case and show-mode-in-prompt
 # settings are needed to determine numeric completion behavior.
@@ -14,27 +25,27 @@ declare -A NCMP_STATE
 
 NCMP_STATE['completion_ignore_case']=
 NCMP_STATE['show_mode_in_prompt']=
-if ! declare -f NCMP_orig_bind &>/dev/null
+if ! declare -f ncmp_orig_bind &>/dev/null
 then
 	case "$(type -t bind)" in 
 		file|builtin)
-			NCMP_orig_bind() {
+			ncmp_orig_bind() {
 				command bind "${@}"
 			}
 			;;
 		function)
-			if [[ ! "$(declare -f bind)" =~ .*'NCMP_orig_bind ' ]]
+			if [[ ! "$(declare -f bind)" =~ .*'ncmp_orig_bind ' ]]
 			then
 				printf 'Warning, experimental overriding function bind.\n'
-				eval NCMP_orig_"$(declare -f bind)"
+				eval ncmp_orig_"$(declare -f bind)"
 			else
-				printf 'bind is a function that already references NCMP_orig_bind\n'
+				printf 'bind is a function that already references ncmp_orig_bind\n'
 			fi
 			;;
 		alias)
 			printf 'Warning, experimental overriding alias bind.\n'
 			NCMP_STATE['bind_alias']=$(alias bind)
-			NCMP_orig_bind() {
+			ncmp_orig_bind() {
 				alias bind="${NCMP_STATE['bind_alias']}"
 				bind
 				unalias bind
@@ -43,13 +54,13 @@ then
 			;;
 		*)
 			printf 'Warning, overriding unknown bind implementation.'
-			NCMP_orig_bind() { command bind "${@}"; }
+			ncmp_orig_bind() { command bind "${@}"; }
 			;;
 	esac
 	bind() {
-		NCMP_orig_bind "${@}"
+		ncmp_orig_bind "${@}"
 		local ret=$?
-		local data="$(NCMP_orig_bind -v)"
+		local data="$(ncmp_orig_bind -v)"
 		local tmp="${data#*completion-ignore-case }"
 		NCMP_STATE['completion_ignore_case']="${tmp:0:2}"
 		tmp="${data#*show-mode-in-prompt }"
@@ -62,7 +73,7 @@ then
 	fi
 fi
 
-NUMERIC_COMPLETE_set_pager()
+ncmp_set_pager()
 {
 	# Set NUMERIC_COMPLETE_pager variable to use less if available.
 	NUMERIC_COMPLETE_pager=()
@@ -87,7 +98,7 @@ NUMERIC_COMPLETE_set_pager()
 	return 1
 }
 
-NCMP_pathsplit() # <path> [dname_var=dname] [basename_var=bname]
+ncmp_pathsplit() # <path> [dname_var=dname] [basename_var=bname]
 # Parse <path> into dir name and base name.  The results
 # are stored in the corresponding variables if provided.
 # NOTE: dir1/dir2 will be split as dir1/ and dir2
@@ -103,7 +114,7 @@ NCMP_pathsplit() # <path> [dname_var=dname] [basename_var=bname]
 	fi
 }
 
-NCMP_max() # <int_array_name> [start=0] [stop=end] [output=RESULT]
+ncmp_max() # <int_array_name> [start=0] [stop=end] [output=RESULT]
 {
 	# Calculate the maximum value from [start, stop).
 	# If the range is empty, then output will be empty.
@@ -127,7 +138,7 @@ NCMP_max() # <int_array_name> [start=0] [stop=end] [output=RESULT]
 	done
 }
 
-NCMP_calcshape() # <strwidth_array> <start> <stop> <termwidth> <minpad>
+ncmp_calcshape() # <strwidth_array> <start> <stop> <termwidth> <minpad>
                  # [nrows=rows] [ncols=cols] [prewidth=prewidth]
 {
 	# Calculate the table shape to display strings
@@ -136,13 +147,69 @@ NCMP_calcshape() # <strwidth_array> <start> <stop> <termwidth> <minpad>
 	# <start>: Starting index
 	# <stop>: stopping index
 	# <minpad>: minimum padding between columns
+	:
+}
+
+ncmp_count_lines() # <text> <width> [out=RESULT]
+{
+	# Count the number of lines <text> would take in a terminal of <width>.
+	local ncmpcl__text="${1}" ncmpcl__width="${2}"
+	local -n ncmpcl__out="${3:-RESULT}"
+	ncmpcl__out=1
+	local col=0 idx=0
+	while ((idx < "${#ncmpcl__text}"))
+	do
+		if [[ "${ncmpcl__text:idx:1}" = $'\n' ]]
+		then
+			((col=0))
+			((++ncmpcl__out))
+		else
+			local clen
+			chinfo_charwidth "${ncmpcl__text:idx:1}" clen
+			if ((col + clen <= ncmpcl__width))
+			then
+				((col += clen))
+			else
+				((col = clen))
+				((++ncmpcl__out))
+			fi
+		fi
+		((++idx))
+	done
+}
+
+ncmp_mimic_prompt() # <width>
+{
+	# Mimic the bash prompt $PS1 and any existing command.
+	:
+}
+
+ncmp_read_dir() # <dname>
+{
+	# Read and preprocess <dname>
+
+	# check the cache
+	local idx=0
+	while ((2*idx < ${#NCMP_CACHE[@]}))
+	do
+		"${#NCMP_CACHE[idx]}"
+	done
+
+
+	local lsargs=()
+	if [[ -n "${dname}" ]]
+	then
+		lsargs=("${dname}")
+	fi
+
+	readarray -t rawdisplay < <(ls -Ap --color=always "${lsargs[@]}" 2>/dev/null)
 }
 
 
 
 if [[ "${0}" = "${BASH_SOURCE[0]}" ]]
 then
-	echo Testing numeric_complete
+	echo 'Testing splitpath().'
 	splitpath_testcases=( \
 		'/:/:' \
 		"hello/world:${PWD}/hello/:world" \
@@ -150,16 +217,36 @@ then
 		"basename:${PWD}/:basename" \
 		"/dev/shm:/dev/:shm" \
 		"/dev/shm/:/dev/shm/:" \
+		":${PWD}/:"\
 	)
 
 	for testcase in "${splitpath_testcases[@]}"
 	do
-		NCMP_pathsplit "${testcase%%:*}" dname bname
+		ncmp_pathsplit "${testcase%%:*}"
 		[[ "${dname}:${bname}" = "${testcase#*:}" ]] && echo pass || printf 'fail\n\tgot : "%s"\n\twant: "%s"\n' "${dname}:${bname}" "${testcase#*:}"
 	done
 
+	echo 'Testing max().'
 	testarr=(6 5 1 2 8 9 7 6 1 2 9 3 5 7 1 2 9 8 4 1 8 3 4 5 4 3 6 7 1 0 2 3 4 0 9 1 2 3 4)
-	NCMP_max testarr
+	ncmp_max testarr
 	(( ${RESULT} == 9 )) && echo pass || echo "fail: ${RESULT}"
+	ncmp_max testarr 0 5
+	(( ${RESULT} == 8 )) && echo pass || echo "fail: ${RESULT}"
+	ncmp_max testarr 11 14
+	(( ${RESULT} == 7 )) && echo pass || echo "fail: ${RESULT}"
+	ncmp_max testarr 0 0
+	[[ "${RESULT}" == '' ]] && echo pass || echo "fail: ${RESULT}"
+	ncmp_max testarr 2 0
+	[[ "${RESULT}" == '' ]] && echo pass || echo "fail: ${RESULT}"
+
+	echo 'Testing cout_lines()'
+	ncmp_count_lines hello 11
+	((${RESULT} == 1)) && echo pass || echo "fail: ${RESULT} vs 1"
+	ncmp_count_lines hello\ world 11
+	((${RESULT} == 1)) && echo pass || echo "fail: ${RESULT} vs 1"
+	ncmp_count_lines hello\ world 10
+	((${RESULT} == 2)) && echo pass || echo "fail: ${RESULT} vs 1"
+	ncmp_count_lines hello\ w$'\n'orld 10
+	((${RESULT} == 2)) && echo pass || echo "fail: ${RESULT} vs 1"
 
 fi
