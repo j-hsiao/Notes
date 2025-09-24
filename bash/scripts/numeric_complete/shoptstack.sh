@@ -1,7 +1,7 @@
 #!/bin/bash
 
-_SS_STATE=
-_SS_push() # [(-|+)setting_name] ...
+SHOPTSTACK_STATE=
+SS_push() # [(-|+)setting_name] ...
 {
 	# Set shopt options and push onto stack.
 	# Calling _SS_pop() will pop the corresponding options.
@@ -40,14 +40,43 @@ _SS_push() # [(-|+)setting_name] ...
 	done
 	if ((${#turnon[@]})); then shopt -s "${turnon[@]}"; fi
 	if ((${#turnoff[@]})); then shopt -u "${turnoff[@]}"; fi
-	_SS_STATE+=";${restore}"
+	SHOPTSTACK_STATE+=";${restore}"
 }
 
-_SS_pop()
+SS_pop()
 {
 	# Pop some settings off of the shopt stack.
-	local restore="${_SS_STATE##*;}"
+	local restore="${SHOPTSTACK_STATE##*;}"
 	if [[ "${restore:0:1}" != ':' ]]; then shopt -s ${restore%%:*}; fi
 	if [[ "${restore:${#restore}-1}" != ':' ]]; then shopt -u ${restore##*:}; fi
-	_SS_STATE="${_SS_STATE%;*}"
+	SHOPTSTACK_STATE="${SHOPTSTACK_STATE%;*}"
 }
+
+if [[ "${0}" = "${BASH_SOURCE[0]}" ]]
+then
+	echo 'Testing shoptstack.'
+	testcases=( \
+		"$(shopt -p nullglob extglob globstar dotglob | cut -f2 -d' ')"
+		'nullglob extglob globstar dotglob:'$'-s\n-s\n-s\n-s' \
+		'-nullglob:'$'-u\n-s\n-s\n-s' \
+		'globstar +dotglob:'$'-u\n-s\n-s\n-s' \
+		'-nullglob +extglob +globstar:'$'-u\n-s\n-s\n-s' \
+		'-nullglob -extglob -globstar -dotglob:'$'-u\n-u\n-u\n-u' \
+	)
+
+	echo 'Pushing shopt.'
+	for testcase in "${testcases[@]:1}"
+	do
+		SS_push ${testcase%:*}
+		[[ $(shopt -p nullglob extglob globstar dotglob | cut -f2 -d' ') = ${testcase##*:} ]] && echo pass || echo failed
+	done
+
+	echo 'Popping shopt.'
+	idx=$((${#testcases[@]} - 1))
+	while ((idx > 0))
+	do
+		SS_pop
+		[[ $(shopt -p nullglob extglob globstar dotglob | cut -f2 -d' ') = ${testcases[--idx]##*:} ]] && echo pass || echo failed
+	done
+
+fi

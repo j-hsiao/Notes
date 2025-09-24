@@ -2,12 +2,10 @@
 
 # Conversion between integers and characters.
 
-
-
 chinfo_2char() # num [varname=RESULT]
 {
 	# Convert num into a character stored in varname.
-	local -n chinfo__out="${2:-RESULT}"
+	local -n ci2c__out="${2:-RESULT}"
 	local num="${1}"
 	if ((num <= 0xff))
 	then
@@ -19,65 +17,51 @@ chinfo_2char() # num [varname=RESULT]
 	then
 		local code=U length=8
 	else
-		chinfo__out=
+		ci2c__out=
 		return 1
 	fi
 	# Is there a difference? portability?  It seems to have no
 	# difference in performance.
 
 	# printf -v num "\\\\%s%0${length}x" "${code}" "${num}"
-	# chinfo__out="${num@E}"
+	# ci2c__out="${num@E}"
 
 	printf -v num "%0${length}x" "${num}"
-	printf -v chinfo__out "\\${code}${num}"
+	printf -v ci2c__out "\\${code}${num}"
 }
 
 chinfo_2num() # char [varname=RESULT]
 {
 	# Convert char into a number stored in varname.
-	local -n chinfo__out="${2:-RESULT}"
-	printf -v chinfo__out '%d' "'${1}"
+	local -n ci2n__out="${2:-RESULT}"
+	printf -v ci2n__out '%d' "'${1}"
 }
 
 # Calculate string widths, supporting unicode.
 # https://stackoverflow.com/questions/36380867/how-to-get-the-number-of-columns-occupied-by-a-character-in-terminal
-_CHINFO_STRLEN_LUT=(
-	126     1   159     0   687     1   710     0   711     1
-	727     0   733     1   879     0   1154    1   1161    0
-	4347    1   4447    2   7467    1   7521    0   8369    1
-	8426    0   9000    1   9002    2   11021   1   12350   2
-	12351   1   12438   2   12442   0   19893   2   19967   1
-	55203   2   63743   1   64106   2   65039   1   65059   0
-	65131   2   65279   1   65376   2   65500   1   65510   2
-	120831  1   262141  2   1114109 1
-)
 
-_CHINFO_STRLEN_TREE=(
-                                                                                                   12442
-                                                        8369                                                                            65131
-                              879                                               11021                                 63743                                 65510
-               710                          4447                        9000             12351              19967              65039              65376               262141
-        159           727           1161            7521            8426    9002    12350     12438    19893     55203    64106     65059    65279     65500    120831      1114109
-    126    687    711    733    1154    4347    7467     1         0    1  2    1  2     1   2     0  2     1   2     1  2     1   0     2  1     2   1     2  1      2    1        1
-   1   0  1   0  1   0  1   0  1    0  1    2  1    0
+# Reorganized the table into a binary tree, 38 pivot points, rest are leaf nodes
+_CHINFO_STRLEN_TREE=( \
+	12442 \
+	8369 65131 \
+	879 11021 63743 65510 \
+	710 4447 9000 12351 19967 65039 65376 262141 \
+	159 727 1161 7521 8426 9002 12350 12438 19893 55203 64106 65059 65279 65500 120831 1114109 \
+	126 687 711 733 1154 4347 7467 1 0 1 2 1 2 1 2 0 2 1 2 1 2 1 0 2 1 2 1 2 1 2 1 1 \
+	1 0 1 0 1 0 1 0 1 0 1 2 1 0 \
 )
-chinfo_width() # char [RET]
+chinfo_charwidth() # char [out=RET]
 {
 	# Width of a character
-	local -n chinfo__out="${2:-RET}"
+	# Return result as variable named "${out}", defaulting to RET
+	local -n cicwidth__out="${2:-RET}"
 	local codepoint
 	printf -v codepoint '%d' "'${1}"
 
 	if ((codepoint == 0x0f || codepoint == 0x0e))
 	then
-		chinfo__out=0
+		cicwidth__out=0
 		return
-	elif ((codepoint == 9))
-	then
-		# TODO what about tabs?
-		# tabs kind of depend on where the character
-		# starts... where the tabstop is... etc...
-		chinfo__out="${_CHINFO_TABSTOP}"
 	fi
 
 	local idx=0
@@ -91,5 +75,36 @@ chinfo_width() # char [RET]
 		fi
 		((++idx))
 	done
-	chinfo__out="${_CHINFO_STRLEN_TREE[idx]}"
+	cicwidth__out="${_CHINFO_STRLEN_TREE[idx]}"
 }
+
+chinfo_strdisplaylen() # word [out=RET]
+{
+	# Return the display length of a word.
+	# Return result as variable named "${out}", defaulting to RET
+	# NOTE: tab sizes will change depending on where the tab
+	#       starts, so the display length will change depending
+	#       on where the word starts too.  To get a more consistent
+	#       result, should probably replace tabs with \t or something...
+
+	[[ "${1}" =~ ${1//?/(.)} ]] # load single characters into BASH_REMATCH
+	local idx=1 total=0 clen
+	while ((idx < ${#BASH_REMATCH[@]}))
+	do
+		chinfo_charwidth "${BASH_REMATCH[idx]}" clen
+		((total += clen))
+		((++idx))
+	done
+	local -n cisdl__out="${2:-RET}"
+	cisdl__out=${total}
+}
+
+if [[ "${0}" = "${BASH_SOURCE[0]}" ]]
+then
+	echo 'Testing chinfo.'
+	for teststr in $'\e''[1,2':5 hello\ world:11 hello:5 world:5 eyy你好:7 $'has\ttab':7
+	do
+		chinfo_strdisplaylen "${teststr%:*}" out
+		((out == ${teststr##*:})) && echo pass || printf 'failed "%s"\n\tgot : "%s"\n\twant: "%s"\n' "${teststr%:*}" "${out}" "${teststr##*:}"
+	done
+fi
