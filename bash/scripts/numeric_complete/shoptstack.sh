@@ -1,10 +1,10 @@
 #!/bin/bash
 
 SHOPTSTACK_STATE=
-SS_push() # [(-|+)setting_name] ...
+ss_push() # [(-|+)setting_name] ...
 {
 	# Set shopt options and push onto stack.
-	# Calling _SS_pop() will pop the corresponding options.
+	# Calling ss_pop() will pop the corresponding options.
 	# NOTE: implemented via string manipulation.  The stack
 	# should generally not be too deep anyways so it should be fine.
 	local choice name add restore=: turnon=() turnoff=()
@@ -43,7 +43,7 @@ SS_push() # [(-|+)setting_name] ...
 	SHOPTSTACK_STATE+=";${restore}"
 }
 
-SS_pop()
+ss_pop()
 {
 	# Pop some settings off of the shopt stack.
 	local restore="${SHOPTSTACK_STATE##*;}"
@@ -67,7 +67,7 @@ then
 	echo 'Pushing shopt.'
 	for testcase in "${testcases[@]:1}"
 	do
-		SS_push ${testcase%:*}
+		ss_push ${testcase%:*}
 		[[ $(shopt -p nullglob extglob globstar dotglob | cut -f2 -d' ') = ${testcase##*:} ]] && echo pass || echo failed
 	done
 
@@ -75,7 +75,7 @@ then
 	idx=$((${#testcases[@]} - 1))
 	while ((idx > 0))
 	do
-		SS_pop
+		ss_pop
 		[[ $(shopt -p nullglob extglob globstar dotglob | cut -f2 -d' ') = ${testcases[--idx]##*:} ]] && echo pass || echo failed
 	done
 

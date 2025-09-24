@@ -2,9 +2,11 @@
 
 # Conversion between integers and characters.
 
-chinfo_2char() # num [varname=RESULT]
+ci_2char() # <num> [outname=RESULT]
 {
-	# Convert num into a character stored in varname.
+	# Convert num into a character
+	# <num>: the number to convert
+	# [outname]: the variable to store the result.
 	local -n ci2c__out="${2:-RESULT}"
 	local num="${1}"
 	if ((num <= 0xff))
@@ -30,9 +32,11 @@ chinfo_2char() # num [varname=RESULT]
 	printf -v ci2c__out "\\${code}${num}"
 }
 
-chinfo_2num() # char [varname=RESULT]
+ci_2num() # <char> [outname=RESULT]
 {
-	# Convert char into a number stored in varname.
+	# Convert char into a number stored in outname.
+	# <char>: the character to convert.
+	# [outname]: the variable to store the result.
 	local -n ci2n__out="${2:-RESULT}"
 	printf -v ci2n__out '%d' "'${1}"
 }
@@ -41,7 +45,7 @@ chinfo_2num() # char [varname=RESULT]
 # https://stackoverflow.com/questions/36380867/how-to-get-the-number-of-columns-occupied-by-a-character-in-terminal
 
 # Reorganized the table into a binary tree, 38 pivot points, rest are leaf nodes
-_CHINFO_STRLEN_TREE=( \
+CHINFO_STRLEN_TREE=( \
 	12442 \
 	8369 65131 \
 	879 11021 63743 65510 \
@@ -50,11 +54,12 @@ _CHINFO_STRLEN_TREE=( \
 	126 687 711 733 1154 4347 7467 1 0 1 2 1 2 1 2 0 2 1 2 1 2 1 0 2 1 2 1 2 1 2 1 1 \
 	1 0 1 0 1 0 1 0 1 0 1 2 1 0 \
 )
-chinfo_charwidth() # char [out=RET]
+ci_charwidth() # <char> [out=RESULT]
 {
-	# Width of a character
-	# Return result as variable named "${out}", defaulting to RET
-	local -n cicwidth__out="${2:-RET}"
+	# Calculate the width of a character.
+	# <char>: The character to convert.
+	# [out]: The variable to store the result.
+	local -n cicwidth__out="${2:-RESULT}"
 	local codepoint
 	printf -v codepoint '%d' "'${1}"
 
@@ -67,7 +72,7 @@ chinfo_charwidth() # char [out=RET]
 	local idx=0
 	while ((idx <= 37))
 	do
-		if ((codepoint <= _CHINFO_STRLEN_TREE[idx]))
+		if ((codepoint <= CHINFO_STRLEN_TREE[idx]))
 		then
 			((idx=idx*2 + 1))
 		else
@@ -75,27 +80,27 @@ chinfo_charwidth() # char [out=RET]
 		fi
 		((++idx))
 	done
-	cicwidth__out="${_CHINFO_STRLEN_TREE[idx]}"
+	cicwidth__out="${CHINFO_STRLEN_TREE[idx]}"
 }
 
-chinfo_strdisplaylen() # word [out=RET]
+ci_strdisplaylen() # <word> [out=RESULT]
 {
-	# Return the display length of a word.
-	# Return result as variable named "${out}", defaulting to RET
-	# NOTE: tab sizes will change depending on where the tab
-	#       starts, so the display length will change depending
-	#       on where the word starts too.  To get a more consistent
-	#       result, should probably replace tabs with \t or something...
-
-	[[ "${1}" =~ ${1//?/(.)} ]] # load single characters into BASH_REMATCH
+	# Calculate the displayed length of a word.
+	# <word>: The word to process.
+	# [out]: The variable to store the result.
+	# NOTE: Tab will count as 1 character even if it might be displayed
+	#       as multiple characters.  This is because tabs can be a different
+	#       width depending on the environment as well as the position where
+	#       it is placed.  Since the length is not fixed, just count it as 1.
 	local idx=1 total=0 clen
+	[[ "${1}" =~ ${1//?/(.)} ]] # load single characters into BASH_REMATCH
 	while ((idx < ${#BASH_REMATCH[@]}))
 	do
-		chinfo_charwidth "${BASH_REMATCH[idx]}" clen
+		ci_charwidth "${BASH_REMATCH[idx]}" clen
 		((total += clen))
 		((++idx))
 	done
-	local -n cisdl__out="${2:-RET}"
+	local -n cisdl__out="${2:-RESULT}"
 	cisdl__out=${total}
 }
 
@@ -104,7 +109,7 @@ then
 	echo 'Testing chinfo.'
 	for teststr in $'\e''[1,2':5 hello\ world:11 hello:5 world:5 eyy你好:7 $'has\ttab':7
 	do
-		chinfo_strdisplaylen "${teststr%:*}" out
+		ci_strdisplaylen "${teststr%:*}" out
 		((out == ${teststr##*:})) && echo pass || printf 'failed "%s"\n\tgot : "%s"\n\twant: "%s"\n' "${teststr%:*}" "${out}" "${teststr##*:}"
 	done
 fi
