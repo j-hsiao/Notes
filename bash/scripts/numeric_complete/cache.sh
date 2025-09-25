@@ -97,4 +97,9 @@ then
 	((${#mycache[@]} == 4)) && [[ "${mycache[@]}" = '4 5 6 7' ]] && echo pass || echo fail
 
 	! ch_get mycache key1 && echo pass || echo fail
+
+	if (($#))
+	then
+		ncmp_read_dir "${@}"
+	fi
 fi

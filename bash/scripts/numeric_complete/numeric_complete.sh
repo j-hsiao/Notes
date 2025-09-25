@@ -1,18 +1,15 @@
 #!/bin/bash
 
 # Numeric tab completion.
-#
+
 
 
 # Default cache size
-NCMP_CACHE_SIZE=10
-
-# Numeric complete cache structure:
-# NCMP_CACHE: name of caches
-# NCMP_CACHE[N]: cache slots, where [N] is an integer ranging from 0 to NCMP_CACHE_SIZE
-NCMP_CACHE=()
+NCMP_CACHE_SIZE=${NCMP_CACHE_SIZE:-10}
 
 . "${BASH_SOURCE[0]%numeric_complete.sh}chinfo.sh"
+. "${BASH_SOURCE[0]%numeric_complete.sh}cache.sh"
+ch_make NCMP_CACHE ${NCMP_CACHE_SIZE}
 
 # Store internal state
 declare -A NCMP_STATE
@@ -165,7 +162,7 @@ ncmp_count_lines() # <text> <width> [out=RESULT]
 			((++ncmpcl__out))
 		else
 			local clen
-			chinfo_charwidth "${ncmpcl__text:idx:1}" clen
+			ci_charwidth "${ncmpcl__text:idx:1}" clen
 			if ((col + clen <= ncmpcl__width))
 			then
 				((col += clen))
@@ -186,23 +183,46 @@ ncmp_mimic_prompt() # <width>
 
 ncmp_read_dir() # <dname>
 {
-	# Read and preprocess <dname>
-
-	# check the cache
-	local idx=0
-	while ((2*idx < ${#NCMP_CACHE[@]}))
-	do
-		"${#NCMP_CACHE[idx]}"
-	done
-
-
-	local lsargs=()
-	if [[ -n "${dname}" ]]
+	# Read and preprocess <dname> into the cache.
+	if ! ch_get NCMP_CACHE "${1}"
 	then
-		lsargs=("${dname}")
-	fi
+		# TODO read directory and preprocess
+		local lsargs=()
+		if [[ -n "${dname}" ]]
+		then
+			lsargs=("${dname}")
+		fi
+		NCMP_CACHE=()
+		local rawdisplay=()
 
-	readarray -t rawdisplay < <(ls -Ap --color=always "${lsargs[@]}" 2>/dev/null)
+		# Considerations...
+		# 1. numeric complete return value should be shell-compatible since it is
+		#    being used for tab completion.
+		# 2. But, for display, maybe would like a different quoting style like \n?
+		# However, then would ?maybe? need 
+		#
+		# quoting styles are:       '       "           \n              \t              space           quoting
+		#   -b                      '       "           \n              \t              \space          no
+		# --quoting-style=
+		# 	literal                 '       "           literal\n       literal\t       literal space   no
+		# 	locale                  '       "           \n              \t              space           always with fancy quotes
+		# 	shell                   "'"     '"'         literal\n       literal\t       space           single quotes if needed
+		# 	shell-always            "'"     '"'         literal\n       literal\t       space           single quotes always (except if double)
+		# 	shell-escape            "'"     '"'         $'\n'           $'\t'           space           single quotes as needed ish
+		# 	shell-escape-always     "'"     '"'         $'\n'           $'\t'           space           single quotes always (except if double)
+		# 	c                       "'"     "\""        \n              \t              space           always, like a c string that includes the quotes
+		# 	escape                  '       "           \n              \t              \space          no
+		readarray -t rawdisplay < <(ls -Ap --quoting-style=c --color=always "${lsargs[@]}" 2>/dev/null)
+		# color is before the quote
+
+		for item in "${rawdisplay[@]}"
+		do
+			item="${item%%\"*}${item#*\"}"
+			item="${item%\"*}${item##*\"}"
+			printf '%s : %s\n' "${item}"
+		done
+
+	fi
 }
 
 
@@ -249,4 +269,8 @@ then
 	ncmp_count_lines hello\ w$'\n'orld 10
 	((${RESULT} == 2)) && echo pass || echo "fail: ${RESULT} vs 1"
 
+	if (($#))
+	then
+		ncmp_read_dir .
+	fi
 fi
