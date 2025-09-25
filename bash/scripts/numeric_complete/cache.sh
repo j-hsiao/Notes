@@ -20,9 +20,11 @@ ch_make() # <name> [size=10]
 	done
 }
 
-ch_get() # <name> <key>
+ch_get() # <name> <key> [out]
 {
 	# Point <name> to the corresponding cache entry.
+	# <name> is the name-reference variable created from ch_make.
+	# if [out] is provided, then set it to the actual variable name.
 	# If it does not exist, create a new one, possibly invalidating
 	# the oldest entry.  If found, then return code 0
 	# If new, then return code 1.
@@ -50,6 +52,11 @@ ch_get() # <name> <key>
 	chgt__arr=("${chgt__arr[@]:idx-2}" "${chgt__arr[@]:0:idx-2}")
 	chgt__arr[0]="${2}"
 	declare -gn "${1}=${chgt__arr[1]}"
+	if [[ -n "${3}" ]]
+	then
+		local -n chgt__truname="${3}"
+		chgt__truname="${chgt__arr[1]}"
+	fi
 	return 1
 }
 

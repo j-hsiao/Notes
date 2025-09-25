@@ -11,6 +11,8 @@ NCMP_CACHE_SIZE=${NCMP_CACHE_SIZE:-10}
 . "${BASH_SOURCE[0]%numeric_complete.sh}cache.sh"
 ch_make NCMP_CACHE ${NCMP_CACHE_SIZE}
 
+
+
 # Store internal state
 declare -A NCMP_STATE
 NCMP_STATE['cacheidx']=0
@@ -184,44 +186,25 @@ ncmp_mimic_prompt() # <width>
 ncmp_read_dir() # <dname>
 {
 	# Read and preprocess <dname> into the cache.
+	# The display uses shell-escape for quoting
+	# so typing matches the display.
 	if ! ch_get NCMP_CACHE "${1}"
 	then
-		# TODO read directory and preprocess
 		local lsargs=()
 		if [[ -n "${dname}" ]]
 		then
 			lsargs=("${dname}")
 		fi
-		NCMP_CACHE=()
-		local rawdisplay=()
+		NCMP_CACHE=('' 0)
+		# Cache structure:
+		# (completion_query count showstr1 size1 showstr2 size2 ... pickidx pickidx pickidx ...)
 
-		# Considerations...
-		# 1. numeric complete return value should be shell-compatible since it is
-		#    being used for tab completion.
-		# 2. But, for display, maybe would like a different quoting style like \n?
-		# However, then would ?maybe? need 
-		#
-		# quoting styles are:       '       "           \n              \t              space           quoting
-		#   -b                      '       "           \n              \t              \space          no
-		# --quoting-style=
-		# 	literal                 '       "           literal\n       literal\t       literal space   no
-		# 	locale                  '       "           \n              \t              space           always with fancy quotes
-		# 	shell                   "'"     '"'         literal\n       literal\t       space           single quotes if needed
-		# 	shell-always            "'"     '"'         literal\n       literal\t       space           single quotes always (except if double)
-		# 	shell-escape            "'"     '"'         $'\n'           $'\t'           space           single quotes as needed ish
-		# 	shell-escape-always     "'"     '"'         $'\n'           $'\t'           space           single quotes always (except if double)
-		# 	c                       "'"     "\""        \n              \t              space           always, like a c string that includes the quotes
-		# 	escape                  '       "           \n              \t              \space          no
-		readarray -t rawdisplay < <(ls -Ap --quoting-style=c --color=always "${lsargs[@]}" 2>/dev/null)
-		# color is before the quote
-
-		for item in "${rawdisplay[@]}"
+		local line
+		while read line
 		do
-			item="${item%%\"*}${item#*\"}"
-			item="${item%\"*}${item##*\"}"
-			printf '%s : %s\n' "${item}"
-		done
-
+		done <( \
+			ls -Ap --quoting-style=shell-escape --color=always \
+			"${lsargs[@]}" 2>/dev/null)
 	fi
 }
 
