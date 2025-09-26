@@ -219,6 +219,11 @@ ______________________________
 				echo "${y##${x}l}"   #--> o
 				echo "${y##"${x}"l}" #--> hello
 
+				Quoting in glob expression:
+					${x//[a-z]}: removes any of the 26 letters a to z
+					${x//['a'-'z']}: removes any of the 26 letters a to z
+					${x//['a-z']}: removes any of the three characters 'a', '-', 'z'
+
 				Unquoted, "${y##${x}l}" becomes "${y##*l}" so everything up to the last l is removed
 				Quoted, "${y##${x}l}" becomes "${y##"*"l}" so a leading literal * followed by an l is removed.
 					y=()

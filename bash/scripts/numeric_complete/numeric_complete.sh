@@ -188,6 +188,20 @@ ncmp_mimic_prompt() # <width>
 	:
 }
 
+ncmp_escape2shell() # <text> [out=RESULT]
+{
+	# Convert <text> from ls -b style escaping
+	# to shell-stype escaping
+	ss_push extglob
+	local ncmpe2s__tmp="${1//$'\e['*([0-9':;<=>?'])*([' !#$%&()*+,-."/'\'])[A-Za-z'@[\]^_\`~|{}']}"
+	ss_pop
+	ncmpe2s__tmp="${ncmpe2s__tmp//'\ '/ }"
+	local -n ncmpe2s__out="${2:-RESULT}"
+	# ${ncmpe2s__tmp@Q} always adds quotes regardless of whether they are necessary or not.
+	# prefer printf -v in this case
+	printf -v ncmpe2s__out '%q' "${ncmpe2s__tmp}"
+}
+
 ncmp_read_dir() # <dname>
 {
 	# Read and preprocess <dname> into the cache.
@@ -195,37 +209,34 @@ ncmp_read_dir() # <dname>
 	# so typing matches the display.
 	if ! ch_get NCMP_CACHE "${1}"
 	then
-		local lsargs=()
-		if [[ -n "${dname}" ]]
-		then
-			lsargs=("${dname}")
-		fi
 		# NOTE: Tried implementing a trie in bash, very slow
 		# just iterate linearly much faster, at least for 1000 items
 
 		# Cache requirements:
 		# 1. the query
 		# 2. the names
-		# 3. display lengths
-		# 4. last search results to refine (although, to be honest, it
-		#    seems like simple linear search was very fast so maybe
-		#    storing this is not necessary?)
+		# 	a. the display name: the name to be displayed, may include colors, etc
+		# 	b. the raw name: Because with/without colors compare different due to
+		# 	                 escape code bytes.
+		# 3. the display length, with 1000 items of decent size, can take about half a second
+		#    to calculate all the lengths so maybe should cache this too...
 		# chosen structure:
 		# (query total name len name len ... subsearch)
 
 		ss_push extglob
 		NCMP_CACHE=('' 0)
-		local line
+		local line count=0
 		while read line
 		do
-			NCMP_CACHE+=("${line}")
-			# https://en.wikipedia.org/wiki/ANSI_escape_code
-			local rawtext="${line//$'\e'\[*([[:digit:]:;<=>?])*([ !'"'#$%&"'"()*+,-.\/])[@[:alpha:][\\\]^_\`{|\}~]}"
-			"${x//$'\e['*([0-9:;<=>?])*([ !#$%&()*+,-.\"\/\'])[@A-Z[\\\]^_\`a-z{|}~]}"
-
-
-		done < <(ls -Ap --quoting-style=c --color=always "${lsargs[@]}" 2>/dev/null)
+			local rawtext="${line//$'\e['*([0-9':;<=>?'])*([' !#$%&()*+,-."/'\'])[A-Za-z'@[\]^_\`~|{}']}"
+			local dislen=
+			ci_strdisplaylen "${rawtext}" dislen
+			NCMP_CACHE+=("${line}" "${rawtext}" "${dislen}")
+			# pattern from https://en.wikipedia.org/wiki/ANSI_escape_code
+			((++count))
+		done < <(ls -Ap -b --color=always "${@}" 2>/dev/null)
 		ss_pop
+		NCMP_CACHE[1]="${count}"
 	fi
 }
 
