@@ -1,6 +1,10 @@
 #!/bin/bash
 
 # Numeric tab completion.
+#
+# Generally, I think the c-escape style is visually better, but isn't shell compatible.
+# In that case, when tab completing, use c-escape.  When completing to a chosen/single
+# value, then replace it with shell-compatible version.
 
 
 
@@ -196,13 +200,18 @@ ncmp_read_dir() # <dname>
 			lsargs=("${dname}")
 		fi
 		NCMP_CACHE=('' 0)
+		# 1. the query
+		# 2. the names
+		# 3. last search results to refine
+		# 4. display lengths
 		# Cache structure:
 		# (completion_query count showstr1 size1 showstr2 size2 ... pickidx pickidx pickidx ...)
 
 		local line
 		while read line
 		do
-		done <( \
+			:
+		done < <( \
 			ls -Ap --quoting-style=shell-escape --color=always \
 			"${lsargs[@]}" 2>/dev/null)
 	fi
@@ -215,6 +224,7 @@ then
 	echo 'Testing splitpath().'
 	splitpath_testcases=( \
 		'/:/:' \
+		'/bin:/:bin' \
 		"hello/world:${PWD}/hello/:world" \
 		"hello/world/:${PWD}/hello/world/:" \
 		"basename:${PWD}/:basename" \

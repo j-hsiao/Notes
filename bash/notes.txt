@@ -157,7 +157,7 @@ ______________________________
 				negative values are indices from end of var
 				offset >= 0 = number of chars
 				offset < 0 = end position (exclusive)
-					need a space to avoid :- existence/emptiness expansions
+					NEED A SPACE TO AVOID :- existence/emptiness expansions
 					if using literal negative values
 
 				If param is arraylike, then operate on items instead of chars.
@@ -213,6 +213,40 @@ ______________________________
 			${var[*]}         : arguments, also split on whitespace
 			${var[@]}         : same as [*]
 
+			NOTE quoting matters within expansions as well:
+				x='*'
+				y='*lhello'
+				echo "${y##${x}l}"   #--> o
+				echo "${y##"${x}"l}" #--> hello
+
+				Unquoted, "${y##${x}l}" becomes "${y##*l}" so everything up to the last l is removed
+				Quoted, "${y##${x}l}" becomes "${y##"*"l}" so a leading literal * followed by an l is removed.
+					y=()
+					x=(1 2 3)
+					"${y[*]:-${x[*]}}"
+						"1 2 3"
+					"${y[*]:-"${x[*]}"}"
+						"1 2 3"
+					"${y[*]:-${x[@]}}"
+						"1"
+						"2"
+						"3"
+					"${y[*]:-"${x[@]}"}"
+						"1"
+						"2"
+						"3"
+					"${y[@]:-${x[*]}}"
+						"1 2 3"
+					"${y[@]:-"${x[*]}"}"
+						"1 2 3"
+					"${y[@]:-${x[@]}}"
+						"1"
+						"2"
+						"3"
+					"${y[@]:-"${x[@]}"}"
+						"1"
+						"2"
+						"3"
 		______________________________
 		-0.2.2- scopes
 			Scope determines where variables are visible.

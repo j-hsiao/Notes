@@ -88,15 +88,13 @@ ci_strdisplaylen() # <word> [out=RESULT]
 	# Calculate the displayed length of a word.
 	# <word>: The word to process.
 	# [out]: The variable to store the result.
-	# NOTE: Tab will count as 1 character even if it might be displayed
-	#       as multiple characters.  This is because tabs can be a different
-	#       width depending on the environment as well as the position where
-	#       it is placed.  Since the length is not fixed, just count it as 1.
-	local idx=1 total=0 clen
-	[[ "${1}" =~ ${1//?/(.)} ]] # load single characters into BASH_REMATCH
-	while ((idx < ${#BASH_REMATCH[@]}))
+	# NOTE: Tabs can be visually variable in length, but without position
+	#       the actual length cannot be determined.  Avoid having tab
+	#       characters in <word>.
+	local idx=0 total=0 clen end=${#1}
+	while ((idx < end))
 	do
-		ci_charwidth "${BASH_REMATCH[idx]}" clen
+		ci_charwidth "${1:idx:1}" clen
 		((total += clen))
 		((++idx))
 	done

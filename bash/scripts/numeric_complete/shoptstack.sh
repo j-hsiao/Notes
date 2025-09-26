@@ -48,7 +48,7 @@ ss_pop()
 	# Pop some settings off of the shopt stack.
 	local restore="${SHOPTSTACK_STATE##*;}"
 	if [[ "${restore:0:1}" != ':' ]]; then shopt -s ${restore%%:*}; fi
-	if [[ "${restore:${#restore}-1}" != ':' ]]; then shopt -u ${restore##*:}; fi
+	if [[ "${restore: -1}" != ':' ]]; then shopt -u ${restore##*:}; fi
 	SHOPTSTACK_STATE="${SHOPTSTACK_STATE%;*}"
 }
 
