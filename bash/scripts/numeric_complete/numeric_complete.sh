@@ -11,6 +11,7 @@
 # Default cache size
 NCMP_CACHE_SIZE=${NCMP_CACHE_SIZE:-10}
 
+. "${BASH_SOURCE[0]%numeric_complete.sh}shoptstack.sh"
 . "${BASH_SOURCE[0]%numeric_complete.sh}chinfo.sh"
 . "${BASH_SOURCE[0]%numeric_complete.sh}cache.sh"
 ch_make NCMP_CACHE ${NCMP_CACHE_SIZE}
@@ -199,21 +200,32 @@ ncmp_read_dir() # <dname>
 		then
 			lsargs=("${dname}")
 		fi
-		NCMP_CACHE=('' 0)
+		# NOTE: Tried implementing a trie in bash, very slow
+		# just iterate linearly much faster, at least for 1000 items
+
+		# Cache requirements:
 		# 1. the query
 		# 2. the names
-		# 3. last search results to refine
-		# 4. display lengths
-		# Cache structure:
-		# (completion_query count showstr1 size1 showstr2 size2 ... pickidx pickidx pickidx ...)
+		# 3. display lengths
+		# 4. last search results to refine (although, to be honest, it
+		#    seems like simple linear search was very fast so maybe
+		#    storing this is not necessary?)
+		# chosen structure:
+		# (query total name len name len ... subsearch)
 
+		ss_push extglob
+		NCMP_CACHE=('' 0)
 		local line
 		while read line
 		do
-			:
-		done < <( \
-			ls -Ap --quoting-style=shell-escape --color=always \
-			"${lsargs[@]}" 2>/dev/null)
+			NCMP_CACHE+=("${line}")
+			# https://en.wikipedia.org/wiki/ANSI_escape_code
+			local rawtext="${line//$'\e'\[*([[:digit:]:;<=>?])*([ !'"'#$%&"'"()*+,-.\/])[@[:alpha:][\\\]^_\`{|\}~]}"
+			"${x//$'\e['*([0-9:;<=>?])*([ !#$%&()*+,-.\"\/\'])[@A-Z[\\\]^_\`a-z{|}~]}"
+
+
+		done < <(ls -Ap --quoting-style=c --color=always "${lsargs[@]}" 2>/dev/null)
+		ss_pop
 	fi
 }
 
