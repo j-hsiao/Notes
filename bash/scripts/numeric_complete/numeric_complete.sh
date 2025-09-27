@@ -221,22 +221,16 @@ ncmp_read_dir() # <dname>
 		# 3. the display length, with 1000 items of decent size, can take about half a second
 		#    to calculate all the lengths so maybe should cache this too...
 		# chosen structure:
-		# (query total name len name len ... subsearch)
+		# (query total name... rawname... length...)
 
 		ss_push extglob
-		NCMP_CACHE=('' 0)
-		local line count=0
-		while read line
-		do
-			local rawtext="${line//$'\e['*([0-9':;<=>?'])*([' !#$%&()*+,-."/'\'])[A-Za-z'@[\]^_\`~|{}']}"
-			local dislen=
-			ci_strdisplaylen "${rawtext}" dislen
-			NCMP_CACHE+=("${line}" "${rawtext}" "${dislen}")
-			# pattern from https://en.wikipedia.org/wiki/ANSI_escape_code
-			((++count))
-		done < <(ls -Ap -b --color=always "${@}" 2>/dev/null)
+		NCMP_CACHE=()
+		readarray -O2 -t NCMP_CACHE < <(ls -Apb --color=always "${1}" 2>/dev/null)
+		NCMP_CACHE+=("${NCMP_CACHE[@]//$'\e['*(['0'-'?'])*(['!'-'/'])['@'-'~']}")
+		NCMP_CACHE[1]="$((${#NCMP_CACHE[@]}/2))"
+		ci_strdisplaylens NCMP_CACHE $((NCMP_CACHE[1]*2 + 2)) \
+		"${NCMP_CACHE[@]:NCMP_CACHE[1]+2:NCMP_CACHE[1]}"
 		ss_pop
-		NCMP_CACHE[1]="${count}"
 	fi
 }
 

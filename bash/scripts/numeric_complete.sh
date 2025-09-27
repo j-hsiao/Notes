@@ -622,7 +622,9 @@ _NC_read_dir() # <dname>
 	fi
 	readarray -O 2 -t _NC_cache < <(ls -Ap --color=always "${lsargs[@]}" 2>/dev/null)
 	_NC_push_shopt +extglob
-	local raw=("${_NC_cache[@]//$'\e'\[*([0-9;])[a-zA-Z]}")
+	
+	local raw=("${_NC_cache[@]//$'\e['*(['0'-'?'])*(['!'-'/'])['@'-'~']}")
+	# local raw=("${_NC_cache[@]//$'\e'\[*([0-9;])[a-zA-Z]}")
 	_NC_pop_shopt
 	local idx=2 end="${#_NC_cache[@]}" length
 	while ((idx < end))
