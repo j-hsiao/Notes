@@ -226,6 +226,13 @@ ncmp_read_dir() # <dname>
 		ss_push extglob
 		NCMP_CACHE=()
 		readarray -O2 -t NCMP_CACHE < <(ls -Apb --color=always "${1}" 2>/dev/null)
+
+		# https://en.wikipedia.org/wiki/ANSI_escape_code
+		# [0x30–0x3F]*  (0–9:;<=>?)
+		# [0x20–0x2F]*  ( !"#$%&'()*+,-./)
+		# 0x40–0x7E     (@A–Z[\]^_`a–z{|}~)
+
+		# TODO: removal fails on bash 4.4
 		NCMP_CACHE+=("${NCMP_CACHE[@]//$'\e['*(['0'-'?'])*(['!'-'/'])['@'-'~']}")
 		NCMP_CACHE[1]="$((${#NCMP_CACHE[@]}/2))"
 		ci_strdisplaylens NCMP_CACHE $((NCMP_CACHE[1]*2 + 2)) \
