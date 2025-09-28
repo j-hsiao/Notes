@@ -194,6 +194,22 @@ then
 		# Calculate ci_strdisplaylen for each word in <words>
 		# and place into array <out> starting at index <idx>
 
+		# python subprocess overhead is higher, especially on cygwin.
+		# If only a few items, then use bash instead.
+		if ((${#} < 1000))
+		then
+			local -n cisdls__out="${1}"
+			local idx=${2} tmp
+			shift 2
+			for x in "${@}"
+			do
+				ci_strdisplaylen "${x}" tmp
+				cisdls__out+=("${tmp}")
+				((++idx))
+			done
+			return
+		fi
+
 		# ------------------------------
 		# python implementation
 		# ------------------------------
