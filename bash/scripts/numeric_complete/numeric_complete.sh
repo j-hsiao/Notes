@@ -16,11 +16,8 @@ NCMP_CACHE_SIZE=${NCMP_CACHE_SIZE:-10}
 . "${BASH_SOURCE[0]%numeric_complete.sh}cache.sh"
 ch_make NCMP_CACHE ${NCMP_CACHE_SIZE}
 
-
-
 # Store internal state
 declare -A NCMP_STATE
-NCMP_STATE['cacheidx']=0
 
 # The readline completion-ignore-case and show-mode-in-prompt
 # settings are needed to determine numeric completion behavior.
@@ -63,12 +60,21 @@ then
 	esac
 	bind() {
 		ncmp_orig_bind "${@}"
-		local ret=$?
-		local data="$(ncmp_orig_bind -v)"
-		local tmp="${data#*completion-ignore-case }"
-		NCMP_STATE['completion_ignore_case']="${tmp:0:2}"
-		tmp="${data#*show-mode-in-prompt }"
-		NCMP_STATE['show_mode_in_prompt']="${tmp:0:2}"
+		local ret=$? line
+		while read line
+		do
+			case "${line}" in
+				*completion-ignore-case*)
+					NCMP_STATE['completion_ignore_case']="${line#*completion-ignore-case }"
+					;;
+				*show-mode-in-prompt*)
+					NCMP_STATE['show_mode_in_prompt']="${line#*show-mode-in-prompt }"
+					;;
+				*editing-mode*)
+					NCMP_STATE['editing_mode']="${line#*editing-mode }"
+					;;
+			esac
+		done < <(command bind -v)
 		return "${ret}"
 	}
 	if [[ "${0}" != "${BASH_SOURCE[0]}" ]]
@@ -142,18 +148,6 @@ ncmp_max() # <int_array_name> [start=0] [stop=end] [output=RESULT]
 	done
 }
 
-ncmp_calcshape() # <strwidth_array> <start> <stop> <termwidth> <minpad>
-                 # [nrows=rows] [ncols=cols] [prewidth=prewidth]
-{
-	# Calculate the table shape to display strings
-	# of the given lengths from start to stop.
-	# <strwidth_array>: the array of string widths
-	# <start>: Starting index
-	# <stop>: stopping index
-	# <minpad>: minimum padding between columns
-	:
-}
-
 ncmp_count_lines() # <text> <width> [out=RESULT]
 {
 	# Count the number of lines <text> would take in a terminal of <width>.
@@ -182,12 +176,6 @@ ncmp_count_lines() # <text> <width> [out=RESULT]
 	done
 }
 
-ncmp_mimic_prompt() # <width>
-{
-	# Mimic the bash prompt $PS1 and any existing command.
-	:
-}
-
 ncmp_escape2shell() # <text> [out=RESULT]
 {
 	# Convert <text> from ls -b style escaping
@@ -205,23 +193,17 @@ ncmp_escape2shell() # <text> [out=RESULT]
 ncmp_read_dir() # <dname>
 {
 	# Read and preprocess <dname> into the cache.
-	# The display uses shell-escape for quoting
-	# so typing matches the display.
+	# The cache (NCMP_CACHE) will contain:
+	# 1. The current query
+	# 2. The number of entries
+	# 3. The display entries (maybe with colors, etc)
+	# 4. the raw entries (no colors) for length + searching
+	# 5. the display lengths.
 	if ! ch_get NCMP_CACHE "${1}"
 	then
-		# NOTE: Tried implementing a trie in bash, very slow
-		# just iterate linearly much faster, at least for 1000 items
-
-		# Cache requirements:
-		# 1. the query
-		# 2. the names
-		# 	a. the display name: the name to be displayed, may include colors, etc
-		# 	b. the raw name: Because with/without colors compare different due to
-		# 	                 escape code bytes.
-		# 3. the display length, with 1000 items of decent size, can take about half a second
-		#    to calculate all the lengths so maybe should cache this too...
-		# chosen structure:
-		# (query total name... rawname... length...)
+		# NOTE: Tried implementing to find entries with a common prefix
+		# but it was very slow, linear search much faster, tested up to
+		# 1000 items.
 
 		ss_push extglob globasciiranges
 		NCMP_CACHE=()
@@ -236,6 +218,86 @@ ncmp_read_dir() # <dname>
 		"${NCMP_CACHE[@]:NCMP_CACHE[1]+2:NCMP_CACHE[1]}"
 		ss_pop
 	fi
+}
+
+ncmp_load_matches() # <query>
+{
+	# Load matches of query into the end of NCMP_CACHE.
+	# NCMP_CACHE[0] should be the last query if applicable.
+	# <query> would be the new query.
+	# If the previous query is a prefix of <query>, then
+	# the previous loaded subset can be searched instead
+	# of the entire list of directory entries.
+
+	if [[ "${1#"${NCMP_CACHE[0]}"}" = "${1}" ]]
+	then
+		# not a prefix
+		local idx=$((NCMP_CACHE[1] + 2)) end=$((NCMP_CACHE[1]*2 + 2))
+	else
+		# is a prefix
+		local idx=$((NCMP_CACHE[1]*3 + 2)) end="${#NCMP_CACHE[@]}"
+	fi
+	local out=$((NCMP_CACHE[1]*3 + 2))
+
+	while ((idx < end))
+	do
+		if [[ "${NCMP_CACHE[idx]#"${1}"}" != "${NCMP_CACHE[idx]}" ]]
+		then
+			NCMP_CACHE[out++]="${NCMP_CACHE[idx]}"
+		fi
+		((++idx))
+	done
+	while ((out < ${#NCMP_CACHE[@]}))
+	do
+		unset NCMP_CACHE[out]
+		((++out))
+	done
+}
+
+ncmp_mimic_prompt() # <width>
+{
+	# Mimic the bash prompt $PS1 and any existing command.
+	:
+	# TODO
+	local pre=
+	if [[ "${NCMP_STATE['show_mode_in_prompt']}" = 'on' ]]
+	then
+		if [[ "${NCMP_STATE['editing-mode']}" = 'emacs' ]]
+		then
+			pre+='@'
+		else
+			pre+='(ins)'
+		fi
+	fi
+	if (("${BASH_VERSINFO[0]:-3}" > 4 || ("${BASH_VERSINFO[0]:-3}" == 4 && "${BASH_VERSINFO[1]:-3}" >= 4)))
+	then
+		local numlines
+		ncmp_count_lines "${PS1@P}${pre}${COMP_LINE}" "${1}" numlines
+	fi
+	printf '%s' \
+		"${COMP_LINE:0:COMP_POINT}" \
+		$'\e[s' \
+		"${COMP_LINE:COMP_POINT}" \
+		$'\e[u'
+}
+
+ncmp_calcshape() # <strwidth_array> <start> <stop> <termwidth> <minpad>
+                 # [nrows=rows] [ncols=cols] [prewidth=prewidth]
+{
+	# Calculate the table shape to display strings
+	# of the given lengths from start to stop.
+	# <strwidth_array>: the array of string widths
+	# <start>: Starting index
+	# <stop>: stopping index
+	# <minpad>: minimum padding between columns
+	:
+	# TODO
+}
+
+ncmp_print_table() #
+{
+	:
+	# TODO
 }
 
 
