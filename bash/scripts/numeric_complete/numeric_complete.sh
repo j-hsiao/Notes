@@ -282,35 +282,59 @@ ncmp_mimic_prompt() # <command> <pos>
 		# window height).  Using \b does not work because it does not wrap
 		# up to the previous line.
 		local numlines
-		ncmp_count_lines "${PS1@P}${pre}${COMP_LINE}" '' numlines
+		ncmp_count_lines "${PS1@P}${pre}${1}" '' numlines
 		if ((numlines > 1))
 		then
-			printf "\\r${pre}${PS1@P}${COMP_LINE}\\e[$((numlines-1))A"
+			printf "\\r${pre}${PS1@P}${1}\\e[$((numlines-1))A"
 		fi
 		printf "\\r${pre}${PS1@P}"
 	else
 		# don't know how to expand to prompt in this case...
 		# so just use a basic $ 
 		local numlines idx=0
-		ncmp_count_lines "${COMP_LINE}" '' numlines
+		ncmp_count_lines "${1}" '' numlines
 		while ((idx++<numlines)); do printf '\n'; done
 		printf '\e[%sA\r%s$ ' "${pre}" "${numlines}"
 	fi
-	# printf "${COMP_LINE:0:COMP_POINT}"$'\e[s'"${COMP_LINE:COMP_POINT}"$'\e[u'
+	# printf "${1:0:${2}}"$'\e[s'"${1:${2}}"$'\e[u'
 	# wiki says \e7 \e8 are more widely supported
 	# than \e[s and \e[u
-	printf "${COMP_LINE:0:COMP_POINT}"$'\e7'"${COMP_LINE:COMP_POINT}"$'\e8'
+	printf "${1:0:${2}}"$'\e7'"${1:${2}}"$'\e8'
 }
 
-ncmp_calcshape() # <strwidth_array> <start> <stop> <termwidth> <minpad>
-                 # [nrows=rows] [ncols=cols] [prewidth=prewidth]
+
+
+ncmp_calcshape() # <strwidth_array> [termwidth=${COLUMNS}] [minpad=1] [style='%d) ']
+                 # [fullfmt] [lastfmt] [cols]
 {
-	# Calculate the table shape to display strings
-	# of the given lengths from start to stop.
-	# <strwidth_array>: the array of string widths
-	# <start>: Starting index
-	# <stop>: stopping index
-	# <minpad>: minimum padding between columns
+	# Calculate the table shape to display strings of the given lengths.
+	# A single column has form:
+	# [pre][padname][pad].  The last column does not need padding.
+	# [pre]: The numbering for the entry is assumed to have the form 'N. '
+	#        For simplicity, all [pre] sections have the same width.
+	# [padname]: The right-padded name of the entry, up to the longest entry.
+	# [pad]: The padding between columns.  This is at least <minpad>
+	#
+	#
+	# arguments:
+	# 	<strwidth_array>: the array of string widths
+	# 	[termwidth]: the maximum table width.
+	# 	[minpad]: minimum padding between columns.
+	# 	[style]: The numbering style, must contain '%d'
+	# 	[fullfmt]: The output variable for a full row printf format.
+	# 	[lastfmt]: The output variable for the last row printf format.
+	# 	[cols]: The number of columns of the table.
+
+	local -n ncmpcs__arr="${1}"
+	local count="${#ncmpcs__arr[@]}" prelen
+	local prefmt="${4:-'%d) '}"
+	printf -v prelen "${prefmt}" "${count}"
+	prelen="${#prelen}"
+
+
+
+
+
 	:
 	# TODO
 }
@@ -327,6 +351,7 @@ ncmp_display_choices() #
 	then
 		local COLUMNS=$(tput cols)
 	fi
+	# TODO
 }
 
 
