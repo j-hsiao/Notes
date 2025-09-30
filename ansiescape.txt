@@ -1,0 +1,89 @@
+-0- general
+-1- CSI codes
+	-1.1- cursor motion
+	-1.2- colors
+-2- Fp codes
+
+
+------------------------------
+-0- general
+------------------------------
+ansi escape sequences are special character sequences that can be
+written to a terminal to achieve certain effects like moving the cursor
+supported by most terminals.
+
+The general form is CSI arg code
+
+CSI = '\e[' or '\033[' or '\x1b['
+(ascii escape character, followed by left square bracket.)
+
+In general, these controls are independent of the text that is displayed
+in the terminal.  (Moving up is NOT moving backwards in the text, but rather
+just moving to a different (x,y) coordinate in the window.)
+
+
+------------------------------
+-1- CSI codes
+------------------------------
+	------------------------------
+	-1.1- cursor motion
+	------------------------------
+		code    abbr        description
+		nA      CUU         move up n(1) lines
+		nB      CUD         move down n(1) lines
+		nC      CUF         move forward n(1) columns
+		nD      CUB         move back n(1) columns
+		nE      CNL         move down n(1) lines + to front
+		nF      CPL         move up n(1) lines + to front
+		nG      CHA         move to nth(1) column (1-indexed)
+		r;cH    CUP         move to given row(1);column(1) position (1-indexed)
+		nJ      ED          erase part of the screen n(0) = to the end, 1 = to the beginning, 2 = all, 3 = all AND delete scrollback buffer
+		                    NOTE: not necessarily...
+		                    In cygwin, 3 just deleted scrollback buffer above the current display
+		                    2 only adds new lines to make the screen blank (prints "$(tput lines)" newlines)
+		nK      EL          erase line instead if display, same meanings as ED, cursor does not move
+		nS      SU          scroll text up (only text currently displayed in the screen. Delete data that goes off screen)
+		nT      SD          scroll text down (only text currently displayed in the screen. Delete data that goes off screen)
+
+
+	private sequences
+		s       SCP SCOSC   save cursor position (absolute position)
+		u       rcp SCORC   restore cursor position
+
+		These are no-ops if at the edge of the screen.
+
+	------------------------------
+	-1.2- colors
+	------------------------------
+	'\033[f;bm'
+	where f = foreground (text) and b = background (highlighting)
+
+	f     b       color
+	30    40      black
+	31    41      red
+	32    42      green
+	33    43      yellow
+	34    44      blue
+	35    45      magenta
+	36    46      cyan
+	37    47      white
+	90    100
+	91    101
+	92    102     same as above
+	93    103     30-37/40-47, except
+	94    104     add "bright"
+	95    105
+	96    106
+	97    107
+	0             Reset settings.
+
+------------------------------
+-2- DEC codes
+------------------------------
+	These are prefixed with $'\e'
+	and then a byte in 0x30-0x3F
+
+	7     save position+attrs etc
+	8     restore position/attrs etc
+
+	These are ?more widely supported?

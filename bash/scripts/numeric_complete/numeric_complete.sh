@@ -83,9 +83,10 @@ then
 	fi
 fi
 
-ncmp_set_pager()
+ncmp_set_pager() # default pager and arguments
 {
-	# Set NUMERIC_COMPLETE_pager variable to use less if available.
+	# Determine if less is a suitable pager and set it.
+	# Otherwise, use the default pager if given.
 	NUMERIC_COMPLETE_pager=()
 	local lessname lessver lessother
 	if read lessname lessver lessother < <(less --version 2>&1)
@@ -148,10 +149,10 @@ ncmp_max() # <int_array_name> [start=0] [stop=end] [output=RESULT]
 	done
 }
 
-ncmp_count_lines() # <text> <width> [out=RESULT]
+ncmp_count_lines() # <text> [width=${COLUMNS}] [out=RESULT]
 {
 	# Count the number of lines <text> would take in a terminal of <width>.
-	local ncmpcl__text="${1}" ncmpcl__width="${2}"
+	local ncmpcl__text="${1}" ncmpcl__width="${2:-${COLUMNS}}"
 	local -n ncmpcl__out="${3:-RESULT}"
 	ncmpcl__out=1
 	local col=0 idx=0
@@ -254,9 +255,12 @@ ncmp_load_matches() # <query>
 	done
 }
 
-ncmp_mimic_prompt() # <width>
+ncmp_mimic_prompt() # <command> <pos>
 {
-	# Mimic the bash prompt $PS1 and any existing command.
+	# Mimic the bash prompt.
+	# Leave the cursor at position <pos> of <command>
+	# This is necessary so that the choices can be displayed and the cursor
+	# ends up in an appropriate position to continue typing the command.
 	local pre=
 	if [[ "${NCMP_STATE['show_mode_in_prompt']}" = 'on' ]]
 	then
@@ -267,24 +271,35 @@ ncmp_mimic_prompt() # <width>
 			pre+='(ins)'
 		fi
 	fi
+	# @P operator requires bash 4.4+
 	if (("${BASH_VERSINFO[0]:-3}" > 4 || ("${BASH_VERSINFO[0]:-3}" == 4 && "${BASH_VERSINFO[1]:-3}" >= 4)))
 	then
-		# saves position on screen, not in buffer
-		# so if scrolls while printing the prompt+command
-		# $'\e[u' will end up in the wrong position.
-		# therefore, force scrolling by printing newlines first
-		# so the correct position can be saved.
+		# \e[s saves position on screen, not in text buffer. If the
+		# terminal is scrolled (ex. commandline at the bottom), then
+		# the position becomes incorrect.  Thus, ensure the commandline
+		# is not at the bottom by printing newlines to ensure no scrolling
+		# will occurr (assuming the prompt is not going to exceed the
+		# window height).  Using \b does not work because it does not wrap
+		# up to the previous line.
 		local numlines
-		ncmp_count_lines "${PS1@P}${pre}${COMP_LINE}" "${1}" numlines
-		local restore=$'\e['"${numlines}"A
-		while ((numlines--)); do printf '\n'; done
-		printf '%s' "${restore}" "${pre}" "${PS1@P}"
+		ncmp_count_lines "${PS1@P}${pre}${COMP_LINE}" '' numlines
+		if ((numlines > 1))
+		then
+			printf "\\r${pre}${PS1@P}${COMP_LINE}\\e[$((numlines-1))A"
+		fi
+		printf "\\r${pre}${PS1@P}"
+	else
+		# don't know how to expand to prompt in this case...
+		# so just use a basic $ 
+		local numlines idx=0
+		ncmp_count_lines "${COMP_LINE}" '' numlines
+		while ((idx++<numlines)); do printf '\n'; done
+		printf '\e[%sA\r%s$ ' "${pre}" "${numlines}"
 	fi
-	printf '%s' \
-		"${COMP_LINE:0:COMP_POINT}" \
-		$'\e[s' \
-		"${COMP_LINE:COMP_POINT}" \
-		$'\e[u'
+	# printf "${COMP_LINE:0:COMP_POINT}"$'\e[s'"${COMP_LINE:COMP_POINT}"$'\e[u'
+	# wiki says \e7 \e8 are more widely supported
+	# than \e[s and \e[u
+	printf "${COMP_LINE:0:COMP_POINT}"$'\e7'"${COMP_LINE:COMP_POINT}"$'\e8'
 }
 
 ncmp_calcshape() # <strwidth_array> <start> <stop> <termwidth> <minpad>
@@ -304,6 +319,14 @@ ncmp_print_table() #
 {
 	:
 	# TODO
+}
+
+ncmp_display_choices() #
+{
+	if [[ -z "${COLUMNS}" ]]
+	then
+		local COLUMNS=$(tput cols)
+	fi
 }
 
 
