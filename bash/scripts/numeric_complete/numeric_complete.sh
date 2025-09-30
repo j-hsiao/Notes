@@ -257,12 +257,10 @@ ncmp_load_matches() # <query>
 ncmp_mimic_prompt() # <width>
 {
 	# Mimic the bash prompt $PS1 and any existing command.
-	:
-	# TODO
 	local pre=
 	if [[ "${NCMP_STATE['show_mode_in_prompt']}" = 'on' ]]
 	then
-		if [[ "${NCMP_STATE['editing-mode']}" = 'emacs' ]]
+		if [[ "${NCMP_STATE['editing_mode']}" = 'emacs' ]]
 		then
 			pre+='@'
 		else
@@ -271,8 +269,16 @@ ncmp_mimic_prompt() # <width>
 	fi
 	if (("${BASH_VERSINFO[0]:-3}" > 4 || ("${BASH_VERSINFO[0]:-3}" == 4 && "${BASH_VERSINFO[1]:-3}" >= 4)))
 	then
+		# saves position on screen, not in buffer
+		# so if scrolls while printing the prompt+command
+		# $'\e[u' will end up in the wrong position.
+		# therefore, force scrolling by printing newlines first
+		# so the correct position can be saved.
 		local numlines
 		ncmp_count_lines "${PS1@P}${pre}${COMP_LINE}" "${1}" numlines
+		local restore=$'\e['"${numlines}"A
+		while ((numlines--)); do printf '\n'; done
+		printf '%s' "${restore}" "${pre}" "${PS1@P}"
 	fi
 	printf '%s' \
 		"${COMP_LINE:0:COMP_POINT}" \
