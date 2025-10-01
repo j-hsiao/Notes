@@ -401,34 +401,36 @@ ncmp_calcshape() # <strwidth_array> [termwidth=${COLUMNS}] [minpad=1] [style='%d
 	# 	[lastfmt]: The output variable for the last row printf format.
 	# 	[cols]: The number of columns of the table.
 
-	local -n ncmpcs__arr="${1}"
-	local count="${#ncmpcs__arr[@]}" prelen
-	local prefmt="${4:-'%d) '}"
-	printf -v prelen "${prefmt}" "${count}"
-	prelen="${#prelen}"
-
 	# minimum columns = 1
 	# maximum columns = every column is min width
 	# NOTE: it IS possible for fewer columns to be non-viable
 	# ex:
-	# total width = 80
-	# 2 columns net width 90
-	# 5     45
-	# 5     5
-	# 5     5
-	# 45    5
-	#
-	# 3 columns: net width 55
-	# 5     45      5
-	# 5     45      5
-	# 5     5
+	# total width = 80, pad 0
+	# 2 columns net width 90    3 columns: net width 55
+	#     5     45                  5     45      5
+	#     5     5                   5     45      5
+	#     5     5                   5     5
+	#     45    5
+	# In that case, maybe just go from max number of columns downwards?
 
+	local -n ncmpcs__arr="${1}"
+	local choices="${#ncmpcs__arr[@]}" termwidth="${2:-${COLUMNS}}" minpad="${3:-1}" prefmt="${4:-%d) }"
+	prefmt="${prefmt/\%d/%${#choices}d}"
 
+	local prelen
+	printf -v prelen "${prefmt}" "${choices}"
+	prelen="${#prelen}"
 
+	local shortest
+	ncmp_min "${1}" '' '' shortest
 
+	local maxcols="$((termwidth / shortest + (termwidth%shortest ? 1 : 0)))"
+	while ((maxcols*shortest + maxcols*prelen + (maxcols-1)*minpad > termwidth))
+	do
+		((--maxcols))
+	done
 
-	:
-	# TODO
+	# TODO decrement to the first viable number of columns
 }
 
 ncmp_print_table() #
@@ -523,4 +525,8 @@ then
 			done
 		done
 	fi
+
+	lens=(2 2 2 10 10 2 2 2)
+
+	ncmp_calcshape lens 24 2
 fi
