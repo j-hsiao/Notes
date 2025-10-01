@@ -26,9 +26,29 @@ declare -A NCMP_STATE
 
 NCMP_STATE['completion_ignore_case']=
 NCMP_STATE['show_mode_in_prompt']=
+NCMP_STATE['editing_mode']=
+
+ncmp_refresh_readline() {
+	local line
+	while read line
+	do
+		case "${line}" in
+			*completion-ignore-case*)
+				NCMP_STATE['completion_ignore_case']="${line#*completion-ignore-case }"
+				;;
+			*show-mode-in-prompt*)
+				NCMP_STATE['show_mode_in_prompt']="${line#*show-mode-in-prompt }"
+				;;
+			*editing-mode*)
+				NCMP_STATE['editing_mode']="${line#*editing-mode }"
+				;;
+		esac
+	done < <(command bind -v)
+}
+
 if ! declare -f ncmp_orig_bind &>/dev/null
 then
-	case "$(type -t bind)" in 
+	case "$(type -t bind)" in
 		file|builtin)
 			ncmp_orig_bind() {
 				command bind "${@}"
@@ -60,21 +80,8 @@ then
 	esac
 	bind() {
 		ncmp_orig_bind "${@}"
-		local ret=$? line
-		while read line
-		do
-			case "${line}" in
-				*completion-ignore-case*)
-					NCMP_STATE['completion_ignore_case']="${line#*completion-ignore-case }"
-					;;
-				*show-mode-in-prompt*)
-					NCMP_STATE['show_mode_in_prompt']="${line#*show-mode-in-prompt }"
-					;;
-				*editing-mode*)
-					NCMP_STATE['editing_mode']="${line#*editing-mode }"
-					;;
-			esac
-		done < <(command bind -v)
+		local ret=$?
+		ncmp_refresh_readline
 		return "${ret}"
 	}
 	if [[ "${0}" != "${BASH_SOURCE[0]}" ]]
@@ -82,6 +89,7 @@ then
 		bind
 	fi
 fi
+ncmp_refresh_readline
 
 ncmp_set_pager() # default pager and arguments
 {
@@ -130,8 +138,7 @@ ncmp_max() # <int_array_name> [start=0] [stop=end] [output=RESULT]
 	# Calculate the maximum value from [start, stop).
 	# If the range is empty, then output will be empty.
 	local -n ncmpmx__array="${1}" ncmpmx__output="${4:-RESULT}"
-	local stop="${3:-${#ncmpmx__array[@]}}"
-	local start="${2:-0}"
+	local start="${2:-0}" stop="${3:-${#ncmpmx__array[@]}}"
 	((stop = stop < ${#ncmpmx__array[@]} ? stop : ${#ncmpmx__array[@]}))
 	if (("${start}" >= "${stop}"))
 	then
@@ -144,6 +151,29 @@ ncmp_max() # <int_array_name> [start=0] [stop=end] [output=RESULT]
 		if ((ncmpmx__output < "${ncmpmx__array[start]}"))
 		then
 			ncmpmx__output="${ncmpmx__array[start]}"
+		fi
+		((++start))
+	done
+}
+
+ncmp_min() # <int_array_name> [start=0] [stop=end] [output=RESULT]
+{
+	# Calculate the minimum value from [start, stop).
+	# If the range is empty, then output will be empty.
+	local -n ncmpmn__array="${1}" ncmpmn__output="${4:-RESULT}"
+	local start="${2:-0}" stop="${3:-${#ncmpmn__array[@]}}"
+	((stop = stop < ${#ncmpmn__array[@]} ? stop : ${#ncmpmn__array[@]}))
+	if (("${start}" >= "${stop}"))
+	then
+		ncmpmn__output=
+		return
+	fi
+	ncmpmn__output="${ncmpmn__array[start]}"
+	while ((start < stop))
+	do
+		if ((ncmpmn__output > "${ncmpmn__array[start]}"))
+		then
+			ncmpmn__output="${ncmpmn__array[start]}"
 		fi
 		((++start))
 	done
@@ -223,35 +253,82 @@ ncmp_read_dir() # <dname>
 
 ncmp_load_matches() # <query>
 {
-	# Load matches of query into the end of NCMP_CACHE.
+	# Load matches of <query> (index) into the end of NCMP_CACHE.
 	# NCMP_CACHE[0] should be the last query if applicable.
 	# <query> would be the new query.
-	# If the previous query is a prefix of <query>, then
-	# the previous loaded subset can be searched instead
-	# of the entire list of directory entries.
+	#
+	# If readline completion-ignore-case is on, then if query is all
+	# lower case, ignore case.  If query contains upper case, then
+	# match case.  Otherwise, only match exact.
 
-	if [[ "${1#"${NCMP_CACHE[0]}"}" = "${1}" ]]
-	then
-		# not a prefix
-		local idx=$((NCMP_CACHE[1] + 2)) end=$((NCMP_CACHE[1]*2 + 2))
-	else
-		# is a prefix
-		local idx=$((NCMP_CACHE[1]*3 + 2)) end="${#NCMP_CACHE[@]}"
-	fi
+	# side note... This generally seems to be quite fast,
+	# maybe refining previous match is not necessary?
 	local out=$((NCMP_CACHE[1]*3 + 2))
+	if [[ -z "${1}" ]]
+	then
+		local idx=$((NCMP_CACHE[1] + 1)) end=$((NCMP_CACHE[1]*2 + 2))
+		while ((++idx < end))
+		do
+			NCMP_CACHE[out++]="${idx}"
+		done
+		return
+	fi
 
-	while ((idx < end))
-	do
-		if [[ "${NCMP_CACHE[idx]#"${1}"}" != "${NCMP_CACHE[idx]}" ]]
+	if [[ "${NCMP_STATE['completion_ignore_case']}" = 'on' && "${1,,}" = "${1}" ]]
+	then
+		local query="${1^^}"
+		if [[ "${1#"${NCMP_CACHE[0]}"}" = "${1}" ]]
 		then
-			NCMP_CACHE[out++]="${NCMP_CACHE[idx]}"
+			local idx=$((NCMP_CACHE[1] + 1)) end=$((NCMP_CACHE[1]*2 + 2)) candidate
+			while ((++idx < end))
+			do
+				candidate="${NCMP_CACHE[idx]^^}"
+				if [[ "${candidate#"${query}"}" != "${candidate}" ]]
+				then
+					NCMP_CACHE[out++]="${idx}"
+				fi
+			done
+		else
+			local idx="${out}" end="${#NCMP_CACHE[@]}" candidate
+			while ((idx < end))
+			do
+				candidate="${NCMP_CACHE[NCMP_CACHE[idx]]^^}"
+				if [[ "${candidate#"${query}"}" != "${candidate}" ]]
+				then
+					NCMP_CACHE[out++]="${NCMP_CACHE[idx]}"
+				fi
+				((++idx))
+			done
 		fi
-		((++idx))
-	done
-	while ((out < ${#NCMP_CACHE[@]}))
+	else
+		if [[ "${1#"${NCMP_CACHE[0]}"}" = "${1}" ]]
+		then
+			local idx=$((NCMP_CACHE[1] + 1)) end=$((NCMP_CACHE[1]*2 + 2))
+			while ((++idx < end))
+			do
+				if [[ "${NCMP_CACHE[idx]#"${1}"}" != "${NCMP_CACHE[idx]}" ]]
+				then
+					NCMP_CACHE[out++]="${idx}"
+				fi
+			done
+		else
+			local idx="${out}" end="${#NCMP_CACHE[@]}" candidate
+			while ((idx < end))
+			do
+				candidate="${NCMP_CACHE[NCMP_CACHE[idx]]}"
+				if [[ "${candidate#"${1}"}" != "${candidate}" ]]
+				then
+					NCMP_CACHE[out++]="${NCMP_CACHE[idx]}"
+				fi
+				((++idx))
+			done
+		fi
+	fi
+	NCMP_CACHE[0]="${1}"
+	end=${#NCMP_CACHE[@]}
+	while ((out < end))
 	do
-		unset NCMP_CACHE[out]
-		((++out))
+		unset NCMP_CACHE[out++]
 	done
 }
 
@@ -315,7 +392,6 @@ ncmp_calcshape() # <strwidth_array> [termwidth=${COLUMNS}] [minpad=1] [style='%d
 	# [padname]: The right-padded name of the entry, up to the longest entry.
 	# [pad]: The padding between columns.  This is at least <minpad>
 	#
-	#
 	# arguments:
 	# 	<strwidth_array>: the array of string widths
 	# 	[termwidth]: the maximum table width.
@@ -330,6 +406,22 @@ ncmp_calcshape() # <strwidth_array> [termwidth=${COLUMNS}] [minpad=1] [style='%d
 	local prefmt="${4:-'%d) '}"
 	printf -v prelen "${prefmt}" "${count}"
 	prelen="${#prelen}"
+
+	# minimum columns = 1
+	# maximum columns = every column is min width
+	# NOTE: it IS possible for fewer columns to be non-viable
+	# ex:
+	# total width = 80
+	# 2 columns net width 90
+	# 5     45
+	# 5     5
+	# 5     5
+	# 45    5
+	#
+	# 3 columns: net width 55
+	# 5     45      5
+	# 5     45      5
+	# 5     5
 
 
 
@@ -377,6 +469,7 @@ then
 	done
 
 	echo 'Testing max().'
+	#        0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8
 	testarr=(6 5 1 2 8 9 7 6 1 2 9 3 5 7 1 2 9 8 4 1 8 3 4 5 4 3 6 7 1 0 2 3 4 0 9 1 2 3 4)
 	ncmp_max testarr
 	(( ${RESULT} == 9 )) && echo pass || echo "fail: ${RESULT}"
@@ -387,6 +480,18 @@ then
 	ncmp_max testarr 0 0
 	[[ "${RESULT}" == '' ]] && echo pass || echo "fail: ${RESULT}"
 	ncmp_max testarr 2 0
+	[[ "${RESULT}" == '' ]] && echo pass || echo "fail: ${RESULT}"
+
+	echo 'Testing min()'
+	ncmp_min testarr
+	(( ${RESULT} == 0 )) && echo pass || echo "fail: ${RESULT}"
+	ncmp_min testarr 0 5
+	(( ${RESULT} == 1 )) && echo pass || echo "fail: ${RESULT}"
+	ncmp_min testarr 11 14
+	(( ${RESULT} == 3 )) && echo pass || echo "fail: ${RESULT}"
+	ncmp_min testarr 0 0
+	[[ "${RESULT}" == '' ]] && echo pass || echo "fail: ${RESULT}"
+	ncmp_min testarr 2 0
 	[[ "${RESULT}" == '' ]] && echo pass || echo "fail: ${RESULT}"
 
 	echo 'Testing cout_lines()'
@@ -401,9 +506,21 @@ then
 
 	if (($#))
 	then
+		echo "NCMP_STATE['completion_ignore_case']: ${NCMP_STATE['completion_ignore_case']}"
+		echo "${NCMP_STATE[@]@K}"
+
 		time ncmp_read_dir "${1}"
 		nitems="${NCMP_CACHE[1]}"
 		echo "${nitems} items"
-		printf '"%s"\n' "${NCMP_CACHE[@]:2+nitems:nitems}"
+		printf '  "%s"\n' "${NCMP_CACHE[@]}"
+
+		while read line
+		do
+			ncmp_load_matches "${line}"
+			for idx in "${NCMP_CACHE[@]:2+NCMP_CACHE[1]*3}"
+			do
+				echo "  ${idx}: ${NCMP_CACHE[idx]}"
+			done
+		done
 	fi
 fi
