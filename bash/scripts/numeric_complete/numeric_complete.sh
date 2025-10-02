@@ -381,6 +381,30 @@ ncmp_mimic_prompt() # <command> <pos>
 
 
 
+ncmp_cols_viable() # <strwidth_array> <numcols> <width>
+{
+	# Check that <numcols> columns of <strwidth_array>
+	# can fit within <width>
+	local -n ncmpcv__arr="${1}"
+	local ncmpcv__ncols="${2}" ncmpcv__width="${3}"
+	local fullrows=$((nitems / ${ncmpcv__ncols}))
+	local remainder=$((nitems % ${ncmpcv__ncols}))
+	local col=0 total=0
+	local colwidths=()
+	echo "nitems: ${nitems}"
+	echo "remainder: ${nitems}"
+	echo "full rows: ${fullrows}"
+	while ((col < ${ncmpcv__ncols}))
+	do
+		local start=$((col*fullrows + col<remainder ? col : remainder))
+		local stop=$((col*fullrows + col<remainder ? col : remainder))
+		echo "col ${col}, ${start}:${stop}"
+		ncmp_max "${1}" "${start}" "${stop}" colwidths[col]
+		((total += colwidths[col++]))
+	done
+	echo "${colwidths[@]} ${total}"
+	return $((total > ${ncmpcv__width}))
+}
 ncmp_calcshape() # <strwidth_array> [termwidth=${COLUMNS}] [minpad=1] [style='%d) ']
                  # [fullfmt] [lastfmt] [cols]
 {
@@ -506,6 +530,11 @@ then
 	ncmp_count_lines hello\ w$'\n'orld 10
 	((${RESULT} == 2)) && echo pass || echo "fail: ${RESULT} vs 1"
 
+	strlens=(2 2 2 10 10 2 2 2 2 2 2)
+	echo "Testing cols_viable"
+	ncmp_cols_viable strlens 3 22 && echo pass || echo "fail"
+	ncmp_cols_viable strlens 3 21 && echo fail || echo pass
+
 	if (($#))
 	then
 		echo "NCMP_STATE['completion_ignore_case']: ${NCMP_STATE['completion_ignore_case']}"
@@ -525,8 +554,4 @@ then
 			done
 		done
 	fi
-
-	lens=(2 2 2 10 10 2 2 2)
-
-	ncmp_calcshape lens 24 2
 fi
