@@ -253,7 +253,7 @@ ncmp_read_dir() # <dname>
 
 ncmp_load_matches() # <query>
 {
-	# Load matches of <query> (index) into the end of NCMP_CACHE.
+	# Load matches of <query> (raw index) into the end of NCMP_CACHE.
 	# NCMP_CACHE[0] should be the last query if applicable.
 	# <query> would be the new query.
 	#
@@ -271,6 +271,7 @@ ncmp_load_matches() # <query>
 		do
 			NCMP_CACHE[out++]="${idx}"
 		done
+		NCMP_CACHE[0]=''
 		return
 	fi
 
@@ -381,64 +382,43 @@ ncmp_mimic_prompt() # <command> <pos>
 
 
 
-ncmp_cols_viable() # <strwidth_array> <numcols> <width>
+ncmp_cols_viable() # <strwidth_array> <numcols> <width> [colwidths=RESULT]
 {
 	# Check that <numcols> columns of <strwidth_array>
 	# can fit within <width>
-	local -n ncmpcv__arr="${1}"
+	local -n ncmpcv__arr="${1}" ncmpcv__colwidths="${4:-RESULT}"
 	local ncmpcv__ncols="${2}" ncmpcv__width="${3}"
-	local fullrows=$((nitems / ${ncmpcv__ncols}))
-	local remainder=$((nitems % ${ncmpcv__ncols}))
+	local fullrows=$((${#ncmpcv__arr[@]} / ${ncmpcv__ncols}))
+	local remainder=$((${#ncmpcv__arr[@]} % ${ncmpcv__ncols}))
 	local col=0 total=0
-	local colwidths=()
-	echo "nitems: ${nitems}"
-	echo "remainder: ${nitems}"
-	echo "full rows: ${fullrows}"
+	local start=0
+	ncmpcv__colwidths=()
 	while ((col < ${ncmpcv__ncols}))
 	do
-		local start=$((col*fullrows + col<remainder ? col : remainder))
-		local stop=$((col*fullrows + col<remainder ? col : remainder))
-		echo "col ${col}, ${start}:${stop}"
-		ncmp_max "${1}" "${start}" "${stop}" colwidths[col]
-		((total += colwidths[col++]))
+		local stop=$(((col+1)*fullrows + (col<remainder ? col+1 : remainder)))
+		ncmp_max "${1}" "${start}" "${stop}" ncmpcv__colwidths[col]
+		((total += ncmpcv__colwidths[col++]))
+		((start = stop))
 	done
-	echo "${colwidths[@]} ${total}"
-	return $((total > ${ncmpcv__width}))
+	return $((total > ncmpcv__width))
 }
-ncmp_calcshape() # <strwidth_array> [termwidth=${COLUMNS}] [minpad=1] [style='%d) ']
-                 # [fullfmt] [lastfmt] [cols]
+ncmp_calcfmt() # <strwidth_array> [termwidth=${COLUMNS}] [minpad=1] [style='%d. ']
+               # [fmt=fmt]
 {
-	# Calculate the table shape to display strings of the given lengths.
-	# A single column has form:
-	# [pre][padname][pad].  The last column does not need padding.
-	# [pre]: The numbering for the entry is assumed to have the form 'N. '
-	#        For simplicity, all [pre] sections have the same width.
-	# [padname]: The right-padded name of the entry, up to the longest entry.
-	# [pad]: The padding between columns.  This is at least <minpad>
+	# Calculate the printf format strings per column.
+	# The formats use ANSI escape codes to place the column text in the
+	# right position.
 	#
 	# arguments:
 	# 	<strwidth_array>: the array of string widths
 	# 	[termwidth]: the maximum table width.
 	# 	[minpad]: minimum padding between columns.
 	# 	[style]: The numbering style, must contain '%d'
-	# 	[fullfmt]: The output variable for a full row printf format.
-	# 	[lastfmt]: The output variable for the last row printf format.
-	# 	[cols]: The number of columns of the table.
-
-	# minimum columns = 1
-	# maximum columns = every column is min width
-	# NOTE: it IS possible for fewer columns to be non-viable
-	# ex:
-	# total width = 80, pad 0
-	# 2 columns net width 90    3 columns: net width 55
-	#     5     45                  5     45      5
-	#     5     5                   5     45      5
-	#     5     5                   5     5
-	#     45    5
-	# In that case, maybe just go from max number of columns downwards?
-
-	local -n ncmpcs__arr="${1}"
-	local choices="${#ncmpcs__arr[@]}" termwidth="${2:-${COLUMNS}}" minpad="${3:-1}" prefmt="${4:-%d) }"
+	# 	[fmt]: The output array variable name to hold the format strings.
+	# 	       The length of this array is the number of columns.
+	local -n ncmpcf__arr="${1}" ncmpcf__fmt="${5:-fmt}"
+	local choices="${#ncmpcf__arr[@]}" termwidth="${2:-${COLUMNS}}" \
+		minpad="${3:-1}" prefmt="${4:-%d. }"
 	prefmt="${prefmt/\%d/%${#choices}d}"
 
 	local prelen
@@ -448,19 +428,71 @@ ncmp_calcshape() # <strwidth_array> [termwidth=${COLUMNS}] [minpad=1] [style='%d
 	local shortest
 	ncmp_min "${1}" '' '' shortest
 
-	local maxcols="$((termwidth / shortest + (termwidth%shortest ? 1 : 0)))"
-	while ((maxcols*shortest + maxcols*prelen + (maxcols-1)*minpad > termwidth))
+	local ncols="$((termwidth / shortest + (termwidth%shortest ? 1 : 0)))"
+	((ncols = ncols > ${#ncmpcf__arr[@]} ? ${#ncmpcf__arr[@]} : ncols))
+	while ((ncols*(shortest + prelen + minpad) - minpad > termwidth))
 	do
-		((--maxcols))
+		((--ncols))
 	done
+	local colwidths=()
+	while ((ncols > 0)) && ! ncmp_cols_viable "${1}" "${ncols}" \
+		$((termwidth - ncols*(prelen+minpad) + minpad)) colwidths
+	do
+		((--ncols))
+	done
+	ncmpcf__fmt=()
+	if ((ncols == 0))
+	then
+		printf -v ncmpcf__fmt[0] '\r%s%%s' "${prefmt}"
+	else
+		local colstart=1 idx=-1
+		while ((++idx < ncols))
+		do
+			printf -v ncmpcf__fmt[idx] '\\e[%dG%s%%s' "${colstart}" "${prefmt}"
+			((colstart+=prelen + colwidths[idx] + minpad))
+		done
+	fi
 
-	# TODO decrement to the first viable number of columns
 }
 
-ncmp_print_table() #
+ncmp_print_matches() # [termwidth=${COLUMNS}] [minpad=1] [style='%d. ']
 {
-	:
-	# TODO
+	# Print the loaded choices as a table.
+	local strlens=() strs=() idx="$((NCMP_CACHE[1]*3 + 1))"
+
+	printf '\t"%s"\n' "${NCMP_CACHE[@]}" | cat -n
+	while ((++idx < ${#NCMP_CACHE[@]}))
+	do
+		strlens+=("${NCMP_CACHE[NCMP_CACHE[idx]+NCMP_CACHE[1]]}")
+		strs+=("${NCMP_CACHE[NCMP_CACHE[idx]-NCMP_CACHE[1]]}")
+
+		printf '%d %d %d %s\n' "${idx}" "${NCMP_CACHE[idx]}" "${strlens[${#strlens[@]}-1]}" "${strs[${#strs[@]}-1]}"
+	done
+
+
+	local fmts=()
+	ncmp_calcfmt strlens "${1}" "${2}" "${3}" fmts
+
+	echo "${#fmts[@]}"
+	printf '"%s"\n' "${fmts[@]}"
+
+	local row=-1 col=-1 ncols="${#fmts[@]}"
+	local fullrows="$((${#strlens[@]} / ncols))"
+	local remainder="$((${#strlens[@]}%ncols))"
+	local nrows=$((fullrows + (remainder>0)))
+
+	while ((++row < nrows))
+	do
+		while ((++col < ncols))
+		do
+			idx=$((row + fullrows * col + (col <= remainder ? col : remainder)))
+			if ((idx < ${#strs[@]}))
+			then
+				printf "${fmts[col]}" $((idx+1)) "${strs[idx]}"
+			fi
+		done
+		printf '\n'
+	done
 }
 
 ncmp_display_choices() #
@@ -530,10 +562,58 @@ then
 	ncmp_count_lines hello\ w$'\n'orld 10
 	((${RESULT} == 2)) && echo pass || echo "fail: ${RESULT} vs 1"
 
-	strlens=(2 2 2 10 10 2 2 2 2 2 2)
+	strlens=(2 2 2 10 2 2 2 10 2 2 2)
 	echo "Testing cols_viable"
 	ncmp_cols_viable strlens 3 22 && echo pass || echo "fail"
 	ncmp_cols_viable strlens 3 21 && echo fail || echo pass
+
+	# columns   colwidths       prelen  padding     total
+	# 2         +10 +10         +4*2    +1          29
+	# 3         +10 +10 +2      +4*3    +2          36
+	# 4         +2 +10 +10 +2   +4*4    +3          43
+	echo "Testing calcfmt"
+	ncmp_calcfmt strlens 29 1 '' fmt && ((${#fmt[@]} == 2)) \
+		&& [[ "${fmt[0]}" = '\e[1G%2d) %s' ]] \
+		&& [[ "${fmt[1]}" = '\e[16G%2d) %s' ]] \
+		&& echo pass || echo fail
+
+	ncmp_calcfmt strlens 35 1 '' fmt && ((${#fmt[@]} == 2)) \
+		&& [[ "${fmt[0]}" = '\e[1G%2d) %s' ]] \
+		&& [[ "${fmt[1]}" = '\e[16G%2d) %s' ]] \
+		&& echo pass || echo fail
+
+	ncmp_calcfmt strlens 36 1 '' fmt && ((${#fmt[@]} == 3)) \
+		&& [[ "${fmt[0]}" = '\e[1G%2d) %s' ]] \
+		&& [[ "${fmt[1]}" = '\e[16G%2d) %s' ]] \
+		&& [[ "${fmt[2]}" = '\e[31G%2d) %s' ]] \
+		&& echo pass || echo fail
+
+	ncmp_calcfmt strlens 42 1 '' fmt && ((${#fmt[@]} == 3)) \
+		&& [[ "${fmt[0]}" = '\e[1G%2d) %s' ]] \
+		&& [[ "${fmt[1]}" = '\e[16G%2d) %s' ]] \
+		&& [[ "${fmt[2]}" = '\e[31G%2d) %s' ]] \
+		&& echo pass || echo fail
+
+	ncmp_calcfmt strlens 43 1 '' fmt && ((${#fmt[@]} == 4)) \
+		&& [[ "${fmt[0]}" = '\e[1G%2d) %s' ]] \
+		&& [[ "${fmt[1]}" = '\e[8G%2d) %s' ]] \
+		&& [[ "${fmt[2]}" = '\e[23G%2d) %s' ]] \
+		&& [[ "${fmt[3]}" = '\e[38G%2d) %s' ]] \
+		&& echo pass || echo fail
+
+	ncmp_calcfmt strlens 1000 1 '' fmt && ((${#fmt[@]} == 11)) \
+		&& [[ "${fmt[0]}" = '\e[1G%2d) %s' ]] \
+		&& [[ "${fmt[1]}" = '\e[8G%2d) %s' ]] \
+		&& [[ "${fmt[2]}" = '\e[15G%2d) %s' ]] \
+		&& [[ "${fmt[3]}" = '\e[22G%2d) %s' ]] \
+		&& [[ "${fmt[4]}" = '\e[37G%2d) %s' ]] \
+		&& [[ "${fmt[5]}" = '\e[44G%2d) %s' ]] \
+		&& [[ "${fmt[6]}" = '\e[51G%2d) %s' ]] \
+		&& [[ "${fmt[7]}" = '\e[58G%2d) %s' ]] \
+		&& [[ "${fmt[8]}" = '\e[73G%2d) %s' ]] \
+		&& [[ "${fmt[9]}" = '\e[80G%2d) %s' ]] \
+		&& [[ "${fmt[10]}" = '\e[87G%2d) %s' ]] \
+		&& echo pass || echo fail
 
 	if (($#))
 	then
@@ -552,6 +632,8 @@ then
 			do
 				echo "  ${idx}: ${NCMP_CACHE[idx]}"
 			done
+
+			ncmp_print_matches
 		done
 	fi
 fi
