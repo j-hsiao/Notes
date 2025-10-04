@@ -476,13 +476,14 @@ ncmp_print_matches() # [termwidth=${COLUMNS}] [minpad=1] [style='%d. ']
 	echo "${#fmts[@]}"
 	printf '"%s"\n' "${fmts[@]}"
 
-	local row=-1 col=-1 ncols="${#fmts[@]}"
+	local row=-1 ncols="${#fmts[@]}"
 	local fullrows="$((${#strlens[@]} / ncols))"
 	local remainder="$((${#strlens[@]}%ncols))"
 	local nrows=$((fullrows + (remainder>0)))
 
 	while ((++row < nrows))
 	do
+		local col=-1
 		while ((++col < ncols))
 		do
 			idx=$((row + fullrows * col + (col <= remainder ? col : remainder)))
@@ -573,46 +574,46 @@ then
 	# 4         +2 +10 +10 +2   +4*4    +3          43
 	echo "Testing calcfmt"
 	ncmp_calcfmt strlens 29 1 '' fmt && ((${#fmt[@]} == 2)) \
-		&& [[ "${fmt[0]}" = '\e[1G%2d) %s' ]] \
-		&& [[ "${fmt[1]}" = '\e[16G%2d) %s' ]] \
+		&& [[ "${fmt[0]}" = '\e[1G%2d. %s' ]] \
+		&& [[ "${fmt[1]}" = '\e[16G%2d. %s' ]] \
 		&& echo pass || echo fail
 
 	ncmp_calcfmt strlens 35 1 '' fmt && ((${#fmt[@]} == 2)) \
-		&& [[ "${fmt[0]}" = '\e[1G%2d) %s' ]] \
-		&& [[ "${fmt[1]}" = '\e[16G%2d) %s' ]] \
+		&& [[ "${fmt[0]}" = '\e[1G%2d. %s' ]] \
+		&& [[ "${fmt[1]}" = '\e[16G%2d. %s' ]] \
 		&& echo pass || echo fail
 
 	ncmp_calcfmt strlens 36 1 '' fmt && ((${#fmt[@]} == 3)) \
-		&& [[ "${fmt[0]}" = '\e[1G%2d) %s' ]] \
-		&& [[ "${fmt[1]}" = '\e[16G%2d) %s' ]] \
-		&& [[ "${fmt[2]}" = '\e[31G%2d) %s' ]] \
+		&& [[ "${fmt[0]}" = '\e[1G%2d. %s' ]] \
+		&& [[ "${fmt[1]}" = '\e[16G%2d. %s' ]] \
+		&& [[ "${fmt[2]}" = '\e[31G%2d. %s' ]] \
 		&& echo pass || echo fail
 
 	ncmp_calcfmt strlens 42 1 '' fmt && ((${#fmt[@]} == 3)) \
-		&& [[ "${fmt[0]}" = '\e[1G%2d) %s' ]] \
-		&& [[ "${fmt[1]}" = '\e[16G%2d) %s' ]] \
-		&& [[ "${fmt[2]}" = '\e[31G%2d) %s' ]] \
+		&& [[ "${fmt[0]}" = '\e[1G%2d. %s' ]] \
+		&& [[ "${fmt[1]}" = '\e[16G%2d. %s' ]] \
+		&& [[ "${fmt[2]}" = '\e[31G%2d. %s' ]] \
 		&& echo pass || echo fail
 
 	ncmp_calcfmt strlens 43 1 '' fmt && ((${#fmt[@]} == 4)) \
-		&& [[ "${fmt[0]}" = '\e[1G%2d) %s' ]] \
-		&& [[ "${fmt[1]}" = '\e[8G%2d) %s' ]] \
-		&& [[ "${fmt[2]}" = '\e[23G%2d) %s' ]] \
-		&& [[ "${fmt[3]}" = '\e[38G%2d) %s' ]] \
+		&& [[ "${fmt[0]}" = '\e[1G%2d. %s' ]] \
+		&& [[ "${fmt[1]}" = '\e[8G%2d. %s' ]] \
+		&& [[ "${fmt[2]}" = '\e[23G%2d. %s' ]] \
+		&& [[ "${fmt[3]}" = '\e[38G%2d. %s' ]] \
 		&& echo pass || echo fail
 
 	ncmp_calcfmt strlens 1000 1 '' fmt && ((${#fmt[@]} == 11)) \
-		&& [[ "${fmt[0]}" = '\e[1G%2d) %s' ]] \
-		&& [[ "${fmt[1]}" = '\e[8G%2d) %s' ]] \
-		&& [[ "${fmt[2]}" = '\e[15G%2d) %s' ]] \
-		&& [[ "${fmt[3]}" = '\e[22G%2d) %s' ]] \
-		&& [[ "${fmt[4]}" = '\e[37G%2d) %s' ]] \
-		&& [[ "${fmt[5]}" = '\e[44G%2d) %s' ]] \
-		&& [[ "${fmt[6]}" = '\e[51G%2d) %s' ]] \
-		&& [[ "${fmt[7]}" = '\e[58G%2d) %s' ]] \
-		&& [[ "${fmt[8]}" = '\e[73G%2d) %s' ]] \
-		&& [[ "${fmt[9]}" = '\e[80G%2d) %s' ]] \
-		&& [[ "${fmt[10]}" = '\e[87G%2d) %s' ]] \
+		&& [[ "${fmt[0]}" = '\e[1G%2d. %s' ]] \
+		&& [[ "${fmt[1]}" = '\e[8G%2d. %s' ]] \
+		&& [[ "${fmt[2]}" = '\e[15G%2d. %s' ]] \
+		&& [[ "${fmt[3]}" = '\e[22G%2d. %s' ]] \
+		&& [[ "${fmt[4]}" = '\e[37G%2d. %s' ]] \
+		&& [[ "${fmt[5]}" = '\e[44G%2d. %s' ]] \
+		&& [[ "${fmt[6]}" = '\e[51G%2d. %s' ]] \
+		&& [[ "${fmt[7]}" = '\e[58G%2d. %s' ]] \
+		&& [[ "${fmt[8]}" = '\e[73G%2d. %s' ]] \
+		&& [[ "${fmt[9]}" = '\e[80G%2d. %s' ]] \
+		&& [[ "${fmt[10]}" = '\e[87G%2d. %s' ]] \
 		&& echo pass || echo fail
 
 	if (($#))
