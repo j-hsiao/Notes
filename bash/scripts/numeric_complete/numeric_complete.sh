@@ -117,19 +117,21 @@ ncmp_set_pager() # default pager and arguments
 	return 1
 }
 
-ncmp_pathsplit() # <path> [dname_var=dname] [basename_var=bname]
+ncmp_pathsplit() # <path> [dname_var=dname] [basename_var=bname] [fulldir=dpath]
 # Parse <path> into dir name and base name.  The results
 # are stored in the corresponding variables if provided.
 # NOTE: dir1/dir2 will be split as dir1/ and dir2
 #       dir1/dir2/ will be split as dir1/dir2/ and ''
 {
-	local -n ncmpps__dname="${2:-dname}" ncmpps__bname="${3:-bname}"
+	local -n ncmpps__dname="${2:-dname}" ncmpps__bname="${3:-bname}" ncmpps__dpath="${4:-dpath}"
 	[[ "${1}" =~ (.*/)?(.*) ]] # load into BASH_REMATCH
 	ncmpps__dname="${BASH_REMATCH[1]}"
 	ncmpps__bname="${BASH_REMATCH[2]}"
-	if [[ "${ncmpps__dname:0:1}" != '/' ]]
+	if [[ "${ncmpps__dname:0:1}" = '/' ]]
 	then
-		ncmpps__dname="${PWD}/${ncmpps__dname}"
+		ncmpps__dpath="${ncmpps__dname}"
+	else
+		ncmpps__dpath="${PWD}/${ncmpps__dname}"
 	fi
 }
 
@@ -419,7 +421,9 @@ ncmp_calcfmt() # <strwidth_array> [termwidth=${COLUMNS}] [minpad=1] [style='%d. 
 	local -n ncmpcf__arr="${1}" ncmpcf__fmt="${5:-fmt}"
 	local choices="${#ncmpcf__arr[@]}" termwidth="${2:-${COLUMNS}}" \
 		minpad="${3:-1}" prefmt="${4:-%d. }"
+	if ((!choices)); then ncmpcf__fmt=(); return; fi
 	prefmt="${prefmt/\%d/%${#choices}d}"
+
 
 	local prelen
 	printf -v prelen "${prefmt}" "${choices}"
@@ -429,7 +433,7 @@ ncmp_calcfmt() # <strwidth_array> [termwidth=${COLUMNS}] [minpad=1] [style='%d. 
 	ncmp_min "${1}" '' '' shortest
 
 	local ncols="$((termwidth / shortest + (termwidth%shortest ? 1 : 0)))"
-	((ncols = ncols > ${#ncmpcf__arr[@]} ? ${#ncmpcf__arr[@]} : ncols))
+	((ncols = ncols > choices ? choices : ncols))
 	while ((ncols*(shortest + prelen + minpad) - minpad > termwidth))
 	do
 		((--ncols))
@@ -459,30 +463,21 @@ ncmp_print_matches() # [termwidth=${COLUMNS}] [minpad=1] [style='%d. ']
 {
 	# Print the loaded choices as a table.
 	local strlens=() strs=() idx="$((NCMP_CACHE[1]*3 + 1))"
-
-	printf '\t"%s"\n' "${NCMP_CACHE[@]}" | cat -n
 	while ((++idx < ${#NCMP_CACHE[@]}))
 	do
 		strlens+=("${NCMP_CACHE[NCMP_CACHE[idx]+NCMP_CACHE[1]]}")
 		strs+=("${NCMP_CACHE[NCMP_CACHE[idx]-NCMP_CACHE[1]]}")
-
-		printf '%d %d %d %s\n' "${idx}" "${NCMP_CACHE[idx]}" "${strlens[${#strlens[@]}-1]}" "${strs[${#strs[@]}-1]}"
 	done
-
-
 	local fmts=()
 	ncmp_calcfmt strlens "${1}" "${2}" "${3}" fmts
-
-	echo "${#fmts[@]}"
-	printf '"%s"\n' "${fmts[@]}"
-
 	local row=-1 ncols="${#fmts[@]}"
+	if ((!ncols)); then return; fi
 	local fullrows="$((${#strlens[@]} / ncols))"
 	local remainder="$((${#strlens[@]}%ncols))"
 	local nrows=$((fullrows + (remainder>0)))
-
 	while ((++row < nrows))
 	do
+		printf '\n'
 		local col=-1
 		while ((++col < ncols))
 		do
@@ -492,39 +487,75 @@ ncmp_print_matches() # [termwidth=${COLUMNS}] [minpad=1] [style='%d. ']
 				printf "${fmts[col]}" $((idx+1)) "${strs[idx]}"
 			fi
 		done
-		printf '\n'
 	done
 }
 
-ncmp_display_choices() #
+
+ncmp_complete() # <cmd> <word> <preword>
 {
-	if [[ -z "${COLUMNS}" ]]
+	local extra="${2:${#NCMP_CACHE[0]}}" dname bname dpath
+	ncmp_pathsplit "${2}" dname bname dpath
+	if [[ "${2:0:${#NCMP_CACHE[0]}}" = "${NCMP_CACHE[0]}" \
+		&& "${extra}" =~ ^[[:digit:]]+$ \
+		&& "${extra}" -gt 0 \
+		&& "${extra}" -le "$((${#NCMP_CACHE[@]} - (NCMP_CACHE[1]*3 + 2)))" \
+	]]
 	then
-		local COLUMNS=$(tput cols)
+		local RESULT
+		ncmp_escape2shell "${NCMP_CACHE[NCMP_CACHE[NCMP_CACHE[1]*3 + 1 + extra]]}" RESULT
+		COMPREPLY=("${dname}${RESULT}")
+		return
 	fi
-	# TODO
+
+	ss_push extglob
+	local target="${dpath//+(\/)/\/}"
+	target="${target/#~*([^\/])/${HOME}}"
+	ss_pop
+	printf '*\e[D'
+
+	ncmp_read_dir "${target}"
+	ncmp_load_matches "${bname}"
+
+	if ((${#NCMP_CACHE[@]} == NCMP_CACHE[1]*3 + 3))
+	then
+		local RESULT
+		ncmp_escape2shell "${NCMP_CACHE[NCMP_CACHE[NCMP_CACHE[1]*3+2]]}" RESULT
+		COMPREPLY=("${dname}${RESULT}")
+	else
+		if ((!${#NUMERIC_COMPLETE_pager[@]}))
+		then
+			ncmp_print_matches "${COLUMNS:-$(tput cols)}" 2
+			# ncmp_mimic_prompt "${COMP_LINE}" "${COMP_POINT}"
+			# TODO: when to mimic the prompt?
+		fi
+		COMPREPLY=('' ' ')
+	fi
 }
 
+alias NUMERIC_COMPLETE_alias="${NUMERIC_COMPLETE_alias:-n}"
+alias "${NUMERIC_COMPLETE_alias}"=''
+
+complete -o default -o filenames -F ncmp_complete "${NUMERIC_COMPLETE_alias}"
 
 
 if [[ "${0}" = "${BASH_SOURCE[0]}" ]]
 then
 	echo 'Testing splitpath().'
 	splitpath_testcases=( \
-		'/:/:' \
-		'/bin:/:bin' \
-		"hello/world:${PWD}/hello/:world" \
-		"hello/world/:${PWD}/hello/world/:" \
-		"basename:${PWD}/:basename" \
-		"/dev/shm:/dev/:shm" \
-		"/dev/shm/:/dev/shm/:" \
-		":${PWD}/:"\
+		'/:/::/' \
+		'/bin:/:bin:/' \
+		"hello/world:hello/:world:${PWD}/hello/" \
+		"hello/world/:hello/world/::${PWD}/hello/world/" \
+		"basename::basename:${PWD}/" \
+		"/dev/shm:/dev/:shm:/dev/" \
+		"/dev/shm/:/dev/shm/::/dev/shm/" \
+		":::${PWD}/"\
 	)
 
 	for testcase in "${splitpath_testcases[@]}"
 	do
 		ncmp_pathsplit "${testcase%%:*}"
-		[[ "${dname}:${bname}" = "${testcase#*:}" ]] && echo pass || printf 'fail\n\tgot : "%s"\n\twant: "%s"\n' "${dname}:${bname}" "${testcase#*:}"
+		[[ "${dname}:${bname}:${dpath}" = "${testcase#*:}" ]] && echo pass || printf 'fail\n\tgot : "%s"\n\twant: "%s"\n' "${dname}:${bname}" "${testcase#*:}"
 	done
 
 	echo 'Testing max().'
