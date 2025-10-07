@@ -2,6 +2,7 @@
 -1- CSI codes
 	-1.1- cursor motion
 	-1.2- colors
+	-1.3- Modifying display
 -2- Fp codes
 
 
@@ -37,13 +38,6 @@ just moving to a different (x,y) coordinate in the window.)
 		nF      CPL         move up n(1) lines + to front
 		nG      CHA         move to nth(1) column (1-indexed)
 		r;cH    CUP         move to given row(1);column(1) position (1-indexed)
-		nJ      ED          erase part of the screen n(0) = to the end, 1 = to the beginning, 2 = all, 3 = all AND delete scrollback buffer
-		                    NOTE: not necessarily...
-		                    In cygwin, 3 just deleted scrollback buffer above the current display
-		                    2 only adds new lines to make the screen blank (prints "$(tput lines)" newlines)
-		nK      EL          erase line instead if display, same meanings as ED, cursor does not move
-		nS      SU          scroll text up (only text currently displayed in the screen. Delete data that goes off screen)
-		nT      SD          scroll text down (only text currently displayed in the screen. Delete data that goes off screen)
 
 
 	private sequences
@@ -76,6 +70,26 @@ just moving to a different (x,y) coordinate in the window.)
 	96    106
 	97    107
 	0             Reset settings.
+
+	------------------------------
+	-1.3- Modifying display
+	------------------------------
+	nJ    ED  erase in display
+	          0: cursor to end of screen
+	          1: cursor to beginning of screen
+	          2: all screen
+	          3: all screen + scrollback buffer
+	          NOTE: not necessarily...
+	          In cygwin, 3 just deleted scrollback buffer above the current display
+	          2 only adds new lines to make the screen blank (prints "$(tput lines)" newlines)
+
+	nK    EL  erase in line
+	          0: cursor to end of line
+	          1: cursor to beginning of line
+	          2: whole line
+
+	nS    SU  scroll text up (only text currently displayed in the screen. Delete data that goes off screen)
+	nT    SD  scroll text down (only text currently displayed in the screen. Delete data that goes off screen)
 
 ------------------------------
 -2- DEC codes
