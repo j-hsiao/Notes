@@ -559,7 +559,7 @@ ncmp_complete() # <cmd> <word> <preword>
 alias NUMERIC_COMPLETE_alias="${NUMERIC_COMPLETE_alias:-n}"
 alias "${NUMERIC_COMPLETE_alias}"=''
 
-complete -o default -o filenames -o noquote -F ncmp_complete "${NUMERIC_COMPLETE_alias}"
+complete -o filenames -o noquote -F ncmp_complete "${NUMERIC_COMPLETE_alias}"
 
 # '\e ': set the mark
 # '\C-an ' insert the n alias command to trigger completion
