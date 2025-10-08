@@ -118,8 +118,8 @@ ncmp_set_pager() # default pager and arguments
 }
 
 ncmp_pathsplit() # <path> [dname_var=dname] [basename_var=bname] [fulldir=dpath]
-# Parse <path> into dir name and base name.  The results
-# are stored in the corresponding variables if provided.
+# Parse <path> into dir name and base name and full normalized dir name.
+# The results are stored in the corresponding variables if provided.
 # NOTE: dir1/dir2 will be split as dir1/ and dir2
 #       dir1/dir2/ will be split as dir1/dir2/ and ''
 {
@@ -127,11 +127,13 @@ ncmp_pathsplit() # <path> [dname_var=dname] [basename_var=bname] [fulldir=dpath]
 	[[ "${1}" =~ (.*/)?(.*) ]] # load into BASH_REMATCH
 	ncmpps__dname="${BASH_REMATCH[1]}"
 	ncmpps__bname="${BASH_REMATCH[2]}"
-	if [[ "${ncmpps__dname:0:1}" = '/' ]]
+	ss_push extglob
+	ncmpps__dpath="${ncmpps__dname//+(\/)/\/}"
+	ncmpps__dpath="${ncmpps__dpath/#~*([^\/])/${HOME}}"
+	ss_pop
+	if [[ "${ncmpps__dpath:0:1}" != '/' ]]
 	then
-		ncmpps__dpath="${ncmpps__dname}"
-	else
-		ncmpps__dpath="${PWD}/${ncmpps__dname}"
+		ncmpps__dpath="${PWD}/${ncmpps__dpath}"
 	fi
 }
 
@@ -212,18 +214,15 @@ ncmp_count_lines() # <text> [width=${COLUMNS}] [out=RESULT]
 ncmp_escape2shell() # <text> [out=RESULT]
 {
 	# Convert <text> from ls -b style escaping
-	# to shell-stype escaping
-	ss_push extglob
-	local ncmpe2s__tmp="${1//$'\e['*([0-9':;<=>?'])*([' !#$%&()*+,-."/'\'])[A-Za-z'@[\]^_\`~|{}']}"
-	ss_pop
-	ncmpe2s__tmp="${ncmpe2s__tmp//'\ '/ }"
+	# to shell-style escaping
 	local -n ncmpe2s__out="${2:-RESULT}"
+	printf -v ncmpe2s__out "${1//'\ '/ }"
 	# ${ncmpe2s__tmp@Q} always adds quotes regardless of whether they are necessary or not.
 	# prefer printf -v in this case
-	printf -v ncmpe2s__out '%q' "${ncmpe2s__tmp}"
+	printf -v ncmpe2s__out '%q' "${ncmpe2s__out}"
 }
 
-ncmp_read_dir() # <dname>
+ncmp_read_dir() # <dname> [force=]
 {
 	# Read and preprocess <dname> into the cache.
 	# The cache (NCMP_CACHE) will contain:
@@ -232,7 +231,11 @@ ncmp_read_dir() # <dname>
 	# 3. The display entries (maybe with colors, etc)
 	# 4. the raw entries (no colors) for length + searching
 	# 5. the display lengths.
-	if ! ch_get NCMP_CACHE "${1}"
+	#
+	# If [force] is not empty, then force re-reading the
+	# directory.  This is useful if there was some change
+	# to a directory and the cache is outdated.
+	if ! ch_get NCMP_CACHE "${1}" || [[ -n "${2}" ]]
 	then
 		# NOTE: Tried implementing to find entries with a common prefix
 		# but it was very slow, linear search much faster, tested up to
@@ -382,29 +385,32 @@ ncmp_mimic_prompt() # <command> <pos>
 	printf "${1:0:${2}}"$'\e7'"${1:${2}}"$'\e8'
 }
 
-
-
 ncmp_cols_viable() # <strwidth_array> <numcols> <width> [colwidths=RESULT]
 {
 	# Check that <numcols> columns of <strwidth_array>
 	# can fit within <width>
 	local -n ncmpcv__arr="${1}" ncmpcv__colwidths="${4:-RESULT}"
-	local ncmpcv__ncols="${2}" ncmpcv__width="${3}"
-	local fullrows=$((${#ncmpcv__arr[@]} / ${ncmpcv__ncols}))
-	local remainder=$((${#ncmpcv__arr[@]} % ${ncmpcv__ncols}))
+	local cols="${2}" width="${3}"
+
+	local rows=$(((${#ncmpcv__arr[@]} / cols) + (${#ncmpcv__arr[@]} % cols > 0)))
+	if ((cols != (${#ncmpcv__arr[@]} / rows) + (${#ncmpcv__arr[@]} % rows > 0)))
+	then
+		return 1
+	fi
+
 	local col=0 total=0
 	local start=0
 	ncmpcv__colwidths=()
-	while ((col < ${ncmpcv__ncols}))
+	while ((col < ${cols}))
 	do
-		local stop=$(((col+1)*fullrows + (col<remainder ? col+1 : remainder)))
+		local stop=$(((col+1)*rows))
 		ncmp_max "${1}" "${start}" "${stop}" ncmpcv__colwidths[col]
 		((total += ncmpcv__colwidths[col++]))
 		((start = stop))
 	done
-	return $((total > ncmpcv__width))
+	return $((total > width))
 }
-ncmp_calcfmt() # <strwidth_array> [termwidth=${COLUMNS}] [minpad=1] [style='%d. ']
+ncmp_calcfmt() # <strwidth_array> [termwidth=${COLUMNS}] [minpad=1] [style='\e[30;47m%d.\e[0m ']
                # [fmt=fmt]
 {
 	# Calculate the printf format strings per column.
@@ -420,7 +426,7 @@ ncmp_calcfmt() # <strwidth_array> [termwidth=${COLUMNS}] [minpad=1] [style='%d. 
 	# 	       The length of this array is the number of columns.
 	local -n ncmpcf__arr="${1}" ncmpcf__fmt="${5:-fmt}"
 	local choices="${#ncmpcf__arr[@]}" termwidth="${2:-${COLUMNS}}" \
-		minpad="${3:-1}" prefmt="${4:-%d. }"
+		minpad="${3:-1}" prefmt="${4:-\\e[30;47m%d.\\e[0m }"
 	if ((!choices)); then ncmpcf__fmt=(); return; fi
 	prefmt="${prefmt/\%d/%${#choices}d}"
 
@@ -472,16 +478,14 @@ ncmp_print_matches() # [termwidth=${COLUMNS}] [minpad=1] [style='%d. ']
 	ncmp_calcfmt strlens "${1}" "${2}" "${3}" fmts
 	local row=-1 ncols="${#fmts[@]}"
 	if ((!ncols)); then return; fi
-	local fullrows="$((${#strlens[@]} / ncols))"
-	local remainder="$((${#strlens[@]}%ncols))"
-	local nrows=$((fullrows + (remainder>0)))
-	while ((++row < nrows))
+	local rows="$(((${#strlens[@]} / ncols) + (${#strlens[@]}%ncols > 0)))"
+	while ((++row < rows))
 	do
 		printf '\n'
 		local col=-1
 		while ((++col < ncols))
 		do
-			idx=$((row + fullrows * col + (col <= remainder ? col : remainder)))
+			idx=$((row + rows*col))
 			if ((idx < ${#strs[@]}))
 			then
 				printf "${fmts[col]}" $((idx+1)) "${strs[idx]}"
@@ -493,27 +497,31 @@ ncmp_print_matches() # [termwidth=${COLUMNS}] [minpad=1] [style='%d. ']
 
 ncmp_complete() # <cmd> <word> <preword>
 {
-	local extra="${2:${#NCMP_CACHE[0]}}" dname bname dpath
+	local dname bname dpath
 	ncmp_pathsplit "${2}" dname bname dpath
-	if [[ "${2:0:${#NCMP_CACHE[0]}}" = "${NCMP_CACHE[0]}" \
-		&& "${extra}" =~ ^[[:digit:]]+$ \
-		&& "${extra}" -gt 0 \
-		&& "${extra}" -le "$((${#NCMP_CACHE[@]} - (NCMP_CACHE[1]*3 + 2)))" \
-	]]
+	printf '*\e[D'
+	ncmp_read_dir "${dpath}"
+
+	if [[ -n "${NCMP_CACHE[0]}" || -z "${NCMP_CACHE[0]-asdf}" ]]
 	then
-		local RESULT
-		ncmp_escape2shell "${NCMP_CACHE[NCMP_CACHE[NCMP_CACHE[1]*3 + 1 + extra]]}" RESULT
-		COMPREPLY=("${dname}${RESULT}")
-		return
+		if [[ "${NCMP_CACHE[0]}" = "${bname}" ]]
+		then
+			ncmp_read_dir "${dpath}" a
+		elif [[ \
+			"${bname:0:${#NCMP_CACHE[0]}}" = "${NCMP_CACHE[0]}" \
+			&& "${bname:${#NCMP_CACHE[0]}}" =~ ^[[:digit:]]+$ \
+			&& "${bname:${#NCMP_CACHE[0]}}" -gt 0 \
+			&& "${bname:${#NCMP_CACHE[0]}}" -le "$((${#NCMP_CACHE[@]} - (NCMP_CACHE[1]*3 + 2)))" \
+		]]
+		then
+			local RESULT
+			ncmp_escape2shell "${NCMP_CACHE[NCMP_CACHE[NCMP_CACHE[1]*3 + 1 + ${bname:${#NCMP_CACHE[0]}}]]}" RESULT
+			COMPREPLY=("${dname}${RESULT}")
+			unset NCMP_CACHE[0]
+			return
+		fi
 	fi
 
-	ss_push extglob
-	local target="${dpath//+(\/)/\/}"
-	target="${target/#~*([^\/])/${HOME}}"
-	ss_pop
-	printf '*\e[D'
-
-	ncmp_read_dir "${target}"
 	ncmp_load_matches "${bname}"
 
 	if ((${#NCMP_CACHE[@]} == NCMP_CACHE[1]*3 + 3))
@@ -521,6 +529,7 @@ ncmp_complete() # <cmd> <word> <preword>
 		local RESULT
 		ncmp_escape2shell "${NCMP_CACHE[NCMP_CACHE[NCMP_CACHE[1]*3+2]]}" RESULT
 		COMPREPLY=("${dname}${RESULT}")
+		unset NCMP_CACHE[0]
 	else
 		if ((!${#NUMERIC_COMPLETE_pager[@]}))
 		then
@@ -535,9 +544,25 @@ ncmp_complete() # <cmd> <word> <preword>
 alias NUMERIC_COMPLETE_alias="${NUMERIC_COMPLETE_alias:-n}"
 alias "${NUMERIC_COMPLETE_alias}"=''
 
-complete -o default -o filenames -F ncmp_complete "${NUMERIC_COMPLETE_alias}"
+complete -o default -o filenames -o noquote -F ncmp_complete "${NUMERIC_COMPLETE_alias}"
+
+# '\e ': set the mark
+# '\C-an ' insert the n alias command to trigger completion
+# '\C-x\C-x' jump back to mark
+# '\C-f\C-f' mark only marks column, not textual position, move forward
+#            2 chars to cover the inserted 'n '
+# '\t'       trigger completion.
+#
+# '\e'      enter command mode
+# 'mz'      save mark to z
+# '0in \e'  insert 'n '
+# '`zll'    jump back to position (only saves column position not text position so ll)
+# 'a\t'     trigger completion
+bind -m emacs \""${NUMERIC_COMPLETE_prefix}${NUMERIC_COMPLETE_default}"'":"\e \C-an \C-x\C-x\C-f\C-f\t"'
+bind -m vi-insert \""${NUMERIC_COMPLETE_prefix}${NUMERIC_COMPLETE_default}"'":"\emz0in \e`zlla\t"'
 
 
+# testing
 if [[ "${0}" = "${BASH_SOURCE[0]}" ]]
 then
 	echo 'Testing splitpath().'

@@ -9,7 +9,7 @@ ch_make() # <name> [size=10]
 	# 2. key: This tracks the key and corresponding actual variable
 	# 3. entries: These variables are the actual cache entries.
 	declare -gn "${1}"="${1}0"
-	local -n chmk__arr="${1}idx"
+	local -n chmk__arr="${1}_index"
 	chmk__arr=()
 	local idx=0
 	while ((idx < ${2:-10}))
@@ -30,7 +30,7 @@ ch_get() # <name> <key> [out]
 	# If new, then return code 1.
 	# NOTE: the new entry might or might not have old data.
 	# Check the return code to know if it should be reinitialized or not.
-	local -n chgt__arr="${1}idx"
+	local -n chgt__arr="${1}_index"
 	local idx=0
 	while ((idx < ${#chgt__arr[@]}))
 	do
@@ -65,7 +65,7 @@ then
 	echo "Testing cache."
 	echo "Make Cache."
 	ch_make mycache 3
-	((${#mycacheidx[@]} == 6)) && echo pass || echo fail
+	((${#mycache_index[@]} == 6)) && echo pass || echo fail
 	((${#mycache[@]} == 0)) && echo pass || echo fail
 
 	echo "Testing create new entry."
