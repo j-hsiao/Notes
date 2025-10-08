@@ -222,6 +222,8 @@ ncmp_escape2shell() # <text> [out=RESULT]
 	printf -v ncmpe2s__out '%q' "${ncmpe2s__out}"
 }
 
+NCMP_CACHE_STATE=3
+
 ncmp_read_dir() # <dname> [force=]
 {
 	# Read and preprocess <dname> into the cache.
@@ -243,15 +245,15 @@ ncmp_read_dir() # <dname> [force=]
 
 		ss_push extglob globasciiranges
 		NCMP_CACHE=()
-		readarray -O2 -t NCMP_CACHE < <(ls -Apb --color=always "${1}" 2>/dev/null)
+		readarray -O${NCMP_CACHE_STATE} -t NCMP_CACHE < <(ls -Apb --color=always "${1}" 2>/dev/null)
 		# https://en.wikipedia.org/wiki/ANSI_escape_code
 		# [0x30–0x3F]*  (0–9:;<=>?)
 		# [0x20–0x2F]*  ( !"#$%&'()*+,-./)
 		# 0x40–0x7E     (@A–Z[\]^_`a–z{|}~)
 		NCMP_CACHE+=("${NCMP_CACHE[@]//$'\e['*(['0'-'?'])*(['!'-'/'])['@'-'~']}")
 		NCMP_CACHE[1]="$((${#NCMP_CACHE[@]}/2))"
-		ci_strdisplaylens NCMP_CACHE $((NCMP_CACHE[1]*2 + 2)) \
-		"${NCMP_CACHE[@]:NCMP_CACHE[1]+2:NCMP_CACHE[1]}"
+		ci_strdisplaylens NCMP_CACHE $((NCMP_CACHE[1]*2 + NCMP_CACHE_STATE)) \
+		"${NCMP_CACHE[@]:NCMP_CACHE[1]+NCMP_CACHE_STATE:NCMP_CACHE[1]}"
 		ss_pop
 	fi
 }
@@ -268,10 +270,10 @@ ncmp_load_matches() # <query>
 
 	# side note... This generally seems to be quite fast,
 	# maybe refining previous match is not necessary?
-	local out=$((NCMP_CACHE[1]*3 + 2))
+	local out=$((NCMP_CACHE[1]*3 + NCMP_CACHE_STATE))
 	if [[ -z "${1}" ]]
 	then
-		local idx=$((NCMP_CACHE[1] + 1)) end=$((NCMP_CACHE[1]*2 + 2))
+		local idx=$((NCMP_CACHE[1] + NCMP_CACHE_STATE - 1)) end=$((NCMP_CACHE[1]*2 + NCMP_CACHE_STATE))
 		while ((++idx < end))
 		do
 			NCMP_CACHE[out++]="${idx}"
@@ -285,7 +287,7 @@ ncmp_load_matches() # <query>
 		local query="${1^^}"
 		if [[ "${1#"${NCMP_CACHE[0]}"}" = "${1}" ]]
 		then
-			local idx=$((NCMP_CACHE[1] + 1)) end=$((NCMP_CACHE[1]*2 + 2)) candidate
+			local idx=$((NCMP_CACHE[1] + NCMP_CACHE_STATE - 1)) end=$((NCMP_CACHE[1]*2 + NCMP_CACHE_STATE)) candidate
 			while ((++idx < end))
 			do
 				candidate="${NCMP_CACHE[idx]^^}"
@@ -309,7 +311,7 @@ ncmp_load_matches() # <query>
 	else
 		if [[ "${1#"${NCMP_CACHE[0]}"}" = "${1}" ]]
 		then
-			local idx=$((NCMP_CACHE[1] + 1)) end=$((NCMP_CACHE[1]*2 + 2))
+			local idx=$((NCMP_CACHE[1] + NCMP_CACHE_STATE - 1)) end=$((NCMP_CACHE[1]*2 + NCMP_CACHE_STATE))
 			while ((++idx < end))
 			do
 				if [[ "${NCMP_CACHE[idx]#"${1}"}" != "${NCMP_CACHE[idx]}" ]]
@@ -468,7 +470,7 @@ ncmp_calcfmt() # <strwidth_array> [termwidth=${COLUMNS}] [minpad=1] [style='\e[3
 ncmp_print_matches() # [termwidth=${COLUMNS}] [minpad=1] [style='%d. ']
 {
 	# Print the loaded choices as a table.
-	local strlens=() strs=() idx="$((NCMP_CACHE[1]*3 + 1))"
+	local strlens=() strs=() idx="$((NCMP_CACHE[1]*3 + NCMP_CACHE_STATE-1))"
 	while ((++idx < ${#NCMP_CACHE[@]}))
 	do
 		strlens+=("${NCMP_CACHE[NCMP_CACHE[idx]+NCMP_CACHE[1]]}")
@@ -497,10 +499,23 @@ ncmp_print_matches() # [termwidth=${COLUMNS}] [minpad=1] [style='%d. ']
 
 ncmp_complete() # <cmd> <word> <preword>
 {
+	if [[ \
+		"${2}" =~ ^[[:digit:]]+$ \
+		&& "${2}" -gt 0 \
+		&& "${2}" -le "$((${#NCMP_CACHE[@]} - (NCMP_CACHE[1]*3 + NCMP_CACHE_STATE)))" \
+	]]
+	then
+		# shortcut to select from the last item, ex. if selecting multiple items from same directory
+		local RESULT
+		ncmp_escape2shell "${NCMP_CACHE[NCMP_CACHE[NCMP_CACHE[1]*3 + NCMP_CACHE_STATE - 1 + ${2}]]}" RESULT
+		COMPREPLY=("${NCMP_CACHE[2]}${RESULT}")
+		return
+	fi
+
 	local dname bname dpath
 	ncmp_pathsplit "${2}" dname bname dpath
-	printf '*\e[D'
 	ncmp_read_dir "${dpath}"
+	NCMP_CACHE[2]="${dname}"
 
 	if [[ -n "${NCMP_CACHE[0]}" || -z "${NCMP_CACHE[0]-asdf}" ]]
 	then
@@ -511,11 +526,11 @@ ncmp_complete() # <cmd> <word> <preword>
 			"${bname:0:${#NCMP_CACHE[0]}}" = "${NCMP_CACHE[0]}" \
 			&& "${bname:${#NCMP_CACHE[0]}}" =~ ^[[:digit:]]+$ \
 			&& "${bname:${#NCMP_CACHE[0]}}" -gt 0 \
-			&& "${bname:${#NCMP_CACHE[0]}}" -le "$((${#NCMP_CACHE[@]} - (NCMP_CACHE[1]*3 + 2)))" \
+			&& "${bname:${#NCMP_CACHE[0]}}" -le "$((${#NCMP_CACHE[@]} - (NCMP_CACHE[1]*3 + NCMP_CACHE_STATE)))" \
 		]]
 		then
 			local RESULT
-			ncmp_escape2shell "${NCMP_CACHE[NCMP_CACHE[NCMP_CACHE[1]*3 + 1 + ${bname:${#NCMP_CACHE[0]}}]]}" RESULT
+			ncmp_escape2shell "${NCMP_CACHE[NCMP_CACHE[NCMP_CACHE[1]*3 + NCMP_CACHE_STATE-1 + ${bname:${#NCMP_CACHE[0]}}]]}" RESULT
 			COMPREPLY=("${dname}${RESULT}")
 			unset NCMP_CACHE[0]
 			return
@@ -524,10 +539,10 @@ ncmp_complete() # <cmd> <word> <preword>
 
 	ncmp_load_matches "${bname}"
 
-	if ((${#NCMP_CACHE[@]} == NCMP_CACHE[1]*3 + 3))
+	if ((${#NCMP_CACHE[@]} == NCMP_CACHE[1]*3 + NCMP_CACHE_STATE + 1))
 	then
 		local RESULT
-		ncmp_escape2shell "${NCMP_CACHE[NCMP_CACHE[NCMP_CACHE[1]*3+2]]}" RESULT
+		ncmp_escape2shell "${NCMP_CACHE[NCMP_CACHE[NCMP_CACHE[1]*3 + NCMP_CACHE_STATE]]}" RESULT
 		COMPREPLY=("${dname}${RESULT}")
 		unset NCMP_CACHE[0]
 	else
@@ -685,7 +700,7 @@ then
 		while read line
 		do
 			ncmp_load_matches "${line}"
-			for idx in "${NCMP_CACHE[@]:2+NCMP_CACHE[1]*3}"
+			for idx in "${NCMP_CACHE[@]:NCMP_CACHE_STATE+NCMP_CACHE[1]*3}"
 			do
 				echo "  ${idx}: ${NCMP_CACHE[idx]}"
 			done
