@@ -499,6 +499,13 @@ ncmp_print_matches() # [termwidth=${COLUMNS}] [minpad=1] [style='%d. ']
 
 ncmp_complete() # <cmd> <word> <preword>
 {
+	# TODO:
+	# the unset causes the length to be different...
+	# solution:
+	# determine/save whether the search was set to a variable
+	# then set it always
+	# refer to the variable instead.
+
 	if [[ \
 		"${2}" =~ ^[[:digit:]]+$ \
 		&& "${2}" -gt 0 \

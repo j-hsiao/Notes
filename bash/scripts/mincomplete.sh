@@ -1,5 +1,7 @@
 #!/bin/bash
 
+# Prevent completion if command is short. (causes very slow searching on paths.)
+
 
 MIN_CMD_COMPLETION_LENGTH=3
 
