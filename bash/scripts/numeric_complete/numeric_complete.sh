@@ -499,6 +499,13 @@ ncmp_print_matches() # [termwidth=${COLUMNS}] [minpad=1] [style='%d. ']
 
 ncmp_complete() # <cmd> <word> <preword>
 {
+	if [[ -n "${NCMP_CACHE[0]}" || -z "${NCMP_CACHE[0]-a}" ]]
+	then
+		local searched=1
+	else
+		local searched=0
+	fi
+	NCMP_CACHE[0]="${NCMP_CACHE[0]}"
 	# TODO:
 	# the unset causes the length to be different...
 	# solution:
@@ -524,7 +531,7 @@ ncmp_complete() # <cmd> <word> <preword>
 	ncmp_read_dir "${dpath}"
 	NCMP_CACHE[2]="${dname}"
 
-	if [[ -n "${NCMP_CACHE[0]}" || -z "${NCMP_CACHE[0]-asdf}" ]]
+	if ((searched))
 	then
 		if [[ "${NCMP_CACHE[0]}" = "${bname}" ]]
 		then
