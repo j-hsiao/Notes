@@ -538,6 +538,7 @@ ncmp_complete() # <cmd> <word> <preword>
 		if [[ "${NCMP_CACHE[0]}" = "${bname}" ]]
 		then
 			ncmp_read_dir "${dpath}" a
+			NCMP_CACHE[2]="${dname}"
 		elif [[ \
 			"${bname:0:${#NCMP_CACHE[0]}}" = "${NCMP_CACHE[0]}" \
 			&& "${bname:${#NCMP_CACHE[0]}}" =~ ^[[:digit:]]+$ \
@@ -591,6 +592,7 @@ complete -o filenames -o noquote -F ncmp_complete "${NUMERIC_COMPLETE_alias}"
 # 'a\t'     trigger completion
 command bind -m emacs \""${NUMERIC_COMPLETE_prefix}${NUMERIC_COMPLETE_default}"'":"\e \C-an \C-x\C-x\C-f\C-f\t"'
 command bind -m vi-insert \""${NUMERIC_COMPLETE_prefix}${NUMERIC_COMPLETE_default}"'":"\emz0in \e`zlla\t"'
+command bind 'set show-all-if-ambiguous on'
 
 
 # testing
