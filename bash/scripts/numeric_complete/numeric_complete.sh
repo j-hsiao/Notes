@@ -432,10 +432,12 @@ ncmp_calcfmt() # <strwidth_array> [termwidth=${COLUMNS}] [minpad=1] [style='\e[3
 	if ((!choices)); then ncmpcf__fmt=(); return; fi
 	prefmt="${prefmt/\%d/%${#choices}d}"
 
-
 	local prelen
 	printf -v prelen "${prefmt}" "${choices}"
-	prelen="${#prelen}"
+	ss_push extglob globasciiranges
+	prelen="${prelen//$'\e['*(['0'-'?'])*(['!'-'/'])['@'-'~']}"
+	ss_pop
+	ci_strdisplaylen "${prelen}" prelen
 
 	local shortest
 	ncmp_min "${1}" '' '' shortest
@@ -570,7 +572,7 @@ ncmp_complete() # <cmd> <word> <preword>
 	fi
 }
 
-alias NUMERIC_COMPLETE_alias="${NUMERIC_COMPLETE_alias:-n}"
+NUMERIC_COMPLETE_alias="${NUMERIC_COMPLETE_alias:-n}"
 alias "${NUMERIC_COMPLETE_alias}"=''
 
 complete -o filenames -o noquote -F ncmp_complete "${NUMERIC_COMPLETE_alias}"
@@ -587,8 +589,8 @@ complete -o filenames -o noquote -F ncmp_complete "${NUMERIC_COMPLETE_alias}"
 # '0in \e'  insert 'n '
 # '`zll'    jump back to position (only saves column position not text position so ll)
 # 'a\t'     trigger completion
-bind -m emacs \""${NUMERIC_COMPLETE_prefix}${NUMERIC_COMPLETE_default}"'":"\e \C-an \C-x\C-x\C-f\C-f\t"'
-bind -m vi-insert \""${NUMERIC_COMPLETE_prefix}${NUMERIC_COMPLETE_default}"'":"\emz0in \e`zlla\t"'
+command bind -m emacs \""${NUMERIC_COMPLETE_prefix}${NUMERIC_COMPLETE_default}"'":"\e \C-an \C-x\C-x\C-f\C-f\t"'
+command bind -m vi-insert \""${NUMERIC_COMPLETE_prefix}${NUMERIC_COMPLETE_default}"'":"\emz0in \e`zlla\t"'
 
 
 # testing
@@ -659,47 +661,48 @@ then
 	# 4         +2 +10 +10 +2   +4*4    +3          43
 	echo "Testing calcfmt"
 	ncmp_calcfmt strlens 29 1 '' fmt && ((${#fmt[@]} == 2)) \
-		&& [[ "${fmt[0]}" = '\e[1G%2d. %s' ]] \
-		&& [[ "${fmt[1]}" = '\e[16G%2d. %s' ]] \
+		&& [[ "${fmt[0]}" = '\e[1G\e[30;47m%2d.\e[0m %s' ]] \
+		&& [[ "${fmt[1]}" = '\e[16G\e[30;47m%2d.\e[0m %s' ]] \
 		&& echo pass || echo fail
 
 	ncmp_calcfmt strlens 35 1 '' fmt && ((${#fmt[@]} == 2)) \
-		&& [[ "${fmt[0]}" = '\e[1G%2d. %s' ]] \
-		&& [[ "${fmt[1]}" = '\e[16G%2d. %s' ]] \
+		&& [[ "${fmt[0]}" = '\e[1G\e[30;47m%2d.\e[0m %s' ]] \
+		&& [[ "${fmt[1]}" = '\e[16G\e[30;47m%2d.\e[0m %s' ]] \
 		&& echo pass || echo fail
 
 	ncmp_calcfmt strlens 36 1 '' fmt && ((${#fmt[@]} == 3)) \
-		&& [[ "${fmt[0]}" = '\e[1G%2d. %s' ]] \
-		&& [[ "${fmt[1]}" = '\e[16G%2d. %s' ]] \
-		&& [[ "${fmt[2]}" = '\e[31G%2d. %s' ]] \
+		&& [[ "${fmt[0]}" = '\e[1G\e[30;47m%2d.\e[0m %s' ]] \
+		&& [[ "${fmt[1]}" = '\e[16G\e[30;47m%2d.\e[0m %s' ]] \
+		&& [[ "${fmt[2]}" = '\e[31G\e[30;47m%2d.\e[0m %s' ]] \
 		&& echo pass || echo fail
 
 	ncmp_calcfmt strlens 42 1 '' fmt && ((${#fmt[@]} == 3)) \
-		&& [[ "${fmt[0]}" = '\e[1G%2d. %s' ]] \
-		&& [[ "${fmt[1]}" = '\e[16G%2d. %s' ]] \
-		&& [[ "${fmt[2]}" = '\e[31G%2d. %s' ]] \
+		&& [[ "${fmt[0]}" = '\e[1G\e[30;47m%2d.\e[0m %s' ]] \
+		&& [[ "${fmt[1]}" = '\e[16G\e[30;47m%2d.\e[0m %s' ]] \
+		&& [[ "${fmt[2]}" = '\e[31G\e[30;47m%2d.\e[0m %s' ]] \
 		&& echo pass || echo fail
 
 	ncmp_calcfmt strlens 43 1 '' fmt && ((${#fmt[@]} == 4)) \
-		&& [[ "${fmt[0]}" = '\e[1G%2d. %s' ]] \
-		&& [[ "${fmt[1]}" = '\e[8G%2d. %s' ]] \
-		&& [[ "${fmt[2]}" = '\e[23G%2d. %s' ]] \
-		&& [[ "${fmt[3]}" = '\e[38G%2d. %s' ]] \
+		&& [[ "${fmt[0]}" = '\e[1G\e[30;47m%2d.\e[0m %s' ]] \
+		&& [[ "${fmt[1]}" = '\e[8G\e[30;47m%2d.\e[0m %s' ]] \
+		&& [[ "${fmt[2]}" = '\e[23G\e[30;47m%2d.\e[0m %s' ]] \
+		&& [[ "${fmt[3]}" = '\e[38G\e[30;47m%2d.\e[0m %s' ]] \
 		&& echo pass || echo fail
 
 	ncmp_calcfmt strlens 1000 1 '' fmt && ((${#fmt[@]} == 11)) \
-		&& [[ "${fmt[0]}" = '\e[1G%2d. %s' ]] \
-		&& [[ "${fmt[1]}" = '\e[8G%2d. %s' ]] \
-		&& [[ "${fmt[2]}" = '\e[15G%2d. %s' ]] \
-		&& [[ "${fmt[3]}" = '\e[22G%2d. %s' ]] \
-		&& [[ "${fmt[4]}" = '\e[37G%2d. %s' ]] \
-		&& [[ "${fmt[5]}" = '\e[44G%2d. %s' ]] \
-		&& [[ "${fmt[6]}" = '\e[51G%2d. %s' ]] \
-		&& [[ "${fmt[7]}" = '\e[58G%2d. %s' ]] \
-		&& [[ "${fmt[8]}" = '\e[73G%2d. %s' ]] \
-		&& [[ "${fmt[9]}" = '\e[80G%2d. %s' ]] \
-		&& [[ "${fmt[10]}" = '\e[87G%2d. %s' ]] \
+		&& [[ "${fmt[0]}" = '\e[1G\e[30;47m%2d.\e[0m %s' ]] \
+		&& [[ "${fmt[1]}" = '\e[8G\e[30;47m%2d.\e[0m %s' ]] \
+		&& [[ "${fmt[2]}" = '\e[15G\e[30;47m%2d.\e[0m %s' ]] \
+		&& [[ "${fmt[3]}" = '\e[22G\e[30;47m%2d.\e[0m %s' ]] \
+		&& [[ "${fmt[4]}" = '\e[37G\e[30;47m%2d.\e[0m %s' ]] \
+		&& [[ "${fmt[5]}" = '\e[44G\e[30;47m%2d.\e[0m %s' ]] \
+		&& [[ "${fmt[6]}" = '\e[51G\e[30;47m%2d.\e[0m %s' ]] \
+		&& [[ "${fmt[7]}" = '\e[58G\e[30;47m%2d.\e[0m %s' ]] \
+		&& [[ "${fmt[8]}" = '\e[73G\e[30;47m%2d.\e[0m %s' ]] \
+		&& [[ "${fmt[9]}" = '\e[80G\e[30;47m%2d.\e[0m %s' ]] \
+		&& [[ "${fmt[10]}" = '\e[87G\e[30;47m%2d.\e[0m %s' ]] \
 		&& echo pass || echo fail
+
 
 	if (($#))
 	then
