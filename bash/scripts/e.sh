@@ -1,11 +1,12 @@
-# e: Activate python envs with tab completion.
+#!/bin/bash
 
-PYTHON_ENVS_DIR="${HOME}/envs"
+# Activate python envs with tab completion.
 
-e()
-{
-	. "${1}/bin/activate"
-}
+PYTHON_ENVS_DIR="${PYTHON_ENVS_DIR:-${HOME}/envs}"
+
+. "${BASH_SOURCE[0]/%e.sh/util}/shoptstack.sh"
+
+e() { . "${1}/bin/activate"; }
 
 _e_completer()
 {
@@ -16,17 +17,8 @@ _e_completer()
 	then
 		return
 	fi
-	local unull=0
-	if [[ ! "${BASHOPTS}" =~ ^.*:?nullglob:?.*$ ]]
-	then
-		shopt -s nullglob
-		unull=1
-	fi
+	ss_push nullglob
 	COMPREPLY=("${PYTHON_ENVS_DIR}/${2%/}"*)
-	if ((unull))
-	then
-		shopt -u nullglob
-	fi
+	ss_pop
 }
 complete -o dirnames -F _e_completer e
-
