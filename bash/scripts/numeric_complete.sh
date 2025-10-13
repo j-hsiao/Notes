@@ -17,7 +17,7 @@ NCMP_CACHE_SIZE=${NCMP_CACHE_SIZE:-10}
 ch_make NCMP_CACHE ${NCMP_CACHE_SIZE}
 
 # Store internal state
-declare -A NCMP_STATE
+declare -gA NCMP_STATE
 
 # The readline completion-ignore-case and show-mode-in-prompt
 # settings are needed to determine numeric completion behavior.
