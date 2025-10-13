@@ -2,7 +2,7 @@
 
 # Activate python envs with tab completion.
 
-PYTHON_ENVS_DIR="${PYTHON_ENVS_DIR:-${HOME}/envs}"
+PYTHON_ENVS_DIR="${PYTHON_ENVS_DIR:-${HOME}/.pyenv/versions}"
 
 . "${BASH_SOURCE[0]/%e.sh/util}/shoptstack.sh"
 
