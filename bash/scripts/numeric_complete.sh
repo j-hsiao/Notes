@@ -139,6 +139,155 @@ ncmp_pathsplit() # <path> [dname_var=dname] [basename_var=bname] [fulldir=dpath]
 	fi
 }
 
+ncmp_find() # <string> <query> [out=RESULT]
+{
+	# Find the position of <query> in <string> and assign to [out]
+	local -n ncmpf__out="${3:-RESULT}"
+	local curidx=-1
+	local total="${#1}"
+	local removed="${1#*"${2}"}"
+	if ((${#removed} == total))
+	then
+		ncmpf__out=-1
+	else
+		((ncmpf__out = ${#1} - ${#2} - ${#removed}))
+	fi
+}
+
+ncmp_expand_prompt() # [prompt=${PS1}] [out=RESULT]
+{
+# Expand a prompt string
+	local -n ncmpep__out="${2:-RESULT}"
+	ncmpep__out="${1:-${PS1}}"
+
+	if (("${BASH_VERSINFO[0]:-3}" > 4 || ("${BASH_VERSINFO[0]:-3}" == 4 && "${BASH_VERSINFO[1]:-3}" >= 4)))
+	then
+		ncmpep__out="${ncmpep__out@P}"
+		return
+	fi
+
+	local parts=()
+	local idx=0 stop
+	while ((idx < "${#ncmpep__out}"))
+	do
+		ncmp_find "${ncmpep__out:idx}" '\' stop
+		if ((stop < 0))
+		then
+			parts+=("${ncmpep__out:idx}")
+			break
+		elif ((stop > 0))
+		then
+			parts+=("${ncmpep__out:idx:stop}")
+			((idx += stop))
+		fi
+		case "${ncmpep__out:idx}" in
+			'\a'*|'\e'*|'\n'*|'\r'*)
+				printf -v "parts[${#parts[@]}]" "${ncmpep__out:idx:2}"
+				;;
+			'\d'*)
+				parts+=("$(date '+%a %b %d')")
+				;;
+			'\D{'*)
+				local stop
+				ncmp_find "${ncmpep__out:idx+3}" '}' stop
+				if ((stop >= 0))
+				then
+					parts+=("$(date "+${ncmpep__out:idx+3:stop}")")
+					((idx += stop + 4))
+				else
+					parts+=("$(date "+${ncmpep__out:idx+3}")")
+					idx="${#ncmpep__out}"
+				fi
+				continue
+				;;
+			'\h'*)
+				parts+=("${HOSTNAME%%.*}")
+				;;
+			'\H'*)
+				parts+=("${HOSTNAME}")
+				;;
+			'\j'*)
+				parts+=("$(jobs|wc -l)")
+				;;
+			'\l'*)
+				parts+=("$(tty)")
+				parts[-1]="${parts[-1]##*/}"
+				;;
+			'\s'*)
+				parts+=("${SHELL##*/}")
+				;;
+			'\t'*)
+				parts+=("$(date '+%H:%M:%S')")
+				;;
+			'\T'*)
+				parts+=("$(date '+%I:%M:%S')")
+				;;
+			'\@'*)
+				parts+=("$(date '+%I:%M %p')")
+				;;
+			'\A'*)
+				parts+=("$(date '+%H:%M')")
+				;;
+			'\u'*)
+				parts+=("${USER}")
+				;;
+			'\v'*)
+				parts+=("${BASH_VERSINFO[0]}.${BASH_VERSINFO[1]}")
+				;;
+			'\V'*)
+				parts+=("${BASH_VERSINFO[0]}.${BASH_VERSINFO[1]}.${BASH_VERSINFO[2]}")
+				;;
+			'\w'*)
+				parts+=("${PWD/#"${HOME}"/${PROMPT_DIRTRIM:-~}}")
+				;;
+			'\W'*)
+				if [[ "${PWD}" = "${HOME}" ]]
+				then
+					parts+=('~')
+				else
+					parts+=("${PWD##*/}")
+				fi
+				;;
+			'\!'*)
+				parts+=("${HISTCMD}")
+				;;
+			'\#'*)
+				# TODO: the command number number of this command
+				# doesn't seem to be any way to get this, but ti
+				# also doesn't seem all that useful either...
+				;;
+			'\$'*)
+				if ((UID == 0))
+				then
+					parts+=('#')
+				else
+					parts+=('$')
+				fi
+				;;
+			'\'[0-9][0-9][0-9]*)
+				printf -v "parts[${#parts[@]}]" "${ncmpep__out:idx:4}"
+				((idx += 4))
+				continue
+				;;
+			'\\'*)
+				parts+=('\')
+				;;
+			'\['*|'\]'*)
+				;;
+			*)
+				parts+=('\')
+				((++idx))
+				continue
+				;;
+		esac
+		((idx += 2))
+		# read dummy || return
+	done
+	printf '"%s"\n' "${parts[@]}"
+	printf -v "${2:-RESULT}" '%s' "${parts[@]}"
+}
+
+
 ncmp_max() # <int_array_name> [start=0] [stop=end] [output=RESULT]
 {
 	# Calculate the maximum value from [start, stop).
@@ -359,30 +508,25 @@ ncmp_mimic_prompt() # <command> <pos>
 		fi
 	fi
 	# @P operator requires bash 4.4+
-	if (("${BASH_VERSINFO[0]:-3}" > 4 || ("${BASH_VERSINFO[0]:-3}" == 4 && "${BASH_VERSINFO[1]:-3}" >= 4)))
+	local prompt
+	ncmp_expand_prompt "${PS1}" prompt
+	# \e[s saves position on screen, not in text buffer. If the
+	# terminal is scrolled (ex. commandline at the bottom), then
+	# the position becomes incorrect.  Thus, ensure the commandline
+	# is not at the bottom by printing newlines to ensure no scrolling
+	# will occurr (assuming the prompt is not going to exceed the
+	# window height).  Using \b does not work because it does not wrap
+	# up to the previous line.
+	[[ "${prompt}" =~ (.*$'\n')?(.*) ]]
+	prompt="${BASH_REMATCH[1]}${pre}${BASH_REMATCH[2]}" 
+	local numlines
+	ncmp_count_lines "${prompt}${1}" '' numlines
+	if ((numlines > 1))
 	then
-		# \e[s saves position on screen, not in text buffer. If the
-		# terminal is scrolled (ex. commandline at the bottom), then
-		# the position becomes incorrect.  Thus, ensure the commandline
-		# is not at the bottom by printing newlines to ensure no scrolling
-		# will occurr (assuming the prompt is not going to exceed the
-		# window height).  Using \b does not work because it does not wrap
-		# up to the previous line.
-		local numlines
-		ncmp_count_lines "${PS1@P}${pre}${1}" '' numlines
-		if ((numlines > 1))
-		then
-			printf "\\r${pre}${PS1@P}${1}\\e[$((numlines-1))A"
-		fi
-		printf "\\r${pre}${PS1@P}"
-	else
-		# don't know how to expand to prompt in this case...
-		# so just use a basic $ 
-		local numlines idx=0
-		ncmp_count_lines "${1}" '' numlines
-		while ((idx++<numlines)); do printf '\n'; done
-		printf '\e[%sA\r%s$ ' "${pre}" "${numlines}"
+		printf "\\r${prompt}${1}\\e[$((numlines-1))A"
 	fi
+	printf "\\r${prompt}"
+
 	# printf "${1:0:${2}}"$'\e[s'"${1:${2}}"$'\e[u'
 	# wiki says \e7 \e8 are more widely supported
 	# than \e[s and \e[u
