@@ -6,8 +6,6 @@
 # In that case, when tab completing, use c-escape.  When completing to a chosen/single
 # value, then replace it with shell-compatible version.
 
-
-
 # Default cache size
 NCMP_CACHE_SIZE=${NCMP_CACHE_SIZE:-10}
 
@@ -27,6 +25,7 @@ declare -gA NCMP_STATE
 NCMP_STATE['completion_ignore_case']=
 NCMP_STATE['show_mode_in_prompt']=
 NCMP_STATE['editing_mode']=
+NCMP_STATE['show_all_if_ambiguous']=
 
 ncmp_refresh_readline() {
 	local line
@@ -41,6 +40,9 @@ ncmp_refresh_readline() {
 				;;
 			*editing-mode*)
 				NCMP_STATE['editing_mode']="${line#*editing-mode }"
+				;;
+			*show-all-if-ambiguous*)
+				NCMP_STATE['show_all_if_ambiguous']="${line#*show-all-if-ambiguous }"
 				;;
 		esac
 	done < <(command bind -v)
@@ -563,23 +565,37 @@ ncmp_complete() # <cmd> <word> <preword>
 		COMPREPLY=("${dname}${RESULT}")
 		unset NCMP_CACHE[0]
 	else
-		if ((!${#NUMERIC_COMPLETE_pager[@]}))
+		ncmp_print_matches "${COLUMNS:-$(tput cols)}" 2
+		if ((COMP_TYPE == 9))
 		then
-			ncmp_print_matches "${COLUMNS:-$(tput cols)}" 2
-			# ncmp_mimic_prompt "${COMP_LINE}" "${COMP_POINT}"
-			# TODO: when to mimic the prompt?
+			# numeric completion always behaves as if
+			# show-all-if-ambiguous whenever shown, the '' and ' ' are
+			# always displayed, resulting in a blank line before the
+			# next prompt.  Mimic this behiavor with double newline.
+			printf '\n\n'
+			ncmp_mimic_prompt "${COMP_LINE}" "${COMP_POINT}"
 		fi
+		# cannot use an ANSI escape to move the up a line since it will
+		# be escaped by bash.
 		COMPREPLY=('' ' ')
 	fi
 }
 
 NUMERIC_COMPLETE_alias="${NUMERIC_COMPLETE_alias:-n}"
-NUMERIC_COMPLETE_prefix="${NUMERIC_COMPLETE_prefix:;}"
-NUMERIC_COMPLETE_complete="${NUMERIC_COMPLETE_complete:l}"
+NUMERIC_COMPLETE_prefix="${NUMERIC_COMPLETE_prefix:-;}"
+NUMERIC_COMPLETE_complete="${NUMERIC_COMPLETE_complete:-l}"
+NUMERIC_COMPLETE_normal="${NUMERIC_COMPLETE_normal:-k}"
 
 alias "${NUMERIC_COMPLETE_alias}"=''
 
 complete -o filenames -o noquote -F ncmp_complete "${NUMERIC_COMPLETE_alias}"
+
+
+# Use a macro to insert the `NUMERIC_COMPLETE_alias` command so that
+# numeric completion can be triggered.  This is better than using
+# complete -D because commands can already have their own completion
+# function.  (Many can have _longopt as the completion function) This
+# guarantees that numeric completion will be performed.
 
 # '\e ': set the mark
 # '\C-an ' insert the n alias command to trigger completion
@@ -593,9 +609,17 @@ complete -o filenames -o noquote -F ncmp_complete "${NUMERIC_COMPLETE_alias}"
 # '0in \e'  insert 'n '
 # '`zll'    jump back to position (only saves column position not text position so ll)
 # 'a\t'     trigger completion
-command bind -m emacs \""${NUMERIC_COMPLETE_prefix}${NUMERIC_COMPLETE_complete}"'":"\e \C-an \C-x\C-x\C-f\C-f\t"'
-command bind -m vi-insert \""${NUMERIC_COMPLETE_prefix}${NUMERIC_COMPLETE_complete}"'":"\emz0in \e`zlla\t"'
-command bind 'set show-all-if-ambiguous on'
+
+
+command bind -m emacs \""${NUMERIC_COMPLETE_prefix}${NUMERIC_COMPLETE_complete}"'":"\e \C-a'"${NUMERIC_COMPLETE_alias}"' \C-x\C-x'"${NUMERIC_COMPLETE_alias//?/\\C-f}"'\C-f\t"'
+command bind -m vi-insert \""${NUMERIC_COMPLETE_prefix}${NUMERIC_COMPLETE_complete}"'":"\emz0i'"${NUMERIC_COMPLETE_alias}"' \e`z'"$((${#NUMERIC_COMPLETE_alias}+1))"'la\t"'
+
+# Remove ${#NUMERIC_COMPLETE_alias} worth of characters from the
+# beginning and an extra space.  I cannot find any way to check whether
+# the command is the alias or not, so it will always just remove a number
+# of characters.
+command bind -m emacs \""${NUMERIC_COMPLETE_prefix}${NUMERIC_COMPLETE_normal}"'":"'"${NUMERIC_COMPLETE_alias//?/\\C-b}"'\C-b\e \C-a'"${NUMERIC_COMPLETE_alias//?/\\C-d}"'\C-d\C-x\C-x \C-b\C-d"'
+command bind -m vi-insert \""${NUMERIC_COMPLETE_prefix}${NUMERIC_COMPLETE_normal}"'":"\e'"$((${#NUMERIC_COMPLETE_alias}+1))h"'mz0'"$((${#NUMERIC_COMPLETE_alias}+1))x"'`za"'
 
 
 # testing
