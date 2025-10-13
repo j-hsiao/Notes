@@ -102,6 +102,31 @@ ______________________________
 		creation:
 			declare varname
 			varname=value
+
+			NOTE: declare will create a local variable if called in function scope.
+
+				example1:
+					somescript:
+						declare -A myvar
+
+					func() {
+						. somescript
+						# Even though the declare is in script scope in its own script,
+						# if sourced from inside a function, then it becomes function
+						# scope.
+					}
+
+					# myvar does not exist
+					func
+					# myvar still does not exist
+					# The script is sourced inside a function so the declare
+					# ends up as function scope
+					. somescript
+					# now myvar exists.
+
+
+
+
 		creation from other var
 			printf format string and save under var name
 				printf -v "${variable_containing_target_name}" 'format_string' args...
@@ -265,10 +290,11 @@ ______________________________
 			   shadowed by other variables.
 
 			Assignment scopes:
-				Assignments will result in a local or global variable, but
-				behavior can differ.
+				Assignments seem to search up the call stack and find the first
+				instance (if it exists) of the variable with the same name until
+				it hits global scope.
 
-				example:
+				example2:
 					outer()
 					{
 						local localvar
