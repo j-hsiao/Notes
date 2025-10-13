@@ -10,6 +10,12 @@ then
 	# the directory this function is defined in.
 	load_dir_scripts()
 	{
+		local idx=0
+		while ((++idx < ${#FUNCNAME[@]}))
+		do
+			[[ "${FUNCNAME[idx]}" = "${FUNCNAME[0]}" ]] && return
+		done
+
 		local dname f args=("${@}")
 		# Shift args so they are not used by sourced files.
 		shift "${#}"
