@@ -11,9 +11,9 @@
 # Default cache size
 NCMP_CACHE_SIZE=${NCMP_CACHE_SIZE:-10}
 
-. "${BASH_SOURCE[0]%numeric_complete.sh}shoptstack.sh"
-. "${BASH_SOURCE[0]%numeric_complete.sh}chinfo.sh"
-. "${BASH_SOURCE[0]%numeric_complete.sh}cache.sh"
+. "${BASH_SOURCE[0]/%numeric_complete.sh/util}/shoptstack.sh"
+. "${BASH_SOURCE[0]/%numeric_complete.sh/util}/chinfo.sh"
+. "${BASH_SOURCE[0]/%numeric_complete.sh/util}/cache.sh"
 ch_make NCMP_CACHE ${NCMP_CACHE_SIZE}
 
 # Store internal state
