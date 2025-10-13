@@ -574,6 +574,9 @@ ncmp_complete() # <cmd> <word> <preword>
 }
 
 NUMERIC_COMPLETE_alias="${NUMERIC_COMPLETE_alias:-n}"
+NUMERIC_COMPLETE_prefix="${NUMERIC_COMPLETE_prefix:;}"
+NUMERIC_COMPLETE_complete="${NUMERIC_COMPLETE_complete:l}"
+
 alias "${NUMERIC_COMPLETE_alias}"=''
 
 complete -o filenames -o noquote -F ncmp_complete "${NUMERIC_COMPLETE_alias}"
@@ -590,8 +593,8 @@ complete -o filenames -o noquote -F ncmp_complete "${NUMERIC_COMPLETE_alias}"
 # '0in \e'  insert 'n '
 # '`zll'    jump back to position (only saves column position not text position so ll)
 # 'a\t'     trigger completion
-command bind -m emacs \""${NUMERIC_COMPLETE_prefix}${NUMERIC_COMPLETE_default}"'":"\e \C-an \C-x\C-x\C-f\C-f\t"'
-command bind -m vi-insert \""${NUMERIC_COMPLETE_prefix}${NUMERIC_COMPLETE_default}"'":"\emz0in \e`zlla\t"'
+command bind -m emacs \""${NUMERIC_COMPLETE_prefix}${NUMERIC_COMPLETE_complete}"'":"\e \C-an \C-x\C-x\C-f\C-f\t"'
+command bind -m vi-insert \""${NUMERIC_COMPLETE_prefix}${NUMERIC_COMPLETE_complete}"'":"\emz0in \e`zlla\t"'
 command bind 'set show-all-if-ambiguous on'
 
 
