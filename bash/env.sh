@@ -3,6 +3,116 @@
 
 ROOTDIR="$(realpath "$(dirname "${BASH_SOURCE[0]}")")"
 
+findch() # <text> <char> [out=RESULT] [start=0]
+{
+	# Find char in text.
+	local fch__idx=$((${4:-0}-1))
+	local -n fch__out="${3:-RESULT}"
+	while ((++fch__idx < ${#1}))
+	do
+		if [[ "${1:fch__idx:1}" = "${2}" ]]
+		then
+			fch__out="${fch__idx}"
+			return
+		fi
+	done
+	fch__out=-1
+}
+
+split() # <text> [out=RESULT] [delim=$'\n']
+{
+	# split <text> into lines by [delim] and append to [out]
+	local -n splt__out="${2:-RESULT}"
+	local start=0 delim="${3:-$'\n'}" stop
+
+	findch "${1}" "${delim}" stop "${start}"
+	while ((stop >= 0))
+	do
+		splt__out[${#splt__out[@]}]="${1:start:stop-start}"
+		((start = stop+1))
+		findch "${1}" "${delim}" stop "${start}"
+	done
+	if ((start < ${#1}))
+	then
+		splt__out[${#splt__out[@]}]="${1:start}"
+	fi
+}
+
+decadd() # <lines> <data> <dec> [trim]
+{
+	# Search through <lines> and remove lines wrapped by <dec>.
+	# Add <data> at the end (with [trim] removed if applicable)
+	# wrapped in <dec>.  <dec> should NOT contain new lines.
+	local -n dcad__lines="${1}"
+	local idx=-1 out=-1 inserting=0 didx=-1
+	local datalines=()
+	split "${2%"${4}"}" datalines
+
+	while ((++idx < "${#dcad__lines[@]}"))
+	do
+		if [[ "${dcad__lines[idx]}" = "${3}" ]]
+		then
+			if ((inserting = ! inserting))
+			then
+				didx=0
+				if ((idx != ++out))
+				then
+					dcad__lines[out]="${3}"
+				fi
+			else
+				if ((didx < ${#datalines[@]}))
+				then
+					local remainder
+					printf -v remainder '%s\n' "${datalines[@]:didx}"
+					dcad__lines[++out]="${remainder}${3}"
+				else
+					if ((idx != ++out))
+					then
+						dcad__lines[out]="${3}"
+					fi
+				fi
+			fi
+			continue
+		fi
+		if ((inserting))
+		then
+			if ((didx < ${#datalines[@]}))
+			then
+				dcad__lines[++out]="${datalines[didx++]}"
+			fi
+		elif ((idx != ++out))
+		then
+			dcad__lines[out]="${dcad__lines[idx]}"
+		fi
+	done
+	((idx=out++))
+	while ((${#dcad__lines[@]} > out))
+	do
+		unset dcad__lines[++idx]
+	done
+	if ((didx < 0))
+	then
+		dcad__lines+=("${3}" "${datalines[@]}" "${3}")
+	fi
+}
+
+replace_section() # <file> <data> <delimline> [isfile=0]
+{
+	# Replace anything within <delimline> in <file> with <data>
+	# if [isfile], then <data> is actually a file path.
+	local lines=()
+	readarray -t lines < "${1}"
+	if ((${4:-0}))
+	then
+		local data="$(cat ${2} && echo x)"
+		data="${data%x}"
+		decadd lines "${data}" "${3}"
+	else
+		decadd lines "${2}" "${3}"
+	fi
+	printf '%s\n' "${lines[@]}" > "${1}"
+}
+
 capp() {
 	# capp <src> <target> [trim]
 	# Conditionally append text to the target file.
@@ -72,36 +182,38 @@ redirect_cmd() {
 setup_vim() {
 	local vimdir
 	vimdir="${ROOTDIR}/../editors/vim"
-	ccat "${vimdir}/.vimrc" "${HOME}/.vimrc"
+
+	${DRYRUN:+echo} replace_section "${HOME}/.vimrc" "${vimdir}/.vimrc" "\" ${vimdir}/.vimrc" 1
 	${DRYRUN:+echo} bash "${vimdir}/makeft.sh"
 	local loc
-	for loc in 'autoload' plugin
+	for loc in 'autoload' 'plugin'
 	do
 		if [[ ! -d "${HOME}/.vim/${loc}" ]]
 		then
 			${DRYRUN:+echo} mkdir -p "${HOME}/.vim/${loc}"
 		fi
-		local f
-		for f in "${vimdir}/vim/${loc}"/*
+		local src
+		for src in "${vimdir}/vim/${loc}"/*
 		do
-			local target="${HOME}/.vim/${loc}/${f##*/}"
-			if [[ ! -e "${target}" ]]
+			local target="${HOME}/.vim/${loc}/${src##*/}"
+			if [[ ! -e "${target}" ]] || ! diff "${target}" "${src}"
 			then
-				${DRYRUN:+echo} "${CREATE[@]}" "${f}" "${target}"
-			elif [[ -n "${DRYRUN}" ]]
-			then
-				echo "${target} already exists"
+				${DRYRUN:+echo} "${CREATE[@]}" "${src}" "${target}"
+				echo "Update script path: \"${target}\"."
+			else
+				echo "Exists and matches: \"${target}\"."
 			fi
 		done
 	done
 }
 
 setup_readline() {
-	ccat "${ROOTDIR}/../readline/inputrc" "${HOME}/.inputrc"
+	local refpath="${ROOTDIR}/../readline/inputrc"
+	${DRYRUN:+echo} replace_section "${HOME}/.inputrc" "${refpath}" "# ${refpath}" 1
 }
 
 setup_bash() {
-	local scriptdirs=()
+	local scriptdirs=('')
 	local d=
 	for d in "${HOME}/scripts" "${HOME}/.scripts"
 	do
@@ -115,15 +227,27 @@ setup_bash() {
 		scriptdirs+=("${ROOTDIR}/wsl")
 	fi
 
-	capp "$(printf '%s\n' ". \"${ROOTDIR}/scripts/load.sh\" \\" "" "${scriptdirs[@]}" \
-		| sed '2,$s/\(.*\)/\t'\''\1'\'' \\/')" "${HOME}/.bashrc"
+	local idx=-1
+	while ((++idx < ${#scriptdirs[@]}))
+	do
+		scriptdirs[idx]=$' \\\n\t'"'${scriptdirs[idx]}'"
+	done
+
+	local data
+	printf -v data '%s' ". '${ROOTDIR}/scripts/load.sh'" "${scriptdirs[@]}" $'\n'
+	${DRYRUN:+echo} replace_section "${HOME}/.bashrc" "${data}" "# ${ROOTDIR}"
 }
 
 
 
 run_setup_env() {
 	local DRYRUN=''
-	local CREATE=(ln -s)
+	if [[ "$(uname -a)" =~ .*'CYGWIN'.* ]]
+	then
+		local CREATE=(cp)
+	else
+		local CREATE=(ln -s)
+	fi
 
 	while ((${#}))
 	do
@@ -158,7 +282,7 @@ Display this help message
 		shift
 	done
 
-	for func in setup_vim setup_readline setup_bash
+	for func in setup_bash #setup_vim setup_readline setup_bash
 	do
 		if [[ -n "${DRYRUN}" ]]
 		then
