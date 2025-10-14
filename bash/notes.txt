@@ -224,6 +224,32 @@ ______________________________
 
 				pattern should be single-char, and if omitted, defaults to ?
 
+			operator expansions
+				${parameter@operator}
+
+				U      lowercase alphabetic characters converted to uppercase.
+				u      the first character converted to uppercase, if it is alphabetic.
+				L      uppercase alphabetic characters converted to lowercase.
+				Q      quoted in a format that can be reused as input.
+				E      backslash escape sequences expanded as with the $'...' quoting
+				       mechanism.
+				P      expand the value of parameter as if it were a prompt string
+				A      An assignment statement or declare command that, if evaluated,
+				       will recreate parameter with its attributes and value.
+				K      Produces a possibly-quoted version of the value of parameter,
+				       except that it prints the values of indexed and associative
+				       arrays as a sequence of quoted key-value pairs
+				a      The expansion is a string consisting of flag values representing
+				       parameter's attributes.
+
+			Other expansions
+				${!prefix*@}: list of variables
+				${!array[*@]}: list of keys
+					As usual, @ in double quotes will expand to separate words.
+					* in double quotes just a single string.
+
+
+
 		______________________________
 		-0.2.1- quoting
 			Variable expansion quoting can be inside or outside the expansion
