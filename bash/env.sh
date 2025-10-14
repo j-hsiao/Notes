@@ -190,7 +190,7 @@ redirect_cmd() {
 
 setup_vim() {
 	local vimdir
-	vimdir="${ROOTDIR}/../editors/vim"
+	vimdir="${ROOTDIR%/bash*}/editors/vim"
 
 	${DRYRUN:+echo} replace_section "${HOME}/.vimrc" "${vimdir}/.vimrc" "\" ${vimdir}/.vimrc" 1
 	${DRYRUN:+echo} bash "${vimdir}/makeft.sh"
@@ -217,7 +217,7 @@ setup_vim() {
 }
 
 setup_readline() {
-	local refpath="${ROOTDIR}/../readline/inputrc"
+	local refpath="${ROOTDIR%/bash*}/readline/inputrc"
 	${DRYRUN:+echo} replace_section "${HOME}/.inputrc" "${refpath}" "# ${refpath}" 1
 }
 
@@ -298,15 +298,19 @@ Display this help message
 		shift
 	done
 
-	for func in setup_bash #setup_vim setup_readline setup_bash
+	local func
+	while read func
 	do
-		if [[ -n "${DRYRUN}" ]]
+		func="${func##* }"
+		if [[ "${func}" =~ ^'setup' ]]
 		then
-			printf '______________________________\n%s\n------------------------------\n' "${func}"
+			if [[ -n "${DRYRUN}" ]]
+			then
+				printf '______________________________\n%s\n------------------------------\n' "${func}"
+			fi
+			"${func}"
 		fi
-		"${func}"
-	done
+	done < <(declare -F)
 }
-
 
 run_setup_env "${@}"
