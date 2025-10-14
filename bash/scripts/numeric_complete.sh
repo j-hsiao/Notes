@@ -668,8 +668,11 @@ ncmp_complete() # <cmd> <word> <preword>
 	]]
 	then
 		# shortcut to select from the last item, ex. if selecting multiple items from same directory
-		local RESULT
-		ncmp_escape2shell "${NCMP_CACHE[NCMP_CACHE[NCMP_CACHE[1]*3 + NCMP_CACHE_STATE - 1 + ${2}]]}" RESULT
+		local RESULT="${2}"
+		ncmp_escape2shell "${NCMP_CACHE[NCMP_CACHE[NCMP_CACHE[1]*3 + NCMP_CACHE_STATE - 1 + RESULT]]}" RESULT
+		# Evaluating the offset index within the [] causes error token error message
+		# in cygwin bash 5.2.21
+		# ncmp_escape2shell "${NCMP_CACHE[NCMP_CACHE[NCMP_CACHE[1]*3 + NCMP_CACHE_STATE - 1 + ${2}]]}" RESULT
 		COMPREPLY=("${NCMP_CACHE[2]}${RESULT}")
 		return
 	fi
@@ -692,8 +695,11 @@ ncmp_complete() # <cmd> <word> <preword>
 			&& "${bname:${#NCMP_CACHE[0]}}" -le "$((${#NCMP_CACHE[@]} - (NCMP_CACHE[1]*3 + NCMP_CACHE_STATE)))" \
 		]]
 		then
-			local RESULT
-			ncmp_escape2shell "${NCMP_CACHE[NCMP_CACHE[NCMP_CACHE[1]*3 + NCMP_CACHE_STATE-1 + ${bname:${#NCMP_CACHE[0]}}]]}" RESULT
+			local RESULT="${bname:${#NCMP_CACHE[0]}}"
+			ncmp_escape2shell "${NCMP_CACHE[NCMP_CACHE[NCMP_CACHE[1]*3 + NCMP_CACHE_STATE - 1 + RESULT]]}" RESULT
+			# Evaluating the offset index within the [] causes error token error message
+			# in cygwin bash 5.2.21
+			# ncmp_escape2shell "${NCMP_CACHE[NCMP_CACHE[NCMP_CACHE[1]*3 + NCMP_CACHE_STATE - 1 + ${2}]]}" RESULT
 			COMPREPLY=("${dname}${RESULT}")
 			unset NCMP_CACHE[0]
 			return
