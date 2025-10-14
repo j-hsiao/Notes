@@ -7,7 +7,7 @@ function! s:VisualSearch(chr)
 	endif
 	let col1 -= 1
 	let query = strpart(getline('.'), col1, col2-col1)
-	return "\<Esc>" . a:chr . '\V' . escape(query, '\') . "\<CR>"
+	return "\<Esc>" . a:chr . '\V' . escape(query, '\/') . "\<CR>"
 endfunction
 
 if maparg("*", 'v') == ''
