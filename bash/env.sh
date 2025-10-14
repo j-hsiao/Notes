@@ -96,21 +96,30 @@ decadd() # <lines> <data> <dec> [trim]
 	fi
 }
 
-replace_section() # <file> <data> <delimline> [isfile=0]
+replace_section() # <file> <data> <delimline> [isfile=0] ...
 {
 	# Replace anything within <delimline> in <file> with <data>
 	# if [isfile], then <data> is actually a file path.
+	# Multiple sets of <data> <delimline> [isfile] can be given
+	# (In this case, isfile is required except for the last one)
+	# though <delimline> should all be unique within a single call.
 	local lines=()
-	readarray -t lines < "${1}"
-	if ((${4:-0}))
-	then
-		local data="$(cat ${2} && echo x)"
-		data="${data%x}"
-		decadd lines "${data}" "${3}"
-	else
-		decadd lines "${2}" "${3}"
-	fi
-	printf '%s\n' "${lines[@]}" > "${1}"
+	local target="${1}"
+	readarray -t lines < "${target}"
+	shift 1
+	while ((${#}))
+	do
+		if ((${3:-0}))
+		then
+			local data="$(cat ${1} && echo x)"
+			data="${data%x}"
+			decadd lines "${data}" "${2}"
+		else
+			decadd lines "${1}" "${2}"
+		fi
+		shift 3
+	done
+	printf '%s\n' "${lines[@]}" > "${target}"
 }
 
 capp() {
@@ -230,15 +239,22 @@ setup_bash() {
 	local idx=-1
 	while ((++idx < ${#scriptdirs[@]}))
 	do
-		scriptdirs[idx]=$' \\\n\t'"'${scriptdirs[idx]}'"
+		scriptdirs[idx]=$' \\\n\t'"\"${scriptdirs[idx]/#"${HOME}"/'${HOME}'}\""
 	done
 
+	if [[ -d "${HOME}/.pyenv/versions" ]]
+	then
+		local envsdir='${HOME}/.pyenv/versions'
+	else
+		local envsdir='${HOME}/envs'
+	fi
+
 	local data
-	printf -v data '%s' ". '${ROOTDIR}/scripts/load.sh'" "${scriptdirs[@]}" $'\n'
-	${DRYRUN:+echo} replace_section "${HOME}/.bashrc" "${data}" "# ${ROOTDIR}"
+	printf -v data '%s' ". \"${ROOTDIR/#"${HOME}"/'${HOME}'}/scripts/load.sh\"" "${scriptdirs[@]}" $'\n'
+	${DRYRUN:+echo} replace_section "${HOME}/.bashrc" \
+		"${data}" "# ${ROOTDIR}: scripts" 0 \
+		"PYTHON_ENVS_DIR=\"${envsdir}\"" "# ${ROOTDIR}: e.sh" 0
 }
-
-
 
 run_setup_env() {
 	local DRYRUN=''
