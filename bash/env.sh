@@ -253,7 +253,7 @@ setup_bash() {
 	printf -v data '%s' ". \"${ROOTDIR/#"${HOME}"/'${HOME}'}/scripts/load.sh\"" "${scriptdirs[@]}" $'\n'
 	${DRYRUN:+echo} replace_section "${HOME}/.bashrc" \
 		"${data}" "# ${ROOTDIR}: scripts" 0 \
-		"PYTHON_ENVS_DIR=\"${envsdir}\"" "# ${ROOTDIR}: e.sh" 0
+		"PYTHON_ENVS_DIR=\"\${PYTHON_ENVS_DIR:-${envsdir}}\"" "# ${ROOTDIR}: e.sh" 0
 }
 
 run_setup_env() {
