@@ -1,0 +1,204 @@
+-1- mean/var
+	-1.0- Alternative variance formulas
+	-1.1- streamed calcs
+		-1.1.1- infinite stream
+		-1.1.2- finite stream
+
+------------------------------
+-1- mean/var
+------------------------------
+population statistics:
+	population mean = sum of population / population size
+	population variance = (sum of (population - population mean)**2) / population size
+
+Sample: A set of N measurements taken from a population
+
+Sample statistics:
+	sample mean = sum of sample / N
+	sample variance = (sum of (sample - sample mean)**2) / N
+
+Samples are used to estimate the population:
+	sample mean estimates population mean
+	sample variance underestimates population variance
+	"unbiased sample variance" ("Bessel's correction") ?estimates? population variance
+		Divide by (N - DOF) instead of (samplesize), DOF is usually 1
+
+There are many different possible sets of samples of size N that can be taken
+from a population.  Each will have its own mean/variance.  According to the
+Central Limit Theorem, even if the population is not normally distributed, the
+distribution of the sample means (if sample size is large enough) is (at least approximately).
+
+This means for testing, we want
+	1. mean of the (mean of samples of size N)
+	   This is just the population mean (estimated by sample mean)
+	2. variance of the (mean of samples of size N)
+	   Consider each value is taken independently so the equation of the sample mean is
+	   (X1 + X2 ... + XN) / N
+	   However, VAR(X+Y) = VAR(X) + VAR(Y) and VAR(N*X) = N**2 * VAR(X)
+
+		   VAR((X1 + X2 + ... + XN) / N) = (1/N)**2 * VAR((X1 + X2 + ... + XN))
+		                                 = (1/N)**2 * VAR(X1) + VAR(X2) + ... + VAR(XN)
+		                                 = (1/N)**2 * (N*VAR(X))
+		                                 = (N * VAR(X)) / (N * N)
+		                                 = VAR(X) / N
+
+		Each Xi is taken from the same X population so VAR(Xi) = VAR(X)
+		This means the variance of sample means is the (population variance / N)
+		where population variance is estimated with the "unbiased sample variance"
+
+sidenote:
+	standard deviation is sqrt(variance).  Because the variance of the mean
+	is (population variance) / N, the standard deviation of the mean is
+	sqrt((population variance) / N)
+	= sqrt(population variance) / sqrt(N)
+	= (population standard deviation) / sqrt(N)
+
+	------------------------------
+	-1.0- Alternative variance formulas
+	------------------------------
+	D*V(N) = sum(x(i)**2)/N - N*X(N)**2
+
+	derivation:
+		D(N)*V(N) = sum((X(N) - x(n))**2)
+		          = sum(X(N)**2 - 2 * X(N) * x(i) + x(i)**2)     # Expand the squaring:
+		          = N*X(N)**2 sum(-2 * X(N) * x(i) + x(i)**2)    # X(N) is constant with regards to i:
+		          = N*X(N)**2 + sum(-2*X(N)*x(i)) + Q(N)         # sums are associative
+		          = N*X(N)**2 + -2*X(N)*S(N) + Q(N)
+		          = N*X(N)**2 + -2*X(N)*S(N)*N/N + Q(N)
+		          = N*X(N)**2 + -2N*X(N)*X(N) + Q(N)
+		          = N*X(N)**2 + -2N*X(N)**2 + Q(N)
+		          = -N*X(N)**2 + Q(N)
+		          = Q(N) - N*X(N)**2
+		          = Q(N) - N*(S(N)/N)**2
+		          = Q(N) - (S(N)**2)/N
+
+	(sum(i)sum(j)(xi-xj)**2) / (2N*(N-1))
+		This formulation is the average squared difference between any 2 values:
+		n*n differences
+		or n*(n-1) unique differences where i != j
+			n values where i == j, so n*n - n = n*(n-1)
+		where's the 2 come from? not sure... maybe because mean is in the middle?
+		(n-1 is the bessel's correction)
+
+	------------------------------
+	-1.1- streamed calcs
+	------------------------------
+	Sometimes measurements would be "streamed".
+	The samples can grow infinitely or remain finite.
+
+	x(i) is the ith value
+	X(i) is the ith mean
+	V(i) is the ith variance
+	S(i) is the sum of x(0) to x(i)
+	Q(i) is the sum of x(0)**2 to x(i)**2
+	D(N) is N or N-1 for the variance formula.
+
+		------------------------------
+		-1.1.1- infinite stream
+		------------------------------
+		These calculations are for calculating mean/variance for all
+		values seen from the start of measurement.
+		(welford's algorithm)
+
+		Initialization:
+			For the first value x(0), mean X(0) is x(0) and variance is 0.
+		Update:
+			let M = N-1
+			let i indicate from 0 to M or N
+			For a new value x(N):
+				mean:
+					X(M) = S(M) / M
+					X(N) = S(N) / N
+					     = (S(M) + x(N))/N
+					     = (X(M)*M + x(N))/N
+					     = (X(M)*M + (X(M) - X(M)) + x(N))/N
+					     = (X(M)*N - X(M) + x(N))/N
+					     = X(M) + (x(N) - X(M))/N
+
+				variance:
+					V(M) = sum((X(M) - x(i))**2) / D
+					D(M)*V(M) = Q(M) - M*X(M)**2
+					D(N)*V(N) = Q(N) - N*X(N)**2
+					          = Q(M) + x(N)**2 - N*X(N)**2                                  # Separate the x(N)**2 term from sum
+					          = D(M)*V(M) + M*X(M)**2 + x(N)**2 - N*X(N)**2                 # substitute D*V(M) equation
+					          = D(M)*V(M) + S(M)*X(M) + x(N)**2 - S(N)*X(N)                 # substitute D*V(M) equation
+					          = D(M)*V(M) + S(M)*X(M) + x(N)**2 - (S(M)+x(N))*X(N)          # substitute D*V(M) equation
+					          = D(M)*V(M) + S(M)*X(M) + x(N)**2 - S(M)*X(N) - x(N)*X(N)     # substitute D*V(M) equation
+					          = D(M)*V(M) + x(N)*(x(N) - X(N)) + S(M)*X(M) - S(M)*X(N)      # regroup
+					          = D(M)*V(M) + x(N)*(x(N) - X(N)) + S(M)*(S(M)/M-S(N)/N)
+					          = D(M)*V(M) + x(N)*(x(N) - X(N)) + S(M)*(N*S(M) - M*S(N))/NM
+					          = D(M)*V(M) + x(N)*(x(N) - X(N)) + X(M)*(N*S(M) - M*S(N))/N
+					          = D(M)*V(M) + x(N)*(x(N) - X(N)) + X(M)*(N*(S(N) - x(N)) - M*S(N))/N
+					          = D(M)*V(M) + x(N)*(x(N) - X(N)) + X(M)*(N*S(N) - N*x(N) - M*S(N))/N
+					          = D(M)*V(M) + x(N)*(x(N) - X(N)) + X(M)*(S(N) - N*x(N))/N
+					          = D(M)*V(M) + x(N)*(x(N) - X(N)) + X(M)*(X(N) - x(N))
+					          = D(M)*V(M) + x(N)*(x(N) - X(N)) - X(M)*(x(N) - X(N))
+					          = D(M)*V(M) + (x(N) - X(M))*(x(N) - X(N))
+
+			According to wiki, D*V(N) is the better value to track and is more
+			numerically stable.
+
+			If you can store more variables,
+			maybe storing S(N) and Q(N) would be best?
+			mean: S(N) / N
+			variance: (Q(N) - S(N)*X(N))/D(N)
+
+			S(N) and Q(N) are easier to update with new values.
+
+			analysis:
+				welford updates:
+					state: 2mul 1add 2sub 1 div
+					var:
+				stable updates
+					state: 1add 2sub 1mul
+					var: 1div
+				sum/sumsq:
+					state: 2add 1mul
+					var: 1sub 1mul 1div
+
+				best state update: sum/sumsq
+				best net calcs: stable updates
+
+		------------------------------
+		-1.1.2- finite stream
+		------------------------------
+		Sometimes, only the stats for the most recent N items are desired.
+		The most recent N values must be stored. (deque, circular buffer, etc)
+
+		Initialization: i < N
+			1. Use infinite stream calculations.  This requires checking that i < N
+			   and then switching calculations.
+			2. Initialize the entire buffer with the first value.
+			   This means the first i stats will be approximated, but no need to check
+			   whether the buffer has reached N, and can just always use the same
+			   calculations.
+
+		update
+			n = new
+			o = old
+
+			X(n) = (X(o) * N - x(o) + x(n)) / N
+			     = X(o) + (x(n) - x(o))/N
+
+			DV(n) = Q(n) - N*X(n)**2
+			      = Q(o) - x(o)**2 + x(n)**2 - N*(X(o) + (x(n)-x(o))/N)**2
+			      = Q(o) - x(o)**2 + x(n)**2 - N*(X(o)**2 + 2*X(o)(x(n)-x(o))/N + ((x(n)-x(o))/N)**2)
+			      = Q(o) - N*X(o)**2 - x(o)**2 + x(n)**2 - 2*X(o)(x(n)-x(o)) - ((x(n)-x(o))**2)/N
+			      = DV(o) + (x(n) + x(o))*(x(n) - x(o)) - 2X(o)(x(n) - x(o)) - ((x(n) - x(o))**2) / N
+			      = DV(o) + (x(n) - x(o)) * (x(n) + x(o) - 2X(o) - (x(n) - x(o))/N)
+			      = DV(o) + (x(n) - x(o)) * (x(n) + x(o) - 2X(o) - X(n) + X(o))
+			      = DV(o) + (x(n) - x(o)) * (x(n) + x(o) - X(o) - X(n))
+
+			analysis:
+				sum/sumsq:
+					state: 2add 2mul 2sub
+					var: 1sub 1mul 1div
+				stable altwel:
+					state: 2add 1mul 3sub
+					var: 1div
+				altwel
+					state: 2add 2mul 3sub 1div
+					var:
+
+				best state update: tied
+				best net calcs: stable
