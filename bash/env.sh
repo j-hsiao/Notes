@@ -1,6 +1,11 @@
 #!/bin/bash
 # setup my preferred bash environment
 
+# Using environment is ?probably? reliable and on Cygwin does not have
+# the extra subprocess overhead.
+! [[ "${PATH}" =~ ':/cygdrive/' ]]; IS_CYGWIN=$?
+! [[ -n "${!WSL_*}" ]]; IS_WSL=$?
+
 ROOTDIR="$(realpath "$(dirname "${BASH_SOURCE[0]}")")"
 
 findch() # <text> <char> [out=RESULT] [start=0]
@@ -231,9 +236,13 @@ setup_bash() {
 			scriptdirs+=("${d}")
 		fi
 	done
-	if grep 'microsoft.*WSL' < <(uname -a) &>/dev/null
+	if ((IS_WSL))
 	then
 		scriptdirs+=("${ROOTDIR}/wsl")
+	fi
+	if ((IS_CYGWIN))
+	then
+		scriptdirs+=("${ROOTDIR}/cygwin")
 	fi
 
 	local idx=-1
@@ -258,7 +267,7 @@ setup_bash() {
 
 run_setup_env() {
 	local DRYRUN=''
-	if [[ "$(uname -a)" =~ .*'CYGWIN'.* ]]
+	if ((IS_CYGWIN))
 	then
 		local CREATE=(cp)
 	else
