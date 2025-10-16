@@ -6,7 +6,16 @@ PYTHON_ENVS_DIR="${PYTHON_ENVS_DIR:-${HOME}/.pyenv/versions}"
 
 . "${BASH_SOURCE[0]/%e.sh/util}/shoptstack.sh"
 
-e() { . "${1}/bin/activate"; }
+e() {
+	if [[ -f "${1}/bin/activate" ]]
+	then
+		. "${1}/bin/activate"
+	else
+		# windows python env usually has \r\n in the
+		# script file which causes issues for bash.
+		. <(tr -d '\r' < "${1}/Scripts/activate")
+	fi
+}
 
 _e_completer()
 {
