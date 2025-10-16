@@ -396,7 +396,7 @@ ncmp_read_dir() # <dname> [force=]
 
 		ss_push extglob globasciiranges
 		NCMP_CACHE=()
-		readarray -O${NCMP_CACHE_STATE} -t NCMP_CACHE < <(ls -Apb --color=always "${1}" 2>/dev/null)
+		readarray -O${NCMP_CACHE_STATE} -t NCMP_CACHE < <(ls -Apb --color="${NUMERIC_COMPLETE_color:-never}" "${1}" 2>/dev/null)
 		# https://en.wikipedia.org/wiki/ANSI_escape_code
 		# [0x30–0x3F]*  (0–9:;<=>?)
 		# [0x20–0x2F]*  ( !"#$%&'()*+,-./)
