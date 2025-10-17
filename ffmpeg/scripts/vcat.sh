@@ -36,18 +36,23 @@ get_pattern() {
 	fi
 }
 
-guess_name() {
+guess_name() # <path> <backup name> [output=OUT]
+{
 	local path="${1}" bname dname
 	local guess_name_bak="${2}"
 	local -n guess_name_out="${3:-OUT}"
 	if [[ -f "${path}" ]]
 	then
+		guess_name_out="${path%.*}"
+		return
 		# filename is probably name of camera
 		# so the dirname is the name of the case
 		dname="$(basename "$(dirname "${path}")")"
 		bname="$(basename "${path}")"
 	elif [[ "${path}" =~ .*%[0-9]*d.*\.(jpg|jpeg|png) ]]
 	then
+		guess_name_out="${path%/*}"
+		return
 		# ffmpeg image sequence
 		dname="$(dirname "${path}")"
 		bname="$(basename "${dname}")"
@@ -205,7 +210,7 @@ run() {
 				fi
 				;;
 			*)
-				iname="${1}"
+				local iname="${1}"
 				local title= fps= arg extra_args=()
 				while [[ "${iname}" =~ .*::.* ]]
 				do
@@ -233,7 +238,7 @@ run() {
 				XEXTRA+=("${#IEXTRA[@]}" "${#extra_args[@]}")
 				IEXTRA+=("${extra_args[@]}")
 
-				local iname="$(realpath "${iname}")"
+				# local iname="$(realpath "${iname}")"
 				if [[ -d "${iname}" ]]
 				then
 					local fnames=("${iname}"/*) pattern npre nsuf title
