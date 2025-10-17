@@ -617,6 +617,19 @@ argument formats:
 		------------------------------
 		-5.2.10- drawtext
 		------------------------------
+			NOTE: Not all fonts support unicode etc.
+			If the given font name is not found, then it seems to default to 'Sans'
+			and find whichever first *Sans* font exists.
+			For some chiense fonts, it seems like
+			ubuntu:
+				apt install fonts-arphic-* fonts-cns11643-*
+
+			Font names do not necessarily match the font file in /usr/share/fonts/
+			Use fc-list to list all the fonts
+			fc-list :lang=zh -v | grep family:
+
+
+
 			box           0/1     draw a box using background color
 			boxborderw    int     width of box border
 			boxcolor      color   defaults to white
