@@ -115,6 +115,8 @@ run() {
 	add numbers to frames
 [-f|--fps] fps
 	Specify target fps
+[--font] font
+	specify the font to use
 [-s|--size] WxH
 	The output video size.
 [-g|--gop] nframes
@@ -154,6 +156,7 @@ run() {
 	local ISDIR=()
 	local NUMBER=0
 	local TITLECARD=
+	local FONT=
 	local OUT=out.mp4
 	local OFLAGS=(-c:v libx264 -profile:v high -pix_fmt yuv420p)
 	while ((${#}))
@@ -170,6 +173,10 @@ run() {
 			-g|--gop)
 				shift
 				GOP="${1}"
+				;;
+			--font)
+				shift
+				FONT="${1}"
 				;;
 			-f|--fps)
 				shift
@@ -324,7 +331,7 @@ run() {
 		if [[ -n "${TITLECARD}" ]]
 		then
 			FFIN+=(-f lavfi -r "${FPS}" -t ${TITLECARD} -i "color=white:${OWIDTH}x${OHEIGHT}")
-			FILTERGRAPH="${FILTERGRAPH:+${FILTERGRAPH};}[${ffidx}:v:0]drawtext=fontsize=32:text=${TITLES[inidx]}:x=(w-tw)/2:y=(h-lh)/2[filt${ffidx}]"
+			FILTERGRAPH="${FILTERGRAPH:+${FILTERGRAPH};}[${ffidx}:v:0]drawtext=${FONT:+font="${FONT}":}fontsize=32:text=${TITLES[inidx]}:x=(w-tw)/2:y=(h-lh)/2[filt${ffidx}]"
 			CONCATSRC="${CONCATSRC}[filt${ffidx}]"
 			((++ffidx))
 		fi
