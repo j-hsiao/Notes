@@ -495,7 +495,7 @@ cnoremap <expr> u<CR> getcmdtype() == ':' && getcmdline() == '' ? "up<Bslash><lt
 
 "Make insert-mode C-u and C-w  undoable
 execute jhsiaoextendmap#ExtendMap("<C-U>", 'i', '<C-G>u', v:true)
-execute jhsiaoextendmap#ExtendMap("<C-U>", 'i', '<C-G>u', v:true)
+execute jhsiaoextendmap#ExtendMap("<C-W>", 'i', '<C-G>u', v:true)
 
 " Set the ' mark when number + j/k
 function! s:JumpJK(rep, key)
