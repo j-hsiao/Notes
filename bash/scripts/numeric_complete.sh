@@ -396,12 +396,31 @@ ncmp_read_dir() # <dname> [force=]
 
 		ss_push extglob globasciiranges
 		NCMP_CACHE=()
+
 		readarray -O${NCMP_CACHE_STATE} -t NCMP_CACHE < <(ls -Apb --color="${NUMERIC_COMPLETE_color:-never}" "${1}" 2>/dev/null)
 		# https://en.wikipedia.org/wiki/ANSI_escape_code
 		# [0x30–0x3F]*  (0–9:;<=>?)
 		# [0x20–0x2F]*  ( !"#$%&'()*+,-./)
 		# 0x40–0x7E     (@A–Z[\]^_`a–z{|}~)
-		NCMP_CACHE+=("${NCMP_CACHE[@]//$'\e['*(['0'-'?'])*(['!'-'/'])['@'-'~']}")
+
+		if [[ "${NUMERIC_COMPLETE_color:-never}" = 'never' ]]
+		then
+			NCMP_CACHE+=("${NCMP_CACHE[@]}")
+			if [[ -z "${NUMERIC_COMPLETE_color}" ]]
+			then
+				#Color directories indicated by the -p flag
+				local idx="$((${#NCMP_CACHE[@]} / 2))"
+				while ((--idx > 0))
+				do
+					if [[ "${NCMP_CACHE[idx+NCMP_CACHE_STATE]: -1}" = '/' ]]
+					then
+						NCMP_CACHE[idx+NCMP_CACHE_STATE]=$'\e[0m\e[01;34m'"${NCMP_CACHE[idx+NCMP_CACHE_STATE]%/}"$'\e[0m/'
+					fi
+				done
+			fi
+		else
+			NCMP_CACHE+=("${NCMP_CACHE[@]//$'\e['*(['0'-'?'])*(['!'-'/'])['@'-'~']}")
+		fi
 		NCMP_CACHE[1]="$((${#NCMP_CACHE[@]}/2))"
 		ci_strdisplaylens NCMP_CACHE $((NCMP_CACHE[1]*2 + NCMP_CACHE_STATE)) \
 		"${NCMP_CACHE[@]:NCMP_CACHE[1]+NCMP_CACHE_STATE:NCMP_CACHE[1]}"
