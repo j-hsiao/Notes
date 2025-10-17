@@ -197,6 +197,7 @@ setup_vim() {
 	local vimdir
 	vimdir="${ROOTDIR%/bash*}/editors/vim"
 
+	echo "Updating ~/.vimrc"
 	${DRYRUN:+echo} replace_section "${HOME}/.vimrc" "${vimdir}/.vimrc" "\" ${vimdir}/.vimrc" 1
 	${DRYRUN:+echo} bash "${vimdir}/makeft.sh"
 	local loc
@@ -212,8 +213,8 @@ setup_vim() {
 			local target="${HOME}/.vim/${loc}/${src##*/}"
 			if [[ ! -e "${target}" ]] || ! diff "${target}" "${src}"
 			then
-				${DRYRUN:+echo} "${CREATE[@]}" "${src}" "${target}"
 				echo "Update script path: \"${target}\"."
+				${DRYRUN:+echo} "${CREATE[@]}" "${src}" "${target}"
 			else
 				echo "Exists and matches: \"${target}\"."
 			fi
@@ -223,6 +224,7 @@ setup_vim() {
 
 setup_readline() {
 	local refpath="${ROOTDIR%/bash*}/readline/inputrc"
+	echo "Updating ~/.inputrc"
 	${DRYRUN:+echo} replace_section "${HOME}/.inputrc" "${refpath}" "# ${refpath}" 1
 }
 
@@ -260,6 +262,7 @@ setup_bash() {
 
 	local data
 	printf -v data '%s' ". \"${ROOTDIR/#"${HOME}"/'${HOME}'}/scripts/load.sh\"" "${scriptdirs[@]}" $'\n'
+	echo "Updating ~/.bashrc"
 	${DRYRUN:+echo} replace_section "${HOME}/.bashrc" \
 		"${data}" "# ${ROOTDIR}: scripts" 0 \
 		"PYTHON_ENVS_DIR=\"\${PYTHON_ENVS_DIR:-${envsdir}}\"" "# ${ROOTDIR}: e.sh" 0
@@ -313,10 +316,7 @@ Display this help message
 		func="${func##* }"
 		if [[ "${func}" =~ ^'setup' ]]
 		then
-			if [[ -n "${DRYRUN}" ]]
-			then
-				printf '______________________________\n%s\n------------------------------\n' "${func}"
-			fi
+			printf '______________________________\n%s\n------------------------------\n' "${func}"
 			"${func}"
 		fi
 	done < <(declare -F)
