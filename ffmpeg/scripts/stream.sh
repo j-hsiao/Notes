@@ -60,6 +60,7 @@ stream_vids() {
 	local USE_PIPE=0
 	local IEXTRA=()
 	local XEXTRA=()
+	local SEP=
 	while ((idx < ${#}))
 	do
 		case "${1}" in
@@ -76,6 +77,11 @@ stream_vids() {
 					esac
 				done
 				break
+				;;
+			--sep)
+				shift
+				SEP="${1}"
+				USE_PIPE=${#SEP}
 				;;
 			--pipe)
 				USE_PIPE=1
@@ -105,6 +111,16 @@ stream_vids() {
 	have issues with the stream_loop method resulting in hanging.  This method
 	requires the inputs to be \`cat\`able into a valid stream.
 	example: h264 (eg .h264 rather than .mp4)
+[--sep] <sep>
+	--sep implies --pipe.  The input video sources are interpreted as groups
+	of videos to be \`cat\` together as a single rtsp stream source.  These
+	groups are delimited by <sep>.
+	ex: bash stream.sh --sep MYSEP v1 v2 v3 MYSEP v4 v5 v6 MYSEP v7
+	In this case, v1, v2, and v3 will be treated as stream1.
+	v4, v5, v6 will be treated as stream2
+	v7 will be treated as stream3.
+	Any extra arguments will only be taken from the first of each set
+	(such as name=*)
 [-t|--target] [target='rtsp://localhost:8554']
 	target rtsp url without the stream name.  If target is specified,
 	then assume that the rtsp server already exists.  In this case,
@@ -223,8 +239,18 @@ stream_vids() {
 					find_fmt "${CAMS[idx]}" arg
 					INPUTS+="-f $(printf '%q ' "${arg}")"
 				fi
-				INPUTS+="-re -i <(while cat $(printf '%q' "${CAMS[idx]}"); do :; done) "
 				OUTPUTS+="$(printf '%q ' -map "${idx}:v" -c:v copy -f rtsp -rtsp_transport tcp "${TARGET:-rtsp://localhost:8554}/${NAMES[idx]:-${rtspnamebase}$((idx+1))}")"
+				if [[ -z "${SEP}" ]]
+				then
+					INPUTS+="-re -i <(while cat $(printf '%q' "${CAMS[idx]}"); do :; done) "
+				else
+					local startidx="${idx}"
+					while ((idx < ${#CAMS[@]})) && [[ "${CAMS[idx]}" != "${SEP}" ]]
+					do
+						((++idx))
+					done
+					INPUTS+="-re -i <(while cat $(printf '%q ' "${CAMS[@]:startidx:idx-startidx}"); do :; done) "
+				fi
 				((++idx))
 			done
 			local bashscript="ffmpeg ${INPUTS} ${OUTPUTS}"
