@@ -1,18 +1,35 @@
 "Search the highlighted text
-function! s:VisualSearch(chr)
+function! s:VisualSearch(chr, useic)
+	" chr: search direction '/'=forward, '?'=backward
+	" useic: false = case sensitive, always exact
+	"        true  = use the value of &g:ignorecase
+	let ret = ["\<Esc>", a:chr, '\V']
+	if a:useic && &g:ignorecase
+		call add(ret, '\c')
+	else
+		call add(ret, '\C')
+	endif
 	let col1 = col('v')
 	let col2 = col('.')
 	if col2 < col1
 		let [col1,col2] = [col2, col1]
 	endif
 	let col1 -= 1
-	let query = strpart(getline('.'), col1, col2-col1)
-	return "\<Esc>" . a:chr . '\V' . escape(query, '\/') . "\<CR>"
+	call add(ret, escape(strpart(getline('.'), col1, col2-col1), '\/'))
+	call add(ret, "\<CR>")
+	return join(ret, '')
 endfunction
 
 if maparg("*", 'v') == ''
-	vnoremap <expr> * <SID>VisualSearch('/')
+	vnoremap <expr> * <SID>VisualSearch('/', v:true)
 endif
 if maparg("#", 'v') == ''
-	vnoremap <expr> # <SID>VisualSearch('?')
+	vnoremap <expr> # <SID>VisualSearch('?', v:true)
+endif
+
+if maparg("<Leader>*", 'v') == ''
+	vnoremap <expr> <Leader>* <SID>VisualSearch('/', v:false)
+endif
+if maparg("<Leader>#", 'v') == ''
+	vnoremap <expr> <Leader># <SID>VisualSearch('?', v:false)
 endif
