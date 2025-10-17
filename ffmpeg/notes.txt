@@ -1,5 +1,7 @@
 contents
 -1- general
+	-1.0- frames
+	-1.1- PTS/DTS
 -2- stream selection
 -3- options
 	-3.1- AV options
@@ -57,6 +59,8 @@ contents
 		-5.2.39- segment asegment
 		-5.2.40- interleave
 		-5.2.41- select
+	-5.3- bitstream filters
+		-5.3.1- setts
 -6- streaming
 	-6.1- tcp
 	-6.2- rtp
@@ -85,6 +89,40 @@ streams referred in format "I:S" for Sth stream in Ith input
 all options are reset at each file
 
 copying: use -codec copy: only perform mux/demux, no decode/encode
+
+	------------------------------
+	-1.0- frames
+	------------------------------
+	I frame: Intra-encoded. This frame contains all info for its decoding.
+	P frame: Predicted.  This uses previous data to calculate.
+	B frame: Bidirectional predicted.  This frame uses both before and after.
+
+	------------------------------
+	-1.1- PTS/DTS
+	------------------------------
+	PTS is "presentation time stamp"
+	It usually has units of time_base, or 1/tbn
+	The reason for a PTS seems mostly to be due to variable framerates.
+
+	Some formats require a PTS, but some formats do not.
+	ex. .h264 raw h264 file does not have PTS.  Converting h264 encoded mp4 to .h264 file
+	is easy.
+	But converting .h264 file to mp4 can result in many PTS warnings.
+
+	av var name     acroym      meaning
+	avg_frame_rate  fps         frames per second, total frames / total duration
+	r_frame_rate    tbr         the user friendly target frame rate
+	time_base                   1/tbn
+	                tbn         number of ticks per second
+
+	DTS is the decode time stamp.
+	DTS must be monotonically increasing. This means that frames are stored
+	in decoding order within a stream.  If b frames are used, for example,
+	then frames numbered in presentation order might appear in the stream as
+	0 10 1 2 3 4 5 6 7 8 9
+	where 1-9 are bframes using both 0 and 10.  These frames are decoded
+	in order, but the PTS of 10 would be after the PTS of 1-9.
+
 
 ------------------------------
 -2- stream selection
@@ -288,9 +326,12 @@ argument formats:
 ------------------------------
 -5- filters
 ------------------------------
-	-filter:v         filter for video, same as -vf
-	-filter:a         filter for audio, same as -af
+	-vf               filter for video
+	-af               filter for audio
+	-filter:v         same as -vf
+	-filter:a         same as -af
 	-filter_complex   complex filter: multiple inputs/outputs
+	-bsf[:v|:a]       bitstream filter for video/audio
 
 	-filter:[av] are tied to each video/audio individually.
 	If N videos, then N filters are created, one per video source.
@@ -1073,6 +1114,54 @@ argument formats:
 					iw
 					ih
 					view
+	------------------------------
+	-5.3- bitstream filters
+	------------------------------
+	These filters generally have more to do with the containers than with
+	the encoded/decoded data.  Ex. H264 has no PTS, but containers usually do.
+
+		------------------------------
+		-5.3.1- setts
+		------------------------------
+		Set the timestamps/PTS/DTS etc
+
+		ts pts dts      expressions
+		duration
+		time_base
+
+		variables
+			N                 current frame index
+			TS                DTS or PTS depending on the argument this expr is used for.
+			POS               original position in the file of the packet
+			DTS               input demux timestamp
+			PTS               input presentation timestamp
+			DURATION          duration in input
+			STARTDTS          DTS of first packet
+			STARTPTS          PTS of first packet
+			PREV_INDTS        previous input DTS
+			PREV_INPTS        previous input PTS
+			PREV_INDURATION   previous input duration
+			PREV_OUTDTS       previous output dts
+			PREV OUTPTS       previous output pts
+			PREV_OUTDURATION  previous output duration
+			NEXT_DTS          next input DTS
+			NEXT_PTS          next input PTS
+			NEXT_DURATION     next input duration
+			TB                the timebase (?1 / tbn?)
+			TB_OUT            the output timebase
+			SR                the sample rate of stream packet
+			NOPTS             special AV_NOPTS_VALUE constant
+
+
+		extra notes:
+		Nth frame   sec    ticks
+		           -----   -----
+		           frame    sec
+
+		therefore an appropriate PTS expr to achieve a certain fps is:
+		N / (fps*TB)
+
+		Note that because this does NOT reencode, this only affects play-back speed.
 
 
 ------------------------------
