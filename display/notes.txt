@@ -1,0 +1,110 @@
+-1- display manager
+-2- window manager
+	-2.1- startx
+	-2.2- xinit
+-3- desktop environment
+-4- protocols
+	-4.1- X
+	-4.2- wayland
+
+------------------------------
+-1- display manager
+------------------------------
+Display managers are basically just the login screen
+which also handles starting up window manager and desktop environment.
+
+ex:
+	gdm:
+		/etc/gdm/custom.conf
+		/etc/gdm3/custom.conf
+		set WaylandEnable=true
+
+	lightdm
+
+https://wiki.archlinux.org/title/Wayland#Display_managers
+
+
+------------------------------
+-2- window manager
+------------------------------
+Handles window positioning, decoration (top bar) etc
+Can be started with:
+
+	------------------------------
+	-2.1- startx
+	------------------------------
+		wrapper over xinit
+		startx [client args...] -- [server args...]
+
+		Client:
+			Finds an xinit file:
+				XINITRC environment variable
+				~/.xinitrc
+				xinit lib xinitrc file
+
+			When xinitrc ends, startx will kill the server and shutdown/cleanup
+			Usually start optional background programs followed by a
+			session manager, window manager, or xterm
+
+			example:
+				xrdb -load $HOME/.Xresources
+				xsetroot -solid gray &
+				xbiff -geometry -430+5 &
+				oclock -geometry 75x75-0-0 &
+				xload -geometry -80-0 &
+				xterm -geometry +0+60 -ls &
+				xterm -geometry +0-100 &
+				xconsole -geometry -0+0 -fn 5x7 &
+				exec twm
+
+
+		Server:
+			Find xserverrc file:
+				XSERVERRC environment variable
+				~/.xserverrc
+				xinit lib xserverrc file
+
+
+
+	------------------------------
+	-2.2- xinit
+	------------------------------
+	Starts X window system server and first client program
+	on systems without a display manager
+
+	client:
+		search for ~/.xinitrc
+		xterm -geometry +1+1 -n login -display :0
+
+	serter:
+		search for ~/.xserverrc
+		X :0
+
+
+------------------------------
+-3- desktop environment
+------------------------------
+launching apps (menu), desktop notifications etc
++ window manager
+
+------------------------------
+-4- protocols
+------------------------------
+	------------------------------
+	-4.1- X
+	------------------------------
+	Old display protocol, generally more stable.
+
+
+	------------------------------
+	-4.2- wayland
+	------------------------------
+	New display protocol, less stable
+	"window manager" is now called compositor
+
+	Compositors can be started directly with some environment
+	variables:
+		WAYLAND_DISPLAY=wayland-1
+		XDG_RUNTIME_DIR=/run/user/$UID
+
+	XWayland can be used for x compatibility
