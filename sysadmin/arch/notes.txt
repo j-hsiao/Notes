@@ -1,0 +1,166 @@
+-1- installation
+	-1.1- installer
+	-1.2- manual
+
+https://wiki.archlinux.org/title/Installation_guide
+
+download verification
+
+BLACKE2b checksums:
+b2sum -c b2sums.txt
+
+verify gpg
+
+gpg --auto-key-locate clear,wkd -v --locate-external-key pierre@archlinux.org
+
+gpg --verify archlinux-2025.08.01-x86_64.iso.sig archlinux-2025.08.01-x86_64.iso
+
+------------------------------
+-1- installation
+------------------------------
+	------------------------------
+	-1.1- installer
+	------------------------------
+	ip addr show
+
+	wifi:
+		iwctl
+		> station wlan0 get-networks
+		> exit
+		iwctl --passphrase "passphrase" station wlan0 connect wifi-network-name
+
+		ip addr show
+
+	enable ssh
+		systemctl status sshd
+		systemctl start sshd
+
+		passwd
+
+	archinstall
+		language
+		mirror
+			country
+		locales
+			keyboard, etc
+		disk configuration
+			best-effort default
+			manual partitioning
+		swap
+			swap on zram? compress data on ram
+		set root password
+		make user account
+		profile
+			type
+				desktop
+				choose environment
+			driver
+				nvidia
+			audio
+				pipewire (newer?)
+				pulseaudio
+			kernels
+				linux
+				linux-lts (as a backup?)
+		additional packages
+			( can just install afterwards)
+		network config
+			NetworkManager
+		timezone
+		automatic time sync
+
+
+	------------------------------
+	-1.2- manual:
+	------------------------------
+
+	pvcreate /dev/mapper/[name from opening with cryptsetup]
+
+	volume group:
+		vgcreate volgroup0 /dev/mapper/lvm
+
+	logical volume:
+		lvcreate -L 30GB volgroup0 -n lv_root
+		lvcreate -L 250Gb volgroup0 -n lv_home
+
+	display volume groups
+		vgdisplay
+	display volumes:
+		lvdisplay
+
+	??
+
+	modprobe dm_mod
+	vgscan
+	vgchange -ay
+
+	mkfs.ext4 /dev/volgroup0/lv_root
+	mkfs.ext4 /dev/volgroup0/lv_home
+
+	mount /dev/volgroup0/lv_root /mnt
+	mkdir /mnt/boot
+	mount /dev/nvme0n1p2 /mnt/boot
+	mkdir /mnt/home
+	mount /dev/volgroup0/lv_home /mnt/home
+
+	pacstrap -i /mnt base
+	genfstab -U -p /mnt >> /mnt/etc/fstab
+
+	arch-chroot /mnt
+	passwd
+
+	useradd -m -g users -G wheel username
+	passwd username
+
+	pacman -S base-devel dosfstools grub efibootmgr gnome gnome-tweaks lvm2 \
+		mtools nano vim networkmanager openssh os-prober sudo
+
+	systemctl enable sshd
+	pacman -S linux linux-headers linux-lts linux-lts-headers
+
+	pacman -S linux-firmware
+	(proprietary hardware)
+
+	lspci | grep VGA
+
+	intel/amd gpu:
+		pacmna -S mesa
+		pacman -S intel-media-driver (intel)
+		pacman -S libva-mesa-driver (amd)
+
+	nvidia gpu:
+		pacman -S nvidia nvidia-utils nvidia-lts
+
+	vim /etc/mkinitcpio.conf
+	- Hooks=(... blocks filesystems)
+	+ Hooks=(... blocks encrypt lvm2 filesystems)
+
+	mkinitcpio -p linux
+	mkinitcpio -p linux-lts
+
+	vim /etc/locale.gen
+	uncomment relevant locale
+
+	locale-gen
+
+	vim /etc/default/grub
+	- GRUB_CMDLINE_LINUX_DEFAULT=...
+	+ GRUB_CMDLINE_LINUX_DEFAULT=... cryptdevice=/dev/partition:volgroup0
+
+	mkdir /boot/EFI
+	mount /dev/partition /boot/EFI
+	grub-install --target=x86_64-efi --bootloader-id=grub_uefi --recheck
+
+	cp /usr/share/locale/en\@quot/LC_MESSAGES/grub.mo /boot/grub/locale/en.mo
+	grub-mkconfig -o /boot/grub/grub.cfg
+
+	systemctl enable gdm
+	systemctl enable NetworkManager
+	exit
+
+	umount -a
+	reboot
+
+	things to check:
+	wifi
+	settings->region&language->language

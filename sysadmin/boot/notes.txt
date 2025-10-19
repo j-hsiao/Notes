@@ -12,8 +12,10 @@ contents
 		-2.1.1- Windows
 		-2.1.2- Linux
 -3- GUI
-
 -4- UEFI
+-5- Encryption
+-6- LVM
+
 
 
 
@@ -338,3 +340,19 @@ linux
 		------------------------------
 		Manually signing a module
 		------------------------------
+------------------------------
+-5- Encryption
+------------------------------
+display devices and partitions:
+	lsblk
+
+Encrypt partition:
+	cryptsetup luksFormat /dev/partition
+
+open encrypted partition:
+	cryptsetup open --type luks /dev/partition name
+
+
+------------------------------
+-6- LVM
+------------------------------
