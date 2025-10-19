@@ -1,0 +1,186 @@
+-1- install
+-2- configs
+-3- tools
+-3- controls
+
+------------------------------
+-1- install
+------------------------------
+pacman -S hyprland
+pacman -S kitty
+
+	hyperland prefers kitty terminal
+
+	------------------------------
+	-1.1- waybar
+	------------------------------
+	pacman -S waybar
+	papcman -S ttf-font-awesome
+
+	waybar uses "modules"
+
+		------------------------------
+		-1.1.1- config
+		------------------------------
+		~/.config/waybar/config
+		go to git, default config
+
+		"modules-left": {
+		}
+		"modules-center": {
+		}
+		"modules-right": {
+		}
+
+		"modulename": {
+			...settings...
+		}
+
+		module names:
+			"sway/window": {}
+			"sway/workspaces": {}
+			"sway/mode": {}
+			"sway/scratchpad": {}
+			"custom/media": {}
+			"hyprland/workspaces": {
+				"disable-scroll": *true/false,
+				"all-outputs": *true/false,
+				"warp-on-scroll": true/*false,
+				"format": "{name}: {icon}",
+				"format-icons": {
+					"1": "icon",
+					...
+					"5": "icon",
+					"urgent": "",
+					"focused": "",
+					"default": ""
+					"active": ""
+				}
+			}
+			"hyprland/window": {}
+			"mpd": {}
+			"idle_inhibitor": {}
+			"pulseaduio": {}
+			"network": {}
+			"power-profiles-daemon": {}
+			"cpu": {}
+			"memory": {}
+			"teperature": {}
+
+
+
+
+------------------------------
+-2- config
+------------------------------
+~/.config/hypr/hyprland.conf
+Configs are auto-reloaded
+
+remove auto-gen config line
+
+	------------------------------
+	-2.1- monitors
+	------------------------------
+	monitor=monitorname,preferredres,pos,scale
+	monitor=,preferred,auto,auto
+
+	------------------------------
+	-2.2- menu
+	------------------------------
+	menu = wofi --show drun
+
+	program launcher for wayland
+
+	------------------------------
+	-2.3- layout
+	------------------------------
+	master: {
+		new_status = master
+	}
+
+	------------------------------
+	-2.4- autostart
+	------------------------------
+	startup programs
+	keywords:
+		exec-once       start once on launch
+		execr-once      exec once on launch
+		exec            execute on each reload
+		execr           execute on each reload
+		exec-shutdown   execute only on shutdown
+
+	exec-once = commandline to run once at start
+	exec-once = swaync & hypridle
+
+
+	------------------------------
+	-2.5- programs
+	------------------------------
+	# Set programs that you use
+	$terminal = kitty
+	$fileManager = dolphin | nautilus
+	$menu = wofi --show drun
+
+	------------------------------
+	-2.6- bindings
+	------------------------------
+	Set the main binding key:
+		$mainMod = SUPER
+	syntax of bind:
+		bind = $mainMod, key, exec, [rules...] command
+	ex:
+		bind = SUPER, E, exec, [workspace 2 silent; float; move 0 0] kitty
+
+	TODO: ?trailing comma because?
+
+	default bindings:
+		bind = $mainMod, Q, exec, $terminal
+		bind = $mainMod, M, exit,
+		bind = $mainMod, C, killactive,
+		bind = $mainMod, V, togglefloating,
+		bind = $mainMod, arrows, movefocus, ldur
+
+	M-click&drag    change window position
+	M-0-9           change workspace
+
+	examples
+		bind = , PRINT, exec, hypershot -m window
+		bind = shift, PRINT, exec, hypershot -m region
+
+
+
+
+------------------------------
+-3- tools
+------------------------------
+hyperctl
+	hyperctl monitors all
+
+hypershot
+	pacman -S hypershot
+	screenshots
+
+notifications
+	SwayNotificationCenter
+	pacman -S swaync
+	gnome uses libnotify
+	notify-send "message"
+
+hyprlock
+	pacmann -S hyprlock
+	~/.config/hypr/hyprlock.conf
+
+	copy portions from the git repo
+
+hypridle
+	listeners...
+	example:
+		listener {
+			timeout = 2
+			on-timeout = notify-send "message"
+			on-timeout = loginctl lock-session
+			on-resume = notify-send "you resumed"
+		}
+		general {
+			lock_cmd = pidof hyprlock || hyprlock
+		}

@@ -1,0 +1,46 @@
+-0- general
+-1- tools
+
+------------------------------
+-0- general
+------------------------------
+LVM: logical volume management
+
+	drive: a phsyical harddrive
+	partition: segment of storage on the drive
+	filesystem: file storage format of a partition
+
+
+	physical volume (PV): block device to store data
+	                 could be:
+		                 partition
+		                 whole disk
+		                 raid array
+		                 ...
+	volume group (VG): Group PV into a single logical block of storage
+	                   (ex. if you have 2 2GiB drives, then net is 4
+	                   a giant file would auto-split between the two.)
+	logical volumes: partition the VG
+
+
+------------------------------
+-1- tools
+------------------------------
+lvmdiskscan
+	scan for disks
+pvscan
+	scan for PVs
+pvcreate /dev/partitionOrDevice
+	create a PV
+vgscan
+	scan for VGs
+vgextend VGname PVname
+	add PV to VG
+
+lvscan
+	list logical volumes
+lvextend -l +100%FREE LVname
+	extend logical volume
+
+resize2fs /dev/mapper/lvname
+	resize the filesystem on the logical volume
