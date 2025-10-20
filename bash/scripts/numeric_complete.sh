@@ -204,7 +204,8 @@ ncmp_parse_ansi_c() # <text> [out=RESULT] [pos=POS] [start=0]
 		fi
 		((++ncmppac__pos))
 	done
-	printf -v ncmppac__out "${1:${4#-0} + 2:ncmppac__pos-(${4#-0}+2)}"
+	# parsed as single ansi c quote, so should be safe to eval...
+	eval ncmppac__out="${1:${4#-0}:ncmppac__pos - ${4#-0}}'"
 }
 
 ncmp_parse_single_quote() # <text> [out=RESULT] [pos=POS] [start=0]
@@ -230,12 +231,14 @@ ncmp_parse_single_quote() # <text> [out=RESULT] [pos=POS] [start=0]
 	ncmppsq__out="${1:${4:-0}+1:ncmppsq__pos - 1 - ${4:-0}}"
 }
 
-ncmp_parse_double_quote() # <text> [out=RESULT] [start=0]
+ncmp_parse_double_quote() # <text> [out=RESULT] [pos=POS] [start=0]
 {
 	# Parse <text> and store the position of the ending double quote
-	# in [out] (or end of string if ending double quote does not exist.)
-	# asusme <text>[start] should be the starting double quote
+	# in [pos] (or end of string if ending double quote does not exist.)
+	# The extracted string will be in [out].
+	# If <text>[start] != '"', then pos=start and out=''
 
+	# From the man bash:
 	# Enclosing characters in double quotes preserves the literal value
 	# of all characters within the quotes, with the exception of $, `,
 	# \, and, when history expansion is enabled, !.  When the shell  is
@@ -253,34 +256,37 @@ ncmp_parse_double_quote() # <text> [out=RESULT] [start=0]
 
 
 	local -n ncmppdq__out="${2:-RESULT}"
-	ncmppdq__out="${3:-0}"
-	if [[ "${1:ncmppdq__out:1}" != '"' ]]; then return; fi
-	((++ncmppdq__out))
-	while [[ "${ncmppdq__out}" -lt "${#1}" && "${1:ncmppdq__out:1}" != '"' ]]
+	local -n ncmppdq__pos="${3:-POS}"
+	ncmppdq__out=
+	ncmppdq__pos="${3:-0}"
+	if [[ "${1:ncmppdq__pos:1}" != '"' ]]; then return; fi
+	((++ncmppdq__pos))
+	while [[ "${ncmppdq__pos}" -lt "${#1}" && "${1:ncmppdq__pos:1}" != '"' ]]
 	do
-		case "${1:ncmppdq__out:1}" in
+		case "${1:ncmppdq__pos:1}" in
 			'\')
-				if [[ "${1:ncmppdq__out+1:1}" = ['$`"\'$'\n'] ]]
+				if [[ "${1:ncmppdq__pos+1:1}" = ['$`"\'$'\n'] ]]
 				then
-					((++ncmppdq__out))
+					ncmppdq__out+="${1:ncmppdq__pos+1:1}"
+					((++ncmppdq__pos))
 				fi
 				;;
 			'$')
-				case "${1:ncmppdq__out+1:1}" in
+				case "${1:ncmppdq__pos+1:1}" in
 					'{')
-						# TODO
-						ncmp_parse_param
+						local ncmppdq__subval
+						ncmp_parse_param "${1}" ncmppdq__subval ncmppdq__pos "${ncmppdq__pos}"
 						;;
 					'(')
-						# TODO
-						ncmp_parse_parentheses
+						local ncmppdq__subval
+						ncmp_parse_parentheses "${1}" ncmppdq__subval ncmppdq__pos "${ncmppdq__pos}"
 						;;
 					[0-9])
 						# nth argument
-						((++ncmppdq__out))
+						((++ncmppdq__pos))
 						;;
 					*)
-						if [[ "${1:ncmppdq__out+1:1}" =~ [a-zA-Z_][a-zA-Z0-9_]* ]]
+						if [[ "${1:ncmppdq__pos+1:1}" =~ [a-zA-Z_][a-zA-Z0-9_]* ]]
 						then
 							# variable without {}
 							:
@@ -288,17 +294,41 @@ ncmp_parse_double_quote() # <text> [out=RESULT] [start=0]
 				esac
 				;;
 			'`')
+				# note, bash seems to have some weird parsing with backticks...
+				# echo `echo '`'` hangs, like it's missing some ending value
+				# even though echo '`' echos a single backtick
+				# so `echo '`'` should evaluate into a single backtick
+				# and indeed, if x=(echo '`'), then `"${x[@]}"` evalues to a backtick
+				# but typing it all out does not, and indeed, eval `"${x[@]}`
+				local ncmppdq__subval
+				ncmp_parse_backtick "${1}" ncmppdq__subval ncmppdq__pos "${ncmppdq__pos}"
+				;;
+			*)
+				ncmppdq__out+="${1:ncmppdq__pos:1}"
 				;;
 		esac
-		((++ncmppdq__out))
+		((++ncmppdq__pos))
 	done
+}
+ncmp_parse_backtick() # <text> [out=RESULT] [pos=POS] [start=0]
+{
+	# parse a backtick command substitution.
+	local -n ncmppbt__out="${2:-RESULT}"
+	local -n ncmppbt__pos="${3:-POS}"
+	ncmppbt__pos="${4:-0}"
+	if [[ "${1:ncmppbt__pos:1}" != '`' ]]; then ncmppbt__out=; return; fi
+	((++ncmppbt__pos))
+	while [[ "${ncmppbt__pos}" -lt "${#1}" && "${1:ncmppbt__pos:1}" != '`' ]]
+	do
+		:
+	done
+	eval ncmppbt__out="${1:${4:-0}:${ncmppbt__pos}-${4:-0}}"'`'
 }
 
 ncmp_parse_param() # <text> [out=RESULT] [pos=POS] [start=0]
 {
 	local -n ncmppppm__out="${2:-RESULT}"
 	local -n ncmppppm__pos="${3:-POS}"
-
 }
 ncmp_parse_parentheses() # <text> [out=RESULT] [pos=POS] [start=0]
 {
