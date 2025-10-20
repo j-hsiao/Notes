@@ -218,7 +218,7 @@ stream_vids() {
 			# so pressing q will do nothing.  It seems like the best choice is still to build
 			# a commandline and then run it as a script. (using <(while cat...) directly
 			# as an argument allows for ffmpeg to read q to quit)
-			local INPUTS= OUTPUTS= idx=0
+			local INPUTS= OUTPUTS= idx=0 streamidx=0
 			while ((idx < "${#CAMS[@]}"))
 			do
 				if ((XEXTRA[idx*2 + 1]))
@@ -239,7 +239,8 @@ stream_vids() {
 					find_fmt "${CAMS[idx]}" arg
 					INPUTS+="-f $(printf '%q ' "${arg}")"
 				fi
-				OUTPUTS+="$(printf '%q ' -map "${idx}:v" -c:v copy -f rtsp -rtsp_transport tcp "${TARGET:-rtsp://localhost:8554}/${NAMES[idx]:-${rtspnamebase}$((idx+1))}")"
+				OUTPUTS+="$(printf '%q ' -map "${streamidx}:v" -c:v copy -f rtsp -rtsp_transport tcp "${TARGET:-rtsp://localhost:8554}/${NAMES[idx]:-${rtspnamebase}$((streamidx+1))}")"
+				((++streamidx))
 				if [[ -z "${SEP}" ]]
 				then
 					INPUTS+="-re -i <(while cat $(printf '%q' "${CAMS[idx]}"); do :; done) "
