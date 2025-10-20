@@ -154,6 +154,159 @@ ncmp_find() # <string> <query> [out=RESULT]
 	fi
 }
 
+ncmp_parse_ansi_c() # <text> [out=RESULT] [pos=POS] [start=0]
+{
+	# parse and interpret text as an ansi c quotation $'...'.
+	# If the ending quotation is not found, assume it exists after
+	# the end of the string.
+	# Start searching from [start], so assume [[ ${text:start:2} = "$'" ]].
+	# If not, then [pos]=[start] and [out] is empty
+	local -n ncmppac__out="${2:-RESULT}"
+	local -n ncmppac__pos="${3:-POS}"
+	ncmppac__pos=${4:-0}
+	if [[ "${1:ncmppac__pos:2}" != \$\' ]];	then ncmppac__out=; return; fi
+	# https://www.gnu.org/software/bash/manual/html_node/ANSI_002dC-Quoting.html
+	((ncmppac__pos+=2))
+	while [[ "${ncmppac__pos}" -lt "${#1}" && "${1:ncmppac__pos:1}" != "'" ]]
+	do
+		if [[ "${1:ncmppac__pos:1}" = '\' ]]
+		then
+			case "${1:ncmppac__pos+1}" in
+				a*|b*|e*|E*|f*|n*|r*|t*|v*|'\'*|"'"*|'"'*|'?'*)
+					((++ncmppac__pos))
+					;;
+				# it seems like bash allows incomplete octal/unicode/hex, etc
+				U[0-9a-fA-F][0-9a-fA-F][0-9a-fA-F][0-9a-fA-F][0-9a-fA-F][0-9a-fA-F][0-9a-fA-F][0-9a-fA-F]*)
+					((ncmppac__pos += 9))
+					;;
+				U[0-9a-fA-F][0-9a-fA-F][0-9a-fA-F][0-9a-fA-F][0-9a-fA-F][0-9a-fA-F][0-9a-fA-F]*)
+					((ncmppac__pos += 8))
+					;;
+				U[0-9a-fA-F][0-9a-fA-F][0-9a-fA-F][0-9a-fA-F][0-9a-fA-F][0-9a-fA-F]*)
+					((ncmppac__pos += 7))
+					;;
+				U[0-9a-fA-F][0-9a-fA-F][0-9a-fA-F][0-9a-fA-F][0-9a-fA-F]*)
+					((ncmppac__pos += 6))
+					;;
+				U[0-9a-fA-F][0-9a-fA-F][0-9a-fA-F][0-9a-fA-F]*|u[0-9a-fA-F][0-9a-fA-F][0-9a-fA-F][0-9a-fA-F]*)
+					((ncmppac__pos += 4))
+					;;
+				U[0-9a-fA-F][0-9a-fA-F][0-9a-fA-F]*|u[0-9a-fA-F][0-9a-fA-F][0-9a-fA-F]*|x[0-9a-fA-F][0-9a-fA-F][0-9a-fA-F]*|[0-7][0-7][0-7]*)
+					((ncmppac__pos += 3))
+					;;
+				c?*|[0-7][0-7]*|x[0-9a-fA-F]*) # control-? sequence, partial octal, partial hex
+					((ncmppac__pos += 2))
+					;;
+				[0-7])
+					((++ncmppac__pos))
+					;;
+			esac
+		fi
+		((++ncmppac__pos))
+	done
+	printf -v ncmppac__out "${1:${4#-0} + 2:ncmppac__pos-(${4#-0}+2)}"
+}
+
+ncmp_parse_single_quote() # <text> [out=RESULT] [pos=POS] [start=0]
+{
+	# Parse <text> and store the position of the ending single quote
+	# in [out] (or end of string if ending single quote does not exist.)
+	# If <text>[start] != "'", then out is empty and pos is start
+
+	# Enclosing characters in single quotes preserves the literal value
+	# of each character within the quotes.  A single quote may not occur
+	# between single quotes, even when preceded by a backslash.
+	# simple, just find the next single quote
+
+	local -n ncmppsq__out="${2:-RESULT}"
+	local -n ncmppsq__pos="${3:-POS}"
+	ncmppsq__pos="${4:-0}"
+	if [[ "${1:ncmppsq__pos:1}" != "'" ]]; then ncmppsq__out=; return; fi
+	((++ncmppsq__pos))
+	while [[ "${ncmppsq__pos}" -lt "${#1}" && "${1:ncmppsq__pos:1}" != "'" ]]
+	do
+		((++ncmppsq__pos))
+	done
+	ncmppsq__out="${1:${4:-0}+1:ncmppsq__pos - 1 - ${4:-0}}"
+}
+
+ncmp_parse_double_quote() # <text> [out=RESULT] [start=0]
+{
+	# Parse <text> and store the position of the ending double quote
+	# in [out] (or end of string if ending double quote does not exist.)
+	# asusme <text>[start] should be the starting double quote
+
+	# Enclosing characters in double quotes preserves the literal value
+	# of all characters within the quotes, with the exception of $, `,
+	# \, and, when history expansion is enabled, !.  When the shell  is
+	# in  posix mode, the ! has no special meaning within double
+	# quotes, even when history expansion is enabled.  The characters $
+	# and ` retain their special meaning within double quotes.  The
+	# backslash retains its special meaning only when followed by one
+	# of the following characters: $, `, ", \, or <newline>.  A double
+	# quote may be quoted within double quotes by preceding it  with  a
+	# backslash.  If enabled, history expansion will be performed
+	# unless an !  appearing in double quotes is escaped using a
+	# backslash.  The backslash preceding the !  is not removed.
+	#
+	# for now, don't support history... in completions.
+
+
+	local -n ncmppdq__out="${2:-RESULT}"
+	ncmppdq__out="${3:-0}"
+	if [[ "${1:ncmppdq__out:1}" != '"' ]]; then return; fi
+	((++ncmppdq__out))
+	while [[ "${ncmppdq__out}" -lt "${#1}" && "${1:ncmppdq__out:1}" != '"' ]]
+	do
+		case "${1:ncmppdq__out:1}" in
+			'\')
+				if [[ "${1:ncmppdq__out+1:1}" = ['$`"\'$'\n'] ]]
+				then
+					((++ncmppdq__out))
+				fi
+				;;
+			'$')
+				case "${1:ncmppdq__out+1:1}" in
+					'{')
+						# TODO
+						ncmp_parse_param
+						;;
+					'(')
+						# TODO
+						ncmp_parse_parentheses
+						;;
+					[0-9])
+						# nth argument
+						((++ncmppdq__out))
+						;;
+					*)
+						if [[ "${1:ncmppdq__out+1:1}" =~ [a-zA-Z_][a-zA-Z0-9_]* ]]
+						then
+							# variable without {}
+							:
+						fi
+				esac
+				;;
+			'`')
+				;;
+		esac
+		((++ncmppdq__out))
+	done
+}
+
+ncmp_parse_param() # <text> [out=RESULT] [pos=POS] [start=0]
+{
+	local -n ncmppppm__out="${2:-RESULT}"
+	local -n ncmppppm__pos="${3:-POS}"
+
+}
+ncmp_parse_parentheses() # <text> [out=RESULT] [pos=POS] [start=0]
+{
+	local -n ncmpppn__out="${2:-RESULT}"
+	local -n ncmpppn__pos="${3:-POS}"
+}
+
+
 ncmp_expand_prompt() # [prompt=${PS1}] [out=RESULT]
 {
 # Expand a prompt string
@@ -900,6 +1053,18 @@ then
 		&& [[ "${fmt[9]}" = '\e[80G\e[30;47m%2d.\e[0m %s' ]] \
 		&& [[ "${fmt[10]}" = '\e[87G\e[30;47m%2d.\e[0m %s' ]] \
 		&& echo pass || echo fail
+
+
+	echo 'testing ncmp_parse_ansi_c'
+	ncmp_parse_ansi_c "what$'\\nhello'extra" out pos 2 && [[ "${out}" = '' ]] && ((pos == 2)) && echo pass || echo fail
+	ncmp_parse_ansi_c "what$'\\nhello'extra" out pos 4 && [[ "${out}" = $'\nhello' ]] && ((pos == 13)) && echo pass || echo fail
+	ncmp_parse_ansi_c "what$'\\nhello" out pos 4 && [[ "${out}" = $'\nhello' ]] && ((pos == 13)) && echo pass || echo fail
+	ncmp_parse_ansi_c "what$'\\nh\\'ello" out pos 4 && [[ "${out}" = $'\nh\'ello' ]] && ((pos == 15)) && echo pass || echo fail
+
+	echo 'testing ncmp_parse_single_quote'
+	ncmp_parse_single_quote "'this is some string\\'extra" out pos && [[ "${out}" = 'this is some string\' ]] && ((pos == 21)) && echo pass || echo fail
+	ncmp_parse_single_quote "'incomplete" out pos && [[ "${out}" = 'incomplete' ]] && ((pos == 11)) && echo pass || echo fail
+	ncmp_parse_single_quote "'incomplete" out pos 1 [[ "${out}" = '' ]] && ((pos == 1)) && echo pass || echo fail
 
 
 	if (($#))
