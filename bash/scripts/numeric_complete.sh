@@ -154,17 +154,23 @@ ncmp_find() # <string> <query> [out=RESULT]
 	fi
 }
 
-ncmp_parse_ansi_c() # <text> [out=RESULT] [pos=POS] [start=0]
+ncmp_parse_ansi_c() # <text> [out] [pos=POS] [start=0]
 {
-	# parse and interpret text as an ansi c quotation $'...'.
-	# If the ending quotation is not found, assume it exists after
-	# the end of the string.
-	# Start searching from [start], so assume [[ ${text:start:2} = "$'" ]].
-	# If not, then [pos]=[start] and [out] is empty
+	# Parse <text> as ansi-c quote $'...'.
+	# Store the ending single quote in [pos] and the value in [out] if nonempty.
+	# If the terminating single quote is not found, assume it is after <text>.
+	# If ${text:start:2} != "$'", then out is empty and pos is start.
 	local -n ncmppac__out="${2:-RESULT}"
 	local -n ncmppac__pos="${3:-POS}"
 	ncmppac__pos=${4:-0}
-	if [[ "${1:ncmppac__pos:2}" != \$\' ]];	then ncmppac__out=; return; fi
+	if [[ "${1:ncmppac__pos:2}" != \$\' ]]
+	then
+		if ((${#2}))
+		then
+			ncmppac__out=
+		fi
+		return
+	fi
 	# https://www.gnu.org/software/bash/manual/html_node/ANSI_002dC-Quoting.html
 	((ncmppac__pos+=2))
 	while [[ "${ncmppac__pos}" -lt "${#1}" && "${1:ncmppac__pos:1}" != "'" ]]
@@ -205,15 +211,20 @@ ncmp_parse_ansi_c() # <text> [out=RESULT] [pos=POS] [start=0]
 		((++ncmppac__pos))
 	done
 	# parsed as single ansi c quote, so should be safe to eval...
-	eval ncmppac__out="${1:${4#-0}:ncmppac__pos - ${4#-0}}'"
+	if ((${#2}))
+	then
+		eval ncmppac__out="${1:${4#-0}:ncmppac__pos - ${4#-0}}'"
+	fi
 }
 
-ncmp_parse_single_quote() # <text> [out=RESULT] [pos=POS] [start=0]
+ncmp_parse_single_quote() # <text> [out] [pos=POS] [start=0]
 {
-	# Parse <text> and store the position of the ending single quote
-	# in [out] (or end of string if ending single quote does not exist.)
-	# If <text>[start] != "'", then out is empty and pos is start
+	# Parse <text> as a single-quote string.
+	# Store the ending single quote in [pos] and the value in [out] if nonempty.
+	# If the terminating single quote is not found, assume it is after <text>.
+	# If ${text:start:1} != "'", then out is empty and pos is start.
 
+	# From man bash:
 	# Enclosing characters in single quotes preserves the literal value
 	# of each character within the quotes.  A single quote may not occur
 	# between single quotes, even when preceded by a backslash.
@@ -222,23 +233,33 @@ ncmp_parse_single_quote() # <text> [out=RESULT] [pos=POS] [start=0]
 	local -n ncmppsq__out="${2:-RESULT}"
 	local -n ncmppsq__pos="${3:-POS}"
 	ncmppsq__pos="${4:-0}"
-	if [[ "${1:ncmppsq__pos:1}" != "'" ]]; then ncmppsq__out=; return; fi
+	if [[ "${1:ncmppsq__pos:1}" != "'" ]]
+	then
+		if ((${#2}))
+		then
+			ncmppsq__out=
+		fi
+		return
+	fi
 	((++ncmppsq__pos))
 	while [[ "${ncmppsq__pos}" -lt "${#1}" && "${1:ncmppsq__pos:1}" != "'" ]]
 	do
 		((++ncmppsq__pos))
 	done
-	ncmppsq__out="${1:${4:-0}+1:ncmppsq__pos - 1 - ${4:-0}}"
+	if ((${#2}))
+	then
+		ncmppsq__out="${1:${4:-0}+1:ncmppsq__pos - 1 - ${4:-0}}"
+	fi
 }
 
-ncmp_parse_double_quote() # <text> [out=RESULT] [pos=POS] [start=0]
+ncmp_parse_double_quote() # <text> [out] [pos=POS] [start=0]
 {
-	# Parse <text> and store the position of the ending double quote
-	# in [pos] (or end of string if ending double quote does not exist.)
-	# The extracted string will be in [out].
-	# If <text>[start] != '"', then pos=start and out=''
+	# Parse <text> as a double-quote string.
+	# Store the terminating double quote in [pos] and the value in [out] if nonempty.
+	# If the terminating double quote is not found, assume it is after <text>.
+	# If ${text:start:1} != '"', then out is empty and pos is start.
 
-	# From the man bash:
+	# From man bash:
 	# Enclosing characters in double quotes preserves the literal value
 	# of all characters within the quotes, with the exception of $, `,
 	# \, and, when history expansion is enabled, !.  When the shell  is
@@ -257,7 +278,7 @@ ncmp_parse_double_quote() # <text> [out=RESULT] [pos=POS] [start=0]
 
 	local -n ncmppdq__out="${2:-RESULT}"
 	local -n ncmppdq__pos="${3:-POS}"
-	ncmppdq__out=
+	if ((${#2})); then ncmppdq__out=; fi
 	ncmppdq__pos="${3:-0}"
 	if [[ "${1:ncmppdq__pos:1}" != '"' ]]; then return; fi
 	((++ncmppdq__pos))
@@ -267,7 +288,7 @@ ncmp_parse_double_quote() # <text> [out=RESULT] [pos=POS] [start=0]
 			'\')
 				if [[ "${1:ncmppdq__pos+1:1}" = ['$`"\'$'\n'] ]]
 				then
-					ncmppdq__out+="${1:ncmppdq__pos+1:1}"
+					if ((${#2})); then ncmppdq__out+="${1:ncmppdq__pos+1:1}"; fi
 					((++ncmppdq__pos))
 				fi
 				;;
@@ -278,8 +299,14 @@ ncmp_parse_double_quote() # <text> [out=RESULT] [pos=POS] [start=0]
 						ncmp_parse_param "${1}" ncmppdq__subval ncmppdq__pos "${ncmppdq__pos}"
 						;;
 					'(')
-						local ncmppdq__subval
-						ncmp_parse_parentheses "${1}" ncmppdq__subval ncmppdq__pos "${ncmppdq__pos}"
+						if [[ "${1:ncmppdq__pos+2:1}" = '(' ]]
+						then
+							local ncmppdq__subval
+							ncmp_parse_mathsub "${1}" ncmppdq__subval ncmppdq__pos "${ncmppdq__pos}"
+						else
+							local ncmppdq__subval
+							ncmp_parse_commandsub "${1}" ncmppdq__subval ncmppdq__pos "${ncmppdq__pos}"
+						fi
 						;;
 					[0-9])
 						# nth argument
@@ -294,46 +321,102 @@ ncmp_parse_double_quote() # <text> [out=RESULT] [pos=POS] [start=0]
 				esac
 				;;
 			'`')
-				# note, bash seems to have some weird parsing with backticks...
-				# echo `echo '`'` hangs, like it's missing some ending value
-				# even though echo '`' echos a single backtick
-				# so `echo '`'` should evaluate into a single backtick
-				# and indeed, if x=(echo '`'), then `"${x[@]}"` evalues to a backtick
-				# but typing it all out does not, and indeed, eval `"${x[@]}`
 				local ncmppdq__subval
 				ncmp_parse_backtick "${1}" ncmppdq__subval ncmppdq__pos "${ncmppdq__pos}"
 				;;
 			*)
-				ncmppdq__out+="${1:ncmppdq__pos:1}"
+				if (("${#2}")); then ncmppdq__out+="${1:ncmppdq__pos:1}"; fi
 				;;
 		esac
 		((++ncmppdq__pos))
 	done
 }
-ncmp_parse_backtick() # <text> [out=RESULT] [pos=POS] [start=0]
+ncmp_parse_backtick() # <text> [out] [pos=POS] [start=0]
 {
-	# parse a backtick command substitution.
+	# Parse <text> backtick command substitution.
+	# Store the terminating backtick in [pos] and the value in [out] if nonempty.
+	# If ${text:start:1} != '`', then out is empty and pos is start
+
+	# From man bash:
+	# When the old-style backquote form of substitution is used,
+	# backslash retains its literal meaning except when followed by $,
+	# `, or \.  The first backquote not preceded by a backslash
+	# terminates the command substitution.
+	#
+	# After some testing, it seems like backtick parsing is like this:
+	# 1. Parse like a string
+	# 2. eval the string
+	#
+	# ex: `echo '\`'`
+	# -> echo '`'
+	# -> `
+	#
+	# ex2: `echo \$\$`
+	# -> echo $$
+	# -> the pid of current process
+	#
+	# ex3: `echo \\\$\\\$`
+	# -> echo \$\$
+	# -> 2 literal dollar signs
+
 	local -n ncmppbt__out="${2:-RESULT}"
 	local -n ncmppbt__pos="${3:-POS}"
 	ncmppbt__pos="${4:-0}"
-	if [[ "${1:ncmppbt__pos:1}" != '`' ]]; then ncmppbt__out=; return; fi
+	if [[ "${1:ncmppbt__pos:1}" != '`' ]]
+	then
+		if ((${#2}))
+		then
+			ncmppbt__out=
+		fi
+		return
+	fi
 	((++ncmppbt__pos))
+
 	while [[ "${ncmppbt__pos}" -lt "${#1}" && "${1:ncmppbt__pos:1}" != '`' ]]
 	do
-		:
+		if [[ "${1:ncmppbt__pos:1}" = '\' && "${1:ncmppbt__pos+1:1}" = ['$\`'] ]]
+		then
+			((++ncmppbt__pos))
+		fi
+		((++ncmppbt__pos))
 	done
-	eval ncmppbt__out="${1:${4:-0}:${ncmppbt__pos}-${4:-0}}"'`'
+	if ((${#2}))
+	then
+		eval ncmppbt__out="${1:${4:-0}:ncmppbt__pos-${4:-0}}\`"
+	fi
 }
 
 ncmp_parse_param() # <text> [out=RESULT] [pos=POS] [start=0]
 {
+	# Parse <text> as a parameter substitution ${...}
+	# Store the terminating } in [pos] and the value in [out]
+	# If ${text:start:2} != '${', then out is empty and pos is start
+
+	# From man bash:
+	# When braces are used, the matching ending brace is the first `}' not
+	# escaped by a backslash or within a quoted string, and not within an
+	# embedded arithmetic expansion, command substitution, or parameter
+	# expansion.
 	local -n ncmppppm__out="${2:-RESULT}"
 	local -n ncmppppm__pos="${3:-POS}"
+
+
 }
-ncmp_parse_parentheses() # <text> [out=RESULT] [pos=POS] [start=0]
+ncmp_parse_commandsub() # <text> [out=RESULT] [pos=POS] [start=0]
 {
-	local -n ncmpppn__out="${2:-RESULT}"
-	local -n ncmpppn__pos="${3:-POS}"
+	# Parse <text> as a command substitution $(...)
+	# Store the terminating ) in [pos] and the value in [out]
+	# If ${text:start:3} != '$(', then out is empty and pos is start
+	local -n ncmppcs__out="${2:-RESULT}"
+	local -n ncmppcs__pos="${3:-POS}"
+}
+ncmp_parse_mathsub() # <text> [out=RESULT] [pos=POS] [start=0]
+{
+	# Parse <text> as an arithmetic expansion $((...))
+	# Store the terminating ) in [pos] and the value in [out]
+	# If ${text:start:3} != '$((', then out is empty and pos is start
+	local -n ncmppms__out="${2:-RESULT}"
+	local -n ncmppms__pos="${3:-POS}"
 }
 
 
@@ -579,6 +662,13 @@ ncmp_read_dir() # <dname> [force=]
 
 		ss_push extglob globasciiranges
 		NCMP_CACHE=()
+
+		# Sidenote, using compgen can be very very slow...
+		# ls = 0.18 seconds, but compgen = 3 seconds if compgen -df -o plusdirs (to distinguish directories)
+		# or compgen -df 2 seconds
+		# If this is the case, ls seems to be way more preferrable to compgen
+		# but compgen does give some benefits like no need to implement
+		# parsing partial bash/readline parsing.
 
 		readarray -O${NCMP_CACHE_STATE} -t NCMP_CACHE < <(ls -Apb --color="${NUMERIC_COMPLETE_color:-never}" "${1}" 2>/dev/null)
 		# https://en.wikipedia.org/wiki/ANSI_escape_code
@@ -1095,6 +1185,15 @@ then
 	ncmp_parse_single_quote "'this is some string\\'extra" out pos && [[ "${out}" = 'this is some string\' ]] && ((pos == 21)) && echo pass || echo fail
 	ncmp_parse_single_quote "'incomplete" out pos && [[ "${out}" = 'incomplete' ]] && ((pos == 11)) && echo pass || echo fail
 	ncmp_parse_single_quote "'incomplete" out pos 1 [[ "${out}" = '' ]] && ((pos == 1)) && echo pass || echo fail
+
+	echo 'testing ncmp_parse_backtick'
+	ncmp_parse_backtick 'hello`echo \\\`$HOME\\\$HOME\\\a`' out pos 0 && [[ "${out}" = '' ]] && ((pos == 0)) && echo pass || echo fail
+	ncmp_parse_backtick 'hello`echo \\\`$HOME\\\$HOME\\\a`' out pos 5 && [[ "${out}" = "\`$HOME\$HOME\\a" ]] && ((pos == 32)) && echo pass || echo fail
+	ncmp_parse_backtick 'hello`echo \\\`$HOME\\\$HOME\\\a' out pos 5 && [[ "${out}" = "\`$HOME\$HOME\\a" ]] && ((pos == 32)) && echo pass || echo fail
+
+
+
+
 
 
 	if (($#))
