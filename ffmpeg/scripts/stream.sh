@@ -110,7 +110,7 @@ stream_vids() {
 	Use pipes instead of \`-stream_loop -1\` because some systems seem to
 	have issues with the stream_loop method resulting in hanging.  This method
 	requires the inputs to be \`cat\`able into a valid stream.
-	example: h264 (eg .h264 rather than .mp4)
+	example: .ts format (mpegts)
 [--sep] <sep>
 	--sep implies --pipe.  The input video sources are interpreted as groups
 	of videos to be \`cat\` together as a single rtsp stream source.  These
