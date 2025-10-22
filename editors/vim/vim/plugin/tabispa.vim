@@ -164,6 +164,14 @@ function! s:AlignTo(position, prevline, nxt)
 	endif
 endfunction
 
+"TODO
+"change AlignCursor
+"behavior:
+"getchar(), if <CR>, then use word start
+"if <Space>, then jump to below next non-space character
+"Otherwise, jump to below next matching character
+"Maybe separate the functions? forwardalign, backwardalign
+
 "Align current cursor to word start on previous line
 "nxt: bool, insert spaces to go forward to next alignment point
 "     otherwise, delete spaces to go back to previous alignment
