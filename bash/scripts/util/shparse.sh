@@ -1,7 +1,22 @@
 #!/bin/bash
 
+# Parse a string as it would be parsed by bash.
+# The string might be incomplete, using eval would result in an error.
+# Parsing functions all have this signature:
+# func <text> [out=RESULT] [pos=POS] [start=0]
+#
+# They all take text and start parsing from [start].
+# They store the result in [out] and the ending position in [pos]
+#
+# If the parsed structure is incomplete, then the smallest incomplete
+# structure is left in [out] if it is given.
+# "hello${HO
+# is a string containing an incomplete parameter expansion.  As a result,
+# the parameter expansion is the smallest incomplete structure and
+# [out] would be ${HO.
 
-shparse_parse_ansi_c() # <text> [out] [pos=POS] [start=0]
+
+shparse_parse_ansi_c() # <text> [out=RESULT] [pos=POS] [start=0]
 {
 	# Parse <text> as ansi-c quote $'...'.
 	# Store the ending single quote in [pos] and the value in [out] if nonempty.
@@ -137,22 +152,25 @@ shparse_parse_double_quote() # <text> [out] [pos=POS] [start=0]
 				then
 					if ((${#2})); then shppdq__out+="${1:shppdq__pos+1:1}"; fi
 					((++shppdq__pos))
+				elif ((${#2}))
+				then
+					shppdq__out+='\'
 				fi
 				;;
 			'$')
 				case "${1:shppdq__pos+1:1}" in
 					'{')
 						local shppdq__subval
-						shparse_parse_param "${1}" shppdq__subval shppdq__pos "${shppdq__pos}"
+						shparse_parse_param "${1}" "${2:+shppdq__subval}" shppdq__pos "${shppdq__pos}"
 						;;
 					'(')
 						if [[ "${1:shppdq__pos+2:1}" = '(' ]]
 						then
 							local shppdq__subval
-							shparse_parse_mathsub "${1}" shppdq__subval shppdq__pos "${shppdq__pos}"
+							shparse_parse_mathsub "${1}" "${2:+shppdq__subval}" shppdq__pos "${shppdq__pos}"
 						else
 							local shppdq__subval
-							shparse_parse_commandsub "${1}" shppdq__subval shppdq__pos "${shppdq__pos}"
+							shparse_parse_commandsub "${1}" "${2:+shppdq__subval}" shppdq__pos "${shppdq__pos}"
 						fi
 						;;
 					[0-9])
