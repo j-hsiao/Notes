@@ -1,0 +1,22 @@
+------------------------------
+generate locales:
+	1. uncomment desired locales from /etc/locale.gen
+	2. locale-gen
+
+------------------------------
+list generated locales:
+	localedef --list-archive
+	localectl list-locales
+
+------------------------------
+set the locale
+	meth1:
+		localectl set-locale LANG=locale_to_set_to
+	meth2:
+		edit /etc/locale.conf:
+		LANG=locale
+
+NOTE:
+	locale is not enough to display different languages, must also have
+	supporting font
+	?recommend noto-* fonts?
