@@ -17,7 +17,8 @@ ex:
 	gdm:
 		/etc/gdm/custom.conf
 		/etc/gdm3/custom.conf
-		set WaylandEnable=true
+		[daemon]
+		WaylandEnable=true
 
 	lightdm
 

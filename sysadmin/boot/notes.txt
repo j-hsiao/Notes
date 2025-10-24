@@ -13,6 +13,7 @@ contents
 		-2.1.2- Linux
 -3- GUI
 -4- UEFI
+	-4.1- Secure Boot
 -5- Encryption
 -6- LVM
 
