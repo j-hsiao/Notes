@@ -263,9 +263,24 @@ setup_bash() {
 	local data
 	printf -v data '%s' ". \"${ROOTDIR/#"${HOME}"/'${HOME}'}/scripts/load.sh\"" "${scriptdirs[@]}" $'\n'
 	echo "Updating ~/.bashrc"
+
+	PS1script='case "${TERM}" in
+		xterm-color|*-256color)
+			PS1='\''${debian_chroot:+($debian_chroot)}\[\033[01;32m\]\u@\h\[\033[00m\]:\[\033[01;34m\]\w\[\033[00m\]\$'\''
+			;;
+		*)
+			PS1='\''${debian_chroot:+($debian_chroot)}\u@\h:\w\$ '\''
+			;;
+	esac
+	case "$TERM" in
+		xterm*|rxvt*)
+			PS1="\[\e]0;${debian_chroot:+($debian_chroot)}\u@\h: \w\a\]$PS1";;
+	esac'
+
 	${DRYRUN:+echo} replace_section "${HOME}/.bashrc" \
 		"${data}" "# ${ROOTDIR}: scripts" 0 \
-		"PYTHON_ENVS_DIR=\"\${PYTHON_ENVS_DIR:-${envsdir}}\"" "# ${ROOTDIR}: e.sh" 0
+		"PYTHON_ENVS_DIR=\"\${PYTHON_ENVS_DIR:-${envsdir}}\"" "# ${ROOTDIR}: e.sh" 0 \
+		"${PS1script//$'\n\t'/$'\n'}" "# ${ROOTDIR}: PS1" 0
 }
 
 run_setup_env() {
