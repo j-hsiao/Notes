@@ -184,3 +184,7 @@ hypridle
 		general {
 			lock_cmd = pidof hyprlock || hyprlock
 		}
+hyprpaper
+	config
+	preload = path-to-image
+	wallpaper = [display=], path to image
