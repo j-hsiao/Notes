@@ -1,0 +1,11 @@
+-1- options
+------------------------------
+-1- options
+------------------------------
+	-Q query database
+		checks
+
+	-S sync
+		synchronzies with remote repos
+		-s
+			search

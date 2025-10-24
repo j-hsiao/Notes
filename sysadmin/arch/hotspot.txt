@@ -1,0 +1,16 @@
+https://wiki.archlinux.org/title/NetworkManager#dnsmasq
+
+nm-connection-editor
+
+
+1. ?? this might not be necessary...
+	sudo pacman -S dnsmasq
+	edit /etc/NetworkManager/conf.d/dns.conf
+		[main]
+		dns=dnsmasq
+	sudo nmcli general reload
+
+2.
+	nm-connection-editor
+	edit hotspot connection profile
+		disable IPv6
