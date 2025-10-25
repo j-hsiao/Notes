@@ -105,5 +105,6 @@ background = [
 
 
 r.bind('<q>', lambda e: r.destroy())
+r.bind('<Escape>', lambda e: r.destroy())
 r.mainloop()
 print()
