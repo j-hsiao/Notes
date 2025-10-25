@@ -1,0 +1,91 @@
+
+------------------------------
+-1- nmcli
+------------------------------
+nmcli has sub-commands
+	general
+		status
+		hostname
+		permissions
+		logging
+		reload
+	networking
+		on
+		off
+		connectivity
+			check
+	radio
+		all
+			on|off
+		wifi
+			on|off
+		wwan
+			on|off
+	connection
+		show
+			show all connection profiles
+			id|uuid|path|apath value
+				Specify a profile to show (key is only
+				necessary if id is ambiguous)
+			--active
+				limit to active connections.
+		up
+			Activate a connection profile.
+			id|uuid|path id
+				specify the id of connection profile to activate
+				(key is only necessary if id is ambiguous)
+			ifname name
+				specify the device
+		down
+			deactivate a connection profile
+			id|uuid|path|apath id
+				specify the id (key is only necessary
+				if id is ambiguous)
+
+		modify
+		add
+		edit
+		clone
+		delete
+		monitor
+		reload
+		load
+		import
+		export
+		migrate
+
+
+
+
+------------------------------
+-2- gui
+------------------------------
+nm-applet
+	failed to start...
+nm-connection-editor
+	edit connections
+
+------------------------------
+-3- mobile hotspot
+------------------------------
+https://wiki.archlinux.org/title/NetworkManager#dnsmasq
+Not entirely sure, some sources say need dnsmasq
+but others seem to say can use systemd-resolved
+but it also has some kind of default?
+
+1. ?? this might not be necessary...
+	sudo pacman -S dnsmasq
+	edit /etc/NetworkManager/conf.d/dns.conf
+		[main]
+		dns=dnsmasq
+	sudo nmcli general reload
+
+2.
+	nm-connection-editor
+	edit hotspot connection profile
+		disable IPv6
+	NOTE:
+		I did this after installing dnsmasq and editing
+		dns.conf, but not sure if it was this or that
+		that made hotspot working.  I stopped before the
+		reload and then deleted the conf... still works
