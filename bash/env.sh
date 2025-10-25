@@ -266,12 +266,24 @@ setup_bash() {
 
 	PS1script='case "${TERM}" in
 		xterm-color|*-256color)
-			PS1='\''${debian_chroot:+($debian_chroot)}\[\033[01;32m\]\u@\h\[\033[00m\]:\[\033[01;34m\]\w\[\033[00m\]\$ '\''
+			hascolor=1
 			;;
 		*)
-			PS1='\''${debian_chroot:+($debian_chroot)}\u@\h:\w\$ '\''
+			if [[ "${COLORTERM}" = *color* ]]
+			then
+				hascolor=1
+			else
+				hascolor=0
+			fi
 			;;
 	esac
+	if ((hascolor))
+	then
+		PS1='\''${debian_chroot:+($debian_chroot)}\[\033[01;32m\]\u@\h\[\033[00m\]:\[\033[01;34m\]\w\[\033[00m\]\$ '\''
+	else
+		PS1='\''${debian_chroot:+($debian_chroot)}\u@\h:\w\$ '\''
+	fi
+	unset hascolor
 	case "$TERM" in
 		xterm*|rxvt*)
 			PS1="\[\e]0;${debian_chroot:+($debian_chroot)}\u@\h: \w\a\]$PS1";;
