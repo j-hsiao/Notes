@@ -960,10 +960,22 @@ ______________________________
 
 		______________________________
 		visual
-			highlight     hi      define highlighting group (capitalized name)
+			:highlight     hi     define highlighting group (capitalized name)
 			                      hi {group} key=arg
-			                        attrlist: [bold,underline,undercurl,reverse,inverse,
-			                          italic,standout,NONE]
+			                        attrlist: comma delimited list of:
+			                          bold
+			                          underline
+			                          undercurl
+			                          underdouble
+			                          underdotted
+			                          underdashed
+			                          strikethrough
+			                          reverse
+			                          inverse
+			                          italic
+			                          standout
+			                          nocombine
+			                          NONE
 			                        term=attrlist
 			                        cterm=attrlist
 			                        ctermfg=num
@@ -989,6 +1001,9 @@ ______________________________
 			                          16 = 't_Co' >= 16
 			                          8: 't_Co' < 16
 			                            * = cterm=...bold,...
+			                          :echo &t_Co
+			                            Get the number of colors of the terminal.
+
 
 			                        gui=attrlist
 			                        font=font
@@ -1003,9 +1018,37 @@ ______________________________
 			                          colors:
 			                            capitalized name
 			                            "#rrggbb" (hex)
-			match         mat     define a match pattern
+
+			:match         mat    define a match pattern
 			                      mat {group} /pattern/
-			colorscheme
+			:colorscheme
+				blue
+				darkblue
+				default
+				delek
+				desert
+				elflord
+				*evening
+				habamax
+				*industry
+				*koehler
+				*lunaperche
+				morning
+				*murphy
+				*pablo
+				peachpuff
+				quiet
+				retrobox
+				*ron
+				shine
+				slate
+				*sorbet
+				*torte
+				unokai
+				*wildcharm
+				*zaibatsu
+				zellner
+
 		______________________________
 		miscellaneous
 			nohlsearch    noh     stop search highlighting
