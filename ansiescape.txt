@@ -89,7 +89,7 @@ just moving to a different (x,y) coordinate in the window.)
 	54        neither framed nor encircled
 	55        not overlined
 	58        set underline color (5;n / 2;r;g;b)
-	59        default underlin color
+	59        default underline color
 	60        ideogram underline or right side line
 	61        ideogram double underline or double line on right side
 	62        ideogram overline or left side line

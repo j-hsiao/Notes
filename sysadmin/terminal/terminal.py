@@ -27,23 +27,26 @@ def bgansi(r, g, b):
     return f'\x1b[48;2;{r};{g};{b}m'
 
 
-def setcolor(fg, bg, bold=False, faint=False, italic=False, underline=False):
+def setcolor(fg, bg, bold=False, faint=False, italic=False, underline=False, crossed=False, superscript=False, subscript=False):
     return ''.join((
         fgansi(*fg),
         bgansi(*bg),
-        makecode(1),
-        makecode(2),
-        makecode(3),
-        makecode(4),
+        makecode(1) if bold else '',
+        makecode(2) if faint else '',
+        makecode(3) if italic else '',
+        makecode(4) if underline else '',
+        makecode(9) if crossed else '',
+        makecode(73) if superscript else '',
+        makecode(74) if subscript else '',
     ))
 
 
-
-
-def print_settings(r, g, b, br, bg, bb):
-    print(f'\rfg: ', setcolor((r,g,b), (br,bg,bb)), f'{r:03d}, {g:03d}, {b:03d}, #{r:02x}{g:02x}{b:02x}', clearansi(), end='', sep='')
-    print(f'  bg: ', setcolor((r,g,b), (br,bg,bb)), f'{br:03d}, {bg:03d}, {bb:03d}, #{br:02x}{bg:02x}{bb:02x}', clearansi(), end='', sep='')
-    print(f'  bold:', setcolor((r,g,b), (br,bg,bb), True), f'bold text', clearansi(), end='', sep='')
+def print_settings():
+    fgr, fgg, fgb = [v.value.get() for v in color]
+    bgr, bgg, bgb = [v.value.get() for v in background]
+    setting = setcolor((fgr,fgg,fgb), (bgr,bgg,bgb), **{k: v.value.get() for k,v in modifiers.items()})
+    print(f'\rfg: ', setting, f'{fgr:03d}, {fgg:03d}, {fgb:03d}, #{fgr:02x}{fgg:02x}{fgb:02x}', clearansi(), end='', sep='')
+    print(f'  bg: ', setting, f'{bgr:03d}, {bgg:03d}, {bgb:03d}, #{bgr:02x}{bgg:02x}{bgb:02x}', clearansi(), end='', sep='', flush=True)
 
 
 class LabeledScale(tk.Scale):
@@ -57,16 +60,29 @@ class LabeledScale(tk.Scale):
         self.value.trace_add('write', self.callback)
 
     def callback(self, varname, unknown, action):
-        fgr, fgg, fgb = [v.get() for v in color]
-        bgr, bgg, bgb = [v.get() for v in background]
-        print_settings(fgr, fgg, fgb, bgr, bgg, bgb)
+        print_settings()
 
+class Checkbox(tk.Checkbutton):
+    def __init__(self, root, name, row, col, variable=None):
+        if variable is None:
+            variable = tk.BooleanVar(root)
+        tk.Checkbutton.__init__(self, root, text=name, variable=variable)
+        self.value = variable
+        self.grid(row=row, column=col, sticky='nsew')
+        self.value.trace_add('write', self.callback)
+
+    def callback(self, varname, unknown, action):
+        print_settings()
 
 
 
 r = tk.Tk()
-color = [tk.IntVar(r, 0) for _ in range(3)]
-background = [tk.IntVar(r, 0) for _ in range(3)]
+modframe = tk.Frame(r)
+modifiers = {
+    k: Checkbox(modframe, k, 0, i)
+    for i, k in enumerate('bold faint italic underline crossed'.split())
+}
+modframe.grid(row=4, column=0, columnspan=2)
 
 r.minsize(600,200)
 r.grid_columnconfigure(0, weight=1)
@@ -76,13 +92,17 @@ l1.grid(row=0, column=0, sticky='nsew')
 l2 = tk.Label(r, text='bg')
 l2.grid(row=0, column=1, sticky='nsew')
 
-fgr = LabeledScale(r, 'red', 1, 0, variable=color[0])
-fgg = LabeledScale(r, 'green', 2, 0, variable=color[1])
-fgb = LabeledScale(r, 'blue', 3, 0, variable=color[2])
+color = [
+    LabeledScale(r, k, i+1, 0)
+    for i, k in enumerate('red green blue'.split())]
+background = [
+    LabeledScale(r, k, i+1, 1)
+    for i, k in enumerate('red green blue'.split())]
 
-bgr = LabeledScale(r, 'red', 1, 1, variable=background[0])
-bgg = LabeledScale(r, 'green', 2, 1, variable=background[1])
-bgb = LabeledScale(r, 'blue', 3, 1, variable=background[2])
+
+
+
+
 
 r.bind('<q>', lambda e: r.destroy())
 r.mainloop()
