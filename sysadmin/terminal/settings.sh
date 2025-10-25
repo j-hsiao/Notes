@@ -25,7 +25,9 @@ case "${TERM}" in
 		color14 #14ffff
 		#: white
 		color7  #dddddd
-		color15 #ffffff'
+		color15 #ffffff
+		font_size 12.0'
+
 		;;
 	*)
 		;;

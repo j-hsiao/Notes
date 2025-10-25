@@ -8,15 +8,42 @@ bgcolors = {}
 for i in range(len(colornames)):
     textcolors[colornames[i]] = 30+i
     print(f'\x1b[{i+30}m{colornames[i]}\x1b[0m', sep='')
+    print(f'\x1b[{i+90}m{colornames[i]}\x1b[0m', sep='')
+
     print(f'\x1b[{30 if i else 37};{i+40}mbg {colornames[i]}\x1b[0m', sep='')
+    print(f'\x1b[{30 if i else 37};{i+100}mbg {colornames[i]}\x1b[0m', sep='')
 
 
 def clip(val, lo, hi):
     return min(max(lo, val), hi)
 
+def makecode(*values):
+    return f'\x1b[{";".join(map(str, values))}m'
+def clearansi():
+    return '\x1b[0m'
+def fgansi(r, g, b):
+    return f'\x1b[38;2;{r};{g};{b}m'
+def bgansi(r, g, b):
+    return f'\x1b[48;2;{r};{g};{b}m'
+
+
+def setcolor(fg, bg, bold=False, faint=False, italic=False, underline=False):
+    return ''.join((
+        fgansi(*fg),
+        bgansi(*bg),
+        makecode(1),
+        makecode(2),
+        makecode(3),
+        makecode(4),
+    ))
+
+
+
+
 def print_settings(r, g, b, br, bg, bb):
-    print(f'\rfg: \x1b[38;2;{r};{g};{b}m\x1b[48;2;{br};{bg};{bb}m{r:03d}, {g:03d}, {b:03d}, #{r:02x}{g:02x}{b:02x}\x1b[0m', end='')
-    print(f'  bg: \x1b[38;2;{r};{g};{b}m\x1b[48;2;{br};{bg};{bb}m{br:03d}, {bg:03d}, {bb:03d}, #{br:02x}{bg:02x}{bb:02x}\x1b[0m', end='')
+    print(f'\rfg: ', setcolor((r,g,b), (br,bg,bb)), f'{r:03d}, {g:03d}, {b:03d}, #{r:02x}{g:02x}{b:02x}', clearansi(), end='', sep='')
+    print(f'  bg: ', setcolor((r,g,b), (br,bg,bb)), f'{br:03d}, {bg:03d}, {bb:03d}, #{br:02x}{bg:02x}{bb:02x}', clearansi(), end='', sep='')
+    print(f'  bold:', setcolor((r,g,b), (br,bg,bb), True), f'bold text', clearansi(), end='', sep='')
 
 
 class LabeledScale(tk.Scale):
