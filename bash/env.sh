@@ -300,6 +300,24 @@ setup_bash() {
 		"${interactive_alias//$'\n\t\t'/$'\n'}" "# ${ROOTDIR}: interactive" 0
 }
 
+if [[ "${TERM}" = 'xterm-kitty' ]]
+then
+	setup_kitty() {
+		settings='font_size 12.0
+			mouse_map left click ungrabbed
+			remember_window_size  no
+			initial_window_width  80c
+			initial_window_height 24c
+			allow_hyperlinks no
+			# make blue brighter
+			color4  #1a8fff
+			color12 #80bbff'
+		${DRYRUN:+echo} replace_section "${HOME}/.config/kitty/kitty.conf" \
+			"${settings//$'\n\t\t'/$'\n'}" "# ${ROOTDIR}: kitty" 0
+	}
+fi
+
+
 run_setup_env() {
 	local DRYRUN=''
 	if ((IS_CYGWIN))
@@ -308,6 +326,8 @@ run_setup_env() {
 	else
 		local CREATE=(ln -s)
 	fi
+
+	local targets=,
 
 	while ((${#}))
 	do
@@ -337,6 +357,7 @@ Display this help message
 				return
 				;;
 			*)
+				targets+="${1},"
 				;;
 		esac
 		shift
@@ -346,7 +367,9 @@ Display this help message
 	while read func
 	do
 		func="${func##* }"
-		if [[ "${func}" =~ ^'setup' ]]
+		if [[ "${func}" =~ ^'setup' \
+			&& ( "${targets}" = *",${func#setup_},"* \
+				|| "${targets}" = ',' ) ]]
 		then
 			printf '______________________________\n%s\n------------------------------\n' "${func}"
 			"${func}"

@@ -1,0 +1,128 @@
+-0- gsettings
+-1- commands
+	-1.1- org.gnome.desktop.wm.keybindings
+
+------------------------------
+-0- gsettings
+------------------------------
+gsettings is basically a key-value database for settings.
+It is used by various applications like gnome apps.
+
+------------------------------
+-1- commands
+------------------------------
+gsettings is commandline interface for gnome settings.
+It seems like the settings ui does not show all the possible settings
+
+Generally, settings are stored in a schema[:path] format.
+schema is generally a . delimited path
+ex: org.gnome.desktop.wm.keybindings
+
+gsettings uses subcommands:
+	help                      Show this information
+	list-schemas              List installed schemas
+	list-relocatable-schemas  List relocatable schemas
+	list-keys                 List keys in a schema
+	list-children             List children of a schema
+	list-recursively          List keys and values, recursively
+		schema
+	range                     Queries the range of a key
+		schema key
+	describe                  Queries the description of a key
+		schema key
+	get                       Get the value of a key
+		schema key
+	set                       Set the value of a key
+		schema key value
+	reset                     Reset the value of a key
+	reset-recursively         Reset all values in a given schema
+	writable                  Check if a key is writable
+	monitor                   Watch for changes
+
+	------------------------------
+	-1.1- org.gnome.desktop.wm.keybindings
+	------------------------------
+	activate-window-menu
+	always-on-top
+	begin-move
+	begin-resize
+	close
+	cycle-group
+	cycle-group-backward
+	cycle-panels
+	cycle-panels-backward
+	cycle-windows
+	cycle-windows-backward
+	lower
+	maximize
+	maximize-horizontally
+	maximize-vertically
+	minimize
+	move-to-center
+	move-to-corner-ne
+	move-to-corner-nw
+	move-to-corner-se
+	move-to-corner-sw
+	move-to-monitor-down
+	move-to-monitor-left
+	move-to-monitor-right
+	move-to-monitor-up
+	move-to-side-e
+	move-to-side-n
+	move-to-side-s
+	move-to-side-w
+	move-to-workspace-1
+	move-to-workspace-10
+	move-to-workspace-11
+	move-to-workspace-12
+	move-to-workspace-2
+	move-to-workspace-3
+	move-to-workspace-4
+	move-to-workspace-5
+	move-to-workspace-6
+	move-to-workspace-7
+	move-to-workspace-8
+	move-to-workspace-9
+	move-to-workspace-down
+	move-to-workspace-last
+	move-to-workspace-left
+	move-to-workspace-right
+	move-to-workspace-up
+	panel-main-menu
+	panel-run-dialog
+	raise
+	raise-or-lower
+	set-spew-mark
+	show-desktop
+	switch-applications
+	switch-applications-backward
+	switch-group
+	switch-group-backward
+	switch-input-source
+	switch-input-source-backward
+	switch-panels
+	switch-panels-backward
+	switch-to-workspace-1
+	switch-to-workspace-10
+	switch-to-workspace-11
+	switch-to-workspace-12
+	switch-to-workspace-2
+	switch-to-workspace-3
+	switch-to-workspace-4
+	switch-to-workspace-5
+	switch-to-workspace-6
+	switch-to-workspace-7
+	switch-to-workspace-8
+	switch-to-workspace-9
+	switch-to-workspace-down
+	switch-to-workspace-last
+	switch-to-workspace-left
+	switch-to-workspace-right
+	switch-to-workspace-up
+	switch-windows
+	switch-windows-backward
+	toggle-above
+	toggle-fullscreen
+	toggle-maximized
+	toggle-on-all-workspaces
+	unmaximize
