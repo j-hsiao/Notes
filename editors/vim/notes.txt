@@ -638,6 +638,8 @@ ______________________________
 			                          list:full       list and complete to first match
 			                          list:longest    list and up to longest common string
 			                          C-<n|p> to cycle through options.
+			wildignorecase    wic     Ignore case when tab completing in cmd mode.
+			fileignorecase    fic     wic + when <C-x><C-f> for auto completion.
 			title                     set window title?
 			titlestring               name of title, statusline syntax
 			statusline        stl     content of status line
