@@ -1,0 +1,218 @@
+-0- pyav
+-1- av.container
+	-1.1- av.container.InputContainer
+	-1.2- av.container.OutputContainer
+	-1.3- av.ContainerFormat
+-2- streams
+	-2.1- getting streams
+	-2.2- stream
+-3- frame
+-4- packet
+-5- CodecContext
+
+------------------------------
+-0- pyav
+------------------------------
+pyav is a wrapper over ffmpeg.
+	pip install pyav
+
+	import av
+
+Methods are organized under submodules.
+	av.container
+	av.codec
+	av.stream
+
+
+Within a file, the hierarchy is usually:
+	container
+		stream(video)
+		stream(audio)
+			packet/frame
+
+	packets and frames, not too clear, a single packet might
+	contain multiple frames, or a single frame might require
+	multiple packets?
+
+
+Usually methods dealing with frames are "decode" (seems like there is no "encode")
+methods dealing with packets are "demux/mux"
+
+
+pyav info:
+	codecs_available: set of useable codecs, `ffmpeg -codecs`
+	formats_available: set of useable formats `ffmpeg -formats`
+	bitstream_filters_available: set of bitstream filter names
+	ffmpeg_version_info: str of version
+	library_versions: dict
+
+------------------------------
+-1- av.container
+------------------------------
+Containers are usually created wtih av.open(path, mode)
+NOTE: av.open is av.container.open
+
+	general attrs:
+		format: ContainerFormat
+		file: ?str|None?
+		flags: int
+		name: str, filepath
+		open_timeout: int|None?
+		read_timeout: int|None?
+		streams: StreamContainer
+
+	------------------------------
+	-1.1- av.container.InputContainer
+	------------------------------
+	bit_rate
+	size
+	start_time
+	duration
+
+	close()
+
+	decode(streams=None, video=None, audio=None, subtitles=None, data=None):
+		yields Frames
+	demux(streams=None, video=None, audio=None, subtitles=None, data=None):
+		yields Packets
+	seek(offset, backward=True, any_frame=False, stream=None):
+		Seek to (key)frame nearest givem timestamp.
+		offset: int, time to seek to in time_base
+		backward: bool, look backwards for a keyframe
+		any_frame: bool, any frame, not just keyframe
+		stream: the stream whose time_base to use
+
+		usually follow with demuxing/decoding up until
+		the desired position (because searched backwards
+		for keyframes.)
+
+	------------------------------
+	-1.2- av.container.OutputContainer
+	------------------------------
+	default_audio_codec
+	default_subtitle_codec
+	default_video_codec
+	supported_codecs
+
+	close()
+	mux(packets)
+	mux_one(packet)
+	start_encoding()
+		called automatically...
+
+	add_attachment(name, mimetype, data):
+		create an attachment stream.
+		name: str, name of attachment
+		mimetype: str, mimetype of attachment
+		data: bytes, data to write
+	add_data_stream(codec_name=None):
+		Create new data stream
+		codec_name: str|None
+	add_stream(codec_name, rate=None, **kwargs):
+		Create a new stream. Audio, video, or subtitle.
+		codec_name: str
+		options: dict, stream options
+		kwargs: set attributes for the stream.
+	add_stream_from_template(template, opaque, **kwargs):
+		template: Stream, copy codec from the other instance.
+		opaque: bool|None, copy opaque data from template's codec context.
+		kwargs: set attributes for the stream.
+
+	------------------------------
+	-1.3- av.ContainerFormat
+	------------------------------
+	av.ContainerFormat(name, mode=None):
+		Create a Container format.
+
+	attrs:
+		name
+		long_name
+		options
+		input: input formats
+		output: output formats
+		is_input
+		is_output
+		extensions
+		flags
+
+------------------------------
+-2- streams
+------------------------------
+The streams are held in a StreamContainer.
+
+	------------------------------
+	-2.1- getting streams
+	------------------------------
+	get(streams=None, video=None, audio=None, subtitles=None, data=None):
+		Get the corresponding streams.
+		Each item is an int, or list/tuple of ints.
+		or dict/kwargs:
+			get(video=0)
+			get(dict(video=0))
+
+	best(type='video|audio|subtitle|attachment|data', related=None)
+		Find the "best" stream (av_find_best_stream)
+
+	Alternatively, use tuple attrs:
+		video
+		audio
+		subtitles
+		attachments
+		data
+
+	------------------------------
+	-2.2- stream
+	------------------------------
+	Each stream object wraps a `codec_context`
+
+	type: str:'audio|video|subtitle|data|attachment'
+	codec_context
+	id: int, format-specific id of the stream
+	index: int, index in the container
+
+	time_base: fractions.Fraction|None, fractional seconds in which timestamps are expressed
+	start_time: int|None, first pts in time_base
+	duration: int|None, duration in time_base
+	frames: int, num of frames, or 0 if not known
+
+	profile: str
+	language: str|None
+
+
+
+	stream.codec_context.skip_frame = "NONKEY"
+	stream.video: list of video streams
+
+	video.thread_type = 'SLICE'|'AUTO'|'FRAME'
+	Overall, FRAME or AUTO are faster, but larger delay between
+	decoding packet and getting result.
+
+	video.width
+	video.height
+	video.pix_fmt
+
+	------------------------------
+	-2.3- audio
+	------------------------------
+
+------------------------------
+-3- frame
+------------------------------
+frame.to_image(): convert frame to PIL image
+frame.to_ndarray(format=pixfmt)
+
+------------------------------
+-4- packet
+------------------------------
+packet.stream: assign this packet to a stream
+packet.dts: the dts of this packet.
+frames = packet.decode()
+
+
+------------------------------
+-5- CodecContext
+------------------------------
+codec = av.CodecContext.create('codec', 'rw')
+packets = codec.parse(rawdata) (iter of packet)
+
+frames = codec.decode(packet) (iter of frames)

@@ -1,0 +1,2 @@
+https://atlassian-python-api.readthedocs.io/
+pip install atlassian-python-api
