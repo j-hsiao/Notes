@@ -27,10 +27,7 @@ shparse_parse_ansi_c() # <text> [out=RESULT] [pos=POS] [start=0]
 	shppac__pos=${4:-0}
 	if [[ "${1:shppac__pos:2}" != \$\' ]]
 	then
-		if ((${#2}))
-		then
-			shppac__out=
-		fi
+		if ((${#2})); then shppac__out=; fi
 		return
 	fi
 	# https://www.gnu.org/software/bash/manual/html_node/ANSI_002dC-Quoting.html
@@ -173,10 +170,6 @@ shparse_parse_double_quote() # <text> [out] [pos=POS] [start=0]
 							shparse_parse_commandsub "${1}" "${2:+shppdq__subval}" shppdq__pos "${shppdq__pos}"
 						fi
 						;;
-					[0-9])
-						# nth argument
-						((++shppdq__pos))
-						;;
 					*)
 						if [[ "${1:shppdq__pos+1:1}" =~ [a-zA-Z_][a-zA-Z0-9_]* ]]
 						then
@@ -252,37 +245,80 @@ shparse_parse_backtick() # <text> [out] [pos=POS] [start=0]
 	fi
 }
 
-shparse_parse_param() # <text> [out=RESULT] [pos=POS] [start=0]
+shparse_parse_dollar_expr() # <text> [out=RESULT] [pos=POS] [start=0]
 {
-	# Parse <text> as a parameter substitution ${...}
-	# Store the terminating } in [pos] and the value in [out]
-	# If ${text:start:2} != '${', then out is empty and pos is start
+	# Parse <text> as a $expr
+	# Store the terminating character in [pos]
+	# If it does not match any patterns, [out] is empty and [pos] = [start]
 
 	# From man bash:
 	# When braces are used, the matching ending brace is the first `}' not
 	# escaped by a backslash or within a quoted string, and not within an
 	# embedded arithmetic expansion, command substitution, or parameter
 	# expansion.
-	local -n shppppm__out="${2:-RESULT}"
-	local -n shppppm__pos="${3:-POS}"
+	local -n shppde__out="${2:-RESULT}"
+	local -n shppde__pos="${3:-POS}"
 
+	shppde__pos="${4:-0}"
 
-}
-shparse_parse_commandsub() # <text> [out=RESULT] [pos=POS] [start=0]
-{
-	# Parse <text> as a command substitution $(...)
-	# Store the terminating ) in [pos] and the value in [out]
-	# If ${text:start:3} != '$(', then out is empty and pos is start
-	local -n shppcs__out="${2:-RESULT}"
-	local -n shppcs__pos="${3:-POS}"
-}
-shparse_parse_mathsub() # <text> [out=RESULT] [pos=POS] [start=0]
-{
-	# Parse <text> as an arithmetic expansion $((...))
-	# Store the terminating ) in [pos] and the value in [out]
-	# If ${text:start:3} != '$((', then out is empty and pos is start
-	local -n shppms__out="${2:-RESULT}"
-	local -n shppms__pos="${3:-POS}"
+	case "${1:shppde__pos:2}" in
+		'$*'|'$@'|'$#'|'$?'|'$-'|'$$'|'$!'|\$[0-9])
+			if ((${#2})); then eval shppde__out="\"${1:shppde__pos:2}\""; fi
+			((++shppde__pos))
+			return
+			;;
+		\$[a-zA-Z_])
+			((shppde__pos += 2))
+			while [[ "${shppde__pos}" -lt ${#1} && "${1:shppde__pos:1}" = [a-zA-Z0-9_] ]]
+			do
+				((++shppde__pos))
+			done
+			if ((${#2})); then eval shppde__out="\"${1:${4:-0}:shppde__pos-${4:-0}}\""; fi
+			((--shppde__pos))
+			return
+			;;
+		'${')
+			((shppde__pos += 2))
+			while [[ "${shppde__pos}" -lt ${#1} && "${1:shppde__pos:1}" != '}' ]]
+			do
+				case "${1:shppde__pos:1}" in
+					\\)
+						((++shppde__pos))
+						;;
+					\$)
+						shparse_parse_dollar_expr "${1}" TODO shppde__pos $((shppde__pos))
+						;;
+					\')
+						;;
+					\")
+						;;
+					\`)
+						;;
+					*)
+						;;
+				esac
+
+				((++shppde__pos))
+			done
+			;;
+		'$(')
+			if [[ "${1:shppde__pos+2:1}" = '(' ]]
+			then
+				# $((math expr))
+			else
+				# $(command)
+			fi
+			;;
+		\$*)
+			# ex echo $%
+			if ((${#2})); then shppde__out='$'; fi
+			return
+			;;
+		*)
+			if ((${#2})); then shppde__out=; fi
+			return
+			;;
+	esac
 }
 
 if [[ "${0}" = "${BASH_SOURCE[0]}" ]]
@@ -302,4 +338,10 @@ then
 	shparse_parse_backtick 'hello`echo \\\`$HOME\\\$HOME\\\a`' out pos 0 && [[ "${out}" = '' ]] && ((pos == 0)) && echo pass || echo fail
 	shparse_parse_backtick 'hello`echo \\\`$HOME\\\$HOME\\\a`' out pos 5 && [[ "${out}" = "\`$HOME\$HOME\\a" ]] && ((pos == 32)) && echo pass || echo fail
 	shparse_parse_backtick 'hello`echo \\\`$HOME\\\$HOME\\\a' out pos 5 && [[ "${out}" = "\`$HOME\$HOME\\a" ]] && ((pos == 32)) && echo pass || echo fail
+
+
+	echo 'testing shparse_parse_dollar_expr'
+	shparse_parse_dollar_expr 'a$HOME$!)' out pos 1 && [[ "${out}" = "${HOME}" ]] && ((pos == 5)) && echo pass || echo fail
+	shparse_parse_dollar_expr 'a$HOME$!)' out pos 6 && [[ "${out}" = "$!" ]] && ((pos == 7)) && echo pass || echo fail
+	shparse_parse_dollar_expr 'a$HOME$!$)' out pos 8 && [[ "${out}" = '$' ]] && ((pos == 8)) && echo pass || echo fail
 fi
