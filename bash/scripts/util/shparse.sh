@@ -53,56 +53,19 @@ shparse_parse_ansi_c() # <text> [out=RESULT] [begin=BEG] [end=END] [initial=0]
 {
 	# Parse <text> as ansi-c quote $'...'.  Assume <text> starts with $'
 	eval "${3:-BEG}=${5:-0}"
-	local -n shppac__end="${4:-END}"
-	((shppac__end = ${5:-0} + 1))
-	local textlen="${#1}"
-	# https://www.gnu.org/software/bash/manual/html_node/ANSI_002dC-Quoting.html
-	while ((++shppac__end < textlen))
-	do
-		if [[ "${1:shppac__end:1}" = \' ]]
+	local orig_rematch=("${BASH_REMATCH[@]}")
+	[[ "${1:2 + ${5:-0}}" =~ ^(\\.|[^\\\'])*\' ]]
+	if [[ -n "${BASH_REMATCH[0]}" ]]
+	then
+		eval "${4:-END}=$((${5:-0} + 2 + "${#BASH_REMATCH[0]}"))"
+		if is_variable "${2:-RESULT}"
 		then
-			((++shppac__end))
-			if is_variable "${2:-RESULT}";
-			then
-				# parsed as single ansi c quote, so should be safe to eval...
-				eval "${2:-RESULT}=${1:${3:-BEG}:shppac__end - ${3:-BEG}}"
-			fi
-			return
-		elif [[ "${1:shppac__end:1}" = '\' ]]
-		then
-			case "${1:shppac__end+1}" in
-				a*|b*|e*|E*|f*|n*|r*|t*|v*|'\'*|"'"*|'"'*|'?'*)
-					((++shppac__end))
-					;;
-				# it seems like bash allows incomplete octal/unicode/hex, etc
-				U[0-9a-fA-F][0-9a-fA-F][0-9a-fA-F][0-9a-fA-F][0-9a-fA-F][0-9a-fA-F][0-9a-fA-F][0-9a-fA-F]*)
-					((shppac__end += 9))
-					;;
-				U[0-9a-fA-F][0-9a-fA-F][0-9a-fA-F][0-9a-fA-F][0-9a-fA-F][0-9a-fA-F][0-9a-fA-F]*)
-					((shppac__end += 8))
-					;;
-				U[0-9a-fA-F][0-9a-fA-F][0-9a-fA-F][0-9a-fA-F][0-9a-fA-F][0-9a-fA-F]*)
-					((shppac__end += 7))
-					;;
-				U[0-9a-fA-F][0-9a-fA-F][0-9a-fA-F][0-9a-fA-F][0-9a-fA-F]*)
-					((shppac__end += 6))
-					;;
-				U[0-9a-fA-F][0-9a-fA-F][0-9a-fA-F][0-9a-fA-F]*|u[0-9a-fA-F][0-9a-fA-F][0-9a-fA-F][0-9a-fA-F]*)
-					((shppac__end += 4))
-					;;
-				U[0-9a-fA-F][0-9a-fA-F][0-9a-fA-F]*|u[0-9a-fA-F][0-9a-fA-F][0-9a-fA-F]*|x[0-9a-fA-F][0-9a-fA-F][0-9a-fA-F]*|[0-7][0-7][0-7]*)
-					((shppac__end += 3))
-					;;
-				c?*|[0-7][0-7]*|x[0-9a-fA-F]*) # control-? sequence, partial octal, partial hex
-					((shppac__end += 2))
-					;;
-				[0-7])
-					((++shppac__end))
-					;;
-			esac
+			eval "${2:-RESULT}=\$'${BASH_REMATCH[0]}"
 		fi
-	done
-	shppac__end=-1
+	else
+		eval "${4:-END}=-1"
+	fi
+	restore_BASH_REMATCH orig_rematch
 }
 
 shparse_parse_single_quote() # <text> [out] [pos=POS] [start=0]
@@ -117,23 +80,21 @@ shparse_parse_single_quote() # <text> [out] [pos=POS] [start=0]
 	# of each character within the quotes.  A single quote may not occur
 	# between single quotes, even when preceded by a backslash.
 	# simple, just find the next single quote
+	eval "${3:-BEG}=${5:-0}"
 
-	local -n shppsq__pos="${3:-POS}"
-	shppsq__pos="${4:-0}"
-	if [[ "${1:shppsq__pos:1}" != "'" ]]
+	local orig_rematch=("${BASH_REMATCH[@]}")
+	[[ "${1:${5:-0}+1}" =~ ^[^\']*\' ]]
+	if [[ -n "${BASH_REMATCH[0]}" ]]
 	then
-		if is_variable "${2:-RESULT}"; then eval "${2:-RESULT}="; fi
-		return
+		eval "${4:-END}=$((${#BASH_REMATCH[0]}+1+${5:-0}))"
+		if is_variable "${2:-RESULT}"
+		then
+			eval "${2:-RESULT}='${BASH_REMATCH[0]}"
+		fi
+	else
+		eval "${4:-END}=-1"
 	fi
-	((++shppsq__pos))
-	while [[ "${shppsq__pos}" -lt "${#1}" && "${1:shppsq__pos:1}" != "'" ]]
-	do
-		((++shppsq__pos))
-	done
-	if is_variable "${2:-RESULT}"
-	then
-		eval "${2:-RESULT}='${1:${4:-0}+1:shppsq__pos - 1 - ${4:-0}}'"
-	fi
+	restore_BASH_REMATCH orig_rematch
 }
 
 shparse_parse_double_quote() # <text> [out] [pos=POS] [start=0]
@@ -175,6 +136,8 @@ shparse_parse_double_quote() # <text> [out] [pos=POS] [start=0]
 				fi
 				;;
 			'$')
+				# TODO double quote cannot activate ansi c quote
+				# so parse_dollar_expr is wrong here...
 				shparse_parse_dollar_expr "${1}" 0 shppdq__pos "${shppdq__pos}"
 				;;
 			'`')
@@ -341,17 +304,35 @@ shparse_parse_dollar_expr() # <text> [out=RESULT] [pos=POS] [start=0]
 
 if [[ "${0}" = "${BASH_SOURCE[0]}" ]]
 then
-	echo 'testing shparse_parse_ansi_c'
-	shparse_parse_ansi_c "what$'\\nhello'extra" out beg end 4 && [[ "${out}" = $'\nhello' ]] && ((beg==4 && end == 14)) && echo pass || echo fail
-	out=
-	shparse_parse_ansi_c "what$'\\nhello" out beg end 4 && [[ "${out}" = '' ]] && ((beg==4 && end == -1)) && echo pass || echo fail
-	shparse_parse_ansi_c "what$'\\nh\\'ello" out beg end 4 && [[ "${out}" = '' ]] && ((beg==4 && end == -1)) && echo pass || echo fail
-	shparse_parse_ansi_c "what$'\\nh\\'ello'" out beg end 4 && [[ "${out}" = $'\nh\'ello' ]] && ((beg==4 && end == 16)) && echo pass || echo fail
+	run_test() # <test> <text> <out> <beg> <end> <segment> [initial=0]
+	{
+		local out beg end
+		"${1}" "${2}" out beg end ${7}
+		if [[ -n "${3}" && "${out}" != "${3}" ]] \
+			|| [[ -n "${4}"  && ${beg} != ${4} ]] \
+			|| [[ -n "${5}"  && ${end} != ${5} ]] \
+			|| [[ -n "${6}" && ( end < 0 || "${2:beg:end-beg}" != "${6}" ) ]] \
+			|| [[ -n "${4}" && -n "${6}" && "${end}" -ne $((${4} + ${#6})) ]]
+		then
+			echo fail
+			printf 'input: %s\n' "${2}"
+			printf '  out: %q vs %q\n' "${out}" "${3}"
+			printf '  range: %d - %d vs %s - %s\n' "${beg}" "${end}" "${4}" "${5}"
+			printf '  segment: %s vs %s\n' "${2:beg:end-beg}" "${6}"
+		else
+			echo pass
+		fi
+	}
 
-	# echo 'testing shparse_parse_single_quote'
-	# shparse_parse_single_quote "'this is some string\\'extra" out pos && [[ "${out}" = 'this is some string\' ]] && ((pos == 21)) && echo pass || echo fail
-	# shparse_parse_single_quote "'incomplete" out pos && [[ "${out}" = 'incomplete' ]] && ((pos == 11)) && echo pass || echo fail
-	# shparse_parse_single_quote "'incomplete" out pos 1 [[ "${out}" = '' ]] && ((pos == 1)) && echo pass || echo fail
+	echo 'testing shparse_parse_ansi_c'
+	run_test shparse_parse_ansi_c "what$'\\nhello'extra" $'\nhello' 4 '' "$'\\nhello'" 4
+	run_test shparse_parse_ansi_c "what$'\\nhello" '' 4 -1 '' 4
+	run_test shparse_parse_ansi_c "what$'\\nh\\'ello" '' 4 -1 '' 4
+	run_test shparse_parse_ansi_c "what$'\\nh\\'ello'" $'\nh\'ello' 4 '' "$'\\nh\\'ello'" 4
+
+	echo 'testing shparse_parse_single_quote'
+	run_test shparse_parse_single_quote "b4'this is some string\\'extra" 'this is some string\' 2 '' "'this is some string\\'" 2
+	run_test shparse_parse_single_quote "'incomplete" '' '' -1 ''
 
 	# echo 'testing shparse_parse_backtick'
 	# shparse_parse_backtick 'hello`echo \\\`$HOME\\\$HOME\\\a`' out pos 0 && [[ "${out}" = '' ]] && ((pos == 0)) && echo pass || echo fail
