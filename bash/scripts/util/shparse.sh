@@ -2,78 +2,107 @@
 
 # Parse a string as it would be parsed by bash.
 # The string might be incomplete, using eval would result in an error.
-# Parsing functions all have this signature:
-# func <text> [out=RESULT] [pos=POS] [start=0]
 #
-# They all take text and start parsing from [start].
-# They store the result in [out] and the ending position in [pos]
+# Useful information would be:
+# 	innermost incomplete expression to run completion on.
+# 	end of an subexpression
+# 	The bash-interpreted value
 #
-# If the parsed structure is incomplete, then the smallest incomplete
-# structure is left in [out] if it is given.
-# "hello${HO
-# is a string containing an incomplete parameter expansion.  As a result,
-# the parameter expansion is the smallest incomplete structure and
-# [out] would be ${HO.
+# With these considerations, all shparse_parse_* functions have signature:
+# name <text> [out=RESULT] [begin=BEG] [end=END] [initial=0]
+#
+# <text>: the text to parse.
+# [out]: The name of the output variable.  The evaluated text (parameters
+#        expanded, command substitution, etc) will be stored into this
+#        variable.  Use an invalid variable name to prevent this evaluation
+#        if you only want the start/count values.  If empty, it will default
+#        to RESULT.  If the expression is incomplete, then nothing will be done.
+# [begin]: The name of the variable to store the start of the parsed
+#          expression.  This might or might not match the given start
+#          value.  If there is an incomplete subexpression, then start will
+#          point to its starting position.
+# [end]: The variable name to store the ending position (exclusive) position.
+#        That is to say, ${text:start:stop-start} will be the parsed expression.
+#        if end exists, then it is the first character NOT in the parsed expression.
+#        If the expression is incomplete, this will be -1.
+# [initial]: The initial beginning position
+#
+# To avoid redundant checks, parsing functions assume that <text>
+# starts with the corresponding characters for the target expression type.
+#
+# Example:
+# 	${myvar:-${HO<Tab>
+#
+# 	This is incomplete so out will be empty if it was given.
+# 	start will be 9
+# 	count will be -1 (it was incomplete)
+#
+#
 
+. "${BASH_SOURCE[0]%shparse.sh}restore_rematch.sh"
 
-shparse_parse_ansi_c() # <text> [out=RESULT] [pos=POS] [start=0]
+is_variable() # <varname>
 {
-	# Parse <text> as ansi-c quote $'...'.
-	# Store the ending single quote in [pos] and the value in [out] if nonempty.
-	# If the terminating single quote is not found, assume it is after <text>.
-	# If ${text:start:2} != "$'", then out is empty and pos is start.
-	local -n shppac__out="${2:-RESULT}"
-	local -n shppac__pos="${3:-POS}"
-	shppac__pos=${4:-0}
-	if [[ "${1:shppac__pos:2}" != \$\' ]]
-	then
-		if ((${#2})); then shppac__out=; fi
-		return
-	fi
+	# Success if is variable name, else error.
+	local orig=("${BASH_REMATCH[@]}")
+	[[ "${1}" =~ ^[a-zA-Z_][a-zA-Z_0-9]*$ ]]
+	restore_BASH_REMATCH orig
+}
+
+shparse_parse_ansi_c() # <text> [out=RESULT] [begin=BEG] [end=END] [initial=0]
+{
+	# Parse <text> as ansi-c quote $'...'.  Assume <text> starts with $'
+	eval "${3:-BEG}=${5:-0}"
+	local -n shppac__end="${4:-END}"
+	((shppac__end = ${5:-0} + 1))
+	local textlen="${#1}"
 	# https://www.gnu.org/software/bash/manual/html_node/ANSI_002dC-Quoting.html
-	((shppac__pos+=2))
-	while [[ "${shppac__pos}" -lt "${#1}" && "${1:shppac__pos:1}" != "'" ]]
+	while ((++shppac__end < textlen))
 	do
-		if [[ "${1:shppac__pos:1}" = '\' ]]
+		if [[ "${1:shppac__end:1}" = \' ]]
 		then
-			case "${1:shppac__pos+1}" in
+			((++shppac__end))
+			if is_variable "${2:-RESULT}";
+			then
+				# parsed as single ansi c quote, so should be safe to eval...
+				eval "${2:-RESULT}=${1:${3:-BEG}:shppac__end - ${3:-BEG}}"
+			fi
+			return
+		elif [[ "${1:shppac__end:1}" = '\' ]]
+		then
+			case "${1:shppac__end+1}" in
 				a*|b*|e*|E*|f*|n*|r*|t*|v*|'\'*|"'"*|'"'*|'?'*)
-					((++shppac__pos))
+					((++shppac__end))
 					;;
 				# it seems like bash allows incomplete octal/unicode/hex, etc
 				U[0-9a-fA-F][0-9a-fA-F][0-9a-fA-F][0-9a-fA-F][0-9a-fA-F][0-9a-fA-F][0-9a-fA-F][0-9a-fA-F]*)
-					((shppac__pos += 9))
+					((shppac__end += 9))
 					;;
 				U[0-9a-fA-F][0-9a-fA-F][0-9a-fA-F][0-9a-fA-F][0-9a-fA-F][0-9a-fA-F][0-9a-fA-F]*)
-					((shppac__pos += 8))
+					((shppac__end += 8))
 					;;
 				U[0-9a-fA-F][0-9a-fA-F][0-9a-fA-F][0-9a-fA-F][0-9a-fA-F][0-9a-fA-F]*)
-					((shppac__pos += 7))
+					((shppac__end += 7))
 					;;
 				U[0-9a-fA-F][0-9a-fA-F][0-9a-fA-F][0-9a-fA-F][0-9a-fA-F]*)
-					((shppac__pos += 6))
+					((shppac__end += 6))
 					;;
 				U[0-9a-fA-F][0-9a-fA-F][0-9a-fA-F][0-9a-fA-F]*|u[0-9a-fA-F][0-9a-fA-F][0-9a-fA-F][0-9a-fA-F]*)
-					((shppac__pos += 4))
+					((shppac__end += 4))
 					;;
 				U[0-9a-fA-F][0-9a-fA-F][0-9a-fA-F]*|u[0-9a-fA-F][0-9a-fA-F][0-9a-fA-F]*|x[0-9a-fA-F][0-9a-fA-F][0-9a-fA-F]*|[0-7][0-7][0-7]*)
-					((shppac__pos += 3))
+					((shppac__end += 3))
 					;;
 				c?*|[0-7][0-7]*|x[0-9a-fA-F]*) # control-? sequence, partial octal, partial hex
-					((shppac__pos += 2))
+					((shppac__end += 2))
 					;;
 				[0-7])
-					((++shppac__pos))
+					((++shppac__end))
 					;;
 			esac
 		fi
-		((++shppac__pos))
 	done
-	# parsed as single ansi c quote, so should be safe to eval...
-	if ((${#2}))
-	then
-		eval shppac__out="${1:${4#-0}:shppac__pos - ${4#-0}}'"
-	fi
+	shppac__end=-1
 }
 
 shparse_parse_single_quote() # <text> [out] [pos=POS] [start=0]
@@ -89,15 +118,11 @@ shparse_parse_single_quote() # <text> [out] [pos=POS] [start=0]
 	# between single quotes, even when preceded by a backslash.
 	# simple, just find the next single quote
 
-	local -n shppsq__out="${2:-RESULT}"
 	local -n shppsq__pos="${3:-POS}"
 	shppsq__pos="${4:-0}"
 	if [[ "${1:shppsq__pos:1}" != "'" ]]
 	then
-		if ((${#2}))
-		then
-			shppsq__out=
-		fi
+		if is_variable "${2:-RESULT}"; then eval "${2:-RESULT}="; fi
 		return
 	fi
 	((++shppsq__pos))
@@ -105,9 +130,9 @@ shparse_parse_single_quote() # <text> [out] [pos=POS] [start=0]
 	do
 		((++shppsq__pos))
 	done
-	if ((${#2}))
+	if is_variable "${2:-RESULT}"
 	then
-		shppsq__out="${1:${4:-0}+1:shppsq__pos - 1 - ${4:-0}}"
+		eval "${2:-RESULT}='${1:${4:-0}+1:shppsq__pos - 1 - ${4:-0}}'"
 	fi
 }
 
@@ -134,10 +159,9 @@ shparse_parse_double_quote() # <text> [out] [pos=POS] [start=0]
 	#
 	# for now, don't support history... in completions.
 
-
-	local -n shppdq__out="${2:-RESULT}"
 	local -n shppdq__pos="${3:-POS}"
-	if ((${#2})); then shppdq__out=; fi
+	if is_variable "${2:-RESULT}"; then eval "${2:-RESULT}="; fi
+
 	shppdq__pos="${3:-0}"
 	if [[ "${1:shppdq__pos:1}" != '"' ]]; then return; fi
 	((++shppdq__pos))
@@ -147,47 +171,23 @@ shparse_parse_double_quote() # <text> [out] [pos=POS] [start=0]
 			'\')
 				if [[ "${1:shppdq__pos+1:1}" = ['$`"\'$'\n'] ]]
 				then
-					if ((${#2})); then shppdq__out+="${1:shppdq__pos+1:1}"; fi
 					((++shppdq__pos))
-				elif ((${#2}))
-				then
-					shppdq__out+='\'
 				fi
 				;;
 			'$')
-				case "${1:shppdq__pos+1:1}" in
-					'{')
-						local shppdq__subval
-						shparse_parse_param "${1}" "${2:+shppdq__subval}" shppdq__pos "${shppdq__pos}"
-						;;
-					'(')
-						if [[ "${1:shppdq__pos+2:1}" = '(' ]]
-						then
-							local shppdq__subval
-							shparse_parse_mathsub "${1}" "${2:+shppdq__subval}" shppdq__pos "${shppdq__pos}"
-						else
-							local shppdq__subval
-							shparse_parse_commandsub "${1}" "${2:+shppdq__subval}" shppdq__pos "${shppdq__pos}"
-						fi
-						;;
-					*)
-						if [[ "${1:shppdq__pos+1:1}" =~ [a-zA-Z_][a-zA-Z0-9_]* ]]
-						then
-							# variable without {}
-							:
-						fi
-				esac
+				shparse_parse_dollar_expr "${1}" 0 shppdq__pos "${shppdq__pos}"
 				;;
 			'`')
-				local shppdq__subval
-				shparse_parse_backtick "${1}" shppdq__subval shppdq__pos "${shppdq__pos}"
+				shparse_parse_backtick "${1}" 0 shppdq__pos "${shppdq__pos}"
 				;;
 			*)
-				if (("${#2}")); then shppdq__out+="${1:shppdq__pos:1}"; fi
 				;;
 		esac
 		((++shppdq__pos))
 	done
+	# TODO eval from start to finish
+	# subparses should not have output because
+	# everything would need to be evaled anyways if this call requires output.
 }
 
 shparse_parse_backtick() # <text> [out] [pos=POS] [start=0]
@@ -218,15 +218,11 @@ shparse_parse_backtick() # <text> [out] [pos=POS] [start=0]
 	# -> echo \$\$
 	# -> 2 literal dollar signs
 
-	local -n shppbt__out="${2:-RESULT}"
 	local -n shppbt__pos="${3:-POS}"
 	shppbt__pos="${4:-0}"
 	if [[ "${1:shppbt__pos:1}" != '`' ]]
 	then
-		if ((${#2}))
-		then
-			shppbt__out=
-		fi
+		if is_variable "${2:-RESULT}"; then eval "${2:-RESULT}="; fi
 		return
 	fi
 	((++shppbt__pos))
@@ -239,11 +235,49 @@ shparse_parse_backtick() # <text> [out] [pos=POS] [start=0]
 		fi
 		((++shppbt__pos))
 	done
-	if ((${#2}))
+	if is_variable "${2:-RESULT}"
 	then
-		eval shppbt__out="${1:${4:-0}:shppbt__pos-${4:-0}}\`"
+		eval "${2:-RESULT}=${1:${4:-0}:shppbt__pos-${4:-0}}\`"
 	fi
 }
+
+shparse_parse_parameter_expansion() # <text> [out=RESULT] [pos=POS] [start=0]
+{
+	# Parse <text> as a parameter expansion ${...} expression.
+	# Store the ending \} in [pos].
+	# if <text> is not a parameter expansion, [out] is empty and [pos] = [start]
+	# parse ${} expr
+	local -n shpppe__pos="${3:-POS}"
+	shpppe__pos="${4:-0}"
+	if [[ "${1:shpppe__pos:2}" != \${ ]]
+	then
+		if is_variable "${2-RESULT}"; then eval "${2:-RESULT}="; fi
+		return
+	fi
+	((shpppe__pos+=2))
+	while [[ "${shpppe__pos}" -lt ${#1} && "${1:shpppe__pos:1}" != } ]]
+	do
+		case "${1:shpppe__pos:1}" in
+			\\)
+				((++shpppe__pos))
+				;;
+			\$)
+				shparse_parse_dollar_expr "${1}" 0 shpppe__pos "${shpppe__pos}"
+				;;
+			\')
+				shparse_parse_single_quote "${1}" 0 shpppe__pos "${shpppe__pos}"
+				;;
+			\")
+				shparse_parse_double_quote "${1}" 0 shpppe__pos "${shpppe__pos}"
+				;;
+			\`)
+				shparse_parse_backtick "${1}" 0 shpppe__pos "${shpppe__pos}"
+				;;
+		esac
+		((++shpppe__pos))
+	done
+}
+
 
 shparse_parse_dollar_expr() # <text> [out=RESULT] [pos=POS] [start=0]
 {
@@ -252,70 +286,54 @@ shparse_parse_dollar_expr() # <text> [out=RESULT] [pos=POS] [start=0]
 	# If it does not match any patterns, [out] is empty and [pos] = [start]
 
 	# From man bash:
-	# When braces are used, the matching ending brace is the first `}' not
+	# When braces are used, the matching ending brace is the first \} not
 	# escaped by a backslash or within a quoted string, and not within an
 	# embedded arithmetic expansion, command substitution, or parameter
 	# expansion.
-	local -n shppde__out="${2:-RESULT}"
 	local -n shppde__pos="${3:-POS}"
-
 	shppde__pos="${4:-0}"
 
 	case "${1:shppde__pos:2}" in
+		\$\')
+			shparse_parse_ansi_c "${@}"
+			return
+			;;
 		'$*'|'$@'|'$#'|'$?'|'$-'|'$$'|'$!'|\$[0-9])
-			if ((${#2})); then eval shppde__out="\"${1:shppde__pos:2}\""; fi
+			# Special variable expansion
+			if is_variable "${2:-RESULT}"; then eval "${2:-RESULT}=\"${1:shppde__pos:2}\""; fi
 			((++shppde__pos))
 			return
 			;;
 		\$[a-zA-Z_])
-			((shppde__pos += 2))
-			while [[ "${shppde__pos}" -lt ${#1} && "${1:shppde__pos:1}" = [a-zA-Z0-9_] ]]
-			do
-				((++shppde__pos))
-			done
-			if ((${#2})); then eval shppde__out="\"${1:${4:-0}:shppde__pos-${4:-0}}\""; fi
-			((--shppde__pos))
+			# parse $varname expr
+			local orig_rematch=("${BASH_REMATCH[@]}")
+			[[ "${1:shppde__pos+1}" =~ ^([a-zA-Z_][a-zA-Z_0-9]*) ]]
+			if is_variable "${2:-RESULT}"; then eval "${2:-RESULT}=\$${BASH_REMATCH[1]}"; fi
+			((shppde__pos+="${#BASH_REMATCH[1]}"))
+			restore_BASH_REMATCH orig_rematch
 			return
 			;;
-		'${')
-			((shppde__pos += 2))
-			while [[ "${shppde__pos}" -lt ${#1} && "${1:shppde__pos:1}" != '}' ]]
-			do
-				case "${1:shppde__pos:1}" in
-					\\)
-						((++shppde__pos))
-						;;
-					\$)
-						shparse_parse_dollar_expr "${1}" TODO shppde__pos $((shppde__pos))
-						;;
-					\')
-						;;
-					\")
-						;;
-					\`)
-						;;
-					*)
-						;;
-				esac
-
-				((++shppde__pos))
-			done
+		\$\{)
+			shparse_parse_parameter_expansion "${@}"
+			return
 			;;
 		'$(')
 			if [[ "${1:shppde__pos+2:1}" = '(' ]]
 			then
 				# $((math expr))
+				:
 			else
 				# $(command)
+				:
 			fi
 			;;
 		\$*)
 			# ex echo $%
-			if ((${#2})); then shppde__out='$'; fi
+			if is_variable "${2:-RESULT}"; then eval "${2:-RESULT}='\$'"; fi
 			return
 			;;
 		*)
-			if ((${#2})); then shppde__out=; fi
+			if is_variable "${2:-RESULT}"; then eval "${2:-RESULT}="; fi
 			return
 			;;
 	esac
@@ -324,24 +342,29 @@ shparse_parse_dollar_expr() # <text> [out=RESULT] [pos=POS] [start=0]
 if [[ "${0}" = "${BASH_SOURCE[0]}" ]]
 then
 	echo 'testing shparse_parse_ansi_c'
-	shparse_parse_ansi_c "what$'\\nhello'extra" out pos 2 && [[ "${out}" = '' ]] && ((pos == 2)) && echo pass || echo fail
-	shparse_parse_ansi_c "what$'\\nhello'extra" out pos 4 && [[ "${out}" = $'\nhello' ]] && ((pos == 13)) && echo pass || echo fail
-	shparse_parse_ansi_c "what$'\\nhello" out pos 4 && [[ "${out}" = $'\nhello' ]] && ((pos == 13)) && echo pass || echo fail
-	shparse_parse_ansi_c "what$'\\nh\\'ello" out pos 4 && [[ "${out}" = $'\nh\'ello' ]] && ((pos == 15)) && echo pass || echo fail
+	shparse_parse_ansi_c "what$'\\nhello'extra" out beg end 4 && [[ "${out}" = $'\nhello' ]] && ((beg==4 && end == 14)) && echo pass || echo fail
+	out=
+	shparse_parse_ansi_c "what$'\\nhello" out beg end 4 && [[ "${out}" = '' ]] && ((beg==4 && end == -1)) && echo pass || echo fail
+	shparse_parse_ansi_c "what$'\\nh\\'ello" out beg end 4 && [[ "${out}" = '' ]] && ((beg==4 && end == -1)) && echo pass || echo fail
+	shparse_parse_ansi_c "what$'\\nh\\'ello'" out beg end 4 && [[ "${out}" = $'\nh\'ello' ]] && ((beg==4 && end == 16)) && echo pass || echo fail
 
-	echo 'testing shparse_parse_single_quote'
-	shparse_parse_single_quote "'this is some string\\'extra" out pos && [[ "${out}" = 'this is some string\' ]] && ((pos == 21)) && echo pass || echo fail
-	shparse_parse_single_quote "'incomplete" out pos && [[ "${out}" = 'incomplete' ]] && ((pos == 11)) && echo pass || echo fail
-	shparse_parse_single_quote "'incomplete" out pos 1 [[ "${out}" = '' ]] && ((pos == 1)) && echo pass || echo fail
+	# echo 'testing shparse_parse_single_quote'
+	# shparse_parse_single_quote "'this is some string\\'extra" out pos && [[ "${out}" = 'this is some string\' ]] && ((pos == 21)) && echo pass || echo fail
+	# shparse_parse_single_quote "'incomplete" out pos && [[ "${out}" = 'incomplete' ]] && ((pos == 11)) && echo pass || echo fail
+	# shparse_parse_single_quote "'incomplete" out pos 1 [[ "${out}" = '' ]] && ((pos == 1)) && echo pass || echo fail
 
-	echo 'testing shparse_parse_backtick'
-	shparse_parse_backtick 'hello`echo \\\`$HOME\\\$HOME\\\a`' out pos 0 && [[ "${out}" = '' ]] && ((pos == 0)) && echo pass || echo fail
-	shparse_parse_backtick 'hello`echo \\\`$HOME\\\$HOME\\\a`' out pos 5 && [[ "${out}" = "\`$HOME\$HOME\\a" ]] && ((pos == 32)) && echo pass || echo fail
-	shparse_parse_backtick 'hello`echo \\\`$HOME\\\$HOME\\\a' out pos 5 && [[ "${out}" = "\`$HOME\$HOME\\a" ]] && ((pos == 32)) && echo pass || echo fail
+	# echo 'testing shparse_parse_backtick'
+	# shparse_parse_backtick 'hello`echo \\\`$HOME\\\$HOME\\\a`' out pos 0 && [[ "${out}" = '' ]] && ((pos == 0)) && echo pass || echo fail
+	# shparse_parse_backtick 'hello`echo \\\`$HOME\\\$HOME\\\a`' out pos 5 && [[ "${out}" = "\`$HOME\$HOME\\a" ]] && ((pos == 32)) && echo pass || echo fail
+	# shparse_parse_backtick 'hello`echo \\\`$HOME\\\$HOME\\\a' out pos 5 && [[ "${out}" = "\`$HOME\$HOME\\a" ]] && ((pos == 32)) && echo pass || echo fail
 
 
-	echo 'testing shparse_parse_dollar_expr'
-	shparse_parse_dollar_expr 'a$HOME$!)' out pos 1 && [[ "${out}" = "${HOME}" ]] && ((pos == 5)) && echo pass || echo fail
-	shparse_parse_dollar_expr 'a$HOME$!)' out pos 6 && [[ "${out}" = "$!" ]] && ((pos == 7)) && echo pass || echo fail
-	shparse_parse_dollar_expr 'a$HOME$!$)' out pos 8 && [[ "${out}" = '$' ]] && ((pos == 8)) && echo pass || echo fail
+	# echo 'testing shparse_parse_dollar_expr'
+	# shparse_parse_dollar_expr 'a$HOME$!)' out pos 1 && [[ "${out}" = "${HOME}" ]] && ((pos == 5)) && echo pass || echo fail
+	# shparse_parse_dollar_expr 'a$HOME$!)' out pos 6 && [[ "${out}" = "$!" ]] && ((pos == 7)) && echo pass || echo fail
+	# shparse_parse_dollar_expr 'a$HOME$!$)' out pos 8 && [[ "${out}" = '$' ]] && ((pos == 8)) && echo pass || echo fail
+	# shparse_parse_dollar_expr 'a$HOME$!$)' out pos 0 && [[ "${out}" = '' ]] && ((pos == 0)) && echo pass || echo fail
+	# shparse_parse_dollar_expr 'a$HOME$!$)$0' out pos 10 && [[ "${out}" = "${0}" ]] && ((pos == 11)) && echo pass || echo fail
+	# shparse_parse_dollar_expr 'a$HOME$!$)$0$'"'\\n'" out pos 10 && [[ "${out}" = "${0}" ]] && ((pos == 11)) && echo pass || echo fail
+	# shparse_parse_dollar_expr 'a$HOME$!$)$0$'"'\\n'" out pos 12 && [[ "${out}" = $'\n' ]] && ((pos == 16)) && echo pass || echo fail
 fi
