@@ -21,10 +21,60 @@ Alternatively, start ydotoold as sudo
 ydotool requires ydotoold to be running.
 	ydotoold -p path/to/socket
 
+ydotoold requires access to /dev/uinput.
+This usually has root owner and input group.
+This means the user that runs the ydotoold must either
+be root or be in the input group.
+
 It seems like this does not clean the socket.
+
+ydotool uses environment variable YDOTOOL_SOCKET
 
 From arch ydotool man page:
 	You can find the key name/number your keyboard is sending to libinput by
 	running `sudo libinput record` and then selecting your keyboard from the
 	list it will show you the libinput proper key name and number for each
 	key you press.
+
+	------------------------------
+	-2.1- keypresses
+	------------------------------
+	key [-d,--key-delay ms] [keycode:pressed ...]
+		keycode: determined by libinput
+		pressed: 0=released, 1 = pressed
+		example:
+			42:1 38:1 38:0 24:1 24:0 38:1 38:0 42:0
+			shiftd Ld   Lu   Od   Ou   Ld   Ld shiftu
+
+	type [-D--next-delay ms] [-d,-key-delay ms] [-f,--file fpath] text ...
+		-d: delay between keys in a string
+		-D: delay between strings
+		-f fpath, - to read from stdin
+
+	------------------------------
+	-2.2- mouse
+	------------------------------
+	mousemove [-a,--absolute] [-x] x [-y] y
+		x y are relative to current position unless -a is given
+		not in the arch man page online, but in the --help message
+		the -x and -y allow you to use negative values for x,y
+
+		-w "move mouse wheel relatively" ??
+
+	click [-d,--next-delay ms] [-r,--repeat n] [button ...]
+
+		0x00 - LEFT
+		0x01 - RIGHT
+		0x02 - MIDDLE
+		0x03 - SIDE
+		0x04 - EXTR
+		0x05 - FORWARD
+		0x06 - BACK
+		0x07 - TASK
+		0x40 - Mouse down
+		0x80 - Mouse up
+
+	examples:
+		0xc0: left button down then up
+		0x41: right button down
+		0x82: middle button up
