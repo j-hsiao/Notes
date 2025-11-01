@@ -1,3 +1,30 @@
+-1- ydotool
+-2- usage
+
+------------------------------
+-1- ydotool
+------------------------------
 https://gabrielstaples.com/ydotool-tutorial/#gsc.tab=0
+https://man.archlinux.org/man/ydotool.1.en
+sudo pacman -S ydotool
 
+On arch, ydotool does not come with a systemd ydotoold.service.
+Instead just start it manually or in background.
+ydotool requires access to /dev/uinput.
+One way to do that is to add user to input group:
+	usermod -aG input
+Alternatively, start ydotoold as sudo
 
+------------------------------
+-2- usage
+------------------------------
+ydotool requires ydotoold to be running.
+	ydotoold -p path/to/socket
+
+It seems like this does not clean the socket.
+
+From arch ydotool man page:
+	You can find the key name/number your keyboard is sending to libinput by
+	running `sudo libinput record` and then selecting your keyboard from the
+	list it will show you the libinput proper key name and number for each
+	key you press.

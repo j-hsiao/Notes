@@ -11,7 +11,7 @@
 	-2.8- org.gnome.settings-daemon.plugins.media-keys
 	-2.9- org.gnome.shell
 	-2.10- org.gnome.shell.keybindings
-
+-3- extra
 
 ------------------------------
 -0- gsettings
@@ -574,3 +574,8 @@ gives these results:
 	org.gnome.shell.keybindings toggle-message-tray ['<Super>v', '<Super>m']
 	org.gnome.shell.keybindings toggle-overview @as []
 	org.gnome.shell.keybindings toggle-quick-settings ['<Super>s']
+
+------------------------------
+-3- extra
+------------------------------
+hold shift and drag window to snap to neighboring windows

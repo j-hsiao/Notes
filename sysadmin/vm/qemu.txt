@@ -1,0 +1,5 @@
+https://www.baeldung.com/linux/qemu-boot-physical-drive
+
+qemu usually used with kvm
+qemu = emulator
+kvm = hardware acceleration
