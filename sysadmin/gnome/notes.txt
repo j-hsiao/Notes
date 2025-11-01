@@ -1,6 +1,17 @@
 -0- gsettings
 -1- commands
-	-1.1- org.gnome.desktop.wm.keybindings
+-2- keybindings
+	-2.1- org.gnome.desktop.wm.keybindings
+	-2.2- org.gnome.desktop.wm.preferences
+	-2.3- org.gnome.mutter
+	-2.4- org.gnome.mutter.keybindings
+	-2.5- org.gnome.mutter.wayland
+	-2.6- org.gnome.mutter.wayland.keybindings
+	-2.7- org.gnome.settings-daemon.plugins
+	-2.8- org.gnome.settings-daemon.plugins.media-keys
+	-2.9- org.gnome.shell
+	-2.10- org.gnome.shell.keybindings
+
 
 ------------------------------
 -0- gsettings
@@ -39,90 +50,527 @@ gsettings uses subcommands:
 	writable                  Check if a key is writable
 	monitor                   Watch for changes
 
-	------------------------------
-	-1.1- org.gnome.desktop.wm.keybindings
-	------------------------------
-	activate-window-menu
-	always-on-top
-	begin-move
-	begin-resize
-	close
-	cycle-group
-	cycle-group-backward
-	cycle-panels
-	cycle-panels-backward
-	cycle-windows
-	cycle-windows-backward
-	lower
-	maximize
-	maximize-horizontally
-	maximize-vertically
-	minimize
-	move-to-center
-	move-to-corner-ne
-	move-to-corner-nw
-	move-to-corner-se
-	move-to-corner-sw
-	move-to-monitor-down
-	move-to-monitor-left
-	move-to-monitor-right
-	move-to-monitor-up
-	move-to-side-e
-	move-to-side-n
-	move-to-side-s
-	move-to-side-w
-	move-to-workspace-1
-	move-to-workspace-10
-	move-to-workspace-11
-	move-to-workspace-12
-	move-to-workspace-2
-	move-to-workspace-3
-	move-to-workspace-4
-	move-to-workspace-5
-	move-to-workspace-6
-	move-to-workspace-7
-	move-to-workspace-8
-	move-to-workspace-9
-	move-to-workspace-down
-	move-to-workspace-last
-	move-to-workspace-left
-	move-to-workspace-right
-	move-to-workspace-up
-	panel-main-menu
-	panel-run-dialog
-	raise
-	raise-or-lower
-	set-spew-mark
-	show-desktop
-	switch-applications
-	switch-applications-backward
-	switch-group
-	switch-group-backward
-	switch-input-source
-	switch-input-source-backward
-	switch-panels
-	switch-panels-backward
-	switch-to-workspace-1
-	switch-to-workspace-10
-	switch-to-workspace-11
-	switch-to-workspace-12
-	switch-to-workspace-2
-	switch-to-workspace-3
-	switch-to-workspace-4
-	switch-to-workspace-5
-	switch-to-workspace-6
-	switch-to-workspace-7
-	switch-to-workspace-8
-	switch-to-workspace-9
-	switch-to-workspace-down
-	switch-to-workspace-last
-	switch-to-workspace-left
-	switch-to-workspace-right
-	switch-to-workspace-up
-	switch-windows
-	switch-windows-backward
-	toggle-above
-	toggle-fullscreen
-	toggle-maximized
-	toggle-on-all-workspaces
-	unmaximize
+------------------------------
+-2- keybindings
+------------------------------
+From observation, keybindings seem to be in format:
+	<modifier1><modifier2>...Keyname
+
+modifiers:
+	<Super>
+	<Control>
+	<Shift>
+	<Alt>
+	<Primary> (seems like it basically means <Control>, except "platform independent")
+Key names are usually just the letter.
+Alternative keys:
+F1-F12
+
+
+Not all possible keybindings are available in the settings app.
+Going through all org.gnome.* schema and searching for modifier keys
+gives these results:
+
+------------------------------
+-2.0- useful keybinds
+------------------------------
+	org.gnome.desktop.wm.keybindings move-to-side-e "['<Super><Shift>Right', '<Super><Shift>l']"
+	org.gnome.desktop.wm.keybindings move-to-side-n "['<Super><Shift>Up', '<Super><Shift>i']"
+	org.gnome.desktop.wm.keybindings move-to-side-s "['<Super><Shift>Down', '<Super><Shift>k']"
+	org.gnome.desktop.wm.keybindings move-to-side-w "['<Super><Shift>Left', '<Super><Shift>j']"
+	org.gnome.desktop.wm.keybindings maximize-horizontally "['<Super><Control>Left', '<Super><Control>Right']"
+	org.gnome.desktop.wm.keybindings maximize-vertically "['<Super><Control>Up', '<Super><Control>Down']"
+
+------------------------------
+-2.1- org.gnome.desktop.wm.keybindings
+------------------------------
+	org.gnome.desktop.wm.keybindings activate-window-menu ['<Alt>space']
+	org.gnome.desktop.wm.keybindings always-on-top @as []
+	org.gnome.desktop.wm.keybindings begin-move ['<Alt>F7']
+	org.gnome.desktop.wm.keybindings begin-resize ['<Alt>F8']
+	org.gnome.desktop.wm.keybindings close ['<Alt>F4']
+	org.gnome.desktop.wm.keybindings cycle-group ['<Alt>F6']
+	org.gnome.desktop.wm.keybindings cycle-group-backward ['<Shift><Alt>F6']
+	org.gnome.desktop.wm.keybindings cycle-panels ['<Control><Alt>Escape']
+	org.gnome.desktop.wm.keybindings cycle-panels-backward ['<Shift><Control><Alt>Escape']
+	org.gnome.desktop.wm.keybindings cycle-windows ['<Alt>Escape']
+	org.gnome.desktop.wm.keybindings cycle-windows-backward ['<Shift><Alt>Escape']
+	org.gnome.desktop.wm.keybindings lower @as []
+	org.gnome.desktop.wm.keybindings maximize ['<Super>Up']
+	org.gnome.desktop.wm.keybindings maximize-horizontally @as []
+	org.gnome.desktop.wm.keybindings maximize-vertically @as []
+	org.gnome.desktop.wm.keybindings minimize ['<Super>h']
+	org.gnome.desktop.wm.keybindings move-to-center @as []
+	org.gnome.desktop.wm.keybindings move-to-corner-ne @as []
+	org.gnome.desktop.wm.keybindings move-to-corner-nw @as []
+	org.gnome.desktop.wm.keybindings move-to-corner-se @as []
+	org.gnome.desktop.wm.keybindings move-to-corner-sw @as []
+	org.gnome.desktop.wm.keybindings move-to-monitor-down @as []
+	org.gnome.desktop.wm.keybindings move-to-monitor-left @as []
+	org.gnome.desktop.wm.keybindings move-to-monitor-right @as []
+	org.gnome.desktop.wm.keybindings move-to-monitor-up @as []
+	org.gnome.desktop.wm.keybindings move-to-side-e ['<Super><Shift>Right']
+	org.gnome.desktop.wm.keybindings move-to-side-n ['<Super><Shift>Up']
+	org.gnome.desktop.wm.keybindings move-to-side-s ['<Super><Shift>Down']
+	org.gnome.desktop.wm.keybindings move-to-side-w ['<Super><Shift>Left']
+	org.gnome.desktop.wm.keybindings move-to-workspace-1 ['<Super><Shift>Home']
+	org.gnome.desktop.wm.keybindings move-to-workspace-10 @as []
+	org.gnome.desktop.wm.keybindings move-to-workspace-11 @as []
+	org.gnome.desktop.wm.keybindings move-to-workspace-12 @as []
+	org.gnome.desktop.wm.keybindings move-to-workspace-2 @as []
+	org.gnome.desktop.wm.keybindings move-to-workspace-3 @as []
+	org.gnome.desktop.wm.keybindings move-to-workspace-4 @as []
+	org.gnome.desktop.wm.keybindings move-to-workspace-5 @as []
+	org.gnome.desktop.wm.keybindings move-to-workspace-6 @as []
+	org.gnome.desktop.wm.keybindings move-to-workspace-7 @as []
+	org.gnome.desktop.wm.keybindings move-to-workspace-8 @as []
+	org.gnome.desktop.wm.keybindings move-to-workspace-9 @as []
+	org.gnome.desktop.wm.keybindings move-to-workspace-down ['<Control><Shift><Alt>Down']
+	org.gnome.desktop.wm.keybindings move-to-workspace-last ['<Super><Shift>End']
+	org.gnome.desktop.wm.keybindings move-to-workspace-left ['<Super><Shift>Page_Up', '<Super><Shift>KP_Prior', '<Super><Shift><Alt>Left', '<Control><Shift><Alt>Left']
+	org.gnome.desktop.wm.keybindings move-to-workspace-right ['<Super><Shift>Page_Down', '<Super><Shift>KP_Next', '<Super><Shift><Alt>Right', '<Control><Shift><Alt>Right']
+	org.gnome.desktop.wm.keybindings move-to-workspace-up ['<Control><Shift><Alt>Up']
+	org.gnome.desktop.wm.keybindings panel-main-menu @as []
+	org.gnome.desktop.wm.keybindings panel-run-dialog ['<Alt>F2']
+	org.gnome.desktop.wm.keybindings raise @as []
+	org.gnome.desktop.wm.keybindings raise-or-lower @as []
+	org.gnome.desktop.wm.keybindings set-spew-mark @as []
+	org.gnome.desktop.wm.keybindings show-desktop @as []
+	org.gnome.desktop.wm.keybindings switch-applications ['<Alt>1']
+	org.gnome.desktop.wm.keybindings switch-applications-backward ['<Shift><Alt>1']
+	org.gnome.desktop.wm.keybindings switch-group ['<Super>Above_Tab', '<Alt>Above_Tab']
+	org.gnome.desktop.wm.keybindings switch-group-backward ['<Shift><Super>Above_Tab', '<Shift><Alt>Above_Tab']
+	org.gnome.desktop.wm.keybindings switch-input-source ['<Super>space', 'XF86Keyboard']
+	org.gnome.desktop.wm.keybindings switch-input-source-backward ['<Shift><Super>space', '<Shift>XF86Keyboard']
+	org.gnome.desktop.wm.keybindings switch-panels ['<Control><Alt>Tab']
+	org.gnome.desktop.wm.keybindings switch-panels-backward ['<Shift><Control><Alt>Tab']
+	org.gnome.desktop.wm.keybindings switch-to-workspace-1 ['<Super>Home']
+	org.gnome.desktop.wm.keybindings switch-to-workspace-10 @as []
+	org.gnome.desktop.wm.keybindings switch-to-workspace-11 @as []
+	org.gnome.desktop.wm.keybindings switch-to-workspace-12 @as []
+	org.gnome.desktop.wm.keybindings switch-to-workspace-2 @as []
+	org.gnome.desktop.wm.keybindings switch-to-workspace-3 @as []
+	org.gnome.desktop.wm.keybindings switch-to-workspace-4 @as []
+	org.gnome.desktop.wm.keybindings switch-to-workspace-5 @as []
+	org.gnome.desktop.wm.keybindings switch-to-workspace-6 @as []
+	org.gnome.desktop.wm.keybindings switch-to-workspace-7 @as []
+	org.gnome.desktop.wm.keybindings switch-to-workspace-8 @as []
+	org.gnome.desktop.wm.keybindings switch-to-workspace-9 @as []
+	org.gnome.desktop.wm.keybindings switch-to-workspace-down ['<Control><Alt>Down']
+	org.gnome.desktop.wm.keybindings switch-to-workspace-last ['<Super>End']
+	org.gnome.desktop.wm.keybindings switch-to-workspace-left ['<Super>Page_Up', '<Super>KP_Prior', '<Super><Alt>Left', '<Control><Alt>Left']
+	org.gnome.desktop.wm.keybindings switch-to-workspace-right ['<Super>Page_Down', '<Super>KP_Next', '<Super><Alt>Right', '<Control><Alt>Right']
+	org.gnome.desktop.wm.keybindings switch-to-workspace-up ['<Control><Alt>Up']
+	org.gnome.desktop.wm.keybindings switch-windows ['<Alt>Tab']
+	org.gnome.desktop.wm.keybindings switch-windows-backward ['<Shift><Alt>Tab']
+	org.gnome.desktop.wm.keybindings toggle-above @as []
+	org.gnome.desktop.wm.keybindings toggle-fullscreen @as []
+	org.gnome.desktop.wm.keybindings toggle-maximized ['<Alt>F10']
+	org.gnome.desktop.wm.keybindings toggle-on-all-workspaces @as []
+	org.gnome.desktop.wm.keybindings unmaximize ['<Super>Down', '<Alt>F5']
+------------------------------
+-2.2- org.gnome.desktop.wm.preferences
+------------------------------
+	org.gnome.desktop.wm.preferences action-double-click-titlebar 'toggle-maximize'
+	org.gnome.desktop.wm.preferences action-middle-click-titlebar 'none'
+	org.gnome.desktop.wm.preferences action-right-click-titlebar 'menu'
+	org.gnome.desktop.wm.preferences audible-bell true
+	org.gnome.desktop.wm.preferences auto-raise false
+	org.gnome.desktop.wm.preferences auto-raise-delay 500
+	org.gnome.desktop.wm.preferences button-layout 'appmenu:close'
+	org.gnome.desktop.wm.preferences disable-workarounds false
+	org.gnome.desktop.wm.preferences focus-mode 'click'
+	org.gnome.desktop.wm.preferences focus-new-windows 'smart'
+	org.gnome.desktop.wm.preferences mouse-button-modifier '<Super>'
+	org.gnome.desktop.wm.preferences num-workspaces 4
+	org.gnome.desktop.wm.preferences raise-on-click true
+	org.gnome.desktop.wm.preferences resize-with-right-button false
+	org.gnome.desktop.wm.preferences theme 'Adwaita'
+	org.gnome.desktop.wm.preferences titlebar-font 'Adwaita Sans Bold 11'
+	org.gnome.desktop.wm.preferences titlebar-uses-system-font true
+	org.gnome.desktop.wm.preferences visual-bell false
+	org.gnome.desktop.wm.preferences visual-bell-type 'fullscreen-flash'
+	org.gnome.desktop.wm.preferences workspace-names @as []
+------------------------------
+-2.3- org.gnome.mutter
+------------------------------
+	org.gnome.mutter attach-modal-dialogs true
+	org.gnome.mutter auto-maximize true
+	org.gnome.mutter center-new-windows true
+	org.gnome.mutter check-alive-timeout uint32 5000
+	org.gnome.mutter draggable-border-width 10
+	org.gnome.mutter dynamic-workspaces true
+	org.gnome.mutter edge-tiling true
+	org.gnome.mutter experimental-features ['scale-monitor-framebuffer', 'variable-refresh-rate', 'xwayland-native-scaling']
+	org.gnome.mutter focus-change-on-pointer-rest true
+	org.gnome.mutter locate-pointer-key 'Control_L'
+	org.gnome.mutter output-luminance @a(ssssud) []
+	org.gnome.mutter overlay-key 'Super'
+	org.gnome.mutter workspaces-only-on-primary true
+	org.gnome.mutter.keybindings cancel-input-capture ['<Super><Shift>Escape']
+	org.gnome.mutter.keybindings rotate-monitor ['XF86RotateWindows']
+	org.gnome.mutter.keybindings switch-monitor ['<Super>p', 'XF86Display']
+	org.gnome.mutter.keybindings toggle-tiled-left ['<Super>Left']
+	org.gnome.mutter.keybindings toggle-tiled-right ['<Super>Right']
+------------------------------
+-2.4- org.gnome.mutter.keybindings
+------------------------------
+	org.gnome.mutter.keybindings cancel-input-capture ['<Super><Shift>Escape']
+	org.gnome.mutter.keybindings rotate-monitor ['XF86RotateWindows']
+	org.gnome.mutter.keybindings switch-monitor ['<Super>p', 'XF86Display']
+	org.gnome.mutter.keybindings toggle-tiled-left ['<Super>Left']
+	org.gnome.mutter.keybindings toggle-tiled-right ['<Super>Right']
+------------------------------
+-2.5- org.gnome.mutter.wayland
+------------------------------
+	org.gnome.mutter.wayland xwayland-allow-byte-swapped-clients false
+	org.gnome.mutter.wayland xwayland-allow-grabs false
+	org.gnome.mutter.wayland xwayland-disable-extension @as []
+	org.gnome.mutter.wayland xwayland-grab-access-rules @as []
+	org.gnome.mutter.wayland.keybindings restore-shortcuts ['<Super>Escape']
+	org.gnome.mutter.wayland.keybindings switch-to-session-1 ['<Primary><Alt>F1']
+	org.gnome.mutter.wayland.keybindings switch-to-session-10 ['<Primary><Alt>F10']
+	org.gnome.mutter.wayland.keybindings switch-to-session-11 ['<Primary><Alt>F11']
+	org.gnome.mutter.wayland.keybindings switch-to-session-12 ['<Primary><Alt>F12']
+	org.gnome.mutter.wayland.keybindings switch-to-session-2 ['<Primary><Alt>F2']
+	org.gnome.mutter.wayland.keybindings switch-to-session-3 ['<Primary><Alt>F3']
+	org.gnome.mutter.wayland.keybindings switch-to-session-4 ['<Primary><Alt>F4']
+	org.gnome.mutter.wayland.keybindings switch-to-session-5 ['<Primary><Alt>F5']
+	org.gnome.mutter.wayland.keybindings switch-to-session-6 ['<Primary><Alt>F6']
+	org.gnome.mutter.wayland.keybindings switch-to-session-7 ['<Primary><Alt>F7']
+	org.gnome.mutter.wayland.keybindings switch-to-session-8 ['<Primary><Alt>F8']
+	org.gnome.mutter.wayland.keybindings switch-to-session-9 ['<Primary><Alt>F9']
+------------------------------
+-2.6- org.gnome.mutter.wayland.keybindings
+------------------------------
+	org.gnome.mutter.wayland.keybindings restore-shortcuts ['<Super>Escape']
+	org.gnome.mutter.wayland.keybindings switch-to-session-1 ['<Primary><Alt>F1']
+	org.gnome.mutter.wayland.keybindings switch-to-session-10 ['<Primary><Alt>F10']
+	org.gnome.mutter.wayland.keybindings switch-to-session-11 ['<Primary><Alt>F11']
+	org.gnome.mutter.wayland.keybindings switch-to-session-12 ['<Primary><Alt>F12']
+	org.gnome.mutter.wayland.keybindings switch-to-session-2 ['<Primary><Alt>F2']
+	org.gnome.mutter.wayland.keybindings switch-to-session-3 ['<Primary><Alt>F3']
+	org.gnome.mutter.wayland.keybindings switch-to-session-4 ['<Primary><Alt>F4']
+	org.gnome.mutter.wayland.keybindings switch-to-session-5 ['<Primary><Alt>F5']
+	org.gnome.mutter.wayland.keybindings switch-to-session-6 ['<Primary><Alt>F6']
+	org.gnome.mutter.wayland.keybindings switch-to-session-7 ['<Primary><Alt>F7']
+	org.gnome.mutter.wayland.keybindings switch-to-session-8 ['<Primary><Alt>F8']
+	org.gnome.mutter.wayland.keybindings switch-to-session-9 ['<Primary><Alt>F9']
+------------------------------
+-2.7- org.gnome.settings-daemon.plugins
+------------------------------
+	org.gnome.settings-daemon.plugins whitelisted-plugins ['all']
+	org.gnome.settings-daemon.plugins.color night-light-enabled false
+	org.gnome.settings-daemon.plugins.color night-light-last-coordinates (91.0, 181.0)
+	org.gnome.settings-daemon.plugins.color night-light-schedule-automatic false
+	org.gnome.settings-daemon.plugins.color night-light-schedule-from 20.0
+	org.gnome.settings-daemon.plugins.color night-light-schedule-to 6.0
+	org.gnome.settings-daemon.plugins.color night-light-temperature uint32 2700
+	org.gnome.settings-daemon.plugins.color recalibrate-display-threshold uint32 0
+	org.gnome.settings-daemon.plugins.color recalibrate-printer-threshold uint32 0
+	org.gnome.settings-daemon.plugins.housekeeping donation-reminder-enabled true
+	org.gnome.settings-daemon.plugins.housekeeping donation-reminder-last-shown int64 1761304781997924
+	org.gnome.settings-daemon.plugins.housekeeping free-percent-notify 0.050000000000000003
+	org.gnome.settings-daemon.plugins.housekeeping free-percent-notify-again 0.01
+	org.gnome.settings-daemon.plugins.housekeeping free-size-gb-no-notify 1
+	org.gnome.settings-daemon.plugins.housekeeping ignore-paths @as []
+	org.gnome.settings-daemon.plugins.housekeeping min-notify-period 10
+	org.gnome.settings-daemon.plugins.media-keys battery-status ['']
+	org.gnome.settings-daemon.plugins.media-keys battery-status-static ['XF86Battery']
+	org.gnome.settings-daemon.plugins.media-keys calculator ['']
+	org.gnome.settings-daemon.plugins.media-keys calculator-static ['XF86Calculator']
+	org.gnome.settings-daemon.plugins.media-keys control-center ['']
+	org.gnome.settings-daemon.plugins.media-keys control-center-static ['XF86Tools']
+	org.gnome.settings-daemon.plugins.media-keys custom-keybindings ['/org/gnome/settings-daemon/plugins/media-keys/custom-keybindings/custom0/']
+	org.gnome.settings-daemon.plugins.media-keys decrease-text-size ['']
+	org.gnome.settings-daemon.plugins.media-keys eject ['']
+	org.gnome.settings-daemon.plugins.media-keys eject-static ['XF86Eject']
+	org.gnome.settings-daemon.plugins.media-keys email ['']
+	org.gnome.settings-daemon.plugins.media-keys email-static ['XF86Mail']
+	org.gnome.settings-daemon.plugins.media-keys help ['', '<Super>F1']
+	org.gnome.settings-daemon.plugins.media-keys hibernate ['']
+	org.gnome.settings-daemon.plugins.media-keys hibernate-static ['XF86Suspend', 'XF86Hibernate']
+	org.gnome.settings-daemon.plugins.media-keys home ['']
+	org.gnome.settings-daemon.plugins.media-keys home-static ['XF86Explorer']
+	org.gnome.settings-daemon.plugins.media-keys increase-text-size ['']
+	org.gnome.settings-daemon.plugins.media-keys keyboard-brightness-down ['']
+	org.gnome.settings-daemon.plugins.media-keys keyboard-brightness-down-static ['XF86KbdBrightnessDown']
+	org.gnome.settings-daemon.plugins.media-keys keyboard-brightness-toggle ['']
+	org.gnome.settings-daemon.plugins.media-keys keyboard-brightness-toggle-static ['XF86KbdLightOnOff']
+	org.gnome.settings-daemon.plugins.media-keys keyboard-brightness-up ['']
+	org.gnome.settings-daemon.plugins.media-keys keyboard-brightness-up-static ['XF86KbdBrightnessUp']
+	org.gnome.settings-daemon.plugins.media-keys logout ['<Control><Alt>Delete']
+	org.gnome.settings-daemon.plugins.media-keys magnifier ['<Alt><Super>8']
+	org.gnome.settings-daemon.plugins.media-keys magnifier-zoom-in ['<Alt><Super>equal']
+	org.gnome.settings-daemon.plugins.media-keys magnifier-zoom-out ['<Alt><Super>minus']
+	org.gnome.settings-daemon.plugins.media-keys media ['']
+	org.gnome.settings-daemon.plugins.media-keys media-static ['XF86AudioMedia']
+	org.gnome.settings-daemon.plugins.media-keys mic-mute ['']
+	org.gnome.settings-daemon.plugins.media-keys mic-mute-static ['XF86AudioMicMute']
+	org.gnome.settings-daemon.plugins.media-keys next ['']
+	org.gnome.settings-daemon.plugins.media-keys next-static ['XF86AudioNext', '<Ctrl>XF86AudioNext']
+	org.gnome.settings-daemon.plugins.media-keys on-screen-keyboard ['']
+	org.gnome.settings-daemon.plugins.media-keys pause ['']
+	org.gnome.settings-daemon.plugins.media-keys pause-static ['XF86AudioPause']
+	org.gnome.settings-daemon.plugins.media-keys play ['']
+	org.gnome.settings-daemon.plugins.media-keys play-static ['XF86AudioPlay', '<Ctrl>XF86AudioPlay']
+	org.gnome.settings-daemon.plugins.media-keys playback-forward ['']
+	org.gnome.settings-daemon.plugins.media-keys playback-forward-static ['XF86AudioForward']
+	org.gnome.settings-daemon.plugins.media-keys playback-random ['']
+	org.gnome.settings-daemon.plugins.media-keys playback-random-static ['XF86AudioRandomPlay']
+	org.gnome.settings-daemon.plugins.media-keys playback-repeat ['']
+	org.gnome.settings-daemon.plugins.media-keys playback-repeat-static ['XF86AudioRepeat']
+	org.gnome.settings-daemon.plugins.media-keys playback-rewind ['']
+	org.gnome.settings-daemon.plugins.media-keys playback-rewind-static ['XF86AudioRewind']
+	org.gnome.settings-daemon.plugins.media-keys power ['']
+	org.gnome.settings-daemon.plugins.media-keys power-static ['XF86PowerOff']
+	org.gnome.settings-daemon.plugins.media-keys previous ['']
+	org.gnome.settings-daemon.plugins.media-keys previous-static ['XF86AudioPrev', '<Ctrl>XF86AudioPrev']
+	org.gnome.settings-daemon.plugins.media-keys reboot ['']
+	org.gnome.settings-daemon.plugins.media-keys rfkill ['']
+	org.gnome.settings-daemon.plugins.media-keys rfkill-bluetooth ['']
+	org.gnome.settings-daemon.plugins.media-keys rfkill-bluetooth-static ['XF86Bluetooth']
+	org.gnome.settings-daemon.plugins.media-keys rfkill-static ['XF86WLAN', 'XF86UWB', 'XF86RFKill']
+	org.gnome.settings-daemon.plugins.media-keys rotate-video-lock ['']
+	org.gnome.settings-daemon.plugins.media-keys rotate-video-lock-static ['<Super>o', 'XF86RotationLockToggle']
+	org.gnome.settings-daemon.plugins.media-keys screenreader ['<Alt><Super>s']
+	org.gnome.settings-daemon.plugins.media-keys screensaver ['<Super>l']
+	org.gnome.settings-daemon.plugins.media-keys screensaver-static ['XF86ScreenSaver']
+	org.gnome.settings-daemon.plugins.media-keys search ['']
+	org.gnome.settings-daemon.plugins.media-keys search-static ['XF86Search']
+	org.gnome.settings-daemon.plugins.media-keys shutdown ['']
+	org.gnome.settings-daemon.plugins.media-keys stop ['']
+	org.gnome.settings-daemon.plugins.media-keys stop-static ['XF86AudioStop']
+	org.gnome.settings-daemon.plugins.media-keys suspend ['']
+	org.gnome.settings-daemon.plugins.media-keys suspend-static ['XF86Sleep']
+	org.gnome.settings-daemon.plugins.media-keys toggle-contrast ['']
+	org.gnome.settings-daemon.plugins.media-keys touchpad-off ['']
+	org.gnome.settings-daemon.plugins.media-keys touchpad-off-static ['XF86TouchpadOff']
+	org.gnome.settings-daemon.plugins.media-keys touchpad-on ['']
+	org.gnome.settings-daemon.plugins.media-keys touchpad-on-static ['XF86TouchpadOn']
+	org.gnome.settings-daemon.plugins.media-keys touchpad-toggle ['']
+	org.gnome.settings-daemon.plugins.media-keys touchpad-toggle-static ['XF86TouchpadToggle', '<Ctrl><Super>XF86TouchpadToggle']
+	org.gnome.settings-daemon.plugins.media-keys volume-down ['']
+	org.gnome.settings-daemon.plugins.media-keys volume-down-precise ['']
+	org.gnome.settings-daemon.plugins.media-keys volume-down-precise-static ['<Shift>XF86AudioLowerVolume', '<Ctrl><Shift>XF86AudioLowerVolume']
+	org.gnome.settings-daemon.plugins.media-keys volume-down-quiet ['']
+	org.gnome.settings-daemon.plugins.media-keys volume-down-quiet-static ['<Alt>XF86AudioLowerVolume', '<Alt><Ctrl>XF86AudioLowerVolume']
+	org.gnome.settings-daemon.plugins.media-keys volume-down-static ['XF86AudioLowerVolume', '<Ctrl>XF86AudioLowerVolume']
+	org.gnome.settings-daemon.plugins.media-keys volume-mute ['']
+	org.gnome.settings-daemon.plugins.media-keys volume-mute-quiet ['']
+	org.gnome.settings-daemon.plugins.media-keys volume-mute-quiet-static ['<Alt>XF86AudioMute']
+	org.gnome.settings-daemon.plugins.media-keys volume-mute-static ['XF86AudioMute']
+	org.gnome.settings-daemon.plugins.media-keys volume-step 6
+	org.gnome.settings-daemon.plugins.media-keys volume-up ['']
+	org.gnome.settings-daemon.plugins.media-keys volume-up-precise ['']
+	org.gnome.settings-daemon.plugins.media-keys volume-up-precise-static ['<Shift>XF86AudioRaiseVolume', '<Ctrl><Shift>XF86AudioRaiseVolume']
+	org.gnome.settings-daemon.plugins.media-keys volume-up-quiet ['']
+	org.gnome.settings-daemon.plugins.media-keys volume-up-quiet-static ['<Alt>XF86AudioRaiseVolume', '<Alt><Ctrl>XF86AudioRaiseVolume']
+	org.gnome.settings-daemon.plugins.media-keys volume-up-static ['XF86AudioRaiseVolume', '<Ctrl>XF86AudioRaiseVolume']
+	org.gnome.settings-daemon.plugins.media-keys www ['']
+	org.gnome.settings-daemon.plugins.media-keys www-static ['XF86WWW']
+	org.gnome.settings-daemon.plugins.power ambient-enabled true
+	org.gnome.settings-daemon.plugins.power idle-brightness 30
+	org.gnome.settings-daemon.plugins.power idle-dim true
+	org.gnome.settings-daemon.plugins.power power-button-action 'suspend'
+	org.gnome.settings-daemon.plugins.power power-saver-profile-on-low-battery true
+	org.gnome.settings-daemon.plugins.power sleep-inactive-ac-timeout 3600
+	org.gnome.settings-daemon.plugins.power sleep-inactive-ac-type 'nothing'
+	org.gnome.settings-daemon.plugins.power sleep-inactive-battery-timeout 900
+	org.gnome.settings-daemon.plugins.power sleep-inactive-battery-type 'suspend'
+	org.gnome.settings-daemon.plugins.xsettings disabled-gtk-modules @as []
+	org.gnome.settings-daemon.plugins.xsettings enabled-gtk-modules @as []
+	org.gnome.settings-daemon.plugins.xsettings overrides @a{sv} {}
+------------------------------
+-2.8- org.gnome.settings-daemon.plugins.media-keys
+------------------------------
+	org.gnome.settings-daemon.plugins.media-keys battery-status ['']
+	org.gnome.settings-daemon.plugins.media-keys battery-status-static ['XF86Battery']
+	org.gnome.settings-daemon.plugins.media-keys calculator ['']
+	org.gnome.settings-daemon.plugins.media-keys calculator-static ['XF86Calculator']
+	org.gnome.settings-daemon.plugins.media-keys control-center ['']
+	org.gnome.settings-daemon.plugins.media-keys control-center-static ['XF86Tools']
+	org.gnome.settings-daemon.plugins.media-keys custom-keybindings ['/org/gnome/settings-daemon/plugins/media-keys/custom-keybindings/custom0/']
+	org.gnome.settings-daemon.plugins.media-keys decrease-text-size ['']
+	org.gnome.settings-daemon.plugins.media-keys eject ['']
+	org.gnome.settings-daemon.plugins.media-keys eject-static ['XF86Eject']
+	org.gnome.settings-daemon.plugins.media-keys email ['']
+	org.gnome.settings-daemon.plugins.media-keys email-static ['XF86Mail']
+	org.gnome.settings-daemon.plugins.media-keys help ['', '<Super>F1']
+	org.gnome.settings-daemon.plugins.media-keys hibernate ['']
+	org.gnome.settings-daemon.plugins.media-keys hibernate-static ['XF86Suspend', 'XF86Hibernate']
+	org.gnome.settings-daemon.plugins.media-keys home ['']
+	org.gnome.settings-daemon.plugins.media-keys home-static ['XF86Explorer']
+	org.gnome.settings-daemon.plugins.media-keys increase-text-size ['']
+	org.gnome.settings-daemon.plugins.media-keys keyboard-brightness-down ['']
+	org.gnome.settings-daemon.plugins.media-keys keyboard-brightness-down-static ['XF86KbdBrightnessDown']
+	org.gnome.settings-daemon.plugins.media-keys keyboard-brightness-toggle ['']
+	org.gnome.settings-daemon.plugins.media-keys keyboard-brightness-toggle-static ['XF86KbdLightOnOff']
+	org.gnome.settings-daemon.plugins.media-keys keyboard-brightness-up ['']
+	org.gnome.settings-daemon.plugins.media-keys keyboard-brightness-up-static ['XF86KbdBrightnessUp']
+	org.gnome.settings-daemon.plugins.media-keys logout ['<Control><Alt>Delete']
+	org.gnome.settings-daemon.plugins.media-keys magnifier ['<Alt><Super>8']
+	org.gnome.settings-daemon.plugins.media-keys magnifier-zoom-in ['<Alt><Super>equal']
+	org.gnome.settings-daemon.plugins.media-keys magnifier-zoom-out ['<Alt><Super>minus']
+	org.gnome.settings-daemon.plugins.media-keys media ['']
+	org.gnome.settings-daemon.plugins.media-keys media-static ['XF86AudioMedia']
+	org.gnome.settings-daemon.plugins.media-keys mic-mute ['']
+	org.gnome.settings-daemon.plugins.media-keys mic-mute-static ['XF86AudioMicMute']
+	org.gnome.settings-daemon.plugins.media-keys next ['']
+	org.gnome.settings-daemon.plugins.media-keys next-static ['XF86AudioNext', '<Ctrl>XF86AudioNext']
+	org.gnome.settings-daemon.plugins.media-keys on-screen-keyboard ['']
+	org.gnome.settings-daemon.plugins.media-keys pause ['']
+	org.gnome.settings-daemon.plugins.media-keys pause-static ['XF86AudioPause']
+	org.gnome.settings-daemon.plugins.media-keys play ['']
+	org.gnome.settings-daemon.plugins.media-keys play-static ['XF86AudioPlay', '<Ctrl>XF86AudioPlay']
+	org.gnome.settings-daemon.plugins.media-keys playback-forward ['']
+	org.gnome.settings-daemon.plugins.media-keys playback-forward-static ['XF86AudioForward']
+	org.gnome.settings-daemon.plugins.media-keys playback-random ['']
+	org.gnome.settings-daemon.plugins.media-keys playback-random-static ['XF86AudioRandomPlay']
+	org.gnome.settings-daemon.plugins.media-keys playback-repeat ['']
+	org.gnome.settings-daemon.plugins.media-keys playback-repeat-static ['XF86AudioRepeat']
+	org.gnome.settings-daemon.plugins.media-keys playback-rewind ['']
+	org.gnome.settings-daemon.plugins.media-keys playback-rewind-static ['XF86AudioRewind']
+	org.gnome.settings-daemon.plugins.media-keys power ['']
+	org.gnome.settings-daemon.plugins.media-keys power-static ['XF86PowerOff']
+	org.gnome.settings-daemon.plugins.media-keys previous ['']
+	org.gnome.settings-daemon.plugins.media-keys previous-static ['XF86AudioPrev', '<Ctrl>XF86AudioPrev']
+	org.gnome.settings-daemon.plugins.media-keys reboot ['']
+	org.gnome.settings-daemon.plugins.media-keys rfkill ['']
+	org.gnome.settings-daemon.plugins.media-keys rfkill-bluetooth ['']
+	org.gnome.settings-daemon.plugins.media-keys rfkill-bluetooth-static ['XF86Bluetooth']
+	org.gnome.settings-daemon.plugins.media-keys rfkill-static ['XF86WLAN', 'XF86UWB', 'XF86RFKill']
+	org.gnome.settings-daemon.plugins.media-keys rotate-video-lock ['']
+	org.gnome.settings-daemon.plugins.media-keys rotate-video-lock-static ['<Super>o', 'XF86RotationLockToggle']
+	org.gnome.settings-daemon.plugins.media-keys screenreader ['<Alt><Super>s']
+	org.gnome.settings-daemon.plugins.media-keys screensaver ['<Super>l']
+	org.gnome.settings-daemon.plugins.media-keys screensaver-static ['XF86ScreenSaver']
+	org.gnome.settings-daemon.plugins.media-keys search ['']
+	org.gnome.settings-daemon.plugins.media-keys search-static ['XF86Search']
+	org.gnome.settings-daemon.plugins.media-keys shutdown ['']
+	org.gnome.settings-daemon.plugins.media-keys stop ['']
+	org.gnome.settings-daemon.plugins.media-keys stop-static ['XF86AudioStop']
+	org.gnome.settings-daemon.plugins.media-keys suspend ['']
+	org.gnome.settings-daemon.plugins.media-keys suspend-static ['XF86Sleep']
+	org.gnome.settings-daemon.plugins.media-keys toggle-contrast ['']
+	org.gnome.settings-daemon.plugins.media-keys touchpad-off ['']
+	org.gnome.settings-daemon.plugins.media-keys touchpad-off-static ['XF86TouchpadOff']
+	org.gnome.settings-daemon.plugins.media-keys touchpad-on ['']
+	org.gnome.settings-daemon.plugins.media-keys touchpad-on-static ['XF86TouchpadOn']
+	org.gnome.settings-daemon.plugins.media-keys touchpad-toggle ['']
+	org.gnome.settings-daemon.plugins.media-keys touchpad-toggle-static ['XF86TouchpadToggle', '<Ctrl><Super>XF86TouchpadToggle']
+	org.gnome.settings-daemon.plugins.media-keys volume-down ['']
+	org.gnome.settings-daemon.plugins.media-keys volume-down-precise ['']
+	org.gnome.settings-daemon.plugins.media-keys volume-down-precise-static ['<Shift>XF86AudioLowerVolume', '<Ctrl><Shift>XF86AudioLowerVolume']
+	org.gnome.settings-daemon.plugins.media-keys volume-down-quiet ['']
+	org.gnome.settings-daemon.plugins.media-keys volume-down-quiet-static ['<Alt>XF86AudioLowerVolume', '<Alt><Ctrl>XF86AudioLowerVolume']
+	org.gnome.settings-daemon.plugins.media-keys volume-down-static ['XF86AudioLowerVolume', '<Ctrl>XF86AudioLowerVolume']
+	org.gnome.settings-daemon.plugins.media-keys volume-mute ['']
+	org.gnome.settings-daemon.plugins.media-keys volume-mute-quiet ['']
+	org.gnome.settings-daemon.plugins.media-keys volume-mute-quiet-static ['<Alt>XF86AudioMute']
+	org.gnome.settings-daemon.plugins.media-keys volume-mute-static ['XF86AudioMute']
+	org.gnome.settings-daemon.plugins.media-keys volume-step 6
+	org.gnome.settings-daemon.plugins.media-keys volume-up ['']
+	org.gnome.settings-daemon.plugins.media-keys volume-up-precise ['']
+	org.gnome.settings-daemon.plugins.media-keys volume-up-precise-static ['<Shift>XF86AudioRaiseVolume', '<Ctrl><Shift>XF86AudioRaiseVolume']
+	org.gnome.settings-daemon.plugins.media-keys volume-up-quiet ['']
+	org.gnome.settings-daemon.plugins.media-keys volume-up-quiet-static ['<Alt>XF86AudioRaiseVolume', '<Alt><Ctrl>XF86AudioRaiseVolume']
+	org.gnome.settings-daemon.plugins.media-keys volume-up-static ['XF86AudioRaiseVolume', '<Ctrl>XF86AudioRaiseVolume']
+	org.gnome.settings-daemon.plugins.media-keys www ['']
+	org.gnome.settings-daemon.plugins.media-keys www-static ['XF86WWW']
+------------------------------
+-2.9- org.gnome.shell
+------------------------------
+	org.gnome.shell allow-extension-installation true
+	org.gnome.shell always-show-log-out false
+	org.gnome.shell app-picker-layout [{'org.gnome.Geary.desktop': <{'position': <0>}>, 'org.gnome.Contacts.desktop': <{'position': <1>}>, 'org.gnome.Weather.desktop': <{'position': <2>}>, 'org.gnome.clocks.desktop': <{'position': <3>}>, 'org.gnome.Maps.desktop': <{'position': <4>}>, 'org.gnome.Music.desktop': <{'position': <5>}>, 'org.gnome.SimpleScan.desktop': <{'position': <6>}>, 'org.gnome.Settings.desktop': <{'position': <7>}>, 'org.gnome.Boxes.desktop': <{'position': <8>}>, 'org.gnome.Showtime.desktop': <{'position': <9>}>, 'org.gnome.Snapshot.desktop': <{'position': <10>}>, 'org.gnome.Characters.desktop': <{'position': <11>}>, 'Utilities': <{'position': <12>}>, 'System': <{'position': <13>}>, 'org.gnome.Console.desktop': <{'position': <14>}>, 'org.gnome.Tour.desktop': <{'position': <15>}>, 'org.gnome.Yelp.desktop': <{'position': <16>}>}]
+	org.gnome.shell command-history @as []
+	org.gnome.shell development-tools true
+	org.gnome.shell disable-extension-version-validation false
+	org.gnome.shell disable-user-extensions false
+	org.gnome.shell disabled-extensions ['sound-percentage@maestroschan.fr']
+	org.gnome.shell enabled-extensions @as []
+	org.gnome.shell favorite-apps ['org.gnome.Epiphany.desktop', 'org.gnome.Calendar.desktop', 'org.gnome.Nautilus.desktop', 'org.gnome.Software.desktop', 'org.gnome.TextEditor.desktop', 'org.gnome.Calculator.desktop']
+	org.gnome.shell last-selected-power-profile 'power-saver'
+	org.gnome.shell looking-glass-history @as []
+	org.gnome.shell remember-mount-password false
+	org.gnome.shell welcome-dialog-last-shown-version '49.1'
+	org.gnome.shell.app-switcher current-workspace-only true
+	org.gnome.shell.keybindings focus-active-notification ['<Super>n']
+	org.gnome.shell.keybindings open-new-window-application-1 ['<Super><Control>1']
+	org.gnome.shell.keybindings open-new-window-application-2 ['<Super><Control>2']
+	org.gnome.shell.keybindings open-new-window-application-3 ['<Super><Control>3']
+	org.gnome.shell.keybindings open-new-window-application-4 ['<Super><Control>4']
+	org.gnome.shell.keybindings open-new-window-application-5 ['<Super><Control>5']
+	org.gnome.shell.keybindings open-new-window-application-6 ['<Super><Control>6']
+	org.gnome.shell.keybindings open-new-window-application-7 ['<Super><Control>7']
+	org.gnome.shell.keybindings open-new-window-application-8 ['<Super><Control>8']
+	org.gnome.shell.keybindings open-new-window-application-9 ['<Super><Control>9']
+	org.gnome.shell.keybindings screen-brightness-cycle ['XF86MonBrightnessCycle']
+	org.gnome.shell.keybindings screen-brightness-cycle-monitor ['<Shift>XF86MonBrightnessCycle']
+	org.gnome.shell.keybindings screen-brightness-down ['XF86MonBrightnessDown']
+	org.gnome.shell.keybindings screen-brightness-down-monitor ['<Shift>XF86MonBrightnessDown']
+	org.gnome.shell.keybindings screen-brightness-up ['XF86MonBrightnessUp']
+	org.gnome.shell.keybindings screen-brightness-up-monitor ['<Shift>XF86MonBrightnessUp']
+	org.gnome.shell.keybindings screenshot ['<Shift>Print']
+	org.gnome.shell.keybindings screenshot-window ['<Alt>Print']
+	org.gnome.shell.keybindings shift-overview-down ['<Super><Alt>Down']
+	org.gnome.shell.keybindings shift-overview-up ['<Super><Alt>Up']
+	org.gnome.shell.keybindings show-screen-recording-ui ['<Ctrl><Shift><Alt>R']
+	org.gnome.shell.keybindings show-screenshot-ui ['Print']
+	org.gnome.shell.keybindings switch-to-application-1 ['<Super>1']
+	org.gnome.shell.keybindings switch-to-application-2 ['<Super>2']
+	org.gnome.shell.keybindings switch-to-application-3 ['<Super>3']
+	org.gnome.shell.keybindings switch-to-application-4 ['<Super>4']
+	org.gnome.shell.keybindings switch-to-application-5 ['<Super>5']
+	org.gnome.shell.keybindings switch-to-application-6 ['<Super>6']
+	org.gnome.shell.keybindings switch-to-application-7 ['<Super>7']
+	org.gnome.shell.keybindings switch-to-application-8 ['<Super>8']
+	org.gnome.shell.keybindings switch-to-application-9 ['<Super>9']
+	org.gnome.shell.keybindings toggle-application-view ['<Super>a']
+	org.gnome.shell.keybindings toggle-message-tray ['<Super>v', '<Super>m']
+	org.gnome.shell.keybindings toggle-overview @as []
+	org.gnome.shell.keybindings toggle-quick-settings ['<Super>s']
+	org.gnome.shell.weather automatic-location false
+	org.gnome.shell.weather locations @av []
+	org.gnome.shell.window-switcher app-icon-mode 'both'
+	org.gnome.shell.window-switcher current-workspace-only true
+	org.gnome.shell.world-clocks locations @av []
+------------------------------
+-2.10- org.gnome.shell.keybindings
+------------------------------
+	org.gnome.shell.keybindings focus-active-notification ['<Super>n']
+	org.gnome.shell.keybindings open-new-window-application-1 ['<Super><Control>1']
+	org.gnome.shell.keybindings open-new-window-application-2 ['<Super><Control>2']
+	org.gnome.shell.keybindings open-new-window-application-3 ['<Super><Control>3']
+	org.gnome.shell.keybindings open-new-window-application-4 ['<Super><Control>4']
+	org.gnome.shell.keybindings open-new-window-application-5 ['<Super><Control>5']
+	org.gnome.shell.keybindings open-new-window-application-6 ['<Super><Control>6']
+	org.gnome.shell.keybindings open-new-window-application-7 ['<Super><Control>7']
+	org.gnome.shell.keybindings open-new-window-application-8 ['<Super><Control>8']
+	org.gnome.shell.keybindings open-new-window-application-9 ['<Super><Control>9']
+	org.gnome.shell.keybindings screen-brightness-cycle ['XF86MonBrightnessCycle']
+	org.gnome.shell.keybindings screen-brightness-cycle-monitor ['<Shift>XF86MonBrightnessCycle']
+	org.gnome.shell.keybindings screen-brightness-down ['XF86MonBrightnessDown']
+	org.gnome.shell.keybindings screen-brightness-down-monitor ['<Shift>XF86MonBrightnessDown']
+	org.gnome.shell.keybindings screen-brightness-up ['XF86MonBrightnessUp']
+	org.gnome.shell.keybindings screen-brightness-up-monitor ['<Shift>XF86MonBrightnessUp']
+	org.gnome.shell.keybindings screenshot ['<Shift>Print']
+	org.gnome.shell.keybindings screenshot-window ['<Alt>Print']
+	org.gnome.shell.keybindings shift-overview-down ['<Super><Alt>Down']
+	org.gnome.shell.keybindings shift-overview-up ['<Super><Alt>Up']
+	org.gnome.shell.keybindings show-screen-recording-ui ['<Ctrl><Shift><Alt>R']
+	org.gnome.shell.keybindings show-screenshot-ui ['Print']
+	org.gnome.shell.keybindings switch-to-application-1 ['<Super>1']
+	org.gnome.shell.keybindings switch-to-application-2 ['<Super>2']
+	org.gnome.shell.keybindings switch-to-application-3 ['<Super>3']
+	org.gnome.shell.keybindings switch-to-application-4 ['<Super>4']
+	org.gnome.shell.keybindings switch-to-application-5 ['<Super>5']
+	org.gnome.shell.keybindings switch-to-application-6 ['<Super>6']
+	org.gnome.shell.keybindings switch-to-application-7 ['<Super>7']
+	org.gnome.shell.keybindings switch-to-application-8 ['<Super>8']
+	org.gnome.shell.keybindings switch-to-application-9 ['<Super>9']
+	org.gnome.shell.keybindings toggle-application-view ['<Super>a']
+	org.gnome.shell.keybindings toggle-message-tray ['<Super>v', '<Super>m']
+	org.gnome.shell.keybindings toggle-overview @as []
+	org.gnome.shell.keybindings toggle-quick-settings ['<Super>s']
