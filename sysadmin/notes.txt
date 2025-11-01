@@ -1,4 +1,6 @@
 -1- users/groups
+	-1.1- useradd
+	-1.2- usermod
 
 
 
@@ -6,8 +8,8 @@
 -1- users/groups
 ------------------------------
 Supported on all linux
-	usermod
 	useradd
+	usermod
 	groupadd
 
 only some "more user friendly frontend"
@@ -40,9 +42,72 @@ Update system files and might make home dir.
 	user is locked.
 	default -1 (or whatever is in /etc/default/useradd)
 
+-g --gid GROUP
+	primary EXISTING group for the user.
+	if USERGROUPS_ENAB in /etc/login.defs
+		makes group with same name
+	else
+		use value of GROUP in /etc/default/useradd or 1000
+
+-G --groups group1[,group2,...]
+	Extra groups to add user to.
+
+-k --skel SKEL_DIR
+	Basically does cp -r SKEL_DIR ${HOOME}.
+	but chown to the user.
+	(only if -m is specified)
+	Defaults to SKEL in /etc/default/useradd
+		(or /etc/skel)
+
+-m --create-home
+	create the home directory
+
+-M --no-create-home
+	don't create the home directory
+
+-N --no-user-group
+	Do not create a group with the same name as the user
+
+-o --non-unique
+	allows creating account with an already existing UID
+
+-p --password PASSWORD
+	gives initial password, should be avoided because visible in process info
+
+-r --system
+	create a system account.
+
+-R --root CHROOT_DIR
+	apply changes to CHROOT_DIR?
+	use configuration files from CHROOT_DIR?
+
+-P --prefix PREFIX_DIR
+	?intended for cross-compile targets?
+
+-s --shell SHELL
+	sets login shell for the user
+
+-u --uid UID
+	set UID value, must be unique
+
+-U --user-group
+	create a group with same name as the user
 
 -D --defaults
 	Display the default values (probably stored in /etc/default/useradd)
 		OR
 	change default values if options given.
 		-b -e -f -g -s
+
+
+------------------------------
+-1.2- usermod
+------------------------------
+-a --append
+	add groups
+
+-d --home HOME_DIR
+	change $HOME path
+
+-G --groups group1[,group2,...]
+	List of groups, add -a to add, or -r to remove

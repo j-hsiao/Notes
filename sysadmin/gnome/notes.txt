@@ -11,7 +11,8 @@
 	-2.8- org.gnome.settings-daemon.plugins.media-keys
 	-2.9- org.gnome.shell
 	-2.10- org.gnome.shell.keybindings
--3- extra
+-3- languages
+-10- extra
 
 ------------------------------
 -0- gsettings
@@ -80,6 +81,8 @@ gives these results:
 	org.gnome.desktop.wm.keybindings move-to-side-w "['<Super><Shift>Left', '<Super><Shift>j']"
 	org.gnome.desktop.wm.keybindings maximize-horizontally "['<Super><Control>Left', '<Super><Control>Right']"
 	org.gnome.desktop.wm.keybindings maximize-vertically "['<Super><Control>Up', '<Super><Control>Down']"
+	org.gnome.desktop.wm.keybindings switch-input-source ['<Super>space', 'XF86Keyboard']
+	org.gnome.desktop.wm.keybindings switch-input-source-backward ['<Shift><Super>space', '<Shift>XF86Keyboard']
 
 ------------------------------
 -2.1- org.gnome.desktop.wm.keybindings
@@ -576,7 +579,16 @@ gives these results:
 	org.gnome.shell.keybindings toggle-quick-settings ['<Super>s']
 
 ------------------------------
--3- extra
+-3- languages
+------------------------------
+gnome:
+	menu -> keyboard ->input sources
+others:
+	ibus-setup
+
+
+------------------------------
+-10- extra
 ------------------------------
 hold shift and drag window to snap to neighboring windows
 This also works with <Alt>F7
