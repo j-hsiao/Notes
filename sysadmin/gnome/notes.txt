@@ -579,3 +579,4 @@ gives these results:
 -3- extra
 ------------------------------
 hold shift and drag window to snap to neighboring windows
+This also works with <Alt>F7

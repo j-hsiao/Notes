@@ -1,0 +1,48 @@
+-1- users/groups
+
+
+
+------------------------------
+-1- users/groups
+------------------------------
+Supported on all linux
+	usermod
+	useradd
+	groupadd
+
+only some "more user friendly frontend"
+	adduser
+	addgroup
+
+------------------------------
+-1.1- useradd
+------------------------------
+Creates a new user (and group by default)
+"All users must have at least 1 group"
+Update system files and might make home dir.
+
+-b --base-dir /path/to/base
+	home directory will be /path/to/base/$USER
+	(if -d not given)
+
+-c --comment 'comment,placed as full name'
+
+-d --home-dir /path/to/dir
+	The path will be $HOME
+	Defaults to BASE_DIR/$USER
+
+-e --expiredate EXPIRE_DATE
+	user expires (disabled) on this date
+	YYYY-MM-DD or number of days since 1970-01-01
+
+-f --inactive INACTIVE
+	number of days after password exceeds maximum age before
+	user is locked.
+	default -1 (or whatever is in /etc/default/useradd)
+
+
+-D --defaults
+	Display the default values (probably stored in /etc/default/useradd)
+		OR
+	change default values if options given.
+		-b -e -f -g -s
