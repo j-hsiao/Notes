@@ -83,6 +83,8 @@ gives these results:
 	org.gnome.desktop.wm.keybindings maximize-vertically "['<Super><Control>Up', '<Super><Control>Down']"
 	org.gnome.desktop.wm.keybindings switch-input-source ['<Super>space', 'XF86Keyboard']
 	org.gnome.desktop.wm.keybindings switch-input-source-backward ['<Shift><Super>space', '<Shift>XF86Keyboard']
+	org.gnome.desktop.wm.keybindings maximize "['<Super>Up', '<Super>i']"
+	org.gnome.desktop.wm.keybindings unmaximize "['<Super>Down', '<Super>k']"
 
 ------------------------------
 -2.1- org.gnome.desktop.wm.keybindings
