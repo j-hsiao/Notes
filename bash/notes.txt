@@ -44,8 +44,6 @@ contents
 		4.1.1- lsblk
 		4.1.2- blkid
 		4.1.3- df
-		4.1.4- mount
-		4.1.5- umount
 	-4.69- others
 		-4.69.1- shuf
 		-4.69.2- tput
@@ -1481,41 +1479,9 @@ ______________________________
 			blkid: list blkid (UUID, partition types etc
 			   can use for editing /etc/fstab
 
-			   fstab:
-			       entry:
-			           device   mountpoint   filesystemType   options  dump  pass
-			               device (/dev/XXX or UUID=SOME_BLOCK_DEVICES_UUID_NO_QUOTES)
-			               mountpoint a path in the file system (/media/myblkdevice)
-			               filesystemType: like nfat, ntfs, ext4, vfat, auto, etc
-			               options: see below
-			               dump: enable/disable backups (0 is usual (disabled))
-			               pass: fsck check partition for errors on boot?
-			                     root device = 1, other = 2(if check) or 0 (don't check)
-
-			           options:
-			               defaults    : (rw, suid, dev, exec, auto, nouser, async
-			               sync/async  : how IO to filesystem should be done
-			               auto/noauto : fs is automatically mounted on boot
-			               dev/nodev   : interp or don't interp block special devices on filesystem
-			               suid/nosuid : permit/block suid and sgid bits operations
-			               ro          : mount read-only
-			               rw          : mount read-write
-			               user        : any user can mount filesystem (implies noexec, nosuid, nodev)
-			               nouser      : only root can mount
-
 		______________________________
 		-4.1.3- df
 			df: show disk info
-		______________________________
-		-4.1.4- mount
-			mount: (sudo only)
-			       ex: mkdir mountpoint1
-			           sudo mount device_from_lsblk mountpoint1
-			       (can now access device_from_lsblk at mountpoint1,
-			        such as usb etc)
-		______________________________
-		-4.1.5- umount
-			umount
 
 	______________________________
 	-4.69- others

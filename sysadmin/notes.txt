@@ -2,6 +2,8 @@
 	-1.1- useradd
 	-1.2- usermod
 
+-2- guest
+
 
 
 ------------------------------
@@ -111,3 +113,16 @@ Update system files and might make home dir.
 
 -G --groups group1[,group2,...]
 	List of groups, add -a to add, or -r to remove
+
+------------------------------
+-2- guest
+------------------------------
+For a guest account, you could
+create a user without a password.
+
+userad
+
+Check the display manager for hooks on when
+something logs in.  Could try making the
+home directory a tmpfs. (home gets deleted after shutdown)
+/etc/gdm/PostLogin/Default.sample
