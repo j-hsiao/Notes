@@ -11,6 +11,7 @@
 		-1.4.1- infinite stream
 		-1.4.2- finite stream
 		-1.4.3- merge samples
+		-1.4.4- linear combination
 -10- miscellaneous
 
 
@@ -303,62 +304,136 @@ distribution of the sample means (if sample size is large enough) is (at least a
 		------------------------------
 		-1.4.3- merge samples
 		------------------------------
-		xN(i): ith value of Nth sample
-		S(...): sume
-		Q(...): sum of squares
-		D: degrees of freedom
-		XN: mean of Nth sample
-		CN: count of Nth sample
-		VN: variance of Nth sample
-		DN: Degrees of freedom of Nth sample
+		xi = ith value of combined samples
+		xij = jth value of ith sample set
+		Xi = mean of ith sampleset
+		Vi = variance of ith sampleset
+		Ci = size of ith sampleset
+		Di = Ci - dof of ith sampleset
+		Q_v(...) = squared sum over variable v
+		S_i(...) = sum over variable v
 
-		X: overall mean
-		V: overall variance
+		corresponding without i refers to values for the combined dataset.
+		For the merged mean, we have:
+			X = S_i(xi) / C
+		This also applies per sample:
+			Xi = S_j(xij) / Ci
 
-		Consider 2 samples...
-		X = (x1(i)... + x2(i)...) / (C1+C2)
-		  = (X1C1 + X2C2) / (C1+C2)
-		  = (X1C1 + X2C2) / C
+		S_i(xi) = S_i(S_j(xij)) / C
+		        = S_i(CiXi) / C
 
-		VD = Q(x) - (S(x)**2)/C
-		   = Q(x) - C*(X**2)
+		From -1.0- we have:
+			DV = Q_i(xi) - CX**2
+		This also applies to each sample set of data that we want to merge...
+			DiVi = Q_j(xij) - Ci(Xi)**2
 
-		VD = Q(x1(i),... x2(i)) - (C1+C2)(X**2)
-		   = (V1D1 + C1(X1**2)) + (V2D2 + C2(X2**2)) - C*(X**2)
-		   = V1D1 + V2D2 + C1(X1**2) + C2(X2**2) - C*(X**2)
-		   = V1D1 + V2D2 + C1(X1**2) + C2(X2**2) - C*((X1C1 + X2C2)/C)**2
-		   = V1D1 + V2D2 + (C*C1*(X1**2))/C + (C*C2*(X2**2))/C - (X1C1 + X2C2)**2 / C
-		   = V1D1 + V2D2 + (C*C1*(X1**2) + C*C2*(X2**2) - (X1C1 + X2C2)**2) / C
-		   = V1D1 + V2D2 + (C*C1*(X1**2) + C*C2*(X2**2) - (X1C1)**2 + 2X1X2C1C2 + (X2C2)**2) / C
-		   = V1D1 + V2D2 + ((C1+C2)*C1*(X1**2) + (C1+C2)*C2*(X2**2) - (X1C1)**2 - 2X1X2C1C2 - (X2C2)**2) / C
-		   = V1D1 + V2D2 + ((X1C1)**2 + (C1C2)(X1**2) + (C1C2)(X2**2) + (X2C2)**2 - (X1C1)**2 - (X2C2)**2 - 2X1X2C1C2) / C
-		   = V1D1 + V2D2 + ((C1C2)(X1**2) + (C1C2)(X2**2) - 2X1X2(C1C2)) / C
-		   = V1D1 + V2D2 + ((C1C2)(X1**2 + X2**2 - 2X1X2))/C
-		   = V1D1 + V2D2 + ((C1C2)(X1 - X2)**2)/C
+		Q_i(xi)
+			Looking at the Q_i(xi) term, we have:
+				Q_i(xi) = x00**2 + x01**2 + x02**2... + x10**2 + x11**2 + ...
+				        = S_i(Q_j(xij))
+			Also, from individual variance formulas, we have:
+				DiVi + Ci(Xi)**2 = Q_j(xij)
+			Thus, we have:
+				Q_i(xi) = S_i(DiVi + Ci(Xi)**2)
 
-		mul add mul sqr add mul add mul sqr sub mul sqr
-		mul add mul add mul sqr add mul sqr sub mul sqr
-		mul add mul add mul mul sub sqr div
+		Thus, the overal equation is, in terms of the Di, Vi, Ci, Xi:
+			DV = S_i(DiVi + CiXi**2) - C(S_i(CiXi)/C)**2
+			DV = S_i(DiVi + CiXi**2) - (S_i(CiXi)**2)/C
 
-		verify, if one sample has size 1, then it should decay to welford algorithm...
-		Take set2 to be a single new value.
-			C2 = 1
-			X2 = xnew
+			DV = (D1V1 + D2V2 ...) + (C1X1**2 + C2X2**2 ...) - ((C1X1 + C2X2...)**2) / (C1+C2...)
 
-		X = (C1X1 + xnew) / (C1+1)
-		  = (C1X1 + xnew + X1 - X1) / (C1+1)
-		  = ((C1+1)(X1) + (xnew - X1))/(C1+1)
-		  = X1 + (xnew - X1)/(C1+1)
+		Not sure about numerical stability but...
+		CiXi**2 term probably has similar magnitude to CX**2 so the latter
+		portion should maybe be calculated using the combined mean instead of
+		each individual mean? not sure about magnitude sof DiVi
 
-		VD = V1D1 + V2D2 + ((C1C2)(X1 - X2)**2)/C
-		   = V1D1 + V2D2 + ((C1C2)(X2 - X1)**2)/C
-		   = V1D1 + 0    + (C1)(xnew - X1)**2 / (C1+1)
-		   = V1D1 + 0    + (C1)(xnew - X1)(xnew - X1) / C1+1
-		   = V1D1 + 0    + (C1xnew - C1X1)(xnew - X1) / C1+1
-		   = V1D1 + 0    + (xnew - X1) * (C1xnew + xnew - C1X1 - xnew)/C1+1
-		   = V1D1 + 0    + (xnew - X1) * ((C1+1)xnew - (C1X1 + xnew))/C1+1
-		   = V1D1 + 0    + (xnew - X1) * (xnew - (C1X1 + xnew)/C1+1)
-		   = V1D1 + 0    + (xnew - X1) * (xnew - X)
+		------------------------------
+		old calcs
+		------------------------------
+		Realized they aren't really necessary, but keep it to remember...
+			xN(i): ith value of Nth sample
+			S(...): sume
+			Q(...): sum of squares
+			D: degrees of freedom
+			XN: mean of Nth sample
+			CN: count of Nth sample
+			VN: variance of Nth sample
+			DN: Degrees of freedom of Nth sample
+
+			X: overall mean
+			V: overall variance
+
+			Consider 2 samples...
+			X = (x1(i)... + x2(i)...) / (C1+C2)
+			  = (X1C1 + X2C2) / (C1+C2)
+			  = (X1C1 + X2C2) / C
+
+			VD = Q(x) - (S(x)**2)/C
+			   = Q(x) - C*(X**2)
+
+			VD = Q(x1(i),... x2(i)) - (C1+C2)(X**2)
+			   = (V1D1 + C1(X1**2)) + (V2D2 + C2(X2**2)) - C*(X**2)
+			   = V1D1 + V2D2 + C1(X1**2) + C2(X2**2) - C*(X**2)
+			   = V1D1 + V2D2 + C1(X1**2) + C2(X2**2) - C*((X1C1 + X2C2)/C)**2
+			   = V1D1 + V2D2 + (C*C1*(X1**2))/C + (C*C2*(X2**2))/C - (X1C1 + X2C2)**2 / C
+			   = V1D1 + V2D2 + (C*C1*(X1**2) + C*C2*(X2**2) - (X1C1 + X2C2)**2) / C
+			   = V1D1 + V2D2 + (C*C1*(X1**2) + C*C2*(X2**2) - ((X1C1)**2 + 2X1X2C1C2 + (X2C2)**2)) / C
+			   = V1D1 + V2D2 + ((C1+C2)*C1*(X1**2) + (C1+C2)*C2*(X2**2) - (X1C1)**2 - 2X1X2C1C2 - (X2C2)**2) / C
+			   = V1D1 + V2D2 + ((X1C1)**2 + (C1C2)(X1**2) + (C1C2)(X2**2) + (X2C2)**2 - (X1C1)**2 - (X2C2)**2 - 2X1X2C1C2) / C
+			   = V1D1 + V2D2 + ((C1C2)(X1**2) + (C1C2)(X2**2) - 2X1X2(C1C2)) / C
+			   = V1D1 + V2D2 + ((C1C2)(X1**2 + X2**2 - 2X1X2))/C
+			   = V1D1 + V2D2 + ((C1C2)(X1 - X2)**2)/C
+
+			------------------------------
+			check same as welfords if second sample is 1 value.
+			------------------------------
+			verify, if one sample has size 1, then it should decay to welford algorithm...
+			Take set2 to be a single new value.
+				C2 = 1
+				X2 = xnew
+
+			X = (C1X1 + xnew) / (C1+1)
+			  = (C1X1 + xnew + X1 - X1) / (C1+1)
+			  = ((C1+1)(X1) + (xnew - X1))/(C1+1)
+			  = X1 + (xnew - X1)/(C1+1)
+
+			VD = V1D1 + V2D2 + ((C1C2)(X1 - X2)**2)/C
+			   = V1D1 + V2D2 + ((C1C2)(X2 - X1)**2)/C
+			   = V1D1 + 0    + (C1)(xnew - X1)**2 / (C1+1)
+			   = V1D1 + 0    + (C1)(xnew - X1)(xnew - X1) / C1+1
+			   = V1D1 + 0    + (C1xnew - C1X1)(xnew - X1) / C1+1
+			   = V1D1 + 0    + (xnew - X1) * (C1xnew + xnew - C1X1 - xnew)/C1+1
+			   = V1D1 + 0    + (xnew - X1) * ((C1+1)xnew - (C1X1 + xnew))/C1+1
+			   = V1D1 + 0    + (xnew - X1) * (xnew - (C1X1 + xnew)/C1+1)
+			   = V1D1 + 0    + (xnew - X1) * (xnew - X)
+
+			------------------------------
+			Add a 3rd sample
+			------------------------------
+			Using the original equations:
+			X = (X1C1 + X2C2) / C
+			VD = V1D1 + V2D2 + ((C1C2)(X1 - X2)**2)/C
+
+			BUT here, "sample1" is sample1 + sample2, and "sample2" is sample3.
+
+			X = (((X1C1 + X2C2) / (C1+C2))(C1+C2) + X3C3) / (C1+C2+C3)
+			X = (X1C1 + X2C2  + X3C3) / (C1+C2+C3)
+
+			VD = (V1*D1 + V2*D2 + ((C1*C2)*(X1 - X2)**2)/(C1+C2)) + V3*D3 + (((C1+C2)*C3)*(((X1*C1 + X2*C2) / (C1+C2)) - X3)**2)/(C1+C2+C3)
+			   = V1*D1 + V2*D2 + V3*D3 + ((C1*C2)*(X1 - X2)**2)/(C1+C2) + (((C1+C2)*C3)*(((X1*C1 + X2*C2) / (C1+C2)) - X3)**2)/(C1+C2+C3)
+			   = V1*D1 + V2*D2 + V3*D3 + (C1+C2+C3)*((C1*C2)*(X1 - X2)**2)/((C1+C2)*(C1+C2+C3)) + (C1+C2)*(((C1+C2)*C3)*(((X1*C1 + X2*C2) / (C1+C2)) - X3)**2)/((C1+C2+C3)*(C1+C2)) # common denom
+			   = V1*D1 + V2*D2 + V3*D3 + ((C1+C2+C3)*((C1*C2)*(X1 - X2)**2) + (C1+C2)*(((C1+C2)*C3)*(((X1*C1 + X2*C2) / (C1+C2)) - X3)**2)) / ((C1+C2+C3)*(C1+C2))
+			   = V1*D1 + V2*D2 + V3*D3 + ((C1+C2+C3)*(C1*C2)*(X1 - X2)**2 + (C3)*((C1+C2)*(((X1*C1 + X2*C2) / (C1+C2)) - X3))**2)/((C1+C2+C3)*(C1+C2))
+			   = V1*D1 + V2*D2 + V3*D3 + ((C1+C2+C3)*(C1*C2)*(X1 - X2)**2 + (C3)*(X1*C1 + X2*C2 - (C1+C2)*X3)**2)/((C1+C2+C3)*(C1+C2))
+			   = V1*D1 + V2*D2 + V3*D3 + ((C1+C2+C3)*(C1*C2)*(X1**2 -2*X1*X2 + X2**2) + (C3)*((C1*X1)**2 + (C2*X2)**2 + ((C1+C2)*X3)**2 + 2*C1*C2*X1*X2 - 2*C1*(C1+C2)*X1*X3 - 2*C2*(C1+C2)*X2*X3))/((C1+C2+C3)*(C1+C2))
+			   = V1*D1 + V2*D2 + V3*D3 + (((C1+C2+C3)*(C1*C2) + C3*C1*C1)*(X1**2) + ((C1+C2+C3)*(C1*C2) + C3*C2*C2)*(X2**2) + C3*((C1+C2)*X3)**2 + 2*(C1*C2*C3 - (C1+C2+C3)*(C1*C2))*X1*X2 - 2*C1*C3*(C1+C2)*X1*X3 - 2*C3*C2*(C1+C2)*X2*X3) / ((C1+C2+C3)*(C1+C2))
+			   = V1*D1 + V2*D2 + V3*D3 + (((C1+C2+C3)*(C1*C2) + C3*C1*C1)*(X1**2) + ((C1+C2+C3)*(C1*C2) + C3*C2*C2)*(X2**2) + C3*((C1+C2)*X3)**2 - 2*((C1*C2)*(C1+C2))*X1*X2 - 2*C1*C3*(C1+C2)*X1*X3 - 2*C3*C2*(C1+C2)*X2*X3) / ((C1+C2+C3)*(C1+C2))
+			   = V1*D1 + V2*D2 + V3*D3 + (C1*(C2 + C3)*(X1**2) + C2*(C1 + C3)*(X2**2) + C3*(C1 + C2)*(X3**2) - 2*(C1*C2)*X1*X2 - 2*C1*C3*X1*X3 - 2*C3*C2*X2*X3) / (C1+C2+C3)
+			   = V1*D1 + V2*D2 + V3*D3 + (C1*(C2+C3)*(X1**2) + C2*(C1+C3)*(X2**2) + C3*(C1+C2)*(X3**2) - 2*(C1*C2)*X1*X2 - 2*(C1*C3)*X1*X3 - 2*(C2*C3)*X2*X3) / (C1+C2+C3)
+			   = V1*D1 + V2*D2 + V3*D3 + (C1*(C1+C2+C3)*(X1**2) + C2*(C1+C2+C3)*(X2**2) + C3*(C1+C2+C3)*(X3**2) - (C1*X1)**2 - (C2*X2)**2 - (C3*X3)**2 - 2*(C1*C2)*X1*X2 - 2*(C1*C3)*X1*X3 - 2*(C2*C3)*X2*X3) / (C1+C2+C3)
+			   = V1*D1 + V2*D2 + V3*D3 + ((C1+C2+C3)(C1*X1**2 + C2*X2**2 + C3*X3**2) - (C1*X1 + C2*X2 + C3*X3)**2) / (C1+C2+C3)
+			   = V1*D1 + V2*D2 + V3*D3 + (C1*X1**2 + C2*X2**2 + C3*X3**2) - ((C1*X1 + C2*X2 + C3*X3)**2) / (C1+C2+C3)
+
 
 ------------------------------
 -10- miscellaneous
