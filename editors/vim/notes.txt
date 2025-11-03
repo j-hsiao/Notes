@@ -5,6 +5,7 @@ contents:
 	-0.2- terminology
 	-0.3- regex
 	-0.4- undo history
+	-0.5- sourcing
 -1- normal mode
 	-1.1- movement
 	-1.2- scrolling
@@ -156,6 +157,24 @@ ______________________________
 
 		undo can take the undo number to undo to that state
 
+
+
+	------------------------------
+	-0.5- sourcing
+	------------------------------
+	:so[urce] script
+		run a vimscript
+		This is kind of like #include <header> in C++
+		or import in python...
+
+	Generally, these require an absolute path to the sourced file.
+	However, a "relative" path can be obtained using expand()
+
+	:source does not allow function calls etc, so use :exec
+	Example
+		exec 'so' expand('<script>:p:h') . '/path/relative/to/this/script'
+
+	This can be useful on windows when mixing windows git and cygwin.
 
 
 ______________________________
@@ -1056,7 +1075,6 @@ ______________________________
 			nohlsearch    noh     stop search highlighting
 			Explore       Ex      open file explorer
 			syntax on|off         turn syntax highlighting on|off
-			source        so      run a vimscript
 			shell         sh      start a shell
 			normal        norm    run a keysequence string in normal mode
 			cd                    change current working dir
