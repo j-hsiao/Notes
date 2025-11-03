@@ -486,12 +486,10 @@ endif
 "------------------------------
 " Change :u<CR> to :up<CR>
 " usually would never use :u command since you could just press u in
-" normal mode instead, :u is probably more often simple because didn't
-" type the p.
+" normal mode instead, :u is probably more often simply because didn't
+" type the p for the :up command.
 "------------------------------
-"Add a fixed :u to :up message for visual indication that this
-"mapping actually did something...
-cnoremap <expr> u<CR> getcmdtype() == ':' && getcmdline() == '' ? "up<Bslash><lt>CR>:echom <Bslash>"fixed :u to :up<Bslash>"<Bslash><lt>CR>" : "u<Bslash><lt>CR>"
+nnoremap :u<CR> :up<CR>
 
 "Make insert-mode C-u and C-w  undoable
 execute jhsiaoextendmap#ExtendMap("<C-U>", 'i', '<C-G>u', v:true)
