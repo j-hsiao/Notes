@@ -85,8 +85,14 @@ ______________________________
 		:h regex
 		terminology:
 			pattern: 1 or more branches joined by \|
+			         Regex will match the first branch.
 			branch: 1 or more concats joined by \&
+			        Each "concat" must match, the result is
+			        basically like a reset.
+			        ex: .*bob\&.*joe means that the target
+			        must match '.*bob' AND '.*joe'
 			concat: one or more pieces concatenated together
+			        Matches parts one by one in order.
 			piece: atom[multi] OR a pattern in \(\)
 
 		multis: (with magic)
@@ -145,6 +151,23 @@ ______________________________
 					blank     print   return  keyword
 					cntrl     punct   tab
 					digit     space   escape
+
+			Extra
+				\@=
+					Matches with zero width if previous ATOM matches.
+					ex: foo\(bar\)\@=
+					matches foobar, then goes back to the b to continue
+					matching the remainder.
+				\@!
+					Matches with zero width if previous ATOM does NOT match.
+					ex: foo\(bar\)\@!: any foo not followed by bar
+				\@>
+					Match previous pattern separately.
+					Example:
+						a*ab WILL match aaab (a* -> aa, a->a, b->b)
+						\(a*\)\@>ab will NOT match aaab
+						a* -> aaa, it was matched separately so takes all the a's
+						a has no more a to match so the match will fail.
 
 	______________________________
 	-0.4- undo history
