@@ -19,24 +19,24 @@
 #        to RESULT.  If the expression is incomplete, then nothing will be done.
 # [begin]: The name of the variable to store the start of the parsed
 #          expression.  This might or might not match the given start
-#          value.  If there is an incomplete subexpression, then start will
-#          point to its starting position.
+#          value eg. if there is an incomplete subexpression.  In that case,
+#          start will point to its starting position.
 # [end]: The variable name to store the ending position (exclusive) position.
-#        That is to say, ${text:start:stop-start} will be the parsed expression.
+#        That is to say, ${text:begin:end-begin} will be the parsed expression.
 #        if end exists, then it is the first character NOT in the parsed expression.
 #        If the expression is incomplete, this will be -1.
 # [initial]: The initial beginning position
 #
 # To avoid redundant checks, parsing functions assume that <text>
 # starts with the corresponding characters for the target expression type.
+# Otherwise, behavior is undefined.
 #
 # Example:
 # 	${myvar:-${HO<Tab>
 #
 # 	This is incomplete so out will be empty if it was given.
-# 	start will be 9
+# 	start will be 9 (at the beginning of ${HO
 # 	count will be -1 (it was incomplete)
-#
 #
 
 . "${BASH_SOURCE[0]%shparse.sh}restore_rematch.sh"

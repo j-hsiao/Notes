@@ -29,8 +29,29 @@ else
 		local idx=0
 		while ((++idx < ${#shprbm__arr[@]}))
 		do
-			shprbm__str+='("${shprbm__arr['${idx}']}")'
+			shprbm__str+='("${shprbm__arr['${idx}']}").*'
 		done
 		eval "${shprbm__str} ]]"
 	}
+fi
+
+if [[ "${0}" = "${BASH_SOURCE[0]}" ]]
+then
+	[[ 'this is a string' =~ (this).*(string) ]]
+	original=("${BASH_REMATCH[@]}")
+	[[ 'asdf' =~ asdf ]]
+
+	restore_BASH_REMATCH original
+
+	if ((${#original[@]} != ${#BASH_REMATCH[@]})); then echo fail; exit 1; fi
+	idx=-1
+	while ((++idx < ${#original[@]}))
+	do
+		if [[ "${original[idx]}" != "${BASH_REMATCH[idx]}" ]]
+		then
+			echo fail
+			exit 1
+		fi
+	done
+	echo pass
 fi
