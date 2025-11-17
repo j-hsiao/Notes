@@ -1,0 +1,9 @@
+1. ydo script
+2. bash numeric completion
+   a. shparse
+   b. completion
+3. vim modify alignment, [fF] ch,
+   like normal mode [fF] except use previous line(s) position.
+4. cppy
+   cpp reference <-> py borrowed reference
+   cpp value     <-> py owned reference
