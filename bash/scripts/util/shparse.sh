@@ -55,18 +55,20 @@ is_variable() # <varname>
 	# Success if is variable name, else error.
 	local orig=("${BASH_REMATCH[@]}")
 	[[ "${1}" =~ ^[a-zA-Z_][a-zA-Z_0-9]*$ ]]
+	local ret=$?
 	restore_BASH_REMATCH orig
+	return "${ret}"
 }
 
 shparse_parse_ansi_c() # <text> [out=RESULT] [begin=BEG] [end=END] [initial=0]
 {
 	# Parse <text> as ansi-c quote $'...'.  Assume <text>[initial:] starts with $'
-	eval "${3:-BEG}=${5:-0}"
+	eval "${3:-BEG}"='"${5:-0}"'
 	local orig_rematch=("${BASH_REMATCH[@]}")
 	[[ "${1:2 + ${5:-0}}" =~ ^(\\.|[^\\\'])*\' ]]
 	if [[ -n "${BASH_REMATCH[0]}" ]]
 	then
-		eval "${4:-END}=$((${5:-0} + 2 + "${#BASH_REMATCH[0]}"))"
+		eval "${4:-END}="'"$((${5:-0} + 2 + "${#BASH_REMATCH[0]}"))"'
 		if is_variable "${2:-RESULT}"
 		then
 			eval "${2:-RESULT}=\$'${BASH_REMATCH[0]}"
@@ -86,13 +88,13 @@ shparse_parse_single_quote() # <text> [out=RESULT] [begin=BEG] [end=END] [initia
 	# of each character within the quotes.  A single quote may not occur
 	# between single quotes, even when preceded by a backslash.
 	# simple, just find the next single quote
-	eval "${3:-BEG}=${5:-0}"
+	eval "${3:-BEG}="'"${5:-0}"'
 
 	local orig_rematch=("${BASH_REMATCH[@]}")
 	[[ "${1:${5:-0}+1}" =~ ^[^\']*\' ]]
 	if [[ -n "${BASH_REMATCH[0]}" ]]
 	then
-		eval "${4:-END}=$((${#BASH_REMATCH[0]}+1+${5:-0}))"
+		eval "${4:-END}="'"$((${#BASH_REMATCH[0]}+1+${5:-0}))"'
 		if is_variable "${2:-RESULT}"
 		then
 			eval "${2:-RESULT}='${BASH_REMATCH[0]}"
@@ -129,37 +131,41 @@ shparse_parse_double_quote() # <text> [out=RESULT] [begin=BEG] [end=END] [initia
 
 	while true
 	do
-		[[ "${1:shppdq__pos}" =~ (\\.|[^'"$`'])*['"$`'] ]]
+		[[ "${1:shppdq__pos}" =~ (\\.|[^'"$`']|\$\')*(\"|\$.|\`) ]]
 
 		if [[ -z "${BASH_REMATCH[0]}" ]]
 		then
 			shppdq__pos=-1
-			eval "${3:-BEG}=${5:-0}"
+			eval "${3:-BEG}="'"${5:-0}"'
+			restore_BASH_REMATCH orig_rematch
 			return
 		fi
-		case "${BASH_REMATCH[0]: -1}" in
-			\")
+		case "${BASH_REMATCH[2]}" in
+			\"|\$\")
 				# end of string
-				eval "${3:-BEG}=${5:-0}"
+				eval "${3:-BEG}="'"${5:-0}"'
 				((shppdq__pos+=${#BASH_REMATCH[0]}))
 				if is_variable "${2:-RESULT}"
 				then
 					eval "${2:-RESULT}=${1: ${5:-0} : shppdq__pos - ${5:-0}}"
 				fi
+				restore_BASH_REMATCH orig_rematch
 				return
 				;;
-			*)
-				if [[ "${BASH_REMATCH[0]: -1}" = \$ ]]
-				then
-					local subparse=shparse_parse_dollar
-				else
-					local subparse=shparse_parse_backtick
-				fi
-				"${subparse}" "${1}" 0 "${3}" shppdq__pos \
-					$((shppdq__pos + ${#BASH_REMATCH[0]}))
-				if ((shppdq__pos < 0)); then return; fi
+			\$*)
+				local subparse=shparse_parse_dollar
+				;;
+			\`)
+				local subparse=shparse_parse_backtick
 				;;
 		esac
+		"${subparse}" "${1}" 0 "${3}" shppdq__pos \
+			$((shppdq__pos + ${#BASH_REMATCH[0]} - ${#BASH_REMATCH[2]}))
+		if ((shppdq__pos < 0))
+		then
+			restore_BASH_REMATCH orig_rematch
+			return
+		fi
 	done
 }
 
@@ -252,62 +258,68 @@ shparse_parse_parameter_expansion() # <text> [out=RESULT] [pos=POS] [start=0]
 }
 
 
-shparse_parse_dollar_expr() # <text> [out=RESULT] [pos=POS] [start=0]
+shparse_parse_dollar() # <text> [out=RESULT] [begin=BEG] [end=END] [initial=0]
 {
-	# Parse <text> as a $expr
-	# Store the terminating character in [pos]
-	# If it does not match any patterns, [out] is empty and [pos] = [start]
+	# Call the corresponding $* expression.
+	# Note that $0-9 will be arguments to shparse_parse_dollar rather
+	# than whatever input argument there was...
 
 	# From man bash:
 	# When braces are used, the matching ending brace is the first \} not
 	# escaped by a backslash or within a quoted string, and not within an
 	# embedded arithmetic expansion, command substitution, or parameter
 	# expansion.
-	local -n shppde__pos="${3:-POS}"
-	shppde__pos="${4:-0}"
-
-	case "${1:shppde__pos:2}" in
-		\$\')
+	
+	case "${1: ${5:-0}}" in
+		\$\'*)
 			shparse_parse_ansi_c "${@}"
-			return
 			;;
-		'$*'|'$@'|'$#'|'$?'|'$-'|'$$'|'$!'|\$[0-9])
-			# Special variable expansion
-			if is_variable "${2:-RESULT}"; then eval "${2:-RESULT}=\"${1:shppde__pos:2}\""; fi
-			((++shppde__pos))
-			return
-			;;
-		\$[a-zA-Z_])
-			# parse $varname expr
-			local orig_rematch=("${BASH_REMATCH[@]}")
-			[[ "${1:shppde__pos+1}" =~ ^([a-zA-Z_][a-zA-Z_0-9]*) ]]
-			if is_variable "${2:-RESULT}"; then eval "${2:-RESULT}=\$${BASH_REMATCH[1]}"; fi
-			((shppde__pos+="${#BASH_REMATCH[1]}"))
-			restore_BASH_REMATCH orig_rematch
-			return
-			;;
-		\$\{)
-			shparse_parse_parameter_expansion "${@}"
-			return
-			;;
-		'$(')
-			if [[ "${1:shppde__pos+2:1}" = '(' ]]
+		\$[-*@#?!0-9$]*)
+			if is_variable "${2:-RESULT}"
 			then
-				# $((math expr))
-				:
-			else
-				# $(command)
-				:
+				eval "${2:-RESULT}=\"${1: ${5:-0}:2}\""
+			fi
+			eval "${3:-BEG}"='"${5:-0}"'
+			eval "${4:-END}"='$((${5:-0} + 2))'
+			;;
+		\$[a-zA-Z_]*)
+			local orig_rematch=("${BASH_REMATCH[@]}")
+			[[ "${1: ${5:-0}}" =~ \$[a-zA-Z_][a-zA-Z_0-9]* ]]
+			if is_variable "${2:-RESULT}"
+			then
+				eval "${2:-RESULT}=\"${BASH_REMATCH[0]}\""
+			fi
+			eval "${3:-BEG}"='"${5:-0}"'
+			eval "${4:-END}"='"$((${5:-0} + ${#BASH_REMATCH[0]}))"'
+			restore_BASH_REMATCH orig_rematch
+			;;
+		'$"'*)
+			# parse a locale-converted string..., forward to string parsing.
+			shparse_parse_double_quote "${1}" 0 "${3}" "${4}" "$((${5:-0} + 1))"
+			local -n shppd__end="${4:-END}"
+			local -n shppd__beg="${3:-BEG}"
+			if ((shppd__end >= 0 || shppd__beg == ${5:-0} + 1))
+			then
+				shppd__beg=${5:-0}
 			fi
 			;;
-		\$*)
-			# ex echo $%
-			if is_variable "${2:-RESULT}"; then eval "${2:-RESULT}='\$'"; fi
-			return
+		'$(('*)
+			shparse_parse_math "${@}"
+			;;
+		'$('*)
+			shparse_parse_command_sub "${@}"
+			;;
+		'${'*)
+			shparse_parse_parameter_expansion "${@}"
 			;;
 		*)
-			if is_variable "${2:-RESULT}"; then eval "${2:-RESULT}="; fi
-			return
+			# invalid dollar expr, just a raw dollar sign
+			eval "${3:-BEG}"='"${5:-0}"'
+			eval "${4:-END}"='"$((${5:-0}+1))"'
+			if is_variable "${2:-RESULT}"
+			then
+				eval "${2:-RESULT}=$"
+			fi
 			;;
 	esac
 }
@@ -330,8 +342,8 @@ then
 			    expect %q
 			    got    %q
 			  range:
-			    expect %3s - %3s
-			    got    %3s - %3s
+			    expect "%3s" - "%3s"
+			    got    "%3s" - "%3s"
 			  segment:
 			    expect %s
 			    got    %s
@@ -347,15 +359,33 @@ then
 	run_test shparse_parse_ansi_c "what$'\\nh\\'ello" '' 4 -1 '' 4
 	run_test shparse_parse_ansi_c "what$'\\nh\\'ello'" $'\nh\'ello' 4 '' "$'\\nh\\'ello'" 4
 
+
 	echo 'testing shparse_parse_single_quote'
 	run_test shparse_parse_single_quote "b4'this is some string\\'extra" 'this is some string\' 2 '' "'this is some string\\'" 2
 	run_test shparse_parse_single_quote "'incomplete" '' '' -1 ''
 
 	echo 'testing shparse_parse_double_quote'
-	run_test shparse_parse_double_quote "\"this is a string\"" "this is a string" 0 18 "\"this is a string\""
-	run_test shparse_parse_double_quote "\"this is a string" '' 0 -1 ''
+	run_test shparse_parse_double_quote '"this is a string"' 'this is a string' 0 18 '"this is a string"'
+	run_test shparse_parse_double_quote '"this is a string' '' 0 -1 ''
+	run_test shparse_parse_double_quote '"this is \"a\" str\${}ing" extra data' 'this is "a" str${}ing' 0 26 '"this is \"a\" str\${}ing"'
+
+	run_test shparse_parse_double_quote 'a"my home is at $HOME" extra data' "my home is at $HOME" 1 22 '"my home is at $HOME"' 1
+	run_test shparse_parse_double_quote 'a"my $-home is at $HOME" extra data' "my $-home is at $HOME" 1 24 '"my $-home is at $HOME"' 1
+	run_test shparse_parse_double_quote '"ansic $'"'this'"' is not expanded." f' "ansic \$'this' is not expanded." 0 32 '"ansic $'"'this'"' is not expanded."'
 
 	# TODO: add in dollar and backtick expr tests
+	
+
+	echo 'testing shparse_parse_dollar'
+	# ansi_c dollar
+	run_test shparse_parse_dollar "what$'\\nhello'extra" $'\nhello' 4 '' "$'\\nhello'" 4
+	run_test shparse_parse_dollar "what$'\\nhello" '' 4 -1 '' 4
+	run_test shparse_parse_dollar "what$'\\nh\\'ello" '' 4 -1 '' 4
+	run_test shparse_parse_dollar "what$'\\nh\\'ello'" $'\nh\'ello' 4 '' "$'\\nh\\'ello'" 4
+	run_test shparse_parse_dollar '$-' "$-" 0 2 '$-'
+	run_test shparse_parse_dollar '$HOME extra' "$HOME" 0 5 '$HOME'
+	run_test shparse_parse_dollar '$HOME!notvalid' "$HOME" 0 5 '$HOME'
+	run_test shparse_parse_dollar '$%not a $ expansion' '$' 0 1 '$'
 
 	# echo 'testing shparse_parse_backtick'
 	# shparse_parse_backtick 'hello`echo \\\`$HOME\\\$HOME\\\a`' out pos 0 && [[ "${out}" = '' ]] && ((pos == 0)) && echo pass || echo fail
