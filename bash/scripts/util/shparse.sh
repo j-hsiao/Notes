@@ -32,10 +32,10 @@
 # Otherwise, behavior is undefined.
 #
 # Example:
-# 	${myvar:-${HO<Tab>
+# 	${myvar:-${HO<Tab>}}
 #
 # 	This is incomplete so out will be empty if it was given.
-# 	start will be 9 (at the beginning of ${HO
+# 	start will be 9 (at the beginning of the ${HO} expr
 # 	count will be -1 (it was incomplete)
 #
 #
@@ -62,7 +62,7 @@ is_variable() # <varname>
 
 shparse_parse_ansi_c() # <text> [out=RESULT] [begin=BEG] [end=END] [initial=0]
 {
-	# Parse <text> as ansi-c quote $'...'.  Assume <text>[initial:] starts with $'
+	# Parse <text> as ansi-c quote from assumed $' until an ending '.
 	eval "${3:-BEG}"='"${5:-0}"'
 	local orig_rematch=("${BASH_REMATCH[@]}")
 	[[ "${1:2 + ${5:-0}}" =~ ^(\\.|[^\\\'])*\' ]]
@@ -81,7 +81,7 @@ shparse_parse_ansi_c() # <text> [out=RESULT] [begin=BEG] [end=END] [initial=0]
 
 shparse_parse_single_quote() # <text> [out=RESULT] [begin=BEG] [end=END] [initial=0]
 {
-	# Parse <text> as a single-quote string. Assume <text>[initial:] starts with '
+	# Parse <text> as a single-quote string from assumed ' to ending '.
 
 	# From man bash:
 	# Enclosing characters in single quotes preserves the literal value
@@ -107,7 +107,7 @@ shparse_parse_single_quote() # <text> [out=RESULT] [begin=BEG] [end=END] [initia
 
 shparse_parse_double_quote() # <text> [out=RESULT] [begin=BEG] [end=END] [initial=0]
 {
-	# Parse <text> as a double-quote string.  Assume <text>[initial:] starts with "
+	# Parse <text> as a double-quote string from assumed " to ending ".
 
 	# From man bash:
 	# Enclosing characters in double quotes preserves the literal value
@@ -126,16 +126,16 @@ shparse_parse_double_quote() # <text> [out=RESULT] [begin=BEG] [end=END] [initia
 	# for now, don't support history... in completions.
 
 	local orig_rematch=("${BASH_REMATCH[@]}")
-	local -n shppdq__pos="${4:-END}"
-	((shppdq__pos = "${5:-0}" + 1))
+	local -n shppdq__end="${4:-END}"
+	((shppdq__end = "${5:-0}" + 1))
 
 	while true
 	do
-		[[ "${1:shppdq__pos}" =~ (\\.|[^'"$`']|\$\')*(\"|\$.|\`) ]]
+		[[ "${1:shppdq__end}" =~ (\\.|[^'"$`']|\$\')*(\"|\$.|\`) ]]
 
 		if [[ -z "${BASH_REMATCH[0]}" ]]
 		then
-			shppdq__pos=-1
+			shppdq__end=-1
 			eval "${3:-BEG}="'"${5:-0}"'
 			restore_BASH_REMATCH orig_rematch
 			return
@@ -144,10 +144,10 @@ shparse_parse_double_quote() # <text> [out=RESULT] [begin=BEG] [end=END] [initia
 			\"|\$\")
 				# end of string
 				eval "${3:-BEG}="'"${5:-0}"'
-				((shppdq__pos+=${#BASH_REMATCH[0]}))
+				((shppdq__end+=${#BASH_REMATCH[0]}))
 				if is_variable "${2:-RESULT}"
 				then
-					eval "${2:-RESULT}=${1: ${5:-0} : shppdq__pos - ${5:-0}}"
+					eval "${2:-RESULT}=${1: ${5:-0} : shppdq__end - ${5:-0}}"
 				fi
 				restore_BASH_REMATCH orig_rematch
 				return
@@ -159,9 +159,9 @@ shparse_parse_double_quote() # <text> [out=RESULT] [begin=BEG] [end=END] [initia
 				local subparse=shparse_parse_backtick
 				;;
 		esac
-		"${subparse}" "${1}" 0 "${3}" shppdq__pos \
-			$((shppdq__pos + ${#BASH_REMATCH[0]} - ${#BASH_REMATCH[2]}))
-		if ((shppdq__pos < 0))
+		"${subparse}" "${1}" 0 "${3}" "${4}" \
+			$((shppdq__end + ${#BASH_REMATCH[0]} - ${#BASH_REMATCH[2]}))
+		if ((shppdq__end < 0))
 		then
 			restore_BASH_REMATCH orig_rematch
 			return
@@ -169,11 +169,10 @@ shparse_parse_double_quote() # <text> [out=RESULT] [begin=BEG] [end=END] [initia
 	done
 }
 
-shparse_parse_backtick() # <text> [out] [pos=POS] [start=0]
+shparse_parse_backtick() # <text> [out=RESULT] [begin=BEG] [end=END] [initial=0]
 {
-	# Parse <text> backtick command substitution.
-	# Store the terminating backtick in [pos] and the value in [out] if nonempty.
-	# If ${text:start:1} != '`', then out is empty and pos is start
+	# Parse <text> as a backtick command substitution
+	# from assumed backtick to ending backtick.
 
 	# From man bash:
 	# When the old-style backquote form of substitution is used,
@@ -181,51 +180,112 @@ shparse_parse_backtick() # <text> [out] [pos=POS] [start=0]
 	# `, or \.  The first backquote not preceded by a backslash
 	# terminates the command substitution.
 	#
-	# After some testing, it seems like backtick parsing is like this:
-	# 1. Parse like a string
-	# 2. eval the string
-	#
-	# ex: `echo '\`'`
-	# -> echo '`'
-	# -> `
-	#
-	# ex2: `echo \$\$`
-	# -> echo $$
-	# -> the pid of current process
-	#
-	# ex3: `echo \\\$\\\$`
-	# -> echo \$\$
-	# -> 2 literal dollar signs
+	# This means even though backtick might appear in a subexpression
+	# (string, parameter sub, etc...) they MUST be escaped or it
+	# will end the command substitution expression right there.
+	# As a result, the backtick region must be found first
+	# before subexpressions are parsed or the ending backtick
+	# might be interpreted as part of a subexpression instead.
 
-	local -n shppbt__pos="${3:-POS}"
-	shppbt__pos="${4:-0}"
-	if [[ "${1:shppbt__pos:1}" != '`' ]]
+	local orig_rematch=("${BASH_REMATCH[@]}")
+	local -n shppbt__end="${4:-END}"
+
+	[[ "${1: ${5:-0}}" =~ \`(\\.|[^\`])*\` ]]
+	if [[ -z "${BASH_REMATCH[0]}" ]]
 	then
-		if is_variable "${2:-RESULT}"; then eval "${2:-RESULT}="; fi
-		return
+		local region="${1}"
+		local tickfix=0
+	else
+		local region="${1:0:${5:-0} + ${#BASH_REMATCH[0]} - 1}"
+		local tickfix=1
 	fi
-	((++shppbt__pos))
+	shppbt__end=$((${5:-0} + 1))
+	local ending="${#region}"
 
-	while [[ "${shppbt__pos}" -lt "${#1}" && "${1:shppbt__pos:1}" != '`' ]]
+	while ((shppbt__end < ending))
 	do
-		if [[ "${1:shppbt__pos:1}" = '\' && "${1:shppbt__pos+1:1}" = ['$\`'] ]]
+		[[ "${region: shppbt__end}" =~ (\\.|[^'$"'\'])* ]]
+		if ((shppbt__end + ${#BASH_REMATCH[0]} == ending))
 		then
-			((++shppbt__pos))
+			break
 		fi
-		((++shppbt__pos))
+		case "${region: shppbt__end+${#BASH_REMATCH[0]}:1}" in
+			\$)
+				local subparse=shparse_parse_dollar
+				;;
+			\')
+				local subparse=shparse_parse_single_quote
+				;;
+			\")
+				local subparse=shparse_parse_double_quote
+				;;
+		esac
+		${subparse} "${region}" 0 "${3}" "${4}" $((shppbt__end + ${#BASH_REMATCH[0]}))
+		if ((shppbt__end < 0))
+		then
+			restore_BASH_REMATCH orig_rematch
+			return
+		fi
 	done
-	if is_variable "${2:-RESULT}"
+	eval "${3:-BEG}"='"${5:-0}"'
+	if ((tickfix))
 	then
-		eval "${2:-RESULT}=${1:${4:-0}:shppbt__pos-${4:-0}}\`"
+		eval "${4:-END}=$((ending+1))"
+		if is_variable "${2:-RESULT}"
+		then
+			eval "${2:-RESULT}"="${1: ${5:-0} : ending + 1 - ${5:-0}}"
+		fi
+	else
+		eval "${4:-END}=-1"
 	fi
+	restore_BASH_REMATCH orig_rematch
+	return
 }
 
-shparse_parse_parameter_expansion() # <text> [out=RESULT] [pos=POS] [start=0]
+shparse_parse_parameter_expansion() # <text> [out=RESULT] [begin=BEG] [end=END] [initial=0]
 {
-	# Parse <text> as a parameter expansion ${...} expression.
-	# Store the ending \} in [pos].
-	# if <text> is not a parameter expansion, [out] is empty and [pos] = [start]
-	# parse ${} expr
+	# Parse <text> as a parameter expansion from assumed ${ to ending }.
+	local orig_rematch=("${BASH_REMATCH[@]}")
+	local -n shpppe__end="${4:-END}"
+	shpppe__end=$((${5:-0} + 2))
+
+	local interrupt='$"`'\}\'
+	while true
+	do
+		[[ "${1: shpppe__end}" =~ (\\.|[^"${interrupt}"])*(["${interrupt}"]) ]]
+		case "${BASH_REMATCH[2]}" in
+			\})
+				# proper end the parameter expansion
+				;;
+			\$)
+				local subparse=shparse_parse_dollar
+				;;
+			\`)
+				local subparse=shparse_parse_backtick
+				;;
+			\")
+				local subparse=shparse_parse_double_quote
+				;;
+			\')
+				local subparse=shparse_parse_single_quote
+				;;
+			'')
+				# no match, incomplete, up to remainder
+				;;
+		esac
+		${subparse} "${1}" 0 "${3}" "${4}" \
+			$(("${shpppe__end}" + "${#BASH_REMATCH[0]}" - ${#BASH_REMATCH[2]}))
+		if ((shpppe__end < 0))
+		then
+			restore_BASH_REMATCH orig_rematch
+			return;
+		fi
+	done
+
+	restore_BASH_REMATCH orig_rematch
+
+
+
 	local -n shpppe__pos="${3:-POS}"
 	shpppe__pos="${4:-0}"
 	if [[ "${1:shpppe__pos:2}" != \${ ]]
@@ -347,7 +407,7 @@ then
 			  segment:
 			    expect %s
 			    got    %s
-			' "${2}" "${3}" "${out}" "${4}" "${5}" "${beg}" "${end}" "${6}" "${2:beg:end-beg}" | sed 's/\t\t\t//g'
+			' "${2}" "${3}" "${out}" "${4}" "${5}" "${beg}" "${end}" "${6}" "${2:beg:end < 0 ? ${#2}-beg : end-beg}" | sed 's/\t\t\t//g'
 		else
 			echo pass
 		fi
@@ -373,8 +433,8 @@ then
 	run_test shparse_parse_double_quote 'a"my $-home is at $HOME" extra data' "my $-home is at $HOME" 1 24 '"my $-home is at $HOME"' 1
 	run_test shparse_parse_double_quote '"ansic $'"'this'"' is not expanded." f' "ansic \$'this' is not expanded." 0 32 '"ansic $'"'this'"' is not expanded."'
 
+	run_test shparse_parse_double_quote '"something `uname -a` yea"extra' 'something '"$(uname -a)"' yea' 0 26 '"something `uname -a` yea"'
 	# TODO: add in dollar and backtick expr tests
-	
 
 	echo 'testing shparse_parse_dollar'
 	# ansi_c dollar
@@ -387,9 +447,9 @@ then
 	run_test shparse_parse_dollar '$HOME!notvalid' "$HOME" 0 5 '$HOME'
 	run_test shparse_parse_dollar '$%not a $ expansion' '$' 0 1 '$'
 
-	# echo 'testing shparse_parse_backtick'
-	# shparse_parse_backtick 'hello`echo \\\`$HOME\\\$HOME\\\a`' out pos 0 && [[ "${out}" = '' ]] && ((pos == 0)) && echo pass || echo fail
-	# shparse_parse_backtick 'hello`echo \\\`$HOME\\\$HOME\\\a`' out pos 5 && [[ "${out}" = "\`$HOME\$HOME\\a" ]] && ((pos == 32)) && echo pass || echo fail
+	echo 'testing shparse_parse_backtick'
+	run_test shparse_parse_backtick 'hello`echo \\\`$HOME\\\$HOME\\\a`' \`${HOME}\$HOME\\a 5 33 '`echo \\\`$HOME\\\$HOME\\\a`' 5
+	run_test shparse_parse_backtick 'hello`echo "incomplete string`' '' 11 -1 '' 5
 	# shparse_parse_backtick 'hello`echo \\\`$HOME\\\$HOME\\\a' out pos 5 && [[ "${out}" = "\`$HOME\$HOME\\a" ]] && ((pos == 32)) && echo pass || echo fail
 
 

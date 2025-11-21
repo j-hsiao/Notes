@@ -1,5 +1,27 @@
 #!/bin/bash
 
+# sidenote: observation
+# completion function,
+# 	${1} = command
+# 	${2} = word(partial?sub?)
+#
+# 	generally, ${2} is a substring of the actual "word" that completion
+# 	should operate on.
+# 	ex 1:
+# 		'a string[tab]
+# 		${2} = a string
+# 		word = 'a string
+# 	Using ${2}, you lose information that the current word to be completed
+# 	is a single-quoted string.
+# 	ex 2:
+# 		"a string ${param[tab]
+# 		${2} = a string ${param
+# 		word = "a string ${param
+# 	In both cases, the extra "a string" is included in the value.
+# 	However, using COMP_WORDS, information about the double-quoted
+# 	string is included.
+#
+
 # Numeric tab completion.
 #
 # Generally, I think the c-escape style is visually better, but isn't shell compatible.
