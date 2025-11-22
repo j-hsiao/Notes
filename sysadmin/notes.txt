@@ -21,6 +21,10 @@ only some "more user friendly frontend"
 ------------------------------
 -1.1- useradd
 ------------------------------
+
+generic user:
+useradd name -m
+
 Creates a new user (and group by default)
 "All users must have at least 1 group"
 Update system files and might make home dir.
