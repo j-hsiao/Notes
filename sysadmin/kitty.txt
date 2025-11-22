@@ -1,0 +1,7 @@
+kitty terminal
+
+ctrl+shift+f2 -> open settings in vim
+
+all mappable actions:
+https://sw.kovidgoyal.net/kitty/actions/
+
