@@ -1,0 +1,281 @@
+machinectl: "control systemd machine manager"
+
+-0- general
+-1- commands
+	-1.1- machine commands
+	-1.2- image commands
+	-1.3- general options
+-2- images
+
+------------------------------
+-0- general
+------------------------------
+Exit machinectl sessions using 3 <C-]> presses.
+
+Executes operations on machines and images...
+	1. virtual machines
+	2. containers sharing hardware
+	3. host sytem
+
+Machines are identified by names following unix and dns hostnames.
+machines are instantiated from disk or filesystem images.
+	1. directory trees containing an OS
+	2. btrfs subvolumes with OS trees
+	3. binary raw disk image file with MBR or GPT partition tables and linux fx
+	4. block devices containing MBR/GPT partition table and FS
+	5. host OS
+
+images can be downloaded, imported, exported via importctl
+
+------------------------------
+-1- commands
+------------------------------
+	------------------------------
+	-1.1- machine commands
+	------------------------------
+	list
+		list running virtual machines and containers
+		--all: show all including host
+
+	status name...
+		show runtime status of each machine + logdata (human readable)
+		--all
+
+	show name...
+		same as status but computer parsable instead.
+		--property=
+		--all
+
+	start name...
+		start a container as a system service (systemd-nspawn).
+		The container image should be in /var/lib/machines/name
+		To start with access to container's console, use systemd-nspawn
+		directly.
+
+	login [name]
+		login to specified machine.
+		only available if systemd is init system
+		creates a login screen as if in pseudo terminal like ctrl+alt+f3
+		except in the current terminal.
+		must use triple <C-]> to exit.
+
+	shell [name@]name [path [args...]]
+		Open shell as user on given machine
+		Similar to su, except fully isolated from previous session.
+		Similar to ssh as the specified user.
+		--uid=username
+		--setenv=envvar=value
+			set the environment variable, if =value omitted, copy from
+			current environment.
+		For non-interactive (ie scripting) purposes, use systemd-run
+			--wait to get the exit code
+			--pty to get interactive shell
+
+	[enable|disable] name...
+		enable/disable container
+
+	poweroff name...
+		shutdown machines.
+
+	reboot name...
+		reboot machine.
+
+	terminate name...
+		immediately terminate machine without clean shutdown.
+
+	kill name...
+		send signal to one or more processes of machine.
+		--kill-whom=
+		--signal=
+		"This means processes as seen by the host, not the processes inside
+		the virtual machine or container."
+		???
+
+	bind machine source dest
+		mount a file or directory from host into container.
+		--read-only
+
+	copy-to machine source dest --force
+		copy from host into container.
+		If same group/user namespace, then permissions will be copied.
+		Otherwise, results will be owned by root
+
+	copy-from machine source dest --force
+		copy from container to host.
+
+
+	------------------------------
+	-1.2- image commands
+	------------------------------
+	list-images
+		list images available to start in /var/lib/machines/ etc
+		--all
+
+	image-status name...
+		show status info about container/vm images. (human readable)
+		--all
+
+	show-image name...
+		show status info about containers/vm images. (computer parseable)
+		--all
+
+	edit name|file
+		edit settings of specified machines.
+		automatically create under /etc/systemd/nspawn if not found
+
+	cat name|file
+		show settings file
+
+	clone src dst
+		clone container/vm image
+
+	rename name newname
+		rename a vm
+
+	readonly name bool
+		marks container as readonly
+
+	remove name...
+		remove container/vm images
+
+	set-limit name bytes
+		sets maximum size for corresponding image.
+		if name not specified, then set limit for overall sum of all images.
+		can suffix with KMGT units or use "-" for no limit.
+
+	clean
+		remove hidden vm/container images or all (name begins with .)
+
+	------------------------------
+	-1.3- general options
+	------------------------------
+	-p --property=
+		limit output to specified property when showing properties.
+
+	--value
+		for machinectl show, only print the value, skip the property=
+
+	-P
+		--value --property=
+
+	-a, --all
+		show all properties or images etc
+
+	-l, --full
+		do not ellipsize process tree entries or table
+
+	--kill-whom=
+		for machinectl kill, choose the process to kill.
+		Must be one of leader, supervisor, or all.
+
+	-s, --signal=
+		for machinectl kill, specifiy signal.
+
+	--uid=
+		for machinectl shell, specify username
+
+	-E name=value, --setenv=name=value
+		for machinectl shell, set environment variables.
+
+	--mkdir
+		for machinectl bind, creates destination file/dir before
+		mounting.
+
+	--read-only
+		for machinectl bind, creates read-only bind mount.
+		for machinectl clone, readonly container/vm image.
+
+	-n, --lines=
+		for machinectl status, controls number of journal lines to show.
+
+	-o, --output=
+		for machinectl status, controls formatting of journal entries
+			short
+			short-full
+			short-iso
+			short-iso-precise
+			short-precise
+			short-monotonic
+			short-delta
+			short-unix
+			verbose
+			export
+			json
+			json-pretty
+			json-sse
+			json-seq
+			cat
+			with-unit
+
+	--runner=nspawn|vmspawn
+		choose systemd-nspawn vs systemd-vmspawn
+
+	-V
+		shorthand for --runner=vmspawn
+
+	--now
+		for machinectl [enable|disable], start/shutdown the containers too.
+
+	--force
+		replace target file when copying
+
+	--max-addresses=
+		for machinectl list-machines, limits number of IP addresses per machine
+		'all' for all addresses
+		0 to hide address column
+
+	-q, --quiet
+		suppresses extra info
+
+	-H --host=
+		execute operation remotely.
+
+	-M --machine=
+		connect to systemd-machined.service running in a local container.
+
+	--no-pager
+	--no-legend
+	--no-ask-password
+	-h --help
+	--version
+
+------------------------------
+-2- images
+------------------------------
+names must follow pattern:
+	[a-zA-Z0-9-]*(\.[a-zA-Z0-9-])*
+
+Searched in
+	/var/lib/machines/
+	/usr/local/lib/machines/
+	/usr/lib/machines/
+	/var/lib/container/
+
+Images in /usr/* are always interpreted as readonly
+Symlinks can be used to make machines available for control by machinectl
+
+Valid Image formats are:
+	1. simple directory tree
+	2. subvolumes on btrfs file systems
+	3. raw disk images
+
+example:
+	# importctl pull-raw -mN \
+		https://cloud-images.ubuntu.com/jammy/current/jammy-server-cloudimg-amd64-disk-kvm.img \
+		jammy
+	# systemd-firstboot --image=/var/lib/machines/jammy.raw --prompt-root-password --force
+	# machinectl start jammy
+	# machinectl login jammy
+
+download ubuntu jammy and name it jammy.
+prompt for setting root password
+start jammy
+login to jammy
+
+
+
+machinectl shell \
+    --setenv=XDG_SESSION_TYPE \
+    --setenv=WAYLAND_DISPLAY="${XDG_RUNTIME_DIR}/${WAYLAND_DISPLAY}" \
+    --setenv=XAUTHORITY \
+    otheruser@
