@@ -1,5 +1,37 @@
 #!/bin/bash
 
+username="${USER}_"
+cmd=()
+while (($#))
+do
+	case "${1}" in
+		-u)
+			shift
+			username="${1}"
+			;;
+		-h|--help)
+			echo 'usage: bash share.sh [-h] [-u user] [program [args...]]
+			[-u user]
+			    Specify the user, defaults to ${USER}_
+			[-h|--help]
+			    Print this help message
+			[program [args...]]
+			    Run the given program.  Otherwise opens the default
+			    shell for the specified user.
+			' | sed 's/\t*//g'
+			exit
+			;;
+		*)
+			cmd+=("$(which "${1}")") || exit
+			shift
+			cmd+=("${@}")
+			break
+			;;
+	esac
+	shift
+done
+
+
 dnames=(
 	"${XDG_RUNTIME_DIR}"
 	${XDG_RUNTIME_DIR}/pulse
@@ -11,11 +43,13 @@ pulse="${XDG_RUNTIME_DIR}/pulse/native"
 fnames=(
 	"${XDG_RUNTIME_DIR}/${WAYLAND_DISPLAY}"
 	"${XDG_RUNTIME_DIR}/pulse/native"
+	"${XDG_RUNTIME_DIR}/pipewire-0"
 )
 
-username="${1:-${USER}_}"
 
-chmod 770 "${dnames[@]}"
+
+
+chmod 710 "${dnames[@]}"
 chmod 775 "${fnames[@]}"
 chown "${USER}:${username}" "${dnames[@]}" "${fnames[@]}"
 
@@ -25,7 +59,8 @@ machinectl shell \
 	--setenv=WAYLAND_DISPLAY="${wayland}" \
 	--setenv=XAUTHORITY \
 	--setenv=PULSE_SERVER="unix:${pulse}" \
-	"${username}"@
+	--setenv=DISPLAY \
+	"${username}"@ "${cmd[@]}"
 
 chmod 700 "${dnames[@]}"
 chmod 755 "${fnames[@]}"
