@@ -311,7 +311,8 @@ then
 			allow_hyperlinks no
 			# make blue brighter
 			color4  #1a8fff
-			color12 #80bbff'
+			color12 #80bbff
+			copy_on_select yes'
 		${DRYRUN:+echo} replace_section "${HOME}/.config/kitty/kitty.conf" \
 			"${settings//$'\n\t\t'/$'\n'}" "# ${ROOTDIR}: kitty" 0
 	}
