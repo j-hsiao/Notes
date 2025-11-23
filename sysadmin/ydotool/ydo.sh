@@ -81,32 +81,63 @@ ydomove()
 
 if [[ "${0}" = "${BASH_SOURCE[0]}" ]]
 then
-	# [-p sockpath=~/.ydo.sock>]
-	if [[ "${1}" = '-p' ]]
-	then
-		export YDOTOOL_SOCKET="${2}"
-		shift 2
-	else
-		export YDOTOOL_SOCKET="${YDOTOOL_SOCKET:-"/dev/shm/${USER}_ydo.sock"}"
-	fi
+	cmd=()
+	export YDOTOOL_SOCKET="${YDOTOOL_SOCKET:-"/dev/shm/${USER}_ydo.sock"}"
+	daemon=0
+	while (($#))
+	do
+		case "${1}" in
+			-h|--help)
+				echo 'bash '"${BASH_SOURCE[0]}"' [-h] [-p] command
+				[-h|--help]
+				    print this message
+				[-p sock]
+				    Specify the ydotoold socket path'
+				;;
+			-p)
+				shift
+				export YDOTOOL_SOCKET="${1}"
+				;;
+			-d)
+				daemon=1
+				;;
+			*)
+				cmd=("${@}")
+				break
+		esac
+		shift
+	done
 	if [[ "${USER}" != 'root' ]]
 	then
 		original=$(gsettings get org.gnome.desktop.peripherals.mouse accel-profile)
 		gsettings set org.gnome.desktop.peripherals.mouse accel-profile "'flat'"
-		trap "gsettings set org.gnome.desktop.peripherals.mouse accel-profile \"${original}\"" SIGINT
+		if [[ "${original}" != 'flat' ]]
+		then
+			trap "gsettings set org.gnome.desktop.peripherals.mouse accel-profile \"${original}\"" SIGINT EXIT
+		fi
 		sudo bash "${BASH_SOURCE[0]}" -p "${YDOTOOL_SOCKET}" "${@}"
-		gsettings set org.gnome.desktop.peripherals.mouse accel-profile "${original}"
-		trap - sigint
+		if [[ "${original}" != 'flat' ]]
+		then
+			gsettings set org.gnome.desktop.peripherals.mouse accel-profile "${original}"
+			trap - SIGINT EXIT
+		fi
 	else
-		ydotoold -p "${YDOTOOL_SOCKET}" &
-		ydotooldpid=$!
-		trap "kill ${ydotooldpid}; rm \"${YDOTOOL_SOCKET}\"" EXIT
-		ydoreset
+		if ((daemon))
+		then
+			ydotoold -p "${YDOTOOL_SOCKET}" &
+			ydotooldpid=$!
+			trap "kill ${ydotooldpid}; rm \"${YDOTOOL_SOCKET}\"" EXIT
+			sleep 1
+			ydoreset
+		fi
 
 		"${@}"
 
-		kill "${ydotooldpid}"
-		rm "${YDOTOOL_SOCKET}"
-		trap - EXIT
+		if ((daemon))
+		then
+			kill "${ydotooldpid}"
+			rm "${YDOTOOL_SOCKET}"
+			trap - EXIT
+		fi
 	fi
 fi
