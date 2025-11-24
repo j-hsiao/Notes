@@ -1,3 +1,10 @@
+Macro to run script in vim and replace with the output, ignoring comments.
+"<key>y to load into a register
+
+use visual mode to select the script to run then @<key> to replace with the result.
+
+:!bash -c 'while read -r line; do if [[ "${line}" \!= "\#"* ]]; then echo "${line}"; eval "${line}"; fi; done'
+
 ______________________________
 contents
 
@@ -5,13 +12,22 @@ contents
 	-0.1- logic
 	-0.2- variables
 		-0.2.0- expansions
-		-0.2.1- quoting
-		-0.2.2- scopes/assignment
-		-0.2.3- strings
-		-0.2.4- numbers
-		-0.2.5- arrays
-		-0.2.6- ANSI-C quoting
-		-0.2.7- special variables
+			-0.2.0.1- normal expansion
+			-0.2.0.2- length expansion
+			-0.2.0.3- indirect expansion
+			-0.2.0.4- existence/empty expansion
+			-0.2.0.5- slicing expansion
+			-0.2.0.6- key/idx/prefix expansion
+			-0.2.0.7- deletion expansion
+			-0.2.0.8- substitution expansion
+			-0.2.0.9- case expansion
+			-0.2.0.10- operator expansions
+		-0.2.1- scopes/assignment
+		-0.2.2- strings
+		-0.2.3- numbers
+		-0.2.4- arrays
+		-0.2.5- ANSI-C quoting
+		-0.2.6- special variables
 	-0.3- functions
 		-0.3.1- function outputs
 	-0.4- pattern matching
@@ -30,7 +46,7 @@ contents
 		-0.10.7- $(()) arithmetic expansion
 		-0.10.8- <() process substitution
 		-0.10.9- {} command grouping
-		-0.10.10- ${} paramater expansion
+		-0.10.10- ${} parameter expansion
 -1- regexp
 -2- completion
 -3- ps1 (prompt)
@@ -87,12 +103,12 @@ ______________________________
 			identity of each item
 			eg:
 				a=("this" "contains" "something with a space")
-				>>> printf '%s\n' "${a[@]}"
-				this
-				contains
-				something with a space
-				>>> printf '%s\n' "${a[*]}"
-				this contains something with a space
+				printf '# %s\n' "${a[@]}"
+				# this
+				# contains
+				# something with a space
+				printf '# %s\n' "${a[*]}"
+				# this contains something with a space
 
 			if parameter is array-like, operations are usually
 			applied to each item in the array
@@ -135,21 +151,114 @@ ______________________________
 
 		______________________________
 		-0.2.0- expansions
-			normal expansion:
+			______________________________
+			-0.2.0.1- normal expansion
 				${varname}
-			indirect expansion:
+
+				quoting the variable will make it a single token
+
+					Without quoting:
+						input:              output
+						x='hello world'     hello
+						printf '%s\n' ${x}  world
+
+					with quoting:
+						input:                  output:
+						x='hello world'         hello world
+						printf '%s\n' "${x}"
+
+				Arrays are expanded with indices:
+					${array[idx]}     The indexed item, idx is an arithmetic expr
+					${array[@]}       All items, separate if double-quoted, preserves spaces.
+					${array[*]}       All items, single str if double-quoted
+
+				example:
+					a=(a b 'c d' 1)
+					printf '# %s\n' "${a[0]}"
+					# a
+					printf '# %s\n' "${a[a[3]]}"
+					# b
+					printf '# %s\n' ${a[@]}
+					# a
+					# b
+					# c
+					# d
+					# 0
+					printf '# %s\n' ${a[*]}
+					# a
+					# b
+					# c
+					# d
+					# 0
+					printf '# %s\n' "${a[@]}"
+					# a
+					# b
+					# c d
+					# 0
+					printf '# %s\n' "${a[*]}"
+					# a b c d 0
+
+			______________________________
+			-0.2.0.2- length expansion
+				${#param}       number of characters
+				${#param[@]}    number of items in array
+
+				x=(a 'b c' d)
+				echo '#' ${#x}
+				# 1
+				echo '#' ${#x[@]}
+				# 3
+				echo '#' ${#x[*]}
+				# 3
+				echo '#' "${#x}"
+				# 1
+				echo '#' "${#x[@]}"
+				# 3
+				echo '#' "${#x[*]}"
+				# 3
+			______________________________
+			-0.2.0.3- indirect expansion
 				${!varContainingVarName}
 					NOTE: only 1 level of indirection is allowed
 					save to tempvariable and reuse for more levels
-					It does not work on arrays
+					It does NOT work on arrays
 
-				For indirect array, must use a temporary variable:
-					arr=(1 2 3)
-					arrname=arr
-					tmp="${arrname}[@]"
-					arrcopy=("${!tmp}")
+				Quoting makes the expansion a single value
+					x='with space'
+					y=x
+					printf '# %s\n' ${!y}
+					# with
+					# space
+					printf '# %s\n' "${!y}"
+					# with space
 
-			existence/emptiness expansions:
+				The alternative is to use a name reference (actually works with arrays too)
+					(bash >= 4.3)
+					[declare|local] -n var=actualvarname
+
+					example:
+						x=('with space' a b)
+						declare -n y=x
+						printf '# %s\n' "${y[@]}"
+						# with space
+						# a
+						# b
+
+					# does not work with arrays...
+					# only works with the first item of array, using array as a normal variable.
+						x=('with space' a b)
+						z=x
+						printf '# %s\n' "${!z}"
+						# with space
+						printf '# %s\n' "${!z[0]}"
+						# with space
+						printf '# %s\n' "${!z[1]}"
+						# 
+
+			______________________________
+			-0.2.0.4- existence/empty expansion
+				replace WITH THE EXPANSION (quirks with quoting) if empty/unset or non-empty/set
+
 				${[expr1][:][op][expr2]}
 					op:
 						-    replace with expr2 if empty/unset
@@ -160,33 +269,102 @@ ______________________________
 						check emptiness instead of unset-ness
 
 				expr1:
-					arrvar[@]: check the array length always (${arr[@]-expr2})
-					           Even if arr=(), so arr is set, expr2 is still used
-					var: check the value of the var as a string
-				expr2:
-					arrvar[@]: expand to the array.
-					           NOTE: an empty array will be expanded as a single empty string argument...
-					           ex:
-					              arr=()
-					              defaults=()
-					              bash -c 'echo $#' progname "${arr[@]:-${defaults[@]}}"
-					              will print 1 argument instead of 0, even though all arrays are empty
-					var: expand to the single item
-				NOTE: for arrays, expansion is still as expected with @, * and quoting
+					arrvar[@]: For arrays, :- and :+ are the same as - and +
+					           (only looks at effective length, does not matter if the array variable exists or not.)
+					var: Check if the var exists and/or is empty
 
-			slicing (substring/subarray expansion):
-				${param:offset[:length]}
-				offset/length are arithmetic expressions and expanded as such
-				negative values are indices from end of var
-				offset >= 0 = number of chars
-				offset < 0 = end position (exclusive)
-					NEED A SPACE TO AVOID :- existence/emptiness expansions
-					if using literal negative values
+				From testing, this has some weird interactions with quoting
+				set -x
+				x=
+				printf '# %s\n' ${x:-a b c}
+				# a
+				# b
+				# c
+				printf '# %s\n' "${x:-a b c}"
+				# a b c
+				printf '# %s\n' ${x:-"a b c"}
+				# a b c
+				printf '# %s\n' ${x:-'a b c'}
+				# a b c
+				printf '# %s\n' "${x:-'a b c'}"
+				# 'a b c'
+				printf '# %s\n' "${x:-'"a b c"'}"
+				# 'a b c'
+				printf '# %s\n' "${x:-'a b c"'}"
+				# 'a b c'
 
-				If param is arraylike, then operate on items instead of chars.
-					Also, negative length is not allowed.
+				x=()
+				y=(a b c)
+				printf '# %s\n' ${x[@]:-${y[@]}}
+				# a
+				# b
+				# c
+				printf '# %s\n' ${x[@]:-"${y[@]}"}
+				# a
+				# b
+				# c
+				printf '# %s\n' "${x[@]:-${y[@]}}"
+				# a
+				# b
+				# c
+				printf '# %s\n' ${x[@]:-${y[*]}}
+				# a
+				# b
+				# c
+				printf '# %s\n' ${x[@]:-"${y[*]}"}
+				# a b c
+				printf '# %s\n' "${x[@]:-${y[*]}}"
+				# a b c
 
-			key/idx/prefix expansions
+				It ALMOST seems like the entire ${...}
+				gets replaced by expr2 and then everything
+				is re-evaluated, except for when working with nested quotes.
+				(internal double quotes seem to be tossed, but still parsed)
+
+				consistent with direct replacement:
+					${x:-a b c} -> a b c
+					"${x:-a b c}" -> "a b c"
+					${x:-"a b c"} -> "a b c"
+					${x:-'a b c'} -> 'a b c'
+					"${x:-'a b c'}" -> "'a b c'"
+					"${x:-\"a b c\"}" -> "\"a b c\""
+
+				tossed double quotes:
+					"${x:-'"a b c"'}" -> "'a b c'"
+					"${x:-'"a b c'}" -> "'a b c'"
+				still parsed even if tossed:
+					"${x:-'a b c}" -> asks for more input
+					"${x:-"a b c}" -> asks for more input
+
+			______________________________
+			-0.2.0.5- slicing expansion
+				String slicing:
+					${param:offset[:length]}
+						offset/length are arithmetic expressions and expanded as such
+						negative values are indices from end of var
+						if length is negative, it is taken as a stop position (excluded)
+
+					x=0123456789
+					echo "# ${x:0:3}"
+					# 012
+					echo "# ${x: -5:3}"
+					# 567
+					echo "# ${x: -5:-2}"
+					# 567
+
+				NOTE: for negative offset, a space is required to disambiguate
+				between emptiness expansion and slicing.
+				ie:
+					${x:-3} -> 3 if x is empty, else ${x}
+					${x: -3} -> x sliced starting at 3 characters from the back.
+
+			Array slicing:
+				Same as string slicing, except negative length is NOT allowed.
+				have to do calculate the desired length.
+				? is this because indices don't need to be contiguous ?
+
+			______________________________
+			-0.2.0.6- key/idx/prefix expansion
 				${!prefix*}
 				${!prefix@}
 					sequence of varnames that begin with prefix
@@ -195,34 +373,80 @@ ______________________________
 				${!arrname[*]}
 					sequence of keys/indices for the arrays
 
-			length expansion
-				${#param}       number of characters
-				                number of items if param is an array-like
-				                (eg @, *, arr[@], arr[*]...)
-			deletion expansion
+				quoting:
+					Same as normal array expansion.
+
+			______________________________
+			-0.2.0.7- deletion expansion
 				see also -0.4- pattern matching
 				${param#pattern}        delete from beginning (shortest)
 				${param##pattern}       delete from beginning (longest)
 				${param%pattern}        delete from end (shortest)
 				${param%%pattern}       delete from end (longest)
 
-			substitution expansion
+				quoting:
+					Variables within pattern are expanded before the
+					pattern is evaluated.  Use quotes to protect variables from being
+					interpreted.
+
+					example:
+						x=*a
+						y='*awhatever goodbye'
+						echo "# ${y##${x}}"     # -> ${y##*a}, removes all characters up to and including a
+						# tever goodbye
+						echo "# ${y##"${x}"}"   # -> ${y##"*a"}, removes literal *a
+						# whatever goodbye
+
+			______________________________
+			-0.2.0.8- substitution expansion
 				like regex but pattern matching instead
 				${parameter/pattern/replacement}        single replacement
 				${parameter//pattern/replacement}       global replacement
 				${parameter/#pattern/replacement}       at beginning
 				${parameter/%pattern/replacement}       at end
 
-				If the /replacement is omitted, matches are deleted instead
-			case expansion
+				If the /replacement is omitted, matches are deleted instead (replaced with empty str)
+
+				quoting:
+					x=[a-z]
+					y=a1b2[a-z]
+					echo "# ${y//${x}/9}"         # ${y//[a-z]/9}, replace all lowercase with 9
+					# 9192[9-9]
+					echo "# ${y//"${x}"/9}"       # ${y//"[a-z]"/9}, replace all '[a-z]' with 9
+					# a1b29
+					echo "# ${y//[a-z]/9}"        # replace all lowercase with 9
+					# 9192[9-9]
+					echo "# ${y//['a'-'z']/9}"    # replace all lowercase with 9
+					# 9192[9-9]
+					echo "# ${y//['a-z']/9}"      # replace the 3 character a, -, z with 9
+					# 91b2[999]
+
+			______________________________
+			-0.2.0.9- case expansion
 				${parameter^pattern}
 				${parameter^^pattern}
 				${parameter,pattern}
 				${parameter,,pattern}
 
-				pattern should be single-char, and if omitted, defaults to ?
+				pattern should match a single-char, and if omitted, defaults to ?
+				Matches are converted.
 
-			operator expansions
+				examples:
+					x='hello'
+					y='ASDF'
+					echo "# ${x^}"
+					# Hello
+					echo "# ${x^^}"
+					# HELLO
+					echo "# ${x^^[aeiou]}"
+					# hEllO
+					echo "# ${y,}"
+					# aSDF
+					echo "# ${y,,}"
+					# asdf
+
+			______________________________
+			-0.2.0.10- operator expansions
 				${parameter@operator}
 
 				U      lowercase alphabetic characters converted to uppercase.
@@ -240,69 +464,8 @@ ______________________________
 				a      The expansion is a string consisting of flag values representing
 				       parameter's attributes.
 
-			Other expansions
-				${!prefix*@}: list of variables
-				${!array[*@]}: list of keys
-					As usual, @ in double quotes will expand to separate words.
-					* in double quotes just a single string.
-
-
-
 		______________________________
-		-0.2.1- quoting
-			Variable expansion quoting can be inside or outside the expansion
-			and behaves slightly differently for arrays using [@] or [*]
-
-			"${var}"          : quoted variable expansion as a single argument
-			"${var:+a b c}"   : a single arg "a b c" if var is non-empty, else empty arg ''
-			${var:+a b c}     : 3 args a b c if var is non-empty, else nothing
-			${var:+"a b c"}   : 1 arg "a b c" if var is non-empty, else nothing
-			"${var[@]}"       : `arraysize` args, even if args have whitespace
-			"${var[*]}"       : a single arg regardless of whitespace
-			${var[*]}         : arguments, also split on whitespace
-			${var[@]}         : same as [*]
-
-			NOTE quoting matters within expansions as well:
-				x='*'
-				y='*lhello'
-				echo "${y##${x}l}"   #--> o
-				echo "${y##"${x}"l}" #--> hello
-
-				Quoting in glob expression:
-					${x//[a-z]}: removes any of the 26 letters a to z
-					${x//['a'-'z']}: removes any of the 26 letters a to z
-					${x//['a-z']}: removes any of the three characters 'a', '-', 'z'
-
-				Unquoted, "${y##${x}l}" becomes "${y##*l}" so everything up to the last l is removed
-				Quoted, "${y##${x}l}" becomes "${y##"*"l}" so a leading literal * followed by an l is removed.
-					y=()
-					x=(1 2 3)
-					"${y[*]:-${x[*]}}"
-						"1 2 3"
-					"${y[*]:-"${x[*]}"}"
-						"1 2 3"
-					"${y[*]:-${x[@]}}"
-						"1"
-						"2"
-						"3"
-					"${y[*]:-"${x[@]}"}"
-						"1"
-						"2"
-						"3"
-					"${y[@]:-${x[*]}}"
-						"1 2 3"
-					"${y[@]:-"${x[*]}"}"
-						"1 2 3"
-					"${y[@]:-${x[@]}}"
-						"1"
-						"2"
-						"3"
-					"${y[@]:-"${x[@]}"}"
-						"1"
-						"2"
-						"3"
-		______________________________
-		-0.2.2- scopes
+		-0.2.1- scopes
 			Scope determines where variables are visible.
 			In general, there are 3 observed scopes.
 			1: local
@@ -387,7 +550,7 @@ ______________________________
 							   after the inner call)
 
 		______________________________
-		-0.2.3- strings
+		-0.2.2- strings
 			operations
 				version 5.1+
 					${var@op}
@@ -403,10 +566,12 @@ ______________________________
 							a "string consisting of flag values representing parameter's attributes"
 
 		______________________________
-		-0.2.4- numbers
+		-0.2.3- numbers
 
 		______________________________
-		-0.2.5- arrays
+		-0.2.4- arrays
+			Arrays act as their first item if no indexes.
+
 			index arrays (int keys)
 				creation:
 					name[subscript]=value           create array+initialize single value
@@ -452,7 +617,7 @@ ______________________________
 				unset arr[idxOrKey]
 
 		______________________________
-		-0.2.6- ANSI-C quoting
+		-0.2.5- ANSI-C quoting
 			Not really a variable, but putting it here because similar syntax
 			Ansi quoted strings:
 				escapes:
@@ -468,7 +633,7 @@ ______________________________
 					$'\cx'          control+x
 
 		______________________________
-		-0.2.7- special variables
+		-0.2.6- special variables
 		Bash has some special variables defined/?updated? by bash:
 		SHLVL           The number of nested bash shells
 		FUNCNAME        Array of functions being run. This is like a stack trace, 0 = current, 1 = parent, etc
@@ -933,7 +1098,7 @@ ______________________________
 			group commands (still runs in current shell)
 			COMMANDS MUST TERMINATE WITH A SEMICOLON inside the {}
 		______________________________
-		-0.10.10- ${} paramater expansion
+		-0.10.10- ${} parameter expansion
 			see -0.2- variables
 ______________________________
 -1-regexp
