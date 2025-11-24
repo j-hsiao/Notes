@@ -9,13 +9,20 @@ function! s:VisualSearch(chr, useic)
 	else
 		call add(ret, '\C')
 	endif
-	let col1 = col('v')
-	let col2 = col('.')
-	if col2 < col1
-		let [col1,col2] = [col2, col1]
+	let curmode=mode()
+	if curmode ==# 'v'
+		let col1 = col('v')
+		let col2 = col('.')
+		if col2 < col1
+			let [col1,col2] = [col2, col1]
+		endif
+		let col1 -= 1
+		call add(ret, escape(strpart(getline('.'), col1, col2-col1), '\/'))
+	elseif curmode ==# 'V'
+		call add(ret, escape(getline('.'), '\/'))
+	else
+		return "\<Esc>"
 	endif
-	let col1 -= 1
-	call add(ret, escape(strpart(getline('.'), col1, col2-col1), '\/'))
 	call add(ret, "\<CR>")
 	return join(ret, '')
 endfunction
