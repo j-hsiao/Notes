@@ -31,7 +31,7 @@ class OSRead(object):
         self.fd = fd
     def fileno(self):
         return self.fd
-    if hasattr(os, readv):
+    if hasattr(os, 'readv'):
         def readinto(self, buf):
             try:
                 return os.readv(self.fd, [buf])
@@ -70,6 +70,143 @@ def forward(src, dst):
             total = 0
             while total < amt:
                 total += dst.write(view[total:amt])
+
+class MousePosition(object):
+    """Use tkinter window to track mouse position."""
+    def __init__(self):
+        self.tk = tk.Tk()
+        cmdname = 'update_mouse_position'
+        self.tk.createcommand(cmdname, self.update_pos)
+        self.tk.bind('<Motion>', cmdname)
+        # self.tk.bind('<Enter>', cmdname)
+        self.tk.geometry('1x1+0+0')
+        self.tk.attributes('-topmost', True)
+        self.W = self.tk.winfo_screenwidth()
+        self.H = self.tk.winfo_screenheight()
+
+    def update_pos(self):
+        print('position updated')
+        self.pos = self.tk.winfo_pointerxy()
+        self.tk.attributes('-fullscreen', False)
+        print(self.pos)
+
+    def readmouse(self, *args):
+        self.tk.attributes('-fullscreen', True)
+
+    def close(self):
+        if self.tk is not None:
+            self.tk.destroy()
+            self.tk = None
+
+class NoMouseAccel(object):
+    GET = ['gsettings', 'get', 'org.gnome.desktop.peripherals.mouse', 'accel-profile']
+    SET = ['gsettings', 'set', 'org.gnome.desktop.peripherals.mouse', 'accel-profile']
+    def __init__(self):
+        self.accel = []
+
+    def __enter__(self):
+        self.accel.append(sp.check_output(self.GET).decode('utf-8'))
+        if self.accel[-1] != "'flat'":
+            sp.check_output(self.SET + ["'flat'"])
+
+    def __exit__(self, tp, exc, tb):
+        orig = self.accel.pop()
+        if orig != "'flat'":
+            sp.check_output(self.SET + [orig])
+
+
+
+class ydotoold(object):
+    def __init__(
+        self, sock=f'/dev/shm/{os.environ["USER"]}_ydo.sock',
+        verbose=True):
+        """Initialize ydotoold.
+
+        sock: The socket path for ydotoold.
+        """
+        self.verbose = verbose
+        self.path = sock
+        self.masterfd = None
+        self.proc = None
+
+    def __enter__(self):
+        self.masterfd, slavefd = pty.openpty()
+        self.proc = sp.Popen(
+            ['sudo', 'ydotoold', '-p', self.path],
+            stdout=slavefd, stderr=slavefd, stdin=slavefd)
+        os.close(slavefd)
+        with io.BytesIO() as buf:
+            if self.verbose:
+                decoder = codecs.getincrementaldecoder('utf-8')()
+            while 1:
+                result = os.read(self.masterfd, io.DEFAULT_BUFFER_SIZE)
+                buf.write(result)
+                if self.verbose:
+                    try:
+                        print(decoder.decode(result), end='')
+                    except Exception:
+                        pass
+                if b'READY' in buf.getvalue():
+                    if self.verbose:
+                        try:
+                            print(decoder.decode(b'', final=True))
+                        except Exception:
+                            pass
+                    return self
+
+    def __exit__(self, tp, exc, tb):
+        os.close(self.masterfd)
+        self.proc.terminate()
+        try:
+            os.remove(self.path)
+        except OSError:
+            pass
+
+class Bash(object):
+    def __init__(self, sudo=False, stdout=None, stderr=None):
+        """Initialize bash process."""
+        self.stdout = stdout
+        self.stderr = stderr
+        self.sudo = sudo
+        self.proc = None
+        self.bashin = None
+
+    def __enter__(self):
+        if self.sudo:
+            command = ['sudo', 'bash']
+        else:
+            command = ['bash']
+        self.proc = sp.Popen(
+            command, stdin=sp.PIPE,
+            stdout=self.stdout,
+            stderr=self.stderr)
+        self.bashin = io.TextIOWrapper(self.proc.stdin)
+        return self
+
+    def __bool__(self):
+        return self.proc is not None and self.proc.poll() is None
+
+    def write(self, *args, **kwargs):
+        print(*args, **kwargs, file=self.bashin)
+
+    def __exit__(self, tp, exc, tb):
+        self.write('exit')
+
+
+class MouseMotion(object):
+    def __init__(
+        self, sock=f'/dev/shm/{os.environ["USER"]}_ydo.sock',
+        verbose=False):
+        """Initialize MouseMotion.
+
+        sock: The ydotoold socket path.
+        """
+        self.verbose = verbose
+        self.ydotoold = None
+        self.bashin = None
+        self.masterfd = None
+
+
 
 class Mouse(object):
     def __init__(self, sock=f'/dev/shm/{os.environ["USER"]}_ydo.sock', verbose=False):
@@ -217,6 +354,3 @@ class Mouse(object):
     def click(self):
         self.bash('ydotool click 0xc0')
 
-
-m = Mouse('asdf')
-print('initial mouse position:', m.readmouse())
