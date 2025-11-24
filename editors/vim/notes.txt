@@ -501,7 +501,7 @@ ______________________________
 			O     Same as o except in visual-block mode.
 			      In visual block mode, move to other corner of same line
 		______________________________
-		editiing
+		editing
 			~     swap case
 			d|x   delete
 			X     delete all lines
@@ -514,6 +514,27 @@ ______________________________
 			u|U   make lower|upper case
 			p     swap selection with the " register
 			P     replace selection with the " register
+			=     Send the selection to 'equalprg' and replace with the result
+			      example:
+				      :se equalprg=bash
+				      current text:
+				        echo hello
+				        echo world
+				      press =
+				      result:
+				        hello
+				        world
+			!cl   Run the 'cl', the commandline with selection as stdin. Replace with stdout.
+				      NOTE: any # and % will be replaced with filenames
+				      ! will be replaced with previous external command.
+				      Escape them with backslash (this happens before any word parsing)
+				      current text:
+					      echo hello
+					      echo world
+					    select and then :!bash
+					    result:
+					      hello
+					      world
 ______________________________
 -4- command mode
 	Enter command mode with :.  This only allows 1 command.  Ex-mode
