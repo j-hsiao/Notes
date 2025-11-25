@@ -1,5 +1,7 @@
 Contents
 -0- tcl
+	-0.1- syntax
+	-0.2- tcl commands
 -1- general
 	-1.0- Terms
 	-1.1- Widgets
@@ -61,7 +63,103 @@ ______________________________
 	The above call() is equivalent to:
 
 		r.tk.call('bind', r, '<Button-1>', 'command args script')
+	______________________________
+	-0.1- syntax
+	cmd arg arg arg
+		words separated by whitespace.
+		The first word is the command.
+		The remaining words are arguments.
 
+	$foo
+		Dereference a variable
+
+	[clock seconds]
+		like bash command substitution.
+		Run the command with given args.
+		Evaluate to the output
+
+	"some stuff"
+		Group words into a single argument.
+		[] and $ are available inside string.
+
+	{some stuff}
+		Like single quotes in bash.
+		Group words into a single word, but 0 interpretation.
+
+	\
+		escape the next character.
+
+	Steps in parsing are:
+		grouping
+		substitution
+		command dispatch
+
+	______________________________
+	-0.2- tcl commands
+
+	______________________________
+	set variable value
+		Sets a variable to a value.
+		The variable can be dereferenced with $variable
+
+	______________________________
+	expr expression
+		Evaluate an expression (mathematically)
+
+			-+~!        (unary) negative, positive, bit-wise not, logical not
+			**          exponent
+			*/%         multiply/divide/remainder(pos)
+			+-          add/subtract
+			<<>>        left/right (signed)bitshift
+			<> <= >=    comparison, strings or nums ok
+			== !=       equality, all types ok
+			eq ne       str comparison
+			in ni       contained, negated contains (ni = not in)
+			&^|         bitwise operators
+			&&||        logical [and|or], numeric only
+			x?y:z       ternary, x must be bool or numeric
+
+	______________________________
+	puts args
+		print arguments
+
+	______________________________
+	loops
+		loops are just like any other command.
+
+		example:
+			while {$i < 10} {
+				puts "$i squared = [expr {$i*$i}]"
+				incr i
+			}
+
+			2 arguments are given: an unevaluated str literal $i < 10
+			and the str literal {puts ... }
+
+
+	sidenote... this being the case, it would be possible to just write:
+		commands = {}
+		def callpy(command, *args):
+			return commands[command](*args)
+		r = tk.Tk()
+		r.createcommand('callpy', callpy)
+
+	Then any scripts/binding
+	can just call the 'callpy' command and it will
+	call any function stored by the commands dict.
+	In tk, instead, it calls createcommand for every new binding/after, etc
+	idk if that would affect performance in any way.
+
+	example 2:
+		whenever tk bind is called, it creates script like:
+		'if {"[2235275164928callback %# %b %f %h %k %s %t %w %x %y %A %E %K %N %W %T %X %Y %D]" == "break"} break\n\n
+		 if {"[2235301124864callback %# %b %f %h %k %s %t %w %x %y %A %E %K %N %W %T %X %Y %D]" == "break"} break\n'
+
+		the script is 1 command per line
+		if, the expression, and then break.
+
+	Directly using tcl scripts and Tk.call() give much more flexibility and control
+	over just using the Tkinter defaults.
 
 ______________________________
 -1- general
