@@ -73,50 +73,158 @@ def forward(src, dst):
 
 class MousePosition(object):
     """Use tkinter window to track mouse position."""
-    def __init__(self):
-        self.tk = tk.Tk()
-        cmdname = 'update_mouse_position'
-        self.tk.createcommand(cmdname, self.update_pos)
-        self.tk.bind('<Motion>', cmdname)
-        # self.tk.bind('<Enter>', cmdname)
-        self.tk.geometry('1x1+0+0')
-        self.tk.attributes('-topmost', True)
-        self.W = self.tk.winfo_screenwidth()
-        self.H = self.tk.winfo_screenheight()
+    HIDE_CMD = 'hide_mouse_position_reader'
+    def __init__(self, verbose=False, mouse_events=['Motion']):
+        self.mouse_events = mouse_events
+        self.verbose = verbose
+        self.after = None
+        self.lock = threading.Lock()
+        self.tk, self.step, self.W, self.H = self.initialize()
+        self._pos = (0,0)
 
-    def update_pos(self):
-        print('position updated')
-        self.pos = self.tk.winfo_pointerxy()
+
+    def initialize(self):
+        """Initialize a tk instance.
+
+        Return the root and the screen shape.
+        """
+        # Observations:
+        # Generally, configure to full screen will occur long before any
+        # mouse events.  When binding to <Configure>, sometimes the
+        # mouse events don't even fire.  Reading the mouse position is
+        # then never actually updated, so probably avoid binding to
+        # <Configure>
+
+        # In some tested cases, overrideredirect only works at the very
+        # beginning of the tk creation.  Calling overrideredirect(True)
+        # a while after creation results in the call being ignored.  The
+        # window was still decorated. (wsl) Furthermore, -topmost seems
+        # to rely on the window manager, so overrideredirect would mean
+        # -topmost would be ignored.  Probably best to just keep being
+        # managed by wm. (Also, -topmost is ignored in WSL.)
+
+        # Binding to <Leave> seems unnecessary.
+        # WSL:
+        #     It seems like even <Enter> is unnecessary.
+        #     Even if the mouse hasn't moved, it seems like the general
+        #     order of events is <Enter> followed by <Motion>.
+        #     However, sometimes <Enter> is NOT followed by <Motion>
+        #     ?The window exited fullscreen too fast and <Motion> was not
+        #     generated?  Removing the <Enter> binding, <Motion> still seems
+        #     to always be triggered anyways and its value seems more correct.
+
+        # Extra observation:
+        # WSL:
+        #     If the mouse is moving during the read, then instead of reading
+        #     the current mouse position, the read gives the position before motion.
+        #     ex: mouse is at 0,0 -> time.sleep(1); readmouse() -> slowly move mouse
+        #     The reading will give 0,0 even though at the time of the read,
+        #     the mouse was not at 0,0.
+        #     If the mouse is still, then it gives the right result...
+
+        r = tk.Tk()
+        r.attributes('-topmost', True)
+        r.geometry('1x1+0+0')
+
+        r.createcommand(self.HIDE_CMD, self.hide)
+
+        moused = 'mouse_detected'
+        r.createcommand(moused, self.moused)
+        for ev in self.mouse_events:
+            r.bind(f'<{ev}>', f'{moused} "{ev}"')
+
+        # maxed = 'configure_maxed_check'
+        # r.createcommand(maxed, self.maxed)
+        # r.bind('<Configure>', maxed)
+        return r, tk.IntVar(r), r.winfo_screenwidth(), r.winfo_screenheight()
+
+    def __enter__(self):
+        if self.tk is None:
+            self.tk, self.step, self.W, self.H = self.initialize()
+        return self
+    def __exit__(self, tp, exc, tb):
+        self.close()
+
+    def hide(self):
+        self.after = None
         self.tk.attributes('-fullscreen', False)
-        print(self.pos)
+        with self.lock:
+            self._pos = self.tk.winfo_pointerxy()
+            if self.verbose:
+                print('\tmeasured mouse', self._pos)
+        self.step.set(self.step.get()+1)
+
+    def schedule_read(self, name='event', delay=100):
+        """Schedule hiding the window."""
+        if self.verbose:
+            print('\tread scheduled by', name)
+        self.after = self.tk.call('after', delay, self.HIDE_CMD)
+
+    def moused(self, ev):
+        """Schedule hiding on mouse event."""
+        if self.verbose:
+            print('\tmouse event fired:', ev, self.tk.winfo_pointerxy())
+        if self.after is None:
+            self.schedule_read('mouse', 50)
+
+    def maxed(self):
+        """Schedule hiding if winfo_geometry() indicates full screen."""
+        if self.verbose:
+            print('\tconfigure event fired')
+        if self.after is None:
+            curgeom = self.tk.winfo_geometry()
+            if self.verbose:
+                print(f'\t{curgeom}')
+            if curgeom == f'{self.W}x{self.H}+0+0':
+                self.schedule_read('configure')
+
+    def pos(self):
+        """Get currently stored mouse position."""
+        with self.lock:
+            return self._pos
 
     def readmouse(self, *args):
+        """Read the current mouse position.
+
+        This temporarily sets the tk window to fullscren to ensure that
+        the mouse is within the window allowing reading its position.
+        """
         self.tk.attributes('-fullscreen', True)
+        self.tk.wait_variable(self.step)
+        return self.pos()
 
     def close(self):
-        if self.tk is not None:
+        if getattr(self, 'tk', None) is not None:
             self.tk.destroy()
             self.tk = None
 
+    def __del__(self):
+        self.close()
+
 class NoMouseAccel(object):
+    """Context manager to disable mouse acceleration."""
+
+    # TODO: how to turn off for other desktop environments?
+    # TODO: How to detect which desktop environment?
     GET = ['gsettings', 'get', 'org.gnome.desktop.peripherals.mouse', 'accel-profile']
     SET = ['gsettings', 'set', 'org.gnome.desktop.peripherals.mouse', 'accel-profile']
+    FLAT = "'flat'"
+
     def __init__(self):
         self.accel = []
 
     def __enter__(self):
         self.accel.append(sp.check_output(self.GET).decode('utf-8'))
-        if self.accel[-1] != "'flat'":
-            sp.check_output(self.SET + ["'flat'"])
+        if self.accel[-1] != self.FLAT:
+            sp.check_output(self.SET + [self.FLAT])
 
     def __exit__(self, tp, exc, tb):
         orig = self.accel.pop()
-        if orig != "'flat'":
+        if orig != self.FLAT:
             sp.check_output(self.SET + [orig])
 
-
-
 class ydotoold(object):
+    """Context manager for the ydotoold daemon."""
     def __init__(
         self, sock=f'/dev/shm/{os.environ["USER"]}_ydo.sock',
         verbose=True):
@@ -191,6 +299,20 @@ class Bash(object):
 
     def __exit__(self, tp, exc, tb):
         self.write('exit')
+
+class ydotool(Bash):
+    """Ydotool commands through a bash process."""
+    def __init__(self, sock):
+        super(ydotool, self).__init__(True)
+        self.sock = sock
+
+    def __enter__(self):
+        super(ydotool, self).__enter__()
+        self.write(f'export YDOTOOL_SOCKET="{self.sock}"')
+        return self
+
+
+
 
 
 class MouseMotion(object):
@@ -354,3 +476,9 @@ class Mouse(object):
     def click(self):
         self.bash('ydotool click 0xc0')
 
+
+with MousePosition(True) as m:
+    import time
+    while input() != 'exit':
+        time.sleep(1)
+        print(m.readmouse())
