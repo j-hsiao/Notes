@@ -81,6 +81,10 @@ ______________________________
 					-NeverShared    Do not share the screen, only 1 user at a time.
 					                You will be kicked off if someone else connects.
 
+				UPDATE:
+					arch linux, it seems like vncserver no longer manages servers.
+					Instead it just starts as a process, ctrl c to shut it down.
+
 			managing:
 				vncserver:
 					-list:          list the current sessions.
