@@ -74,16 +74,9 @@ def forward(src, dst):
 class MousePosition(object):
     """Use tkinter window to track mouse position."""
 
-    # TODO: It seems like toggling fullscreen is not the best choice...
-    # On WSL at least, withdraw/deiconify with fullscreen and topmost
-    # while binding to <Motion> seems to be the absolute best possible
-    # implementation and works quite well compared to the other impls
-
     HIDE_CMD = 'hide_mouse_position_reader'
-    def __init__(self, verbose=False, mouse_events=['Motion']):
-        self.mouse_events = mouse_events
+    def __init__(self, verbose=False):
         self.verbose = verbose
-        self.after = None
         self.lock = threading.Lock()
         self.tk, self.step, self.W, self.H = self.initialize()
         self._pos = (0,0)
@@ -94,54 +87,11 @@ class MousePosition(object):
 
         Return the root and the screen shape.
         """
-        # Observations:
-        # Generally, configure to full screen will occur long before any
-        # mouse events.  When binding to <Configure>, sometimes the
-        # mouse events don't even fire.  Reading the mouse position is
-        # then never actually updated, so probably avoid binding to
-        # <Configure>
-
-        # In some tested cases, overrideredirect only works at the very
-        # beginning of the tk creation.  Calling overrideredirect(True)
-        # a while after creation results in the call being ignored.  The
-        # window was still decorated. (wsl) Furthermore, -topmost seems
-        # to rely on the window manager, so overrideredirect would mean
-        # -topmost would be ignored.  Probably best to just keep being
-        # managed by wm. (Also, -topmost is ignored in WSL.)
-
-        # Binding to <Leave> seems unnecessary.
-        # WSL:
-        #     It seems like even <Enter> is unnecessary.
-        #     Even if the mouse hasn't moved, it seems like the general
-        #     order of events is <Enter> followed by <Motion>.
-        #     However, sometimes <Enter> is NOT followed by <Motion>
-        #     ?The window exited fullscreen too fast and <Motion> was not
-        #     generated?  Removing the <Enter> binding, <Motion> still seems
-        #     to always be triggered anyways and its value seems more correct.
-
-        # Extra observation:
-        # WSL:
-        #     If the mouse is moving during the read, then instead of reading
-        #     the current mouse position, the read gives the position before motion.
-        #     ex: mouse is at 0,0 -> time.sleep(1); readmouse() -> slowly move mouse
-        #     The reading will give 0,0 even though at the time of the read,
-        #     the mouse was not at 0,0.
-        #     If the mouse is still, then it gives the right result...
-
         r = tk.Tk()
-        r.attributes('-topmost', True)
-        r.geometry('1x1+0+0')
-
+        r.attributes('-topmost', True, '-fullscreen', True)
+        r.withdraw()
         r.createcommand(self.HIDE_CMD, self.hide)
-
-        moused = 'mouse_detected'
-        r.createcommand(moused, self.moused)
-        for ev in self.mouse_events:
-            r.bind(f'<{ev}>', f'{moused} "{ev}"')
-
-        # maxed = 'configure_maxed_check'
-        # r.createcommand(maxed, self.maxed)
-        # r.bind('<Configure>', maxed)
+        r.bind('<Motion>', self.HIDE_CMD)
         return r, tk.IntVar(r), r.winfo_screenwidth(), r.winfo_screenheight()
 
     def __enter__(self):
@@ -152,37 +102,13 @@ class MousePosition(object):
         self.close()
 
     def hide(self):
-        self.after = None
         self.tk.attributes('-fullscreen', False)
         with self.lock:
             self._pos = self.tk.winfo_pointerxy()
             if self.verbose:
                 print('\tmeasured mouse', self._pos)
         self.step.set(self.step.get()+1)
-
-    def schedule_read(self, name='event', delay=100):
-        """Schedule hiding the window."""
-        if self.verbose:
-            print('\tread scheduled by', name)
-        self.after = self.tk.call('after', delay, self.HIDE_CMD)
-
-    def moused(self, ev):
-        """Schedule hiding on mouse event."""
-        if self.verbose:
-            print('\tmouse event fired:', ev, self.tk.winfo_pointerxy())
-        if self.after is None:
-            self.schedule_read('mouse', 50)
-
-    def maxed(self):
-        """Schedule hiding if winfo_geometry() indicates full screen."""
-        if self.verbose:
-            print('\tconfigure event fired')
-        if self.after is None:
-            curgeom = self.tk.winfo_geometry()
-            if self.verbose:
-                print(f'\t{curgeom}')
-            if curgeom == f'{self.W}x{self.H}+0+0':
-                self.schedule_read('configure')
+        self.tk.withdraw()
 
     def pos(self):
         """Get currently stored mouse position."""
@@ -195,7 +121,8 @@ class MousePosition(object):
         This temporarily sets the tk window to fullscren to ensure that
         the mouse is within the window allowing reading its position.
         """
-        self.tk.attributes('-fullscreen', True)
+        self.tk.deiconify()
+        self.tk.attributes('-topmost', True, '-fullscreen', True)
         self.tk.wait_variable(self.step)
         return self.pos()
 
