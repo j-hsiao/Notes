@@ -73,6 +73,12 @@ def forward(src, dst):
 
 class MousePosition(object):
     """Use tkinter window to track mouse position."""
+
+    # TODO: It seems like toggling fullscreen is not the best choice...
+    # On WSL at least, withdraw/deiconify with fullscreen and topmost
+    # while binding to <Motion> seems to be the absolute best possible
+    # implementation and works quite well compared to the other impls
+
     HIDE_CMD = 'hide_mouse_position_reader'
     def __init__(self, verbose=False, mouse_events=['Motion']):
         self.mouse_events = mouse_events
