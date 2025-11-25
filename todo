@@ -7,3 +7,23 @@
 4. cppy
    cpp reference <-> py borrowed reference
    cpp value     <-> py owned reference
+   clarify inheritance patterns etc...
+   owned reference should be borrowed references except with extra
+   cleanup (decref) on destructor...
+   maybe separate constructor to create owned reference rather than
+   borrowed reference?
+5. ipc server using generator, yield/.send()
+   1. separate polling handling/(buffered) reading etc with the handling
+   2. separate thread handles polling and reading/writing.
+   3. io should be non-blocking.
+   4. use edge polling.
+   5. should read/write actions be registered together or separately?
+6. decorator style tkinter
+   1. minimize function registration.
+   2. focus more on tcl realities
+   3. Tk.createcommand() creates a tcl command that calls corresponding python
+      command, any arguments are passed in order, as str.
+   4. maybe no bound methods? take id(self) and pass the id as the first
+      (bound method's __self__ attr?)
+      argument?, keep a dict of all instances...
+      __del__ to remove list of instances...
