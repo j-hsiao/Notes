@@ -1,0 +1,16 @@
+______________________________
+-1- SysVinit
+This is the old init system.
+This splits system initialization into separate run levels:
+
+	0     poweroff.target
+	1     rescue.target
+	2,3,4 multi-user.target
+	5     graphical.target
+	6     reboot.target
+
+The `runlevel` prints the previous and current runlevel.
+
+On changes to the runlevel, corresponding scripts are run.
+/etc/rc.local
+?between 1 and 2?
