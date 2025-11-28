@@ -1,9 +1,29 @@
 contents
+-0- general
 -1- general usage
 	-1.1- options
 	-1.2- controls
 		-1.2.1- movement
 		-1.2.2- searching
+-2- Finding topics
+
+------------------------------
+-0- general
+------------------------------
+`man` is used to search/display manual references.
+Man is broken up into sections:
+
+	1   Executable programs or shell commands
+	2   System calls (functions provided by the kernel)
+	3   Library calls (functions within program libraries)
+	4   Special files (usually found in /dev)
+	5   File formats and conventions, e.g. /etc/passwd
+	6   Games
+	7   Miscellaneous (including macro packages and conventions), e.g. man(7), groff(7), man-pages(7)
+	8   System administration commands (usually only for root)
+	9   Kernel routines [Non standard]
+
+These are usually stored at /usr/share/man/man*
 
 ------------------------------
 -1- general usage
@@ -15,6 +35,10 @@ contents
 
 			to see that, on commandline:
 				man 7 printf
+
+		man might also support alternative searches like:
+			man 'thing(section)'
+			man thing section
 
 	------------------------------
 	-1.1- options
@@ -84,3 +108,12 @@ contents
 		m<key>      create a mark at top line named by <key>
 		M<key>      create a mark at bottom line named by <key>
 		'<key>      jump to <key> mark
+
+------------------------------
+-2- Finding topics
+------------------------------
+Apropos is used for search man
+(can also do man -k)
+This searches sections and descriptions for the corresponding regex.
+
+To list everything, man -k '.*'
