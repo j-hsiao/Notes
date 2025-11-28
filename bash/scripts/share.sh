@@ -9,7 +9,7 @@ share() {
 		--setenv=DISPLAY \
 		--setenv=MOZ_ENABLE_WAYLAND=0 \
 		--setenv=MOZ_DISABLE_WAYLAND=1 \
-		--setenv=PULSE_SERVER=tcp:4713 \
+		--setenv=PULSE_SERVER=tcp:127.0.0.1:4713 \
 		"${username}@"
 }
 
