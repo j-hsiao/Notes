@@ -67,6 +67,26 @@ is_variable() # <varname>
 	return "${ret}"
 }
 
+shparse_parse() # <text> [out=RESULT] [begin=BEG] [end=END] [initial=0]
+{
+	# Parse <Text> by case statement on the first character.
+	case "${text: ${5:-0}:1}" in
+		\$)
+			local subparse=shparse_parse_dollar
+			;;
+		\")
+			local subparse=shparse_parse_double_quote
+			;;
+		\')
+			local subparse=shparse_parse_single_quote
+			;;
+		\`)
+			local subparse=shparse_parse_backtick
+			;;
+	esac
+	"${subparse}" "${@}"
+}
+
 shparse_parse_ansi_c() # <text> [out=RESULT] [begin=BEG] [end=END] [initial=0]
 {
 	# Parse <text> as ansi-c quote from assumed $' until an ending '.
@@ -159,14 +179,8 @@ shparse_parse_double_quote() # <text> [out=RESULT] [begin=BEG] [end=END] [initia
 				restore_BASH_REMATCH orig_rematch
 				return
 				;;
-			\$*)
-				local subparse=shparse_parse_dollar
-				;;
-			\`)
-				local subparse=shparse_parse_backtick
-				;;
 		esac
-		"${subparse}" "${1}" 0 "${3}" "${4}" \
+		shparse_parse "${1}" 0 "${3}" "${4}" \
 			$((shppdq__end + ${#BASH_REMATCH[0]} - ${#BASH_REMATCH[2]}))
 		if ((shppdq__end < 0))
 		then
@@ -266,7 +280,7 @@ shparse_parse_parameter_expansion() # <text> [out=RESULT] [begin=BEG] [end=END] 
 				((shpppe__end += "${#BASH_REMATCH[0]}"))
 				if is_variable "${2:-RESULT}"
 				then
-					eval "${2:-RESULT}=${1: ${5:-0} : shpppe__end}"
+					eval "${2:-RESULT}=${1: ${5:-0} : shpppe__end - ${5:-0}}"
 				fi
 				restore_BASH_REMATCH orig_rematch
 				return
@@ -292,7 +306,7 @@ shparse_parse_parameter_expansion() # <text> [out=RESULT] [begin=BEG] [end=END] 
 				;;
 		esac
 		${subparse} "${1}" 0 "${3}" "${4}" \
-			$(("${shpppe__end}" + "${#BASH_REMATCH[0]}" - ${#BASH_REMATCH[2]}))
+			$((shpppe__end + "${#BASH_REMATCH[0]}" - ${#BASH_REMATCH[2]}))
 		if ((shpppe__end < 0))
 		then
 			restore_BASH_REMATCH orig_rematch
@@ -372,12 +386,49 @@ shparse_parse_math() # <text> [out=RESULT] [begin=BEG] [end=END] [initial=0]
 			$(("${shppm__end}" + ${#BASH_REMATCH[0]} - 1))
 	done
 }
+shparse_parse_grouping() # <text> [out=RESULT] [begin=BEG] [end=END] [initial=0]
+{
+	# TODO is this necessary?
+	# Parse a subshell compound command from assumed ( to ending ).
+	:
+}
 
 shparse_parse_command_sub() # <text> [out=RESULT] [begin=BEG] [end=END] [initial=0]
 {
 	# Parse <text> as a command substitution from assumed $( to ending ).
+	local orig_rematch=("${BASH_REMATCH[@]}")
 	local -n shppcs__end="${4:-END}"
 	shppcs__end=$(("${5:-0}" + 2))
+	while true
+	do
+		[[ "${1:shppcs__end}" =~ (\\.|[^'$"`)'\'])*(['$"`)']) ]]
+		case "${BASH_REMATCH[2]}" in
+			\))
+				eval "${3:-BEG}="'"${5:-0}"'
+				((shppcs__end += ${#BASH_REMATCH[0]}))
+				if is_variable "${2:-RESULT}"
+				then
+					eval "${2:-RESULT}=${1: ${5:-0}:shppcs__end - ${5:-0}}"
+				fi
+				restore_BASH_REMATCH orig_rematch
+				return
+				;;
+			*)
+				shppcs__end=-1
+				eval "${3:-BEG}="'"${5:-0}"'
+				restore_BASH_REMATCH orig_rematch
+				return
+				;;
+		esac
+		shparse_parse "${1}" 0 "${3}" "${4}" \
+			$((shppcs__end + ${#BASH_REMATCH[0]} - ${#BASH_REMATCH[2]}))
+		if ((shppcs__end < 0))
+		then
+			restore_BASH_REMATCH orig_rematch
+			return
+		fi
+	done
+
 }
 
 shparse_parse_dollar() # <text> [out=RESULT] [begin=BEG] [end=END] [initial=0]
@@ -498,48 +549,49 @@ then
 
 	start_test shparse_parse_single_quote
 	run_test "b4'this is some string\\'extra" 'this is some string\' 2 '' "'this is some string\\'" 2
-	run_test "'incomplete" '' '' -1 ''
+	run_test "a'incomplete" '' '' -1 '' 1
 
 	start_test shparse_parse_double_quote
-	run_test '"this is a string"' 'this is a string' 0 18 '"this is a string"'
-	run_test '"this is a string' '' 0 -1 ''
-	run_test '"this is \"a\" str\${}ing" extra data' 'this is "a" str${}ing' 0 26 '"this is \"a\" str\${}ing"'
+	run_test ' "this is a string"extra' 'this is a string' 1 19 '"this is a string"' 1
+	run_test ' "this is a string' '' '' -1 '' 1
+	run_test ' "this is \"a\" str\${}ing" extra data' 'this is "a" str${}ing' 1 27 '"this is \"a\" str\${}ing"' 1
 
 	run_test 'a"my home is at $HOME" extra data' "my home is at $HOME" 1 22 '"my home is at $HOME"' 1
 	run_test 'a"my $-home is at $HOME" extra data' "my $-home is at $HOME" 1 24 '"my $-home is at $HOME"' 1
-	run_test '"ansic $'"'this'"' is not expanded." f' "ansic \$'this' is not expanded." 0 32 '"ansic $'"'this'"' is not expanded."'
+	run_test ' "ansic $'"'this'"' is not expanded." f' "ansic \$'this' is not expanded." 1 33 '"ansic $'"'this'"' is not expanded."' 1
 
-	run_test '"something `uname -a` yea"extra' 'something '"$(uname -a)"' yea' 0 26 '"something `uname -a` yea"'
-	run_test '"${unknown:-${HOME}}"' "${HOME}" 0 21 '"${unknown:-${HOME}}"'
-	run_test '"there are $((5 + 2)) penguins"' 'there are 7 penguins' 0 31 '"there are $((5 + 2)) penguins"'
+	run_test ' "something `uname -a` yea"extra' 'something '"$(uname -a)"' yea' 1 27 '"something `uname -a` yea"' 1
+	run_test ' "${unknown:-${HOME}}"extra' "${HOME}" 1 22 '"${unknown:-${HOME}}"' 1
+	run_test ' "there are $((5 + 2)) penguins"extra' 'there are 7 penguins' 1 32 '"there are $((5 + 2)) penguins"' 1
 
 	start_test shparse_parse_dollar
 	# ansi_c dollar
-	run_test "what$'\\nhello'extra" $'\nhello' 4 '' "$'\\nhello'" 4
-	run_test "what$'\\nhello" '' 4 -1 '' 4
-	run_test "what$'\\nh\\'ello" '' 4 -1 '' 4
-	run_test "what$'\\nh\\'ello'" $'\nh\'ello' 4 '' "$'\\nh\\'ello'" 4
-	run_test '$-' "$-" 0 2 '$-'
-	run_test '$HOME extra' "$HOME" 0 5 '$HOME'
-	run_test '$HOME!notvalid' "$HOME" 0 5 '$HOME'
-	run_test '$%not a $ expansion' '$' 0 1 '$'
+	run_test " what$'\\nhello'extra" $'\nhello' 5 '' "$'\\nhello'" 5
+	run_test " what$'\\nhello" '' 5 -1 '' 5
+	run_test " what$'\\nh\\'ello" '' 5 -1 '' 5
+	run_test " what$'\\nh\\'ello'extra" $'\nh\'ello' 5 '' "$'\\nh\\'ello'" 5
+	run_test ' $-extra' "$-" 1 3 '$-' 1
+	run_test ' $HOME extra' "$HOME" 1 6 '$HOME' 1
+	run_test ' $HOME!notvalid' "$HOME" 1 6 '$HOME' 1
+	run_test ' $%not a $ expansion' '$' 1 2 '$' 1
 
 	start_test shparse_parse_backtick
-	run_test 'hello`echo \\\`$HOME\\\$HOME\\\a`' \`${HOME}\$HOME\\a 5 33 '`echo \\\`$HOME\\\$HOME\\\a`' 5
-	run_test 'hello`echo "incomplete string`' '' 11 -1 '' 5
+	run_test 'hello`echo \\\`$HOME\\\$HOME\\\a`extra' \`${HOME}\$HOME\\a 5 33 '`echo \\\`$HOME\\\$HOME\\\a`' 5
+	run_test 'hello`echo "incomplete string`extra' '' 11 -1 '' 5
 
 	start_test shparse_parse_parameter_expansion
-	run_test '${HOME}' "${HOME}" 0 7 '${HOME}'
-	run_test '${unknown:-${HOME}}' "${HOME}" 0 19 '${unknown:-${HOME}}'
-	run_test '${unknown:-${HOME' '' 11 -1 ''
-	run_test ' ${custom_pwd:-`bash -c "echo hello"`}' "hello" 1 38 '${custom_pwd:-`bash -c "echo hello"`}' 1
-	run_test ' ${custom_pwd:-`pwd}' '' 15 -1 '' 1
-	run_test '${notexist:-"astring"'\''singlestr'\''}' "astringsinglestr" 0 33 '${notexist:-"astring"'\''singlestr'\''}'
+	run_test ' ${HOME}extra' "${HOME}" 1 8 '${HOME}' 1
+	run_test ' ${unknown:-${HOME}}extra' "${HOME}" 1 20 '${unknown:-${HOME}}' 1
+	run_test ' ${unknown:-${HOME' '' 12 -1 '' 1
+	run_test ' ${custom_pwd:-`bash -c "echo hello"`}extra' "hello" 1 38 '${custom_pwd:-`bash -c "echo hello"`}' 1
+	run_test ' ${custom_pwd:-`pwd}extra' '' 15 -1 '' 1
+	run_test ' ${notexist:-"astring"'\''singlestr'\''}extra' "astringsinglestr" 1 34 '${notexist:-"astring"'\''singlestr'\''}' 1
 
 	start_test shparse_parse_math
-	run_test '$((1 + 2))' '3' 0 10 '$((1 + 2))'
-	run_test '$(((1+2) * 3 + 4))' '13' 0 18 '$(((1+2) * 3 + 4))'
-	run_test '$(((1+2) * (3 + 4)))' '21' 0 20 '$(((1+2) * (3 + 4)))'
-	run_test '$(((1+2) * (3 + 4))' '' 0 -1 ''
+	run_test ' $((1 + 2))' '3' 1 11 '$((1 + 2))' 1
+	run_test ' $(((1+2) * 3 + 4))' '13' 1 19 '$(((1+2) * 3 + 4))' 1
+	run_test ' $(((1+2) * (3 + 4)))' '21' 1 21 '$(((1+2) * (3 + 4)))' 1
+	run_test ' $(((1+2) * (3 + 4))' '' 1 -1 '' 1
+	run_test ' $(((1+2) * `date +%d`))' "$((3 * $(date +%d)))" 1 24 '$(((1+2) * `date +%d`))' 1
 
 fi
