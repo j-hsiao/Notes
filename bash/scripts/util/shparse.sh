@@ -50,6 +50,13 @@
 
 . "${BASH_SOURCE[0]%shparse.sh}restore_rematch.sh"
 
+# vim brace/paren matching gets messed up
+# when there are many strings/escapes of (){}
+OPENBRACE='{'
+CLOSEBRACE='}'
+OPENPAREN='('
+CLOSEPAREN=')'
+
 is_variable() # <varname>
 {
 	# Success if is variable name, else error.
@@ -255,6 +262,14 @@ shparse_parse_parameter_expansion() # <text> [out=RESULT] [begin=BEG] [end=END] 
 		[[ "${1: shpppe__end}" =~ (\\.|[^"${interrupt}"])*(["${interrupt}"]) ]]
 		case "${BASH_REMATCH[2]}" in
 			\})
+				eval "${3:-BEG}="'"${5:-0}"'
+				((shpppe__end += "${#BASH_REMATCH[0]}"))
+				if is_variable "${2:-RESULT}"
+				then
+					eval "${2:-RESULT}=${1: ${5:-0} : shpppe__end}"
+				fi
+				restore_BASH_REMATCH orig_rematch
+				return
 				# proper end the parameter expansion
 				;;
 			\$)
@@ -271,6 +286,9 @@ shparse_parse_parameter_expansion() # <text> [out=RESULT] [begin=BEG] [end=END] 
 				;;
 			'')
 				# no match, incomplete, up to remainder
+				shpppe__end=-1
+				eval "${3:-BEG}="'"${5:-0}"'
+				return
 				;;
 		esac
 		${subparse} "${1}" 0 "${3}" "${4}" \
@@ -281,42 +299,86 @@ shparse_parse_parameter_expansion() # <text> [out=RESULT] [begin=BEG] [end=END] 
 			return;
 		fi
 	done
+}
 
-	restore_BASH_REMATCH orig_rematch
+shparse_parse_math() # <text> [out=RESULT] [begin=BEG] [end=END] [initial=0]
+{
+	# Parse <text> as math expr from assumed $(( to ending ))
+	# NOTE, in the bash manual, $[...] is deprecated and will be removed in
+	# upcoming versions of bash, so for now, not going to bother implementing that.
 
+	# The expression is treated as if it were within double quotes, but
+	# a double quote inside the parentheses is not treated specially.
+	# All tokens in the expression undergo parameter and  variable  ex‐
+	# pansion, command substitution, and quote removal.  The result is
+	# treated as the arithmetic expression to be evaluated.  Arithmetic
+	# expansions may be nested.
+	local depth=0
+	local orig_rematch=("${BASH_REMATCH[@]}")
 
+	local -n shppm__end="${4:-END}"
+	shppm__end=$((${5:-0} + 3))
+	eval "${3:-BEG}=${5:-0}"
 
-	local -n shpppe__pos="${3:-POS}"
-	shpppe__pos="${4:-0}"
-	if [[ "${1:shpppe__pos:2}" != \${ ]]
-	then
-		if is_variable "${2-RESULT}"; then eval "${2:-RESULT}="; fi
-		return
-	fi
-	((shpppe__pos+=2))
-	while [[ "${shpppe__pos}" -lt ${#1} && "${1:shpppe__pos:1}" != } ]]
+	while true
 	do
-		case "${1:shpppe__pos:1}" in
-			\\)
-				((++shpppe__pos))
-				;;
+		[[ "${1:shppm__end}" =~ [^()]*([()$\'\"\`]) ]]
+		case "${BASH_REMATCH[1]}" in
 			\$)
-				shparse_parse_dollar_expr "${1}" 0 shpppe__pos "${shpppe__pos}"
-				;;
-			\')
-				shparse_parse_single_quote "${1}" 0 shpppe__pos "${shpppe__pos}"
-				;;
-			\")
-				shparse_parse_double_quote "${1}" 0 shpppe__pos "${shpppe__pos}"
+				local subparse=shparse_parse_dollar
 				;;
 			\`)
-				shparse_parse_backtick "${1}" 0 shpppe__pos "${shpppe__pos}"
+				local subparse=shparse_parse_backtick
+				;;
+			\")
+				local subparse=shparse_parse_double_quote
+				;;
+			\')
+				local subparse=shparse_parse_single_quote
+				;;
+			"${OPENPAREN}")
+				((++depth));
+				((shppm__end+="${#BASH_REMATCH[0]}"))
+				continue
+				;;
+			"${CLOSEPAREN}")
+				((shppm__end+="${#BASH_REMATCH[0]}"))
+				if ((depth))
+				then
+					((--depth))
+					continue
+				elif [[ "${1:shppm__end:1}" == ')' ]]
+				then
+					((++shppm__end))
+					if is_variable "${2:-RESULT}"
+					then
+						eval "${2:-RESULT}=${1: ${5:-0}:shppm__end - ${5:-0}}"
+					fi
+					restore_BASH_REMATCH orig_rematch
+					return
+				else
+					shppm__end=-1
+					restore_BASH_REMATCH orig_rematch
+					return
+				fi
+				;;
+			*)
+				shppm__end=-1
+				restore_BASH_REMATCH orig_rematch
+				return
 				;;
 		esac
-		((++shpppe__pos))
+		"${1}" 0 "${3}" "${4}" \
+			$(("${shppm__end}" + ${#BASH_REMATCH[0]} - 1))
 	done
 }
 
+shparse_parse_command_sub() # <text> [out=RESULT] [begin=BEG] [end=END] [initial=0]
+{
+	# Parse <text> as a command substitution from assumed $( to ending ).
+	local -n shppcs__end="${4:-END}"
+	shppcs__end=$(("${5:-0}" + 2))
+}
 
 shparse_parse_dollar() # <text> [out=RESULT] [begin=BEG] [end=END] [initial=0]
 {
@@ -363,13 +425,13 @@ shparse_parse_dollar() # <text> [out=RESULT] [begin=BEG] [end=END] [initial=0]
 				shppd__beg=${5:-0}
 			fi
 			;;
-		'$(('*)
+		"\$${OPENPAREN}${OPENPAREN}"*)
 			shparse_parse_math "${@}"
 			;;
-		'$('*)
+		"\$${OPENPAREN}"*)
 			shparse_parse_command_sub "${@}"
 			;;
-		'${'*)
+		"\$${OPENBRACE}"*)
 			shparse_parse_parameter_expansion "${@}"
 			;;
 		*)
@@ -386,15 +448,26 @@ shparse_parse_dollar() # <text> [out=RESULT] [begin=BEG] [end=END] [initial=0]
 
 if [[ "${0}" = "${BASH_SOURCE[0]}" ]]
 then
-	run_test() # <test> <text> <evalresult> <beg> <end> <segment> [initial=0]
+	start_test() {
+		TEST="${1}"
+		echo "testing ${TEST}"
+	}
+	run_test() # <text> <evalresult> <beg> <end> <segment> [initial=0]
 	{
 		local out= beg end
-		"${1}" "${2}" out beg end ${7}
-		if [[ -n "${3}" && "${out}" != "${3}" ]] \
-			|| [[ -n "${4}"  && "${beg}" != ${4} ]] \
-			|| [[ -n "${5}"  && "${end}" != ${5} ]] \
-			|| [[ -n "${6}" && ( end < 0 || "${2:beg:end-beg}" != "${6}" ) ]] \
-			|| [[ -n "${4}" && -n "${6}" && "${end}" -ne $((${4} + ${#6})) ]]
+		local text="${1}"
+		local gteval="${2}"
+		local gtbeg="${3}"
+		local gtend="${4}"
+		local rawtext="${5}"
+		local start="${6}"
+
+		"${TEST}" "${text}" out beg end ${start}
+		if [[ -n "${gteval}" && "${out}" != "${gteval}" ]] \
+			|| [[ -n "${gtbeg}"  && "${beg}" != ${gtbeg} ]] \
+			|| [[ -n "${gtend}"  && "${end}" != ${gtend} ]] \
+			|| [[ -n "${rawtext}" && ( end < 0 || "${text:beg:end-beg}" != "${rawtext}" ) ]] \
+			|| [[ -n "${gtbeg}" && -n "${rawtext}" && "${end}" -ne $((${gtbeg} + ${#rawtext})) ]]
 		then
 			printf 'fail
 			input: %s
@@ -407,58 +480,66 @@ then
 			  segment:
 			    expect %s
 			    got    %s
-			' "${2}" "${3}" "${out}" "${4}" "${5}" "${beg}" "${end}" "${6}" "${2:beg:end < 0 ? ${#2}-beg : end-beg}" | sed 's/\t\t\t//g'
+			' "${text}" \
+			"${gteval}" "${out}" \
+			"${gtbeg}" "${gtend}" "${beg}" "${end}" \
+			"${rawtext}" "${text:beg:end < 0 ? ${#text}-beg : end-beg}" | sed 's/\t\t\t//g'
 		else
 			echo pass
 		fi
 	}
 
-	echo 'testing shparse_parse_ansi_c'
-	run_test shparse_parse_ansi_c "what$'\\nhello'extra" $'\nhello' 4 '' "$'\\nhello'" 4
-	run_test shparse_parse_ansi_c "what$'\\nhello" '' 4 -1 '' 4
-	run_test shparse_parse_ansi_c "what$'\\nh\\'ello" '' 4 -1 '' 4
-	run_test shparse_parse_ansi_c "what$'\\nh\\'ello'" $'\nh\'ello' 4 '' "$'\\nh\\'ello'" 4
+	start_test shparse_parse_ansi_c
+	run_test "what$'\\nhello'extra" $'\nhello' 4 '' "$'\\nhello'" 4
+	run_test "what$'\\nhello" '' 4 -1 '' 4
+	run_test "what$'\\nh\\'ello" '' 4 -1 '' 4
+	run_test "what$'\\nh\\'ello'" $'\nh\'ello' 4 '' "$'\\nh\\'ello'" 4
 
 
-	echo 'testing shparse_parse_single_quote'
-	run_test shparse_parse_single_quote "b4'this is some string\\'extra" 'this is some string\' 2 '' "'this is some string\\'" 2
-	run_test shparse_parse_single_quote "'incomplete" '' '' -1 ''
+	start_test shparse_parse_single_quote
+	run_test "b4'this is some string\\'extra" 'this is some string\' 2 '' "'this is some string\\'" 2
+	run_test "'incomplete" '' '' -1 ''
 
-	echo 'testing shparse_parse_double_quote'
-	run_test shparse_parse_double_quote '"this is a string"' 'this is a string' 0 18 '"this is a string"'
-	run_test shparse_parse_double_quote '"this is a string' '' 0 -1 ''
-	run_test shparse_parse_double_quote '"this is \"a\" str\${}ing" extra data' 'this is "a" str${}ing' 0 26 '"this is \"a\" str\${}ing"'
+	start_test shparse_parse_double_quote
+	run_test '"this is a string"' 'this is a string' 0 18 '"this is a string"'
+	run_test '"this is a string' '' 0 -1 ''
+	run_test '"this is \"a\" str\${}ing" extra data' 'this is "a" str${}ing' 0 26 '"this is \"a\" str\${}ing"'
 
-	run_test shparse_parse_double_quote 'a"my home is at $HOME" extra data' "my home is at $HOME" 1 22 '"my home is at $HOME"' 1
-	run_test shparse_parse_double_quote 'a"my $-home is at $HOME" extra data' "my $-home is at $HOME" 1 24 '"my $-home is at $HOME"' 1
-	run_test shparse_parse_double_quote '"ansic $'"'this'"' is not expanded." f' "ansic \$'this' is not expanded." 0 32 '"ansic $'"'this'"' is not expanded."'
+	run_test 'a"my home is at $HOME" extra data' "my home is at $HOME" 1 22 '"my home is at $HOME"' 1
+	run_test 'a"my $-home is at $HOME" extra data' "my $-home is at $HOME" 1 24 '"my $-home is at $HOME"' 1
+	run_test '"ansic $'"'this'"' is not expanded." f' "ansic \$'this' is not expanded." 0 32 '"ansic $'"'this'"' is not expanded."'
 
-	run_test shparse_parse_double_quote '"something `uname -a` yea"extra' 'something '"$(uname -a)"' yea' 0 26 '"something `uname -a` yea"'
-	# TODO: add in dollar and backtick expr tests
+	run_test '"something `uname -a` yea"extra' 'something '"$(uname -a)"' yea' 0 26 '"something `uname -a` yea"'
+	run_test '"${unknown:-${HOME}}"' "${HOME}" 0 21 '"${unknown:-${HOME}}"'
+	run_test '"there are $((5 + 2)) penguins"' 'there are 7 penguins' 0 31 '"there are $((5 + 2)) penguins"'
 
-	echo 'testing shparse_parse_dollar'
+	start_test shparse_parse_dollar
 	# ansi_c dollar
-	run_test shparse_parse_dollar "what$'\\nhello'extra" $'\nhello' 4 '' "$'\\nhello'" 4
-	run_test shparse_parse_dollar "what$'\\nhello" '' 4 -1 '' 4
-	run_test shparse_parse_dollar "what$'\\nh\\'ello" '' 4 -1 '' 4
-	run_test shparse_parse_dollar "what$'\\nh\\'ello'" $'\nh\'ello' 4 '' "$'\\nh\\'ello'" 4
-	run_test shparse_parse_dollar '$-' "$-" 0 2 '$-'
-	run_test shparse_parse_dollar '$HOME extra' "$HOME" 0 5 '$HOME'
-	run_test shparse_parse_dollar '$HOME!notvalid' "$HOME" 0 5 '$HOME'
-	run_test shparse_parse_dollar '$%not a $ expansion' '$' 0 1 '$'
+	run_test "what$'\\nhello'extra" $'\nhello' 4 '' "$'\\nhello'" 4
+	run_test "what$'\\nhello" '' 4 -1 '' 4
+	run_test "what$'\\nh\\'ello" '' 4 -1 '' 4
+	run_test "what$'\\nh\\'ello'" $'\nh\'ello' 4 '' "$'\\nh\\'ello'" 4
+	run_test '$-' "$-" 0 2 '$-'
+	run_test '$HOME extra' "$HOME" 0 5 '$HOME'
+	run_test '$HOME!notvalid' "$HOME" 0 5 '$HOME'
+	run_test '$%not a $ expansion' '$' 0 1 '$'
 
-	echo 'testing shparse_parse_backtick'
-	run_test shparse_parse_backtick 'hello`echo \\\`$HOME\\\$HOME\\\a`' \`${HOME}\$HOME\\a 5 33 '`echo \\\`$HOME\\\$HOME\\\a`' 5
-	run_test shparse_parse_backtick 'hello`echo "incomplete string`' '' 11 -1 '' 5
-	# shparse_parse_backtick 'hello`echo \\\`$HOME\\\$HOME\\\a' out pos 5 && [[ "${out}" = "\`$HOME\$HOME\\a" ]] && ((pos == 32)) && echo pass || echo fail
+	start_test shparse_parse_backtick
+	run_test 'hello`echo \\\`$HOME\\\$HOME\\\a`' \`${HOME}\$HOME\\a 5 33 '`echo \\\`$HOME\\\$HOME\\\a`' 5
+	run_test 'hello`echo "incomplete string`' '' 11 -1 '' 5
 
+	start_test shparse_parse_parameter_expansion
+	run_test '${HOME}' "${HOME}" 0 7 '${HOME}'
+	run_test '${unknown:-${HOME}}' "${HOME}" 0 19 '${unknown:-${HOME}}'
+	run_test '${unknown:-${HOME' '' 11 -1 ''
+	run_test ' ${custom_pwd:-`bash -c "echo hello"`}' "hello" 1 38 '${custom_pwd:-`bash -c "echo hello"`}' 1
+	run_test ' ${custom_pwd:-`pwd}' '' 15 -1 '' 1
+	run_test '${notexist:-"astring"'\''singlestr'\''}' "astringsinglestr" 0 33 '${notexist:-"astring"'\''singlestr'\''}'
 
-	# echo 'testing shparse_parse_dollar_expr'
-	# shparse_parse_dollar_expr 'a$HOME$!)' out pos 1 && [[ "${out}" = "${HOME}" ]] && ((pos == 5)) && echo pass || echo fail
-	# shparse_parse_dollar_expr 'a$HOME$!)' out pos 6 && [[ "${out}" = "$!" ]] && ((pos == 7)) && echo pass || echo fail
-	# shparse_parse_dollar_expr 'a$HOME$!$)' out pos 8 && [[ "${out}" = '$' ]] && ((pos == 8)) && echo pass || echo fail
-	# shparse_parse_dollar_expr 'a$HOME$!$)' out pos 0 && [[ "${out}" = '' ]] && ((pos == 0)) && echo pass || echo fail
-	# shparse_parse_dollar_expr 'a$HOME$!$)$0' out pos 10 && [[ "${out}" = "${0}" ]] && ((pos == 11)) && echo pass || echo fail
-	# shparse_parse_dollar_expr 'a$HOME$!$)$0$'"'\\n'" out pos 10 && [[ "${out}" = "${0}" ]] && ((pos == 11)) && echo pass || echo fail
-	# shparse_parse_dollar_expr 'a$HOME$!$)$0$'"'\\n'" out pos 12 && [[ "${out}" = $'\n' ]] && ((pos == 16)) && echo pass || echo fail
+	start_test shparse_parse_math
+	run_test '$((1 + 2))' '3' 0 10 '$((1 + 2))'
+	run_test '$(((1+2) * 3 + 4))' '13' 0 18 '$(((1+2) * 3 + 4))'
+	run_test '$(((1+2) * (3 + 4)))' '21' 0 20 '$(((1+2) * (3 + 4)))'
+	run_test '$(((1+2) * (3 + 4))' '' 0 -1 ''
+
 fi
