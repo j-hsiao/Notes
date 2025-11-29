@@ -26,6 +26,15 @@ class Ignore(object):
     def flush(self):
         pass
 
+def oswriteall(fd, text):
+    view = memoryview(text)
+    total = 0
+    target = len(text)
+    while total < target:
+        total += os.write(fd, view[total:])
+
+
+
 class OSRead(object):
     """Provide a readinto for an fd."""
     def __init__(self, fd, verbose=False):
@@ -202,15 +211,15 @@ class ydotoold(object):
         # Use a bash process to start ydotoold
         # so that bash will still have root permissions
         # such as from sudo, when the process should be
-        # closed.  (root permissions would be needed to
+        # closed.  (root permissions might be needed to
         # cleanup the socket.)
         self.proc = sp.Popen(
-            ['sudo', 'bash', '-p', self.path],
+            ['sudo', 'bash'],
             stdout=slavefd, stderr=slavefd, stdin=slavefd)
 
-        self.proc.stdin.write(
-            b'ydotoold -p "{}" &\n'.format(self.path))
-        self.proc.stdin.flush()
+        text = oswriteall(
+            masterfd,
+            'ydotoold -p "{}" &\n'.format(self.path).encode('utf-8'))
 
         os.close(slavefd)
         with io.BytesIO() as buf:
@@ -230,8 +239,7 @@ class ydotoold(object):
                             print(decoder.decode(b'', final=True))
                         except Exception:
                             pass
-                    self.proc.stdin.write(b'pid=$!\n')
-                    self.proc.stdin.flush()
+                    oswriteall(masterfd, b'pid=$!\n')
                     self.thread = threading.Thread(
                         target=forward,
                         args=[OSRead(masterfd), Ignore()])
@@ -249,8 +257,9 @@ class ydotoold(object):
 
     def close(self):
         if self.masterfd is not None:
-            self.proc.stdin.write(
-                b'kill ${pid}\nrm "{}"\nexit\n'.format(self.path))
+            oswriteall(
+                self.masterfd,
+                'kill ${{pid}}\nrm "{}"\nexit\n'.format(self.path).encode('utf-8'))
             self.thread.join()
             os.close(self.masterfd)
             self.masterfd = None
