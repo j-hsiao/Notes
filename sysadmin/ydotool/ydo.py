@@ -199,9 +199,19 @@ class ydotoold(object):
         if self.masterfd is not None:
             return
         masterfd, slavefd = pty.openpty()
+        # Use a bash process to start ydotoold
+        # so that bash will still have root permissions
+        # such as from sudo, when the process should be
+        # closed.  (root permissions would be needed to
+        # cleanup the socket.)
         self.proc = sp.Popen(
-            ['sudo', 'ydotoold', '-p', self.path],
+            ['sudo', 'bash', '-p', self.path],
             stdout=slavefd, stderr=slavefd, stdin=slavefd)
+
+        self.proc.stdin.write(
+            b'ydotoold -p "{}" &\n'.format(self.path))
+        self.proc.stdin.flush()
+
         os.close(slavefd)
         with io.BytesIO() as buf:
             if self.verbose:
@@ -220,6 +230,8 @@ class ydotoold(object):
                             print(decoder.decode(b'', final=True))
                         except Exception:
                             pass
+                    self.proc.stdin.write(b'pid=$!\n')
+                    self.proc.stdin.flush()
                     self.thread = threading.Thread(
                         target=forward,
                         args=[OSRead(masterfd), Ignore()])
@@ -237,11 +249,8 @@ class ydotoold(object):
 
     def close(self):
         if self.masterfd is not None:
-            self.proc.terminate()
-            try:
-                os.remove(self.path)
-            except OSError:
-                pass
+            self.proc.stdin.write(
+                b'kill ${pid}\nrm "{}"\nexit\n'.format(self.path))
             self.thread.join()
             os.close(self.masterfd)
             self.masterfd = None
