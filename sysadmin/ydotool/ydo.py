@@ -27,8 +27,10 @@ class Ignore(object):
         pass
 
 class OSRead(object):
-    def __init__(self, fd):
+    """Provide a readinto for an fd."""
+    def __init__(self, fd, verbose=False):
         self.fd = fd
+        self.verbose = verbose
     def fileno(self):
         return self.fd
     if hasattr(os, 'readv'):
@@ -36,14 +38,16 @@ class OSRead(object):
             try:
                 return os.readv(self.fd, [buf])
             except Exception:
-                traceback.print_exc()
+                if self.verbose:
+                    traceback.print_exc()
                 return 0
     else:
         def readinto(self, buf):
             try:
                 data = os.read(self.fd, len(buf))
             except Exception:
-                traceback.print_exc()
+                if self.verbose:
+                    traceback.print_exc()
                 return 0
             amt = len(data)
             buf[:amt] = data
@@ -52,8 +56,9 @@ class OSRead(object):
 
 
 def forward(src, dst):
+    """Forward data from src to dst."""
     if dst is None:
-        dec = codecs.getincrementaldecoder('utf-8')
+        dec = codecs.getincrementaldecoder('utf-8')()
 
     buf = bytearray(io.DEFAULT_BUFFER_SIZE)
     view = memoryview(buf)
@@ -62,7 +67,8 @@ def forward(src, dst):
         if amt == 0:
             if dst is None:
                 print(dec.decode(b'', final=True), end='')
-            dst.flush()
+            else:
+                dst.flush()
             return
         if dst is None:
             print(dec.decode(buf[:amt]), end='')
@@ -78,11 +84,10 @@ class MousePosition(object):
     def __init__(self, verbose=False):
         self.verbose = verbose
         self.lock = threading.Lock()
-        self.tk, self.step, self.W, self.H = self.initialize()
         self._pos = (0,0)
+        self.tk, self.step, self.W, self.H = self.open()
 
-
-    def initialize(self):
+    def open(self):
         """Initialize a tk instance.
 
         Return the root and the screen shape.
@@ -94,11 +99,18 @@ class MousePosition(object):
         r.bind('<Motion>', self.HIDE_CMD)
         return r, tk.IntVar(r), r.winfo_screenwidth(), r.winfo_screenheight()
 
+    def close(self):
+        if getattr(self, 'tk', None) is not None:
+            self.tk.destroy()
+            self.tk = None
+
     def __enter__(self):
         if self.tk is None:
-            self.tk, self.step, self.W, self.H = self.initialize()
+            self.tk, self.step, self.W, self.H = self.open()
         return self
     def __exit__(self, tp, exc, tb):
+        self.close()
+    def __del__(self):
         self.close()
 
     def hide(self):
@@ -126,11 +138,6 @@ class MousePosition(object):
         self.tk.wait_variable(self.step)
         return self.pos()
 
-    def close(self):
-        if getattr(self, 'tk', None) is not None:
-            self.tk.destroy()
-            self.tk = None
-
     def __del__(self):
         self.close()
 
@@ -142,36 +149,56 @@ class NoMouseAccel(object):
     GET = ['gsettings', 'get', 'org.gnome.desktop.peripherals.mouse', 'accel-profile']
     SET = ['gsettings', 'set', 'org.gnome.desktop.peripherals.mouse', 'accel-profile']
     FLAT = "'flat'"
-
     def __init__(self):
         self.accel = []
 
-    def __enter__(self):
+    def push(self):
         self.accel.append(sp.check_output(self.GET).decode('utf-8'))
         if self.accel[-1] != self.FLAT:
             sp.check_output(self.SET + [self.FLAT])
-
+        return self
+    def pop(self):
+        try:
+            orig = self.accel.pop()
+            if orig != self.FLAT:
+                sp.check_output(self.SET + [orig])
+        except IndexError:
+            pass
+        return self
+    def __enter__(self):
+        self.push()
+        return self
     def __exit__(self, tp, exc, tb):
-        orig = self.accel.pop()
-        if orig != self.FLAT:
-            sp.check_output(self.SET + [orig])
+        self.pop()
+    def __del__(self):
+        while self.accel:
+            self.pop()
 
 class ydotoold(object):
     """Context manager for the ydotoold daemon."""
-    def __init__(
-        self, sock=f'/dev/shm/{os.environ["USER"]}_ydo.sock',
-        verbose=True):
+    def __init__(self, sock=None, verbose=True):
         """Initialize ydotoold.
 
         sock: The socket path for ydotoold.
         """
+        if sock is None:
+            sock = f'/dev/shm/{os.environ["USER"]}_ydo.sock'
         self.verbose = verbose
         self.path = sock
         self.masterfd = None
         self.proc = None
+        self.thread = None
+        self.open()
 
-    def __enter__(self):
-        self.masterfd, slavefd = pty.openpty()
+    def __str__(self):
+        """Return the ydotoold socket path."""
+        return self.path
+
+    def open(self):
+        """Open ydotoold process if needed."""
+        if self.masterfd is not None:
+            return
+        masterfd, slavefd = pty.openpty()
         self.proc = sp.Popen(
             ['sudo', 'ydotoold', '-p', self.path],
             stdout=slavefd, stderr=slavefd, stdin=slavefd)
@@ -180,7 +207,7 @@ class ydotoold(object):
             if self.verbose:
                 decoder = codecs.getincrementaldecoder('utf-8')()
             while 1:
-                result = os.read(self.masterfd, io.DEFAULT_BUFFER_SIZE)
+                result = os.read(masterfd, io.DEFAULT_BUFFER_SIZE)
                 buf.write(result)
                 if self.verbose:
                     try:
@@ -193,15 +220,31 @@ class ydotoold(object):
                             print(decoder.decode(b'', final=True))
                         except Exception:
                             pass
-                    return self
+                    self.thread = threading.Thread(
+                        target=forward,
+                        args=[OSRead(masterfd), Ignore()])
+                    self.thread.start()
+                    self.masterfd = masterfd
+                    return
 
+    def __enter__(self):
+        self.open()
+        return self
     def __exit__(self, tp, exc, tb):
-        os.close(self.masterfd)
-        self.proc.terminate()
-        try:
-            os.remove(self.path)
-        except OSError:
-            pass
+        self.close()
+    def __del__(self):
+        self.close()
+
+    def close(self):
+        if self.masterfd is not None:
+            self.proc.terminate()
+            try:
+                os.remove(self.path)
+            except OSError:
+                pass
+            self.thread.join()
+            os.close(self.masterfd)
+            self.masterfd = None
 
 class Bash(object):
     def __init__(self, sudo=False, stdout=None, stderr=None):
@@ -211,8 +254,11 @@ class Bash(object):
         self.sudo = sudo
         self.proc = None
         self.bashin = None
+        self.open()
 
-    def __enter__(self):
+    def open(self):
+        if self.proc is not None:
+            return
         if self.sudo:
             command = ['sudo', 'bash']
         else:
@@ -222,45 +268,79 @@ class Bash(object):
             stdout=self.stdout,
             stderr=self.stderr)
         self.bashin = io.TextIOWrapper(self.proc.stdin)
+    def close(self):
+        if self.proc is None:
+            return
+        self('exit')
+        self.proc.wait()
+        self.proc = None
+
+    def __enter__(self):
+        self.open()
         return self
+    def __exit__(self, tp, exc, tb):
+        self.close()
+    def __del__(self):
+        self.close()
 
     def __bool__(self):
         return self.proc is not None and self.proc.poll() is None
 
-    def write(self, *args, **kwargs):
+    def __call__(self, *args, **kwargs):
         print(*args, **kwargs, file=self.bashin)
+        self.bashin.flush()
 
-    def __exit__(self, tp, exc, tb):
-        self.write('exit')
 
-class ydotool(Bash):
+class ydotool(object):
     """Ydotool commands through a bash process."""
-    def __init__(self, sock):
-        super(ydotool, self).__init__(True)
-        self.sock = sock
+    def __init__(self, sockpath=None, stdout=None, stderr=None):
+        self.bash = None
+        self.pos = None
+        self.noaccel = NoMouseAccel()
+        if sockpath is None:
+            sockpath = f'/dev/shm/{os.environ["USER"]}_ydo.sock'
+        self.sockpath = sockpath
+        self.open(stdout, stderr)
+
+    def open(self, stdout=None, stderr=None):
+        if self.bash is not None:
+            return
+        self.bash = Bash(True, stdout=stdout, stderr=stderr)
+        self.noaccel.push()
+        self.pos = MousePosition()
+        self.bash('export YDOTOOL_SOCKET="{}"'.format(self.sockpath))
+    def close(self):
+        if self.bash is None:
+            return
+        self.noaccel.pop()
+        self.pos.close()
+        self.bash.close()
+        self.bash = None
+
+    def click(self):
+        pass
+
+    def move(self, x, y, absolute=False):
+        """Move mouse to x, y.
+
+        x, y: move the mouse by x,y.
+        absolute: Move the mouse to absolute position.
+        """
+        if absolute:
+            W, H = self.pos.W, self.pos.H
+            self.bash('ydotool mousemove -x 0 -y {}'.format(H))
+            self.bash('ydotool mousemove -x {} -y 0'.format(W))
+            self.bash('ydotool mousemove -x {} -y {}'.format(x-W, y-H))
+        else:
+            self.bash('ydotool mousemove -x {} -y {}'.format(x, y))
 
     def __enter__(self):
-        super(ydotool, self).__enter__()
-        self.write(f'export YDOTOOL_SOCKET="{self.sock}"')
+        self.open()
         return self
-
-
-
-
-
-class MouseMotion(object):
-    def __init__(
-        self, sock=f'/dev/shm/{os.environ["USER"]}_ydo.sock',
-        verbose=False):
-        """Initialize MouseMotion.
-
-        sock: The ydotoold socket path.
-        """
-        self.verbose = verbose
-        self.ydotoold = None
-        self.bashin = None
-        self.masterfd = None
-
+    def __exit__(self, tp, exc, tb):
+        self.close()
+    def __del__(self):
+        self.close()
 
 
 class Mouse(object):
@@ -293,7 +373,7 @@ class Mouse(object):
                     break
         self.threads.append(
             threading.Thread(
-                target=forward, args=[OSRead(self.masterfd), ]))
+                target=forward, args=[OSRead(self.masterfd), Ignore()]))
         self.threads[-1].start()
 
         self.bash_ = sp.Popen(['sudo', 'bash'], stdin=sp.PIPE)
@@ -410,8 +490,9 @@ class Mouse(object):
         self.bash('ydotool click 0xc0')
 
 
-with MousePosition(True) as m:
-    import time
-    while input() != 'exit':
-        time.sleep(1)
-        print(m.readmouse())
+if __name__ == '__main__':
+    with MousePosition(True) as m:
+        import time
+        while input() != 'exit':
+            time.sleep(1)
+            print(m.readmouse())
