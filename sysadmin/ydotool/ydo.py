@@ -296,7 +296,7 @@ class ydotool(object):
     def __init__(self, sockpath=None, stdout=None, stderr=None):
         self.bash = None
         self.pos = None
-        self.noaccel = NoMouseAccel()
+        # self.noaccel = NoMouseAccel()
         if sockpath is None:
             sockpath = f'/dev/shm/{os.environ["USER"]}_ydo.sock'
         self.sockpath = sockpath
@@ -306,33 +306,95 @@ class ydotool(object):
         if self.bash is not None:
             return
         self.bash = Bash(True, stdout=stdout, stderr=stderr)
-        self.noaccel.push()
+        # self.noaccel.push()
         self.pos = MousePosition()
         self.bash('export YDOTOOL_SOCKET="{}"'.format(self.sockpath))
     def close(self):
         if self.bash is None:
             return
-        self.noaccel.pop()
+        # self.noaccel.pop()
         self.pos.close()
         self.bash.close()
         self.bash = None
 
-    def click(self):
-        pass
+    LEFT = 0x00
+    RIGHT = 0x01
+    MIDDLE = 0x02
+    SIDE = 0x03
+    EXTR = 0x04
+    FORWARD = 0x05
+    BACK = 0x06
+    TASK = 0x07
 
-    def move(self, x, y, absolute=False):
+    DOWN = 0x40
+    UP = 0x80
+
+    def click(self, code=UP|DOWN|LEFT, repeat=1, delay=25):
+        self.bash(
+            'ydotool click 0x{:02x}'.format(code),
+            '--repeat', repeat,
+            '--next-delay', delay,
+        )
+
+    def move(self, x, y, absolute=False, check=5):
         """Move mouse to x, y.
 
         x, y: move the mouse by x,y.
-        absolute: Move the mouse to absolute position.
+        absolute: Move to (x,y) as measure from the top-left corner.
+                  Note that ydotool does not have a "real" absolute
+                  movement.  All it does is move a large offset to the
+                  topleft to reset the mouse to (0,0) before moving
+                  the given (x,y).  This can cause problems, such as if
+                  gnome hot corner is turned on.
+                  If given as ((rt)(lb)), then use that corner
+                  as the target corner to move to for resetting the mouse
+                  position.
+        check: Check progress every 5 iterations. If the mouse position
+               is not closer to the target, then stop.  This allows
+               accurate movement even with mouse acceleration.
+               For now, this is implemented by flashing a full screen
+               topmost tkinter window (see `MousePosition`) so the window
+               will flash on the screen with each measurement.
         """
-        if absolute:
-            W, H = self.pos.W, self.pos.H
-            self.bash('ydotool mousemove -x 0 -y {}'.format(H))
-            self.bash('ydotool mousemove -x {} -y 0'.format(W))
-            self.bash('ydotool mousemove -x {} -y {}'.format(x-W, y-H))
+        if check:
+            ox, oy = self.pos.readmouse()
+            if not absolute:
+                x += ox
+                y += oy
+            x = min(max(x, 0), self.pos.W-1)
+            y = min(max(y, 0), self.pos.H-1)
+            cx, cy = ox, oy
+            it = 0
+            while 1:
+                it += 1
+                if (cx, cy) == (x,y):
+                    return
+                # Limit the size of movement. If the movement
+                # is too large, it might shoot past due to mouse
+                # acceleration.  It would then ping-pong back and
+                # forth without making any progress.
+                self.bash(
+                    'ydotool mousemove -x {} -y {}'.format(
+                        min(max(x-cx, -100),100),
+                        min(max(y-cy, -100),100)))
+                cx, cy = self.pos.readmouse()
+                if it >= check:
+                    if (cx, cy) == (ox, oy):
+                        return
+                    ox, oy = cx, cy
+                    it = 0
         else:
-            self.bash('ydotool mousemove -x {} -y {}'.format(x, y))
+            if absolute:
+                W, H = self.pos.W, self.pos.H
+                W = (-W, W)['r' in absolute]
+                H = (-H, H)['b' in absolute]
+                self.bash('ydotool mousemove -x 0 -y {}'.format(H))
+                self.bash('ydotool mousemove -x {} -y 0'.format(W))
+                self.bash(
+                    'ydotool mousemove -x {} -y {}'.format(
+                        x-max(0, W-1), y-max(0, H-1)))
+            else:
+                self.bash('ydotool mousemove -x {} -y {}'.format(x, y))
 
     def __enter__(self):
         self.open()
