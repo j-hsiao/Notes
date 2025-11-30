@@ -290,6 +290,10 @@ class Bash(object):
         if self.proc is None:
             return
         self('exit')
+        # proc.wait uses os.waitpid, but it seems like if
+        # __del__ is called due to interpreter exit, then
+        # os.waitpid might have been set to None causing
+        # an error.
         self.proc.wait()
         self.proc = None
 
@@ -311,10 +315,13 @@ class Bash(object):
 
 class ydotool(object):
     """Ydotool commands through a bash process."""
-    def __init__(self, sockpath=None, stdout=None, stderr=None):
+    def __init__(self, sockpath=None, stdout=None, stderr=None, noaccel=False):
         self.bash = None
         self.pos = None
-        # self.noaccel = NoMouseAccel()
+        if noaccel:
+            self.noaccel = NoMouseAccel()
+        else:
+            self.noaccel = None
         if sockpath is None:
             sockpath = f'/dev/shm/{os.environ["USER"]}_ydo.sock'
         self.sockpath = sockpath
@@ -324,26 +331,28 @@ class ydotool(object):
         if self.bash is not None:
             return
         self.bash = Bash(True, stdout=stdout, stderr=stderr)
-        # self.noaccel.push()
+        if self.noaccel is not None:
+            self.noaccel.push()
         self.pos = MousePosition()
         self.bash('export YDOTOOL_SOCKET="{}"'.format(self.sockpath))
     def close(self):
         if self.bash is None:
             return
-        # self.noaccel.pop()
+        if self.noaccel is not None:
+            self.noaccel.pop()
         self.pos.close()
         self.bash.close()
         self.bash = None
     rawkeys = {
-        'ESC: ' 1,
-        '1: ' 2,
-        '2: ' 3,
-        '3: ' 4,
-        '4: ' 5,
-        '5: ' 6,
-        '6: ' 7,
-        '7: ' 8,
-        '8: ' 9,
+        'ESC': 1,
+        '1': 2,
+        '2': 3,
+        '3': 4,
+        '4': 5,
+        '5': 6,
+        '6': 7,
+        '7': 8,
+        '8': 9,
         '9': 10,
         '0': 11,
         'MINUS': 12,
@@ -500,15 +509,15 @@ class ydotool(object):
         'UNKNOWN': 240,
     }
     tclkeys = {
-        'Escape: ' 1,
-        '1: ' 2,
-        '2: ' 3,
-        '3: ' 4,
-        '4: ' 5,
-        '5: ' 6,
-        '6: ' 7,
-        '7: ' 8,
-        '8: ' 9,
+        'Escape': 1,
+        '1': 2,
+        '2': 3,
+        '3': 4,
+        '4': 5,
+        '5': 6,
+        '6': 7,
+        '7': 8,
+        '8': 9,
         '9': 10,
         '0': 11,
         'q': 16,
@@ -579,14 +588,22 @@ class ydotool(object):
         'space': 57,
 
         'Caps_Lock': 58,
+        'Shift': 42,
         'Shift_L': 42,
         'Shift_R': 54,
+        'Alt': 56,
         'Alt_L': 56,
         'Alt_R': 100,
+        'Control': 29,
         'Control_L': 29,
         'Control_R': 97,
+        'Super': 125,
         'Super_L': 125,
         'Super_R': 126,
+        'Meta': 125,
+        'Meta_L': 125,
+        'Meta_R': 126,
+
 
         'Up': 103,
         'Left': 105,
