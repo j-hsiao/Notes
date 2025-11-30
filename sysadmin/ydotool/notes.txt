@@ -83,6 +83,7 @@ From arch ydotool man page:
 ------------------------------
 -3- keycodes
 ------------------------------
+libinput record -o outfile.yml --show-keycodes
     # Name: Lite-On Technology Corp USB Gaming Keyboard
     # ID: bus 0x0003 (usb) vendor 0x04ca product 0x0095 version 0x0110
     # Supported Events:
