@@ -69,8 +69,7 @@ class Macro(object):
             r.bind('<ButtonRelease-1>', 'pause_macro %X %Y')
             r.bind('<Escape>', 'destroy {}'.format(r))
             r.title('macro')
-            r.mainloop()
-            print('mainloop done', file=sys.stderr)
+            r.wait_window()
 
 
 def run(args, ydotool):
