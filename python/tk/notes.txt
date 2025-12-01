@@ -48,21 +48,21 @@ Contents
 
 ______________________________
 -0- tcl
-	Tcl is the actual ?gui engine? used by tkinter.
-	Each Tk instance has a .tk attribute which seems to be the tcl interpreter.
-	The tcl interpreter has a call() method which will take the arguments and
-	call tcl commands (check tcl docs)
+	Tcl is the interpreter (handles parsing and running commands).
+	Tk is the gui (handles displaying gui, events, etc).
+	Tkinter is a wrapper over Tcl/Tk.
+
+	The tcl interpreter can be accessed from the Tk.tk.call() method.
 
 	ex:
 		import tkinter as tk
 		r = tk.Tk()
-		r.tk.call('bind', '.', '<Button-1>', 'command args script')
+		r.tk.call('bind', r, '<Escape>', 'destroy {}'.format(r))
+		r.wait_window()
 
 	Each argument to call() will be converted to str and treated as a
 	separate argument for the tcl interpreter regardless of spaces etc.
 	The above call() is equivalent to:
-
-		r.tk.call('bind', r, '<Button-1>', 'command args script')
 	______________________________
 	-0.1- syntax
 	cmd arg arg arg
@@ -104,7 +104,8 @@ ______________________________
 
 	______________________________
 	expr expression
-		Evaluate an expression (mathematically)
+		Evaluate an expression.  This could be a mathematical expression.
+		It could be a str.
 
 			-+~!        (unary) negative, positive, bit-wise not, logical not
 			**          exponent
@@ -119,9 +120,17 @@ ______________________________
 			&&||        logical [and|or], numeric only
 			x?y:z       ternary, x must be bool or numeric
 
+		examples:
+			set a 32
+			puts $a       # prints '$a'
+			expr $a       # prints 32
+			expr $a + 5   # prints 37
+			expr "$a + 5" # prints the string "32 + 5"
 	______________________________
 	puts args
 		print arguments
+		THIS IS LITERAL, so there is no variable expansion etc.
+		use expr instead for variable expansion.
 
 	______________________________
 	loops
