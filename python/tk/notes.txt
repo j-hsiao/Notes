@@ -163,6 +163,25 @@ ______________________________
 
 ______________________________
 -1- general
+
+	General usage is create a Tk instance
+		import tkinter as tk
+		r = tk.Tk()
+		...
+		r.mainloop(N)
+
+	NOTE:
+		mainloop runs until N tk interpreters remain.  N defaults to 0.
+		examples:
+			Must close both to exit mainloop()
+				r1 = tk.Tk(); r2 = tk.Tk(); r2.mainloop()
+
+			Close one root to exit mainloop(), either one works...
+				r1 = tk.Tk(); r2 = tk.Tk(); r3 = tk.Toplevel(r1); r3.title('toplevel1'); r4 = tk.Toplevel(r2); r4.title('toplevel2'); r2.mainloop(1)
+
+		wait_window() on root window might be the better choice compared to mainloop()
+		if there is a possibility of multiple tkinter instances.
+
 	tk is a wrapper over tcl.
 	tcl can be accessed directly via widget.tk.call which invokes
 	tcl commands.  (Everything is a string, user must handle type conversions)
