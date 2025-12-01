@@ -213,9 +213,13 @@ class ydotoold(object):
         # such as from sudo, when the process should be
         # closed.  (root permissions might be needed to
         # cleanup the socket.)
-        self.proc = sp.Popen(
-            ['sudo', 'bash'],
-            stdout=slavefd, stderr=slavefd, stdin=slavefd)
+
+        if os.environ['USER'] == 'root':
+            command = ['bash']
+        else:
+            command = ['sudo', 'bash']
+
+        self.proc = sp.Popen(command, stdout=slavefd, stderr=slavefd, stdin=slavefd)
 
         text = oswriteall(
             masterfd,
@@ -242,7 +246,7 @@ class ydotoold(object):
                     oswriteall(masterfd, b'pid=$!\n')
                     self.thread = threading.Thread(
                         target=forward,
-                        args=[OSRead(masterfd), Ignore()])
+                        args=[OSRead(masterfd), None if self.verbose else Ignore()])
                     self.thread.start()
                     self.masterfd = masterfd
                     return
@@ -260,15 +264,17 @@ class ydotoold(object):
             oswriteall(
                 self.masterfd,
                 'kill ${{pid}}\nrm "{}"\nexit\n'.format(self.path).encode('utf-8'))
-            self.thread.join()
             os.close(self.masterfd)
+            self.thread.join()
             self.masterfd = None
 
 class Bash(object):
-    def __init__(self, sudo=False, stdout=None, stderr=None):
+    def __init__(self, sudo=None, stdout=None, stderr=None):
         """Initialize bash process."""
         self.stdout = stdout
         self.stderr = stderr
+        if sudo is None:
+            sudo = os.environ['USER'] != 'root'
         self.sudo = sudo
         self.proc = None
         self.bashin = None
