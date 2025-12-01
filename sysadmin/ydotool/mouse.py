@@ -71,17 +71,41 @@ class Macro(object):
             r.title('macro')
             r.wait_window()
 
+def parse_time(timespec):
+    """Parse time as seconds."""
+    if timespec:
+        parts = timespec.split(':')
+        if len(parts) == 1:
+            return int(parts[0]) * 60
+        elif len(parts) == 2:
+            return int(parts[0])*3600 + int(parts[1])*60
+        else:
+            return (
+                int(parts[0])*3600
+                + int(parts[1])*60
+                + int(parts[2]))
+    else:
+        return 0
 
 def run(args, ydotool):
     if args.record:
         Macro(ydotool).run()
     else:
-        pass
+        delay = parse_time(args.repeat)
+        with open(args, 'r') as f:
+            lines = f.readlines()
+        while 1:
+            if delay:
+                time.sleep(delay)
+            else:
+                return
+
 
 if __name__ == '__main__':
     p = argparse.ArgumentParser()
     p.add_argument('-r', '--record', help='record a script.', action='store_true')
     p.add_argument('-i', '--input', help='input file.')
+    p.add_argument('--repeat', type=int, default = '', help='repeat delay, HH:MM:SS')
     args = p.parse_args()
 
     with ydo.ydotoold() as d:

@@ -315,8 +315,11 @@ class Bash(object):
         return self.proc is not None and self.proc.poll() is None
 
     def __call__(self, *args, **kwargs):
-        print(*args, **kwargs, file=self.bashin)
-        self.bashin.flush()
+        try:
+            print(*args, **kwargs, file=self.bashin)
+            self.bashin.flush()
+        except Exception:
+            traceback.print_exc()
 
 
 class ydotool(object):
