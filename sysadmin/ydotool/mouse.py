@@ -3,6 +3,7 @@ import time
 import tkinter as tk
 import sys
 import traceback
+import ast
 
 import ydo
 
@@ -151,7 +152,7 @@ def parse_time(timespec):
     if timespec:
         parts = timespec.split(':')
         if len(parts) == 1:
-            return float(parts[0]) * 60
+            return float(parts[0])
         elif len(parts) == 2:
             return float(parts[0])*3600 + float(parts[1])*60
         else:
@@ -188,6 +189,12 @@ def run(args, ydotool):
                         delay = int(parts[3]) / 1000.0
                         time.sleep(delay)
                         ydotool.move(x, y, 'br', 0)
+                    elif parts[0] == 'type':
+                        remainder = line.split(None, 1)[-1]
+                        text = remainder.rsplit(None, 1)[0]
+                        delay = int(parts[-1]) / 1000.0
+                        time.sleep(delay)
+                        ydotool.type(ast.literal_eval(text))
                     else:
                         print('Unsupported command:', line)
                 if repdelay:
