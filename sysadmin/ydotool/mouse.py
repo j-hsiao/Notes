@@ -8,8 +8,9 @@ import ydo
 
 class Macro(object):
     """Class for outputting macro sequence."""
-    def __init__(self, ydotool):
-        self.ydotool = ydotool
+    def __init__(self):
+        self.ydotool = None
+        self.file = None
         self.x = None
         self.y = None
         self.t = None
@@ -24,6 +25,7 @@ class Macro(object):
         click delay(ms)
         """
         print('click', int(t) - self.t)
+        print('click', int(t) - self.t, file=self.file)
         self.t = int(t)
 
     def parse_state(self, state, keysym):
@@ -45,6 +47,7 @@ class Macro(object):
                 return
             if self.kstate.get(keysym, None) is None:
                 print('keydown', '-'.join(self.parse_state(int(state), keysym)), int(t)-self.t)
+                print('keydown', '-'.join(self.parse_state(int(state), keysym)), int(t)-self.t, file=self.file)
                 self.t = int(t)
             self.kstate[keysym] = 1
         except Exception:
@@ -60,6 +63,7 @@ class Macro(object):
             self.r.update()
             if not self.kstate[keysym]:
                 print('keyup', '-'.join(self.parse_state(int(state), keysym)), int(t)-self.t)
+                print('keyup', '-'.join(self.parse_state(int(state), keysym)), int(t)-self.t, file=self.file)
                 self.kstate[keysym] = None
                 self.t = int(t)
         except Exception:
@@ -72,6 +76,7 @@ class Macro(object):
         """
         if self.t is not None:
             print('move', int(x), int(y), int(t) - self.t)
+            print('move', int(x), int(y), int(t) - self.t, file=self.file)
             self.t = int(t)
 
 
@@ -98,30 +103,48 @@ class Macro(object):
         self.x = int(x)
         self.y = int(y)
 
-    def run(self):
+    class dummyio(object):
+        def write(self, data):
+            return len(data)
+        def flush(self):
+            pass
+        def __enter__(self):
+            return self
+        def __exit__(self, tp, exc, tb):
+            pass
+
+    def run(self, ydotool, out):
         with ydo.NoMouseAccel():
-            self.r = r = self.ydotool.pos.tk
-            t = tk.Toplevel(r)
-            t.bindtags((self.ydotool.pos.tk,) + t.bindtags())
-            r.createcommand('print_click', self.print_click)
-            r.createcommand('print_move', self.print_move)
-            r.createcommand('begin_macro', self.begin_macro)
-            r.createcommand('pause_macro', self.pause_macro)
-            r.createcommand('key_up', self.key_up)
-            r.createcommand('key_down', self.key_down)
+            if out:
+                self.file = open(out, 'w')
+            else:
+                self.file = self.dummyio()
+            self.ydotool = ydotool
+            with self.file:
+                self.r = r = self.ydotool.pos.tk
+                t = tk.Toplevel(r)
+                t.bindtags((self.ydotool.pos.tk,) + t.bindtags())
+                r.createcommand('print_click', self.print_click)
+                r.createcommand('print_move', self.print_move)
+                r.createcommand('begin_macro', self.begin_macro)
+                r.createcommand('pause_macro', self.pause_macro)
+                # r.createcommand('key_up', self.key_up)
+                # r.createcommand('key_down', self.key_down)
 
-            t.bind('<Control-space>', 'print_click %t')
+                t.bind('<Control-space>', 'print_click %t')
 
-            t.bind('<KeyPress>', 'key_down %k %K %s %t')
-            t.bind('<KeyRelease>', 'key_up %k %K %s %t')
+                # t.bind('<KeyPress>', 'key_down %k %K %s %t')
+                # t.bind('<KeyRelease>', 'key_up %k %K %s %t')
 
 
-            t.bind('<B1-Motion>', 'print_move %X %Y %t')
-            t.bind('<ButtonPress-1>', 'begin_macro %X %Y %t')
-            t.bind('<ButtonRelease-1>', 'pause_macro %X %Y')
-            t.bind('<Escape>', 'destroy ' + str(t))
-            t.title('macro')
-            t.wait_window()
+                t.bind('<B1-Motion>', 'print_move %X %Y %t')
+                t.bind('<ButtonPress-1>', 'begin_macro %X %Y %t')
+                t.bind('<ButtonRelease-1>', 'pause_macro %X %Y')
+                t.bind('<Escape>', 'destroy ' + str(t))
+                t.title('macro')
+                t.wait_window()
+            self.file = None
+            self.ydotool = None
 
 def parse_time(timespec):
     """Parse time as seconds."""
@@ -141,22 +164,42 @@ def parse_time(timespec):
 
 def run(args, ydotool):
     if args.record:
-        Macro(ydotool).run()
+        Macro().run(ydotool, args.fname)
     else:
-        delay = parse_time(args.repeat)
-        with open(args, 'r') as f:
-            lines = f.readlines()
-        while 1:
-            if delay:
-                time.sleep(delay)
-            else:
-                return
+        reps = 0
+        with ydo.NoMouseAccel():
+            repdelay = parse_time(args.repeat)
+            print('repeat delay', repdelay)
+            with open(args.fname, 'r') as f:
+                lines = f.readlines()
+            while 1:
+                print('reps:', reps)
+                reps += 1
+                for lno, line in enumerate(lines):
+                    print(lno, '/', len(lines), ':', line.strip())
+                    parts = line.strip().split()
+                    if parts[0] == 'click':
+                        delay = int(parts[1]) / 1000.0
+                        time.sleep(delay)
+                        ydotool.click()
+                    elif parts[0] == 'move':
+                        x = int(parts[1])
+                        y = int(parts[2])
+                        delay = int(parts[3]) / 1000.0
+                        time.sleep(delay)
+                        ydotool.move(x, y, 'br', 0)
+                    else:
+                        print('Unsupported command:', line)
+                if repdelay:
+                    time.sleep(repdelay)
+                else:
+                    return
 
 
 if __name__ == '__main__':
     p = argparse.ArgumentParser()
+    p.add_argument('fname', help='macro file to run or record.')
     p.add_argument('-r', '--record', help='record a script.', action='store_true')
-    p.add_argument('-i', '--input', help='input file.')
     p.add_argument(
         '--repeat', default = '', help='repeat delay, SS, HH:MM, or HH:MM:SS (each can be float)'
     )

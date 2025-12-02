@@ -124,7 +124,6 @@ class MousePosition(object):
         self.close()
 
     def hide(self):
-        self.tk.attributes('-fullscreen', False)
         with self.lock:
             self._pos = self.tk.winfo_pointerxy()
             if self.verbose:
@@ -144,7 +143,7 @@ class MousePosition(object):
         the mouse is within the window allowing reading its position.
         """
         self.tk.deiconify()
-        self.tk.attributes('-topmost', True, '-fullscreen', True)
+        r.attributes('-topmost', True, '-fullscreen', True)
         self.tk.wait_variable(self.step)
         return self.pos()
 
@@ -218,7 +217,7 @@ class ydotoold(object):
         if os.environ['USER'] == 'root':
             command = ['bash']
         else:
-            print('ydotoold sudo')
+            print('ydotoold sudo', file=sys.stderr)
             command = ['sudo', 'bash']
 
         self.proc = sp.Popen(command, stdout=slavefd, stderr=slavefd, stdin=slavefd)
@@ -286,7 +285,7 @@ class Bash(object):
         if self.proc is not None:
             return
         if self.sudo:
-            print('bash sudo')
+            print('bash sudo', file=sys.stderr)
             command = ['sudo', 'bash']
         else:
             command = ['bash']
