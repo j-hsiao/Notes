@@ -17,6 +17,7 @@ import queue
 import pty
 import select
 import traceback
+import sys
 
 threading.Thread()
 
@@ -127,7 +128,7 @@ class MousePosition(object):
         with self.lock:
             self._pos = self.tk.winfo_pointerxy()
             if self.verbose:
-                print('\tmeasured mouse', self._pos)
+                print('\tmeasured mouse', self._pos, file=sys.stderr)
         self.step.set(self.step.get()+1)
         self.tk.withdraw()
 
@@ -217,6 +218,7 @@ class ydotoold(object):
         if os.environ['USER'] == 'root':
             command = ['bash']
         else:
+            print('ydotoold sudo')
             command = ['sudo', 'bash']
 
         self.proc = sp.Popen(command, stdout=slavefd, stderr=slavefd, stdin=slavefd)
@@ -234,13 +236,13 @@ class ydotoold(object):
                 buf.write(result)
                 if self.verbose:
                     try:
-                        print(decoder.decode(result), end='')
+                        print(decoder.decode(result), end='', file=sys.stderr)
                     except Exception:
                         pass
                 if b'READY' in buf.getvalue():
                     if self.verbose:
                         try:
-                            print(decoder.decode(b'', final=True))
+                            print(decoder.decode(b'', final=True), file=sys.stderr)
                         except Exception:
                             pass
                     oswriteall(masterfd, b'pid=$!\n')
@@ -284,6 +286,7 @@ class Bash(object):
         if self.proc is not None:
             return
         if self.sudo:
+            print('bash sudo')
             command = ['sudo', 'bash']
         else:
             command = ['bash']
@@ -339,7 +342,7 @@ class ydotool(object):
     def open(self, stdout=None, stderr=None):
         if self.bash is not None:
             return
-        self.bash = Bash(True, stdout=stdout, stderr=stderr)
+        self.bash = Bash(stdout=stdout, stderr=stderr)
         if self.noaccel is not None:
             self.noaccel.push()
         self.pos = MousePosition()
@@ -759,7 +762,7 @@ class Mouse(object):
                 buf.write(result)
                 if verbose:
                     try:
-                        print(result.decode('utf-8'), end='')
+                        print(result.decode('utf-8'), end='', file=sys.stderr)
                     except ValueError:
                         pass
 
@@ -820,13 +823,13 @@ class Mouse(object):
         """
         geom = self.tk.winfo_geometry()
         if self.verbose:
-            print('configuring...', time.time(), end='\r\n')
+            print('configuring...', time.time(), end='\r\n', file=sys.stderr)
         if geom == self.fullscreen:
             # full screen achieved.
             # However, at this point, the pointer seems like
             # it is still not yet properly updated.
             if self.verbose:
-                print('schedule non-fullscreen', end='\r\n')
+                print('schedule non-fullscreen', end='\r\n', file=sys.stderr)
             self.pos = None
             self.tk.call(
                 'after', '100',
