@@ -163,6 +163,18 @@ def parse_time(timespec):
     else:
         return 0
 
+def sleep(t):
+    if t > 1:
+        while t:
+            print('\rsleeping', t, end='\x1b[K', flush=True)
+            time.sleep(min(1, t))
+            t = max(0, t-1)
+        print()
+    else:
+        time.sleep(t)
+
+
+
 def run(args, ydotool):
     if args.record:
         Macro().run(ydotool, args.fname)
@@ -181,24 +193,24 @@ def run(args, ydotool):
                     parts = line.strip().split()
                     if parts[0] == 'click':
                         delay = int(parts[1]) / 1000.0
-                        time.sleep(delay)
+                        sleep(delay)
                         ydotool.click()
                     elif parts[0] == 'move':
                         x = int(parts[1])
                         y = int(parts[2])
                         delay = int(parts[3]) / 1000.0
-                        time.sleep(delay)
+                        sleep(delay)
                         ydotool.move(x, y, 'br', 0)
                     elif parts[0] == 'type':
                         remainder = line.split(None, 1)[-1]
                         text = remainder.rsplit(None, 1)[0]
                         delay = int(parts[-1]) / 1000.0
-                        time.sleep(delay)
+                        sleep(delay)
                         ydotool.type(ast.literal_eval(text))
                     else:
                         print('Unsupported command:', line)
                 if repdelay:
-                    time.sleep(repdelay)
+                    sleep(repdelay)
                 else:
                     return
 
