@@ -11,6 +11,7 @@ import subprocess as sp
 import getpass
 import io
 import time
+import shlex
 import os
 import threading
 import queue
@@ -265,6 +266,12 @@ class ydotoold(object):
             oswriteall(
                 self.masterfd,
                 'kill ${{pid}}\nrm "{}"\nexit\n'.format(self.path).encode('utf-8'))
+            for i in range(10):
+                if self.proc.poll() is not None:
+                    break
+                time.sleep(1)
+            else:
+                self.proc.terminate()
             os.close(self.masterfd)
             self.thread.join()
             self.masterfd = None
@@ -650,6 +657,9 @@ class ydotool(object):
     }
     def keys(arg):
         pass
+
+    def type(self, text, nextdelay=0, keydelay=12):
+        self.bash('ydotool type',  shlex.quote(text))
 
 
     LEFT = 0x00
