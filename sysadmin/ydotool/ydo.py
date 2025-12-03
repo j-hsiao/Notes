@@ -28,7 +28,18 @@ class Ignore(object):
     def flush(self):
         pass
 
+class ToStderr(object):
+    def __init__(self, decoder):
+        self.decoder = decoder
+    def write(self, data):
+        print(self.decoder.decode(data), end='', file=sys.stderr)
+        return len(data)
+    def flush(self):
+        pass
+
 def oswriteall(fd, text):
+    if isinstance(text, str):
+        text = text.encode('utf-8')
     view = memoryview(text)
     total = 0
     target = len(text)
@@ -214,25 +225,34 @@ class ydotoold(object):
         # such as from sudo, when the process should be
         # closed.  (root permissions might be needed to
         # cleanup the socket.)
+        # Must use openpty or ydotoold will have no output,
+        # cannot tell if it is ready or not.
 
         if os.environ['USER'] == 'root':
             command = ['bash']
         else:
-            print('ydotoold sudo', file=sys.stderr)
             command = ['sudo', 'bash']
 
         self.proc = sp.Popen(command, stdout=slavefd, stderr=slavefd, stdin=slavefd)
-
-        text = oswriteall(
-            masterfd,
-            'ydotoold -p "{}" &\n'.format(self.path).encode('utf-8'))
-
         os.close(slavefd)
+
+        qpath = shlex.quote(self.path)
+        script = (
+                'trap "" SIGINT\n'
+                'ydotoold -p {} &\n'
+                'pid=$!\n'
+                'trap "kill ${{pid}}; rm "{} EXIT\n'
+                'wait ${{pid}}\n'
+                'exit\n'
+            ).format(qpath, shlex.quote(qpath))
         with io.BytesIO() as buf:
             if self.verbose:
                 decoder = codecs.getincrementaldecoder('utf-8')()
-            while 1:
-                result = os.read(masterfd, io.DEFAULT_BUFFER_SIZE)
+            while self.proc.poll() is None:
+                try:
+                    result = os.read(masterfd, io.DEFAULT_BUFFER_SIZE)
+                except IOError:
+                    continue
                 buf.write(result)
                 if self.verbose:
                     try:
@@ -240,18 +260,13 @@ class ydotoold(object):
                     except Exception:
                         pass
                 if b'READY' in buf.getvalue():
-                    if self.verbose:
-                        try:
-                            print(decoder.decode(b'', final=True), file=sys.stderr)
-                        except Exception:
-                            pass
-                    oswriteall(masterfd, b'pid=$!\n')
                     self.thread = threading.Thread(
                         target=forward,
-                        args=[OSRead(masterfd), None if self.verbose else Ignore()])
+                        args=[OSRead(masterfd), ToStderr(decoder) if self.verbose else Ignore()])
                     self.thread.start()
                     self.masterfd = masterfd
                     return
+            raise RuntimeError('ydotoold exited before ready.')
 
     def __enter__(self):
         self.open()
@@ -263,15 +278,8 @@ class ydotoold(object):
 
     def close(self):
         if self.masterfd is not None:
-            oswriteall(
-                self.masterfd,
-                'kill ${{pid}}\nrm "{}"\nexit\n'.format(self.path).encode('utf-8'))
-            for i in range(10):
-                if self.proc.poll() is not None:
-                    break
-                time.sleep(1)
-            else:
-                self.proc.terminate()
+            self.proc.terminate()
+            self.proc.wait()
             os.close(self.masterfd)
             self.thread.join()
             self.masterfd = None
@@ -292,7 +300,6 @@ class Bash(object):
         if self.proc is not None:
             return
         if self.sudo:
-            print('bash sudo', file=sys.stderr)
             command = ['sudo', 'bash']
         else:
             command = ['bash']
@@ -301,15 +308,33 @@ class Bash(object):
             stdout=self.stdout,
             stderr=self.stderr)
         self.bashin = io.TextIOWrapper(self.proc.stdin)
+        self('trap "" SIGINT')
+
     def close(self):
         if self.proc is None:
             return
-        self('exit')
         # proc.wait uses os.waitpid, but it seems like if
         # __del__ is called due to interpreter exit, then
         # os.waitpid might have been set to None causing
         # an error.
-        self.proc.wait()
+        try:
+            self('exit')
+            for i in range(3):
+                if self.proc.poll() is not None:
+                    break
+                time.sleep(1)
+            else:
+                self.proc.terminate()
+        except IOError:
+            traceback.print_exc()
+        try:
+            self.proc.wait()
+        except Exception:
+            traceback.print_exc()
+        try:
+            self.bashin.close()
+        except Exception:
+            traceback.print_exc()
         self.proc = None
 
     def __enter__(self):
@@ -352,7 +377,7 @@ class ydotool(object):
         if self.noaccel is not None:
             self.noaccel.push()
         self.pos = MousePosition()
-        self.bash('export YDOTOOL_SOCKET="{}"'.format(self.sockpath))
+        self.bash('export YDOTOOL_SOCKET={}'.format(shlex.quote(self.sockpath)))
     def close(self):
         if self.bash is None:
             return
