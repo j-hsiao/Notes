@@ -206,7 +206,6 @@ class ydotoold(object):
             sock = f'/dev/shm/{os.environ["USER"]}_ydo.sock'
         self.verbose = verbose
         self.path = sock
-        self.masterfd = None
         self.proc = None
         self.thread = None
         self.open()
@@ -217,40 +216,32 @@ class ydotoold(object):
 
     def open(self):
         """Open ydotoold process if needed."""
-        if self.masterfd is not None:
+        if self.proc is not None:
             return
-        masterfd, slavefd = pty.openpty()
-        # Use a bash process to start ydotoold
-        # so that bash will still have root permissions
-        # such as from sudo, when the process should be
-        # closed.  (root permissions might be needed to
-        # cleanup the socket.)
-        # Must use openpty or ydotoold will have no output,
-        # cannot tell if it is ready or not.
 
         if os.environ['USER'] == 'root':
             command = ['bash']
         else:
             command = ['sudo', 'bash']
 
-        self.proc = sp.Popen(command, stdout=slavefd, stderr=slavefd, stdin=slavefd)
-        os.close(slavefd)
+        proc = sp.Popen(
+            command, stdout=sp.PIPE, stdin=sp.PIPE, bufsize=0)
 
         qpath = shlex.quote(self.path)
         script = (
                 'trap "" SIGINT\n'
-                'ydotoold -p {} &\n'
+                'stdbuf -oL ydotoold -p {}&\n'
                 'pid=$!\n'
                 'trap "kill ${{pid}}; rm "{} EXIT\n'
-                'wait ${{pid}}\n'
-                'exit\n'
             ).format(qpath, shlex.quote(qpath))
+        proc.stdin.write(script.encode('utf-8'))
+        proc.stdin.flush()
         with io.BytesIO() as buf:
             if self.verbose:
                 decoder = codecs.getincrementaldecoder('utf-8')()
-            while self.proc.poll() is None:
+            while proc.poll() is None:
                 try:
-                    result = os.read(masterfd, io.DEFAULT_BUFFER_SIZE)
+                    result = proc.stdout.read(io.DEFAULT_BUFFER_SIZE)
                 except IOError:
                     continue
                 buf.write(result)
@@ -262,9 +253,9 @@ class ydotoold(object):
                 if b'READY' in buf.getvalue():
                     self.thread = threading.Thread(
                         target=forward,
-                        args=[OSRead(masterfd), ToStderr(decoder) if self.verbose else Ignore()])
+                        args=[proc.stdout, ToStderr(decoder) if self.verbose else Ignore()])
                     self.thread.start()
-                    self.masterfd = masterfd
+                    self.proc = proc
                     return
             raise RuntimeError('ydotoold exited before ready.')
 
@@ -277,12 +268,14 @@ class ydotoold(object):
         self.close()
 
     def close(self):
-        if self.masterfd is not None:
-            self.proc.terminate()
-            self.proc.wait()
-            os.close(self.masterfd)
-            self.thread.join()
-            self.masterfd = None
+        if self.proc is not None:
+            try:
+                self.proc.communicate(b'exit\n')
+                self.thread.join()
+            except Exception:
+                print('ydotoold bash proc was ', self.proc.pid, file=sys.stderr)
+                traceback.print_exc()
+            self.proc = None
 
 class Bash(object):
     def __init__(self, sudo=None, stdout=None, stderr=None):
