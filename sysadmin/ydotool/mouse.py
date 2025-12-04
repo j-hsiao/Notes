@@ -4,8 +4,13 @@ import tkinter as tk
 import sys
 import traceback
 import ast
+import select
 
 import ydo
+
+def eprint(*args, **kwargs):
+    kwargs.setdefault('file', sys.stderr)
+    print(*args, **kwargs)
 
 class Macro(object):
     """Class for outputting macro sequence."""
@@ -44,7 +49,7 @@ class Macro(object):
         """Mouse button down."""
         try:
             if self.ignore(keysym):
-                print('ignored down', keysym, file=sys.stderr)
+                eprint('ignored down', keysym)
                 return
             if self.kstate.get(keysym, None) is None:
                 print('keydown', '-'.join(self.parse_state(int(state), keysym)), int(t)-self.t)
@@ -58,7 +63,7 @@ class Macro(object):
         """Mouse button up."""
         try:
             if self.ignore(keysym):
-                print('ignored release', keysym, file=sys.stderr)
+                eprint('ignored release', keysym)
                 return
             self.kstate[keysym] = 0
             self.r.update()
@@ -86,7 +91,7 @@ class Macro(object):
 
         Use ydotool to warp mouse into the last released position.
         """
-        print('resume', x, y, t, file=sys.stderr)
+        eprint('resume', x, y, t)
         if self.x is None:
             self.x = int(x)
             self.y = int(y)
@@ -100,7 +105,7 @@ class Macro(object):
 
     def pause_macro(self, x, y):
         """Pause mouse recording."""
-        print('pause', x, y, file=sys.stderr)
+        eprint('pause', x, y)
         self.x = int(x)
         self.y = int(y)
 
@@ -163,16 +168,59 @@ def parse_time(timespec):
     else:
         return 0
 
-def sleep(t):
-    if t > 1:
-        while t:
-            print('\rsleeping', t, end='\x1b[K', flush=True)
-            time.sleep(min(1, t))
-            t = max(0, t-1)
-        print()
-    else:
-        time.sleep(t)
 
+def handle_input():
+    """Handle input
+
+    Return (elapsed_seconds, quit?)
+    """
+    now = time.time()
+    ncmd = 0
+    while True:
+        cmd = input()
+        if not cmd:
+            if ncmd:
+                cmd = 'help'
+            else:
+                eprint('paused')
+        if cmd == 'help':
+            eprint('c: continue')
+            eprint('quit: quit')
+        elif cmd == 'c':
+            return time.time() - now, False
+        elif cmd == 'quit':
+            return time.time() - now, True
+        elif cmd:
+            eprint('unrecognized command:', cmd)
+        ncmd += 1
+
+def sleep(t, period=1):
+    """Wait on stdin while sleeping and print sleep progress.
+
+    t: float, sleep duration (seconds).
+    period: update period, default 1 second.
+            If t < period, then no progress will be printed.
+
+    Return True if quit.
+    """
+    if t > period:
+        clear_to_end = '\x1b[K'
+        while t:
+            eprint('\rsleeping', t, end=clear_to_end, flush=True)
+            if select.select([sys.stdin], (), (), min(period, t))[0]:
+                elapsed, end = handle_input()
+                if end:
+                    return True
+                t = max(0, t - elapsed)
+                continue
+            t = max(0, t-period)
+        eprint('\r', end=clear_to_end)
+    else:
+        if select.select([sys.stdin], (), (), t)[0]:
+            elapsed, end = handle_input()
+            if end:
+                return True
+            t = max(0, t - elapsed)
 
 
 def run(args, ydotool):
@@ -182,35 +230,39 @@ def run(args, ydotool):
         reps = 0
         with ydo.NoMouseAccel():
             repdelay = parse_time(args.repeat)
-            print('repeat delay', repdelay)
+            eprint('repeat delay', repdelay)
             with open(args.fname, 'r') as f:
                 lines = f.readlines()
             while 1:
-                print('reps:', reps)
+                eprint('reps:', reps)
                 reps += 1
                 for lno, line in enumerate(lines):
-                    print(lno, '/', len(lines), ':', line.strip())
+                    eprint(lno, '/', len(lines), ':', line.strip())
                     parts = line.strip().split()
                     if parts[0] == 'click':
                         delay = int(parts[1]) / 1000.0
-                        sleep(delay)
+                        if sleep(delay):
+                            return
                         ydotool.click()
                     elif parts[0] == 'move':
                         x = int(parts[1])
                         y = int(parts[2])
                         delay = int(parts[3]) / 1000.0
-                        sleep(delay)
+                        if sleep(delay):
+                            return
                         ydotool.move(x, y, 'br', 0)
                     elif parts[0] == 'type':
                         remainder = line.split(None, 1)[-1]
                         text = remainder.rsplit(None, 1)[0]
                         delay = int(parts[-1]) / 1000.0
-                        sleep(delay)
+                        if sleep(delay):
+                            return
                         ydotool.type(ast.literal_eval(text))
                     else:
-                        print('Unsupported command:', line)
+                        eprint('Unsupported command:', line)
                 if repdelay:
-                    sleep(repdelay)
+                    if sleep(repdelay):
+                        return
                 else:
                     return
 
