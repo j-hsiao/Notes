@@ -6,19 +6,19 @@ Notes on sudo:
     Once the process is started, then there's no need for anymore sudo.
 """
 import codecs
-import tkinter as tk
-import subprocess as sp
 import getpass
 import io
-import time
-import shlex
 import os
-import threading
-import queue
 import pty
 import select
-import traceback
+import shlex
+import subprocess as sp
 import sys
+import textwrap
+import threading
+import time
+import tkinter as tk
+import traceback
 
 threading.Thread()
 
@@ -29,8 +29,8 @@ class Ignore(object):
         pass
 
 class ToStderr(object):
-    def __init__(self, decoder):
-        self.decoder = decoder
+    def __init__(self):
+        self.decoder = codecs.getincrementaldecoder('utf-8')()
     def write(self, data):
         print(self.decoder.decode(data), end='', file=sys.stderr)
         return len(data)
@@ -79,34 +79,26 @@ class OSRead(object):
 
 def forward(src, dst):
     """Forward data from src to dst."""
-    if dst is None:
-        dec = codecs.getincrementaldecoder('utf-8')()
-
     buf = bytearray(io.DEFAULT_BUFFER_SIZE)
     view = memoryview(buf)
-    while 1:
-        amt = src.readinto(buf)
-        if amt == 0:
-            if dst is None:
-                print(dec.decode(b'', final=True), end='')
-            else:
-                dst.flush()
-            return
-        if dst is None:
-            print(dec.decode(buf[:amt]), end='')
-        else:
-            total = 0
-            while total < amt:
-                total += dst.write(view[total:amt])
+    amt = src.readinto(buf)
+    while amt:
+        total = 0
+        while total < amt:
+            total += dst.write(view[total:amt])
+    dst.flush()
 
 class MousePosition(object):
     """Use tkinter window to track mouse position."""
 
     HIDE_CMD = 'hide_mouse_position_reader'
+    HOLD_CMD = 'hold_mouse_position_reader'
+    RELEASE_CMD = 'release_mouse_position_reader'
     def __init__(self, verbose=False):
         self.verbose = verbose
         self.lock = threading.Lock()
-        self._pos = (0,0)
+        self.updated = 0
+        self.held = 0
         self.tk, self.step, self.W, self.H = self.open()
 
     def open(self):
@@ -118,8 +110,25 @@ class MousePosition(object):
         r.attributes('-topmost', True, '-fullscreen', True)
         r.withdraw()
         r.createcommand(self.HIDE_CMD, self.hide)
+        r.createcommand(self.HOLD_CMD, self.holdmouse)
+        r.createcommand(self.RELEASE_CMD, self.releasemouse)
         r.bind('<Motion>', self.HIDE_CMD)
-        return r, tk.IntVar(r), r.winfo_screenwidth(), r.winfo_screenheight()
+        r.bind('<Button-1>', self.HOLD_CMD)
+        r.bind('<ButtonRelease-1>', self.RELEASE_CMD)
+        return r, tk.IntVar(r, 0), r.winfo_screenwidth(), r.winfo_screenheight()
+
+    def holdmouse(self):
+        """Track current mouse state."""
+        with self.lock:
+            self.held = 1
+        if self.verbose:
+            eprint('hold')
+    def releasemouse(self):
+        """Track current mouse state."""
+        with self.lock:
+            self.held = 0
+        if self.verbose:
+            eprint('release')
 
     def close(self):
         if getattr(self, 'tk', None) is not None:
@@ -137,25 +146,32 @@ class MousePosition(object):
 
     def hide(self):
         with self.lock:
-            self._pos = self.tk.winfo_pointerxy()
-            if self.verbose:
-                print('\tmeasured mouse', self._pos, file=sys.stderr)
-        self.step.set(self.step.get()+1)
+            self.updated = True
+        if self.verbose:
+            print('updated mouse position.')
+        self.step.set(1)
         self.tk.withdraw()
 
     def pos(self):
         """Get currently stored mouse position."""
         with self.lock:
-            return self._pos
+            self.updated = False
+            return self.tk.winfo_pointerxy()
 
-    def readmouse(self, *args):
-        """Read the current mouse position.
+    def readmouse(self, force=True):
+        """Read the current mouse position (if not already updated).
 
         This temporarily sets the tk window to fullscren to ensure that
         the mouse is within the window allowing reading its position.
+
+        force: force updating mouse position (ignored if mouse is currently held.)
         """
+        with self.lock:
+            if self.held or (not force and self.updated):
+                self.updated = False
+                return self.tk.winfo_pointerxy()
         self.tk.deiconify()
-        r.attributes('-topmost', True, '-fullscreen', True)
+        # self.tk.attributes('-topmost', True, '-fullscreen', True)
         self.tk.wait_variable(self.step)
         return self.pos()
 
@@ -186,18 +202,64 @@ class NoMouseAccel(object):
         except IndexError:
             pass
         return self
+    def close(self):
+        while self.accel:
+            self.pop()
     def __enter__(self):
         self.push()
         return self
     def __exit__(self, tp, exc, tb):
         self.pop()
     def __del__(self):
-        while self.accel:
-            self.pop()
+        self.close()
+
+def readtil(f, target, bufsize=io.DEFAULT_BUFFER_SIZE, out=None):
+    """Read file until target is found.
+
+    f: the file to read from.
+    target: The target bytes to search for.
+    bufsize: The buffersize to use.
+    out: output if buffer is filled but target not found.
+
+    Return (index, buf, total)
+        index: the index where target is found.
+        buf: the buffer.
+        total: the total number of bytes read.
+    """
+    buf = bytearray(max(bufsize, len(target)))
+    view = memoryview(buf)
+    total = 0
+    amt = f.readinto(view)
+    minwin = len(target) - 1
+    while amt:
+        searchstart = max(0, total - minwin)
+        total += amt
+        idx = buf.find(target, searchstart, total)
+        if idx >= 0:
+            return idx, buf, total
+        elif total == len(buf):
+            if out is not None:
+                out.write(view[:-minwin])
+            view[:minwin] = view[-minwin:]
+            total = minwin
+        amt = f.readinto(view[total:])
+    return -1, buf, total
+
 
 class ydotoold(object):
     """Context manager for the ydotoold daemon."""
-    def __init__(self, sock=None, verbose=True):
+
+    SCRIPT = textwrap.dedent('''
+        trap '' SIGINT
+        stdbuf -oL ydotoold -p {0} &
+        pid=$!
+        trap "kill $pid; rm "{1} EXIT
+        wait $pid
+        trap '' EXIT
+        rm {0}
+        ''')
+
+    def __init__(self, sock=None, verbose=False):
         """Initialize ydotoold.
 
         sock: The socket path for ydotoold.
@@ -218,46 +280,26 @@ class ydotoold(object):
         """Open ydotoold process if needed."""
         if self.proc is not None:
             return
-
-        if os.environ['USER'] == 'root':
-            command = ['bash']
-        else:
-            command = ['sudo', 'bash']
-
-        proc = sp.Popen(
-            command, stdout=sp.PIPE, stdin=sp.PIPE, bufsize=0)
-
+        command = []
+        if os.environ['USER'] != 'root':
+            command.append('sudo')
+        command.extend(('bash', '-c'))
         qpath = shlex.quote(self.path)
-        script = (
-                'trap "" SIGINT\n'
-                'stdbuf -oL ydotoold -p {}&\n'
-                'pid=$!\n'
-                'trap "kill ${{pid}}; rm "{} EXIT\n'
-            ).format(qpath, shlex.quote(qpath))
-        proc.stdin.write(script.encode('utf-8'))
-        proc.stdin.flush()
-        with io.BytesIO() as buf:
-            if self.verbose:
-                decoder = codecs.getincrementaldecoder('utf-8')()
-            while proc.poll() is None:
-                try:
-                    result = proc.stdout.read(io.DEFAULT_BUFFER_SIZE)
-                except IOError:
-                    continue
-                buf.write(result)
-                if self.verbose:
-                    try:
-                        print(decoder.decode(result), end='', file=sys.stderr)
-                    except Exception:
-                        pass
-                if b'READY' in buf.getvalue():
-                    self.thread = threading.Thread(
-                        target=forward,
-                        args=[proc.stdout, ToStderr(decoder) if self.verbose else Ignore()])
-                    self.thread.start()
-                    self.proc = proc
-                    return
-            raise RuntimeError('ydotoold exited before ready.')
+        command.append(self.SCRIPT.format(qpath, shlex.quote(qpath)))
+        proc = sp.Popen(command, stdout=sp.PIPE, bufsize=0)
+        if self.verbose:
+            out = ToStderr()
+        else:
+            out = Ignore()
+        idx, buf, total = readtil(proc.stdout, b'READY', out=out)
+        if idx < 0:
+            raise RuntimeError('ydotoold exited without READY.')
+        out.write(memoryview(buf)[:total])
+        self.thread = threading.Thread(
+            target=forward, args=[proc.stdout, out])
+        self.thread.start()
+        self.proc = proc
+        return
 
     def __enter__(self):
         self.open()
@@ -270,7 +312,7 @@ class ydotoold(object):
     def close(self):
         if self.proc is not None:
             try:
-                self.proc.communicate(b'exit\n')
+                self.proc.terminate()
                 self.thread.join()
             except Exception:
                 print('ydotoold bash proc was ', self.proc.pid, file=sys.stderr)
@@ -278,28 +320,21 @@ class ydotoold(object):
             self.proc = None
 
 class Bash(object):
-    def __init__(self, sudo=None, stdout=None, stderr=None):
+    def __init__(self, sudo=False, stdout=sp.DEVNULL, stderr=sp.DEVNULL):
         """Initialize bash process."""
-        self.stdout = stdout
-        self.stderr = stderr
-        if sudo is None:
-            sudo = os.environ['USER'] != 'root'
-        self.sudo = sudo
         self.proc = None
         self.bashin = None
-        self.open()
+        self.open(sudo, stdout, stderr)
 
-    def open(self):
+    def open(self, sudo=False, sdtout=sp.DEVNULL, stderr=sp.DEVNULL):
         if self.proc is not None:
             return
-        if self.sudo:
+        if sudo:
             command = ['sudo', 'bash']
         else:
             command = ['bash']
         self.proc = sp.Popen(
-            command, stdin=sp.PIPE,
-            stdout=self.stdout,
-            stderr=self.stderr)
+            command, stdin=sp.PIPE, stdout=self.stdout, stderr=self.stderr)
         self.bashin = io.TextIOWrapper(self.proc.stdin)
         self('trap "" SIGINT')
 
@@ -312,6 +347,7 @@ class Bash(object):
         # an error.
         try:
             self('exit')
+            time.sleep(0.1)
             for i in range(3):
                 if self.proc.poll() is not None:
                     break
@@ -351,7 +387,7 @@ class Bash(object):
 
 class ydotool(object):
     """Ydotool commands through a bash process."""
-    def __init__(self, sockpath=None, stdout=None, stderr=None, noaccel=False):
+    def __init__(self, sockpath=None, stdout=sp.DEVNULL, stderr=sp.DEVNULL, noaccel=False):
         self.bash = None
         self.pos = None
         if noaccel:
@@ -366,7 +402,7 @@ class ydotool(object):
     def open(self, stdout=None, stderr=None):
         if self.bash is not None:
             return
-        self.bash = Bash(stdout=stdout, stderr=stderr)
+        self.bash = Bash(os.environ['USER'] != 'root', stdout=stdout, stderr=stderr)
         if self.noaccel is not None:
             self.noaccel.push()
         self.pos = MousePosition()
@@ -375,10 +411,11 @@ class ydotool(object):
         if self.bash is None:
             return
         if self.noaccel is not None:
-            self.noaccel.pop()
+            self.noaccel.close()
         self.pos.close()
         self.bash.close()
         self.bash = None
+    # TODO maybe read/parse the mapping? ...
     rawkeys = {
         'ESC': 1,
         '1': 2,
@@ -746,6 +783,8 @@ class ydotool(object):
                     ox, oy = cx, cy
                     it = 0
         else:
+            if self.noaccel is None:
+                print('WARNING: unchecked movement without noaccel.', file=sys.stderr)
             if absolute:
                 W, H = self.pos.W, self.pos.H
                 W = (-W, W)['r' in absolute]
@@ -916,7 +955,10 @@ class Mouse(object):
 
 if __name__ == '__main__':
     with MousePosition(True) as m:
-        import time
-        while input() != 'exit':
-            time.sleep(1)
-            print(m.readmouse())
+        t = tk.Toplevel(m.tk)
+        t.title('top')
+        t.bindtags((str(m.tk),) + t.bindtags())
+        t.bind('<space>', lambda e: print(m.readmouse(False)))
+        t.bind('<Return>', lambda e: print(m.readmouse(True)))
+        t.bind('<Escape>', 'destroy '+str(t))
+        t.wait_window()
