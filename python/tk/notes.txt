@@ -741,20 +741,33 @@ ______________________________
 			or else the image will be freed.
 ______________________________
 -2- Bindings
-	Bindings bind callbacks to certain event sequences.
+	Bindings associate some event sequence with a script.
+	They are associated with a bindtag.  Every widget has a bindtag
+	available with widget.bindtags().  (tcl: bindtags widgetname)
+	Bindtags can be set with widget.bindtags((tag1, tag2, tag3...))
+	(tcl: 'bindtags widgetname {tag1 tag2 "tag3 with space" tag4...}')
 
-	Bindings are bound to "bindtags", basically names.  Widgets have a
-	list of bindtags via widget.bindtags()
-		bindtags() = return a tuple of bind tags
-		bindtags((tag1,...)) = set the bindtags
+	Whenever an event is fired on a widget, its bind tags will be walked
+	through in order.  Any matching bindings associated with that bind
+	tag will be run.
 
-	The bind callback can be a str or a function (no tuples allowed).
-	If str, then all other arguments are completely ignored (add,
-	needcleanup, etc).  As a result, adding to an event sequence rather
-	than overwriting it can only work with functions as is.  In tcl, to
-	add to an event sequence, the script should be prepended with a '+'
-	so if func is a str, it should be prepended with a '+' before passing
-	it to bind() to add rather than overwrite.
+	In Tkinter, widget.bind(seq, func) performs this sequence of actions:
+	1. wrap func to pass it arguments.
+	2. Tk.createcommand('generatedname', wrapped_func)
+	3. Tk.call('bind', widgetname, evseq, 'generatedname %...')
+
+	The Tk.createcommand creates a mapping between a tcl command 'generatedname'
+	and the python function wrapped_func.  In tcl, whenever 'generatedname'
+	is used as a command, any given arguments will then be passed on to wrapped_func
+	in order, as str.  The wrapping accepts these str values, converts them, and
+	then adds them to an Tkinter Event object.
+
+	In Tkinter, the returning 'break' to stop event propagation is handled through the script
+	which is actually in the form of if {"[generatedname args...]" == "break"} break\n
+	Appending to a binding is just generating a new script and appending it to the
+	original script.  Blank lines are ignored.
+
+
 
 	If callback is a function, then the corresponding registered id is
 	returned.  If it is a str, the returnvalue is None.
