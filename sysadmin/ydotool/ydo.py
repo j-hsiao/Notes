@@ -107,6 +107,7 @@ class MousePosition(object):
         Return the root and the screen shape.
         """
         r = tk.Tk()
+        r.geometry('1x1+0+0')
         r.attributes('-topmost', True, '-fullscreen', True)
         r.withdraw()
         r.createcommand(self.HIDE_CMD, self.hide)
@@ -150,6 +151,10 @@ class MousePosition(object):
         if self.verbose:
             print('updated mouse position.')
         self.step.set(1)
+        # Seems like tk.attributes turn on/off fullscreen
+        # is necessary or sometimes mouse event does not fire
+        # after deiconify.
+        self.tk.attributes('-fullscreen', False)
         self.tk.withdraw()
 
     def pos(self):
@@ -171,7 +176,7 @@ class MousePosition(object):
                 self.updated = False
                 return self.tk.winfo_pointerxy()
         self.tk.deiconify()
-        # self.tk.attributes('-topmost', True, '-fullscreen', True)
+        self.tk.attributes('-topmost', True, '-fullscreen', True)
         self.tk.wait_variable(self.step)
         return self.pos()
 
