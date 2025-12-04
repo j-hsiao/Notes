@@ -22,6 +22,10 @@ import traceback
 
 threading.Thread()
 
+def eprint(*args, **kwargs):
+    kwargs.setdefault('file', sys.stderr)
+    print(*args, **kwargs)
+
 class Ignore(object):
     def write(self, data):
         return len(data)
@@ -32,7 +36,7 @@ class ToStderr(object):
     def __init__(self):
         self.decoder = codecs.getincrementaldecoder('utf-8')()
     def write(self, data):
-        print(self.decoder.decode(data), end='', file=sys.stderr)
+        eprint(self.decoder.decode(data), end='')
         return len(data)
     def flush(self):
         pass
@@ -149,7 +153,7 @@ class MousePosition(object):
         with self.lock:
             self.updated = True
         if self.verbose:
-            print('updated mouse position.')
+            eprint('updated mouse position.')
         self.step.set(1)
         # Seems like tk.attributes turn on/off fullscreen
         # is necessary or sometimes mouse event does not fire
@@ -172,11 +176,12 @@ class MousePosition(object):
         force: force updating mouse position (ignored if mouse is currently held.)
         """
         with self.lock:
-            if self.held or (not force and self.updated):
+            if self.updated:
                 self.updated = False
                 return self.tk.winfo_pointerxy()
-        self.tk.deiconify()
-        self.tk.attributes('-topmost', True, '-fullscreen', True)
+        if not self.held:
+            self.tk.deiconify()
+            self.tk.attributes('-topmost', True, '-fullscreen', True)
         self.tk.wait_variable(self.step)
         return self.pos()
 
@@ -320,7 +325,7 @@ class ydotoold(object):
                 self.proc.terminate()
                 self.thread.join()
             except Exception:
-                print('ydotoold bash proc was ', self.proc.pid, file=sys.stderr)
+                eprint('ydotoold bash proc was ', self.proc.pid)
                 traceback.print_exc()
             self.proc = None
 
@@ -331,7 +336,7 @@ class Bash(object):
         self.bashin = None
         self.open(sudo, stdout, stderr)
 
-    def open(self, sudo=False, sdtout=sp.DEVNULL, stderr=sp.DEVNULL):
+    def open(self, sudo=False, stdout=sp.DEVNULL, stderr=sp.DEVNULL):
         if self.proc is not None:
             return
         if sudo:
@@ -339,7 +344,7 @@ class Bash(object):
         else:
             command = ['bash']
         self.proc = sp.Popen(
-            command, stdin=sp.PIPE, stdout=self.stdout, stderr=self.stderr)
+            command, stdin=sp.PIPE, stdout=stdout, stderr=stderr)
         self.bashin = io.TextIOWrapper(self.proc.stdin)
         self('trap "" SIGINT')
 
@@ -392,7 +397,8 @@ class Bash(object):
 
 class ydotool(object):
     """Ydotool commands through a bash process."""
-    def __init__(self, sockpath=None, stdout=sp.DEVNULL, stderr=sp.DEVNULL, noaccel=False):
+    def __init__(self, sockpath=None, stdout=sp.DEVNULL, stderr=sp.DEVNULL, noaccel=False, verbose=False):
+        self.verbose = verbose
         self.bash = None
         self.pos = None
         if noaccel:
@@ -772,15 +778,28 @@ class ydotool(object):
             while 1:
                 it += 1
                 if (cx, cy) == (x,y):
+                    if self.verbose:
+                        eprint('arrived to target')
                     return
                 # Limit the size of movement. If the movement
                 # is too large, it might shoot past due to mouse
                 # acceleration.  It would then ping-pong back and
                 # forth without making any progress.
+                if self.verbose:
+                    eprint(
+                        'target:', (x,y), 'current:', (cx, cy),
+                        'delta',
+                        (min(max(x-cx, -100),100),
+                        min(max(y-cy, -100),100)),
+                    )
+                dx = x-cx
+                dy = y-cy
+                if dx < -1 or 1 < dx:
+                    dx //= 2
+                if dy < -1 or 1 < dy:
+                    dy //= 2
                 self.bash(
-                    'ydotool mousemove -x {} -y {}'.format(
-                        min(max(x-cx, -100),100),
-                        min(max(y-cy, -100),100)))
+                    'ydotool mousemove -x {} -y {}'.format(dx, dy))
                 cx, cy = self.pos.readmouse()
                 if it >= check:
                     if (cx, cy) == (ox, oy):
@@ -789,7 +808,7 @@ class ydotool(object):
                     it = 0
         else:
             if self.noaccel is None:
-                print('WARNING: unchecked movement without noaccel.', file=sys.stderr)
+                eprint('WARNING: unchecked movement without noaccel.')
             if absolute:
                 W, H = self.pos.W, self.pos.H
                 W = (-W, W)['r' in absolute]
@@ -809,154 +828,6 @@ class ydotool(object):
         self.close()
     def __del__(self):
         self.close()
-
-
-class Mouse(object):
-    def __init__(self, sock=f'/dev/shm/{os.environ["USER"]}_ydo.sock', verbose=False):
-        self.verbose = verbose
-        self.ydotoold = None
-        self.bashin = None
-        self.tk = None
-        self.masterfd = None
-        self.threads = []
-        self.mouseaccel = sp.check_output(['gsettings', 'get', 'org.gnome.desktop.peripherals.mouse', 'accel-profile']).decode('utf-8')
-        if self.mouseaccel != 'flat':
-            sp.check_output(['gsettings', 'set', 'org.gnome.desktop.peripherals.mouse', 'accel-profile', "'flat'"])
-
-        self.masterfd, slave = pty.openpty()
-        self.ydotoold = sp.Popen(
-            ['sudo', 'ydotoold', '-p', sock], stdout=slave, stderr=slave, stdin=slave)
-        os.close(slave)
-        with io.BytesIO() as buf:
-            while 1:
-                result = os.read(self.masterfd, io.DEFAULT_BUFFER_SIZE)
-                buf.write(result)
-                if verbose:
-                    try:
-                        print(result.decode('utf-8'), end='', file=sys.stderr)
-                    except ValueError:
-                        pass
-
-                if b'READY' in buf.getvalue():
-                    break
-        self.threads.append(
-            threading.Thread(
-                target=forward, args=[OSRead(self.masterfd), Ignore()]))
-        self.threads[-1].start()
-
-        self.bash_ = sp.Popen(['sudo', 'bash'], stdin=sp.PIPE)
-        self.bashin = io.TextIOWrapper(self.bash_.stdin)
-        self.bash(f'export YDOTOOL_SOCKET="{sock}"')
-        self.pos = None
-        self.tk = tk.Tk()
-        self.tk.createcommand('update_mouse_position', self.update_pos)
-        self.tk.call('bind', self.tk, '<Configure>', 'update_mouse_position')
-        self.tk.attributes('-topmost', True)
-        self.tk.geometry('1x1+0+0')
-        self.W = self.tk.winfo_screenwidth()
-        self.H = self.tk.winfo_screenheight()
-        self.fullscreen = f'{self.W}x{self.H}+0+0'
-        self.updated = tk.BooleanVar(self.tk)
-
-    def __enter__(self):
-        return self
-    def __exit__(self, tp, exc, tb):
-        self.close()
-    def __del__(self):
-        self.close()
-    def close(self):
-        if self.bashin is not None:
-            self.bash('exit')
-            self.bash_.wait()
-            self.bashin = None
-        if self.masterfd is not None:
-            os.close(self.masterfd)
-            self.masterfd = None
-        if self.tk is not None:
-            self.tk.destroy()
-            self.tk = None
-        if self.ydotoold is not None:
-            self.ydotoold.terminate()
-            self.ydotoold = None
-        for t in self.threads:
-            t.join()
-        self.threads = []
-        if self.mouseaccel != 'flat':
-            sp.check_output(['gsettings', 'set', 'org.gnome.desktop.peripherals.mouse', 'accel-profile', self.mouseaccel])
-
-
-    def update_pos(self, *args):
-        """Update the mouse position when configuring.
-
-        When size is full screen, then the mouse should be within the
-        tk application meaning the mouse position is now visible so wait
-        until after fullscreen to read the mouse.
-        """
-        geom = self.tk.winfo_geometry()
-        if self.verbose:
-            print('configuring...', time.time(), end='\r\n', file=sys.stderr)
-        if geom == self.fullscreen:
-            # full screen achieved.
-            # However, at this point, the pointer seems like
-            # it is still not yet properly updated.
-            if self.verbose:
-                print('schedule non-fullscreen', end='\r\n', file=sys.stderr)
-            self.pos = None
-            self.tk.call(
-                'after', '100',
-                'wm attributes . -fullscreen false'
-            )
-            # self.tk.attributes('-fullscreen', False)
-        elif geom.startswith('1x1') and self.pos is None:
-            self.pos = self.tk.winfo_pointerxy()
-            self.updated.set(True)
-
-    def readmouse(self, *args):
-        """Update the current mouse position.
-
-        Changing to fullscreen allows the tkinter to read the
-        mouse position.  Tk seems to use xwayland, so on a wayland
-        system, mouse position is only visible if the mouse is inside
-        the application.  Must change to fullscreen to ensure
-        readiing the mouse.  Seems like after_idle must be used
-        to ensure fullscreen is in effect.  Only then is mouse
-        consistently read.  Otherwise, the reading seems to generally
-        happen before fullscreen has completed so the mouse position
-        is the old position and never updated.  Calling update() also
-        does not seem to be enough...
-
-        On wayland, deiconify works, but even using
-            after timeout deiconify
-        tk seems to not get deiconified, therefore, use topmost and
-        toggle fullscreen instead...
-        """
-        self.updated.set(False)
-        self.tk.attributes('-fullscreen', True)
-        self.tk.wait_variable(self.updated)
-        return self.pos
-
-
-    def bash(self, *command, **kwargs):
-        print(*command, file=self.bashin)
-        self.bashin.flush()
-
-    def move(self, x, y, reset=True):
-        """Basic mouse motion.
-
-        x, y: target destionation (absolute coordinates.)
-        reset: move mouse to ensure correct positioning.
-        """
-        if reset or self.pos is None:
-            self.bash(f'ydotool mousemove -x 0 -y {self.H}')
-            self.bash(f'ydotool mousemove -x -{self.W} -y 0')
-            self.bash(f'ydotool mousemove -x {x} -y {y - (self.H-1)}')
-        else:
-            self.bash(f'ydotool mousemove -x {x - self.pos[0]} -y {y - self.pos[1]}')
-        self.pos = (x, y)
-
-    def click(self):
-        self.bash('ydotool click 0xc0')
-
 
 if __name__ == '__main__':
     with MousePosition(True) as m:

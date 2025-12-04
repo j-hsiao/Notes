@@ -7,10 +7,7 @@ import ast
 import select
 
 import ydo
-
-def eprint(*args, **kwargs):
-    kwargs.setdefault('file', sys.stderr)
-    print(*args, **kwargs)
+eprint = ydo.eprint
 
 class Macro(object):
     """Class for outputting macro sequence."""
@@ -30,7 +27,6 @@ class Macro(object):
 
         click delay(ms)
         """
-        print('click', int(t) - self.t)
         print('click', int(t) - self.t, file=self.file)
         self.t = int(t)
 
@@ -52,8 +48,10 @@ class Macro(object):
                 eprint('ignored down', keysym)
                 return
             if self.kstate.get(keysym, None) is None:
-                print('keydown', '-'.join(self.parse_state(int(state), keysym)), int(t)-self.t)
-                print('keydown', '-'.join(self.parse_state(int(state), keysym)), int(t)-self.t, file=self.file)
+                print(
+                    'keydown', '-'.join(
+                        self.parse_state(int(state), keysym)),
+                    int(t)-self.t, file=self.file)
                 self.t = int(t)
             self.kstate[keysym] = 1
         except Exception:
@@ -68,8 +66,10 @@ class Macro(object):
             self.kstate[keysym] = 0
             self.r.update()
             if not self.kstate[keysym]:
-                print('keyup', '-'.join(self.parse_state(int(state), keysym)), int(t)-self.t)
-                print('keyup', '-'.join(self.parse_state(int(state), keysym)), int(t)-self.t, file=self.file)
+                print(
+                    'keyup', '-'.join(
+                        self.parse_state(int(state), keysym)),
+                    int(t)-self.t, file=self.file)
                 self.kstate[keysym] = None
                 self.t = int(t)
         except Exception:
@@ -80,11 +80,18 @@ class Macro(object):
 
         move x y delay(ms)
         """
-        if self.t is not None:
-            print('move', int(x), int(y), int(t) - self.t)
-            print('move', int(x), int(y), int(t) - self.t, file=self.file)
-            self.t = int(t)
-
+        x = int(x)
+        y = int(y)
+        if self.x is None:
+            t = int(t)
+            print('move', x, y, t - self.t, file=self.file)
+            self.t = t
+        else:
+            if x == self.x and y == self.y:
+                self.x = None
+                self.y = None
+            else:
+                eprint('resuming to', self.x, self.y, 'currently at', x, y)
 
     def begin_macro(self, x, y, t):
         """Start mouse recording.
@@ -93,15 +100,10 @@ class Macro(object):
         """
         eprint('resume', x, y, t)
         if self.x is None:
-            self.x = int(x)
-            self.y = int(y)
             self.t = int(t)
         else:
-            previous = self.t
-            self.t = None
-            # TODO: change to checking version?
+            # self.ydotool.move(self.x, self.y, True)
             self.ydotool.move(self.x, self.y, 'br', 0)
-            self.t = previous
 
     def pause_macro(self, x, y):
         """Pause mouse recording."""
@@ -109,48 +111,63 @@ class Macro(object):
         self.x = int(x)
         self.y = int(y)
 
-    class dummyio(object):
+
+    class TeePrint(object):
+        class dummyio(object):
+            def write(self, data):
+                return len(data)
+            def flush(self):
+                pass
+            def __enter__(self):
+                return self
+            def __exit__(self, tp, exc, tb):
+                pass
+        def __init__(self, f=None):
+            if f is None:
+                self.f = self.dummyio()
+            else:
+                self.f = f
         def write(self, data):
-            return len(data)
+            sys.stdout.write(data)
+            return self.f.write(data)
         def flush(self):
-            pass
+            sys.stdout.flush()
+            self.f.flush()
         def __enter__(self):
+            self.f.__enter__()
             return self
         def __exit__(self, tp, exc, tb):
-            pass
+            self.f.__exit__(tp, exc, tb)
+
 
     def run(self, ydotool, out):
-        with ydo.NoMouseAccel():
-            if out:
-                self.file = open(out, 'w')
-            else:
-                self.file = self.dummyio()
-            self.ydotool = ydotool
-            with self.file:
-                self.r = r = self.ydotool.pos.tk
-                t = tk.Toplevel(r)
-                t.bindtags((self.ydotool.pos.tk,) + t.bindtags())
-                r.createcommand('print_click', self.print_click)
-                r.createcommand('print_move', self.print_move)
-                r.createcommand('begin_macro', self.begin_macro)
-                r.createcommand('pause_macro', self.pause_macro)
-                # r.createcommand('key_up', self.key_up)
-                # r.createcommand('key_down', self.key_down)
+        self.file = self.TeePrint(open(out, 'w') if out else None)
+        self.ydotool = ydotool
+        with self.file:
+            self.r = r = self.ydotool.pos.tk
+            t = tk.Toplevel(r)
+            t.bindtags((self.ydotool.pos.tk,) + t.bindtags())
+            r.createcommand('print_click', self.print_click)
+            r.createcommand('print_move', self.print_move)
+            r.createcommand('begin_macro', self.begin_macro)
+            r.createcommand('pause_macro', self.pause_macro)
+            # r.createcommand('key_up', self.key_up)
+            # r.createcommand('key_down', self.key_down)
 
-                t.bind('<Control-space>', 'print_click %t')
+            t.bind('<Control-space>', 'print_click %t')
 
-                # t.bind('<KeyPress>', 'key_down %k %K %s %t')
-                # t.bind('<KeyRelease>', 'key_up %k %K %s %t')
+            # t.bind('<KeyPress>', 'key_down %k %K %s %t')
+            # t.bind('<KeyRelease>', 'key_up %k %K %s %t')
 
 
-                t.bind('<B1-Motion>', 'print_move %X %Y %t')
-                t.bind('<ButtonPress-1>', 'begin_macro %X %Y %t')
-                t.bind('<ButtonRelease-1>', 'pause_macro %X %Y')
-                t.bind('<Escape>', 'destroy ' + str(t))
-                t.title('macro')
-                t.wait_window()
-            self.file = None
-            self.ydotool = None
+            t.bind('<B1-Motion>', 'print_move %X %Y %t')
+            t.bind('<ButtonPress-1>', 'begin_macro %X %Y %t')
+            t.bind('<ButtonRelease-1>', 'pause_macro %X %Y')
+            t.bind('<Escape>', 'destroy ' + str(t))
+            t.title('macro')
+            t.wait_window()
+        self.file = None
+        self.ydotool = None
 
 def parse_time(timespec):
     """Parse time as seconds."""
@@ -228,43 +245,43 @@ def run(args, ydotool):
         Macro().run(ydotool, args.fname)
     else:
         reps = 0
-        with ydo.NoMouseAccel():
-            repdelay = parse_time(args.repeat)
-            eprint('repeat delay', repdelay)
-            with open(args.fname, 'r') as f:
-                lines = f.readlines()
-            while 1:
-                eprint('reps:', reps)
-                reps += 1
-                for lno, line in enumerate(lines):
-                    eprint(lno, '/', len(lines), ':', line.strip())
-                    parts = line.strip().split()
-                    if parts[0] == 'click':
-                        delay = int(parts[1]) / 1000.0
-                        if sleep(delay):
-                            return
-                        ydotool.click()
-                    elif parts[0] == 'move':
-                        x = int(parts[1])
-                        y = int(parts[2])
-                        delay = int(parts[3]) / 1000.0
-                        if sleep(delay):
-                            return
-                        ydotool.move(x, y, 'br', 0)
-                    elif parts[0] == 'type':
-                        remainder = line.split(None, 1)[-1]
-                        text = remainder.rsplit(None, 1)[0]
-                        delay = int(parts[-1]) / 1000.0
-                        if sleep(delay):
-                            return
-                        ydotool.type(ast.literal_eval(text))
-                    else:
-                        eprint('Unsupported command:', line)
-                if repdelay:
-                    if sleep(repdelay):
+        repdelay = parse_time(args.repeat)
+        eprint('repeat delay', repdelay)
+        with open(args.fname, 'r') as f:
+            lines = f.readlines()
+        while 1:
+            eprint('reps:', reps)
+            reps += 1
+            for lno, line in enumerate(lines):
+                eprint(lno, '/', len(lines), ':', line.strip())
+                parts = line.strip().split()
+                if parts[0] == 'click':
+                    delay = int(parts[1]) / 1000.0
+                    if sleep(delay):
                         return
+                    ydotool.click()
+                elif parts[0] == 'move':
+                    x = int(parts[1])
+                    y = int(parts[2])
+                    delay = int(parts[3]) / 1000.0
+                    if sleep(delay):
+                        return
+                    # ydotool.move(x, y, True)
+                    ydotool.move(x, y, 'br', 0)
+                elif parts[0] == 'type':
+                    remainder = line.split(None, 1)[-1]
+                    text = remainder.rsplit(None, 1)[0]
+                    delay = int(parts[-1]) / 1000.0
+                    if sleep(delay):
+                        return
+                    ydotool.type(ast.literal_eval(text))
                 else:
+                    eprint('Unsupported command:', line)
+            if repdelay:
+                if sleep(repdelay):
                     return
+            else:
+                return
 
 
 if __name__ == '__main__':
@@ -277,5 +294,5 @@ if __name__ == '__main__':
     args = p.parse_args()
 
     with ydo.ydotoold(verbose=False) as d:
-        with ydo.ydotool(d.path) as ydotool:
+        with ydo.ydotool(d.path, noaccel=True) as ydotool:
             run(args, ydotool)
