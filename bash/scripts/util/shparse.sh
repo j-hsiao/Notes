@@ -351,6 +351,13 @@ shparse_parse_dollar() # <text> [out=RESULT] [begin=BEG] [end=END] [initial=0]
 	esac
 }
 
+shparse_parse_word() # <text> [out=RESULT] [begin=BEG] [end=END] [initial=0]
+{
+	# Parse <text> for the first bash word.
+	local sub=$'$"\'\x28`'
+	shparse_parse_generic '(\\.|[^'"${sub}"'\\'"${IFS}"'])*(['"${sub}"']?)(['"${IFS}"']*|$)' 0 "${@}"
+}
+
 if [[ "${0}" = "${BASH_SOURCE[0]}" ]]
 then
 	start_test() {
@@ -448,5 +455,8 @@ then
 	run_test ' $(((1+2) * (3 + 4)))' '21' 1 21 '$(((1+2) * (3 + 4)))' 1
 	run_test ' $(((1+2) * (3 + 4))' '' 1 -1 '' 1
 	run_test ' $(((1+2) * `date +%d`))' "$((3 * $(date +%d)))" 1 24 '$(((1+2) * `date +%d`))' 1
+
+	start_test shparse_parse_word
+	run_test ' hello${HOME}   whatever' "hello${HOME}" 1 16 'hello${HOME}   ' 1
 
 fi
