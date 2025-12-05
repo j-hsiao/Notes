@@ -767,44 +767,47 @@ class ydotool(object):
                will flash on the screen with each measurement.
         """
         if check:
-            ox, oy = self.pos.readmouse()
+            cx, cy = self.pos.readmouse()
             if not absolute:
-                x += ox
-                y += oy
+                x += cx
+                y += cy
             x = min(max(x, 0), self.pos.W-1)
             y = min(max(y, 0), self.pos.H-1)
-            cx, cy = ox, oy
+            dx = x-cx
+            dy = y-cy
+            odst = abs(dx) + abs(dy)
             it = 0
             while 1:
-                it += 1
-                if (cx, cy) == (x,y):
+                self.bash('ydotool mousemove -x {} -y {}'.format(dx, dy))
+                nx, ny = self.pos.readmouse()
+                if (nx, ny) == (x,y):
                     if self.verbose:
-                        eprint('arrived to target')
+                        eprint('arrived to target.')
                     return
-                # Limit the size of movement. If the movement
-                # is too large, it might shoot past due to mouse
-                # acceleration.  It would then ping-pong back and
-                # forth without making any progress.
+                if nx == cx:
+                    if nx == x:
+                        dx = 0
+                    else:
+                        dx = x - nx
+                else:
+                    dx = int(((x-nx)*dx) / (nx-cx))
+                if ny == cy:
+                    if ny == y:
+                        dy = 0
+                    else:
+                        dy = y-ny
+                else:
+                    dy = int(((y-ny)*dy) / (ny-cy))
                 if self.verbose:
-                    eprint(
-                        'target:', (x,y), 'current:', (cx, cy),
-                        'delta',
-                        (min(max(x-cx, -100),100),
-                        min(max(y-cy, -100),100)),
-                    )
-                dx = x-cx
-                dy = y-cy
-                if dx < -1 or 1 < dx:
-                    dx //= 2
-                if dy < -1 or 1 < dy:
-                    dy //= 2
-                self.bash(
-                    'ydotool mousemove -x {} -y {}'.format(dx, dy))
-                cx, cy = self.pos.readmouse()
+                    eprint('  previous:', cx, cy, 'current:', nx, ny, 'target', x, y, 'adjusted:', dx, dy)
+                cx = nx
+                cy = ny
+                it += 1
                 if it >= check:
-                    if (cx, cy) == (ox, oy):
+                    ndst = abs(x-cx) + abs(y-cy)
+                    if ndst >= odst:
                         return
-                    ox, oy = cx, cy
+                    odst = ndst
                     it = 0
         else:
             if self.noaccel is None:
@@ -813,11 +816,11 @@ class ydotool(object):
                 W, H = self.pos.W, self.pos.H
                 W = (-W, W)['r' in absolute]
                 H = (-H, H)['b' in absolute]
-                self.bash('ydotool mousemove -x 0 -y {}'.format(H))
-                self.bash('ydotool mousemove -x {} -y 0'.format(W))
-                self.bash(
-                    'ydotool mousemove -x {} -y {}'.format(
-                        x-max(0, W-1), y-max(0, H-1)))
+                self.bash((
+                    'ydotool mousemove -x 0 -y {}\n'
+                    'ydotool mousemove -x {} -y 0\n'
+                    'ydotool mousemove -x {} -y {}'
+                    ).format(H, W, x-max(0, W-1), y-max(0, H-1)))
             else:
                 self.bash('ydotool mousemove -x {} -y {}'.format(x, y))
 
