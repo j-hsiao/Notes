@@ -746,6 +746,42 @@ class ydotool(object):
             '--next-delay', delay,
         )
 
+    def travel(self, coordinates, absolute=True):
+        """Move mouse approximately along the given coordinates.
+
+        Due to mouse acceleration, the mouse might overshoot etc.
+        After every move, iterate through coordinates until the
+        first point that increases distance from the new cursor
+        position.
+        """
+        x, y = self.pos.readmouse()
+        if not absolute:
+            ncoordinates = []
+            lx, ly = x, y
+            for (dx, dy) in coordinates:
+                lx += dx
+                ly += dy
+                ncoordinates.append((lx, ly))
+        ptidx = 0
+        nx, ny = coordinates[ptidx]
+        while ptidx < len(coordinates):
+            dx = nx-x
+            dy = ny-y
+            self.bash('ydotool mousemove -x {} -y {}'.format(dx, dy))
+            nx, ny = self.pos.readmouse()
+            ax = nx-x
+            ay = ny-y
+            x,y = nx,ny
+            lastdst = abs(ax) + abs(ay)
+            for ptidx in range(ptidx+1, len(coordinates)):
+                nx, ny = coordinates[ptidx]
+                dst = abs(nx-x) + abs(ny-y)
+                if dst < lastdst:
+                    lastdst = dst
+                else:
+                    break
+        self.move(nx, ny, True)
+
     def move(self, x, y, absolute=False, check=5):
         """Move mouse to x, y.
 
