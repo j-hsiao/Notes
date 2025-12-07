@@ -746,9 +746,12 @@ class ydotool(object):
             '--next-delay', delay,
         )
 
-    def travel(self, coordinates, absolute=True):
+    def travel(self, coordinates, absolute=True, sleep=(lambda e:None)):
         """Move mouse approximately along the given coordinates.
 
+        Coordinates: sequence of (x, y, delay)
+            x,y: mouse screen coordinates.
+            delay: time delay (ms).
         Due to mouse acceleration, the mouse might overshoot etc.
         After every move, iterate through coordinates until the
         first point that increases distance from the new cursor
@@ -758,12 +761,12 @@ class ydotool(object):
         if not absolute:
             ncoordinates = []
             lx, ly = x, y
-            for (dx, dy) in coordinates:
+            for (dx, dy, delay) in coordinates:
                 lx += dx
                 ly += dy
-                ncoordinates.append((lx, ly))
+                ncoordinates.append((lx, ly, delay))
         ptidx = 0
-        nx, ny = coordinates[ptidx]
+        nx, ny, _ = coordinates[ptidx]
         while ptidx < len(coordinates):
             dx = nx-x
             dy = ny-y
@@ -773,14 +776,35 @@ class ydotool(object):
             ay = ny-y
             x,y = nx,ny
             lastdst = abs(ax) + abs(ay)
+            delay = 0
             for ptidx in range(ptidx+1, len(coordinates)):
-                nx, ny = coordinates[ptidx]
+                nx, ny, dly = coordinates[ptidx]
+                delay += dly
                 dst = abs(nx-x) + abs(ny-y)
                 if dst < lastdst:
                     lastdst = dst
                 else:
                     break
+            sleep(delay)
         self.move(nx, ny, True)
+
+    def calibrate(self):
+        """Calibrate mouse motion.
+
+        If mouse acceleration is off, then the input motion should be
+        the output motion.  However, with acceleration, sometimes, a
+        given motion will be modified to be larger or smaller...
+        """
+        pass
+
+    def measure(self, x, y):
+        """Measure movement caused by input x,y."""
+        cx, cy = self.pos.readmouse()
+        self.move(x, y, False, 0)
+        self.bash('ydotool mousemove -x {} -y {}'.format(x, y))
+        self.bash('ydotool mousemove -x {} -y {}'.format(-x, -y))
+        nx, ny = self.pos.readmouse()
+
 
     def move(self, x, y, absolute=False, check=5):
         """Move mouse to x, y.
