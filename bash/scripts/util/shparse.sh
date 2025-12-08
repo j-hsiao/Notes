@@ -21,10 +21,9 @@
 #          expression.  This might or might not match the given start
 #          value eg. if there is an incomplete subexpression.  In that case,
 #          start will point to its starting position.
-# [end]: The variable name to store the ending position (exclusive) position.
+# [end]: The variable name to store the ending position (exclusive).
 #        That is to say, ${text:begin:end-begin} will be the parsed expression.
-#        if end exists, then it is the first character NOT in the parsed expression.
-#        If the expression is incomplete, this will be -1.
+#        If the expression is incomplete, then end will be -1.
 # [initial]: The initial beginning position
 #
 # To avoid redundant checks, parsing functions assume that <text>
@@ -91,8 +90,7 @@ shparse_parse_expr() # <text> [out=RESULT] [begin=BEG] [end=END] [initial=0]
 			local subparse=shparse_parse_paren
 			;;
 		*)
-			echo "unrecognized parsing expr: \"${text: ${5:-0}:1}\""
-			eval ${4:-END}=-1
+			local subparse=shparse_parse_word
 			;;
 	esac
 	"${subparse}" "${@}"
@@ -277,8 +275,42 @@ shparse_parse_paren() # <text> [out=RESULT] [begin=BEG] [end=END] [initial=0]
 shparse_parse_command_sub() # <text> [out=RESULT] [begin=BEG] [end=END] [initial=0]
 {
 	# Parse <text> as a command substitution from assumed $( to ending ).
-	local sub=$'$"`\x28\''
-	shparse_parse_generic '(\\.|[^'"${sub}"$'\x29''\\])*((['"${sub}])|("$'\\\x29))' 2 "${@}"
+	# An incomplete command substitution will leave <begin> at the start of the
+	# last incomplete word (word not followed by whitespace).  If all words
+	# are complete, then begin will point to the empty word at the end of this
+	# command substitution.
+
+	local -n shppcs__end="${4:-END}"
+	shppcs__end=$((${5-0} + 2))
+	local orig_rematch=("${BASH_REMATCH[@]}")
+	while [[ "${1:shppcs__end:1}" = [^$'\x29'] ]]
+	do
+		shparse_parse_word "${1}" 0 "${3}" "${4}" "${shppcs__end}"
+		if ((shppcs__end < 0))
+		then
+			restore_BASH_REMATCH orig_rematch
+			return
+		fi
+	done
+	restore_BASH_REMATCH orig_rematch
+	if [[ "${1:shppcs__end:1}" = $'\x29' ]]
+	then
+		((++shppcs__end))
+		if is_variable "${2:-RESULT}"
+		then
+			eval "${2:-RESULT}=${1: ${5:-0}: shppcs__end - ${5:-0}}"
+		fi
+		eval "${3:-BEG}="'"${5:-0}"'
+	else
+		local -n shppcs__beg="${3:-BEG}"
+		local lastword="${1:shppcs__beg}"
+		[[ "${1:shppcs__beg}" =~ (\\.|[^$'\\"$\x29\x7d'\'"${IFS}"])*(["${IFS}"]*)$  ]]
+		if [[ -n "${BASH_REMATCH[-1]}" ]]
+		then
+			shppcs__beg="${shppcs__end}"
+		fi
+		eval "${4:-END}=-1"
+	fi
 }
 
 shparse_parse_dollar() # <text> [out=RESULT] [begin=BEG] [end=END] [initial=0]
@@ -353,10 +385,9 @@ shparse_parse_dollar() # <text> [out=RESULT] [begin=BEG] [end=END] [initial=0]
 
 shparse_parse_word() # <text> [out=RESULT] [begin=BEG] [end=END] [initial=0]
 {
-	# Parse <text> for the first bash word.
-	# NOTE: This consumes the word and any whitespace ($IFS) after that
+	# Parse <text> As a bash word.  From assumed [^$IFS], to [$IFS]*
 	local sub=$'$"\'\x28`'
-	shparse_parse_generic '(\\.|[^'"${sub}"'\\'"${IFS}"'])*(['"${sub}"']?)(['"${IFS}"']*|$)' 0 "${@}"
+	shparse_parse_generic '(\\.|[^'"${sub}"$'\x29''\\'"${IFS}"'])*(['"${sub}"']?)(['"${IFS}"']*|$)' 0 "${@}"
 }
 
 if [[ "${0}" = "${BASH_SOURCE[0]}" ]]
@@ -427,6 +458,9 @@ then
 	run_test ' "${unknown:-${HOME}}"extra' "${HOME}" 1 22 '"${unknown:-${HOME}}"' 1
 	run_test ' "there are $((5 + 2)) penguins"extra' 'there are 7 penguins' 1 32 '"there are $((5 + 2)) penguins"' 1
 
+	run_test ' "This is incomplete $(echo command substitution' '' 36 -1 '' 1
+	run_test ' "This is incomplete $(echo command substitution ' '' 49 -1 '' 1
+
 	start_test shparse_parse_dollar
 	# ansi_c dollar
 	run_test " what$'\\nhello'extra" $'\nhello' 5 '' "$'\\nhello'" 5
@@ -450,6 +484,18 @@ then
 	run_test ' ${custom_pwd:-`pwd}extra' '' 15 -1 '' 1
 	run_test ' ${notexist:-"astring"'\''singlestr'\''}extra' "astringsinglestr" 1 34 '${notexist:-"astring"'\''singlestr'\''}' 1
 
+	start_test shparse_parse_command_sub
+	run_test ' $() ' '' 1 4 '$()' 1
+	run_test ' $(echo hello) ' 'hello' 1 14 '$(echo hello)' 1
+	run_test ' $(echo hello ) ' 'hello' 1 15 '$(echo hello )' 1
+	run_test ' $(echo hello ' '' 14 -1 '' 1
+	run_test ' $(echo hello' '' 8 -1 '' 1
+	run_test ' $(echo "hello"' '' 8 -1 '' 1
+	run_test ' $(echo "hello" ' '' 16 -1 '' 1
+	run_test ' $(echo "hello' '' 8 -1 '' 1
+	run_test ' $(echo "hello ' '' 8 -1 '' 1
+	run_test ' $(echo "hello"\ ' '' 8 -1 '' 1
+
 	start_test shparse_parse_math
 	run_test ' $((1 + 2))' '3' 1 11 '$((1 + 2))' 1
 	run_test ' $(((1+2) * 3 + 4))' '13' 1 19 '$(((1+2) * 3 + 4))' 1
@@ -462,5 +508,9 @@ then
 	run_test ' "hello${HOME}"   whatever' "hello${HOME}" 1 18 '"hello${HOME}"   ' 1
 	run_test ' "hello${HOME} "  whatever' "hello${HOME} " 1 18 '"hello${HOME} "  ' 1
 	run_test ' "$HOME/Notes "  whatever' "${HOME}/Notes " 1 17 '"$HOME/Notes "  ' 1
+	run_test ' "$HOME/some/path with "\(paren\)/"and trailspace "  whatever' "${HOME}/some/path with (paren)/and trailspace " 1 53 '"$HOME/some/path with "\(paren\)/"and trailspace "  ' 1
+	run_test ' "${HOME}/someword/not/completed' '' 1 -1 '' 1
+	run_test ' "${HOME}/someword/not/completed' '' 0 1 '' 0
+	run_test ' $(some command substitution sub)' '' 29 32 '' 29
 
 fi
