@@ -788,22 +788,48 @@ class ydotool(object):
             sleep(delay)
         self.move(nx, ny, True)
 
-    def calibrate(self):
-        """Calibrate mouse motion.
 
-        If mouse acceleration is off, then the input motion should be
-        the output motion.  However, with acceleration, sometimes, a
-        given motion will be modified to be larger or smaller...
-        """
-        pass
-
-    def measure(self, x, y):
+    def measure(self):
         """Measure movement caused by input x,y."""
+        for i in range(30):
+            self.bash('ydotool mousemove -x -100 -y 0')
+        time.sleep(1)
         cx, cy = self.pos.readmouse()
-        self.move(x, y, False, 0)
-        self.bash('ydotool mousemove -x {} -y {}'.format(x, y))
-        self.bash('ydotool mousemove -x {} -y {}'.format(-x, -y))
+        tstart = time.time()
+        for i in range(100):
+            self.bash('ydotool mousemove -x 1 -y 0')
+        elapsed = time.time() - tstart
+        netmove = 100
+        time.sleep(1)
         nx, ny = self.pos.readmouse()
+        print('100px in', elapsed, '->', nx-cx, ny-cy)
+
+        for i in range(30):
+            self.bash('ydotool mousemove -x 0 -y -100')
+        time.sleep(1)
+        cx, cy = self.pos.readmouse()
+        tstart = time.time()
+        for i in range(100):
+            self.bash('ydotool mousemove -x 0 -y 1')
+        elapsed = time.time() - tstart
+        netmove = 100
+        time.sleep(1)
+        nx, ny = self.pos.readmouse()
+        print('100px in', elapsed, '->', nx-cx, ny-cy)
+
+        time.sleep(1)
+        cx, cy = self.pos.readmouse()
+        tstart = time.time()
+        for i in range(100):
+            self.bash('ydotool mousemove -x 1 -y 1')
+        elapsed = time.time() - tstart
+        netmove = 100
+        time.sleep(1)
+        nx, ny = self.pos.readmouse()
+        print('100px in', elapsed, '->', nx-cx, ny-cy)
+        # TODO:
+        # bash(cmd) only writes the command
+        # it does not wait for the command to finish...
 
 
     def move(self, x, y, absolute=False, check=5):
