@@ -1387,8 +1387,27 @@ https://www.gnu.org/software/bash/manual/html_node/Programmable-Completion-Built
 				                current word is unchanged, may display an empty line printing out
 				                the 2 choices: '' and ' '
 
-			              ANSI keycodes in COMPREPLY are printed as visible chars
-			              ex. escape ($'\e') will be printed as '^['
+				            ANSI keycodes in COMPREPLY are printed as visible chars
+				            ex. escape ($'\e') will be printed as '^['
+			NOTE
+				When determining how to complete the current word, sometimes
+				context is required.
+				${2} will be the raw text on the command line, including backslashes.
+				COMP_WORDS[COMP_CWORD] is also the raw text on command line, but it will also include
+				any context (ex. starting quote)
+
+				examples:               ${1}            COMP_CWORDS
+					$(\(paren\)asdf[tab]  \(paren\)asdf   $(\(paren\)asdf
+					"$(\(paren\)asdf[tab] $(\(paren\)asdf "$(\(paren\)asdf
+					"$(\(paren\)as[tab]df $(\(paren\)as   "$(\(paren\)asdf
+
+				To determine/expand anything to calculate completions, some context
+				is probably required... ex, single or double string? or no context?
+				Using COMP_CWORDS, the whole word is included even if the cursor is in
+				the middle of the word.  ${1} makes a guess about what is the actual
+				item to perfom completion on, but leaves out some potentially crucial
+				contextual info... ex: '${HOME}/[tab] should not be completed ?since it is
+				a single-quote? but "${HOME}/[tab]" can be completed no problem...??
 
 		-G pat expand for completions
 		-P: prefix prepended to completion results
