@@ -79,17 +79,17 @@ class OSRead(object):
             buf[:amt] = data
             return amt
 
-
-
 def forward(src, dst):
     """Forward data from src to dst."""
     buf = bytearray(io.DEFAULT_BUFFER_SIZE)
     view = memoryview(buf)
-    amt = src.readinto(buf)
+    readinto = getattr(src, 'readinto1', src.readinto)
+    amt = readinto(buf)
     while amt:
         total = 0
         while total < amt:
             total += dst.write(view[total:amt])
+        amt = readinto(buf)
     dst.flush()
 
 class MousePosition(object):
@@ -176,12 +176,11 @@ class MousePosition(object):
         force: force updating mouse position (ignored if mouse is currently held.)
         """
         with self.lock:
-            if self.updated:
+            if self.held or (not force and self.updated):
                 self.updated = False
                 return self.tk.winfo_pointerxy()
-        if not self.held:
-            self.tk.deiconify()
-            self.tk.attributes('-topmost', True, '-fullscreen', True)
+        self.tk.deiconify()
+        self.tk.attributes('-topmost', True, '-fullscreen', True)
         self.tk.wait_variable(self.step)
         return self.pos()
 
@@ -239,7 +238,8 @@ def readtil(f, target, bufsize=io.DEFAULT_BUFFER_SIZE, out=None):
     buf = bytearray(max(bufsize, len(target)))
     view = memoryview(buf)
     total = 0
-    amt = f.readinto(view)
+    readinto = getattr(f, 'readinto1', f.readinto)
+    amt = readinto(view)
     minwin = len(target) - 1
     while amt:
         searchstart = max(0, total - minwin)
@@ -252,7 +252,7 @@ def readtil(f, target, bufsize=io.DEFAULT_BUFFER_SIZE, out=None):
                 out.write(view[:-minwin])
             view[:minwin] = view[-minwin:]
             total = minwin
-        amt = f.readinto(view[total:])
+        amt = readinto(view[total:])
     return -1, buf, total
 
 
@@ -296,6 +296,8 @@ class ydotoold(object):
         command.extend(('bash', '-c'))
         qpath = shlex.quote(self.path)
         command.append(self.SCRIPT.format(qpath, shlex.quote(qpath)))
+        # TODO check if bufsize=0 is necessary
+        # updating readtil to use readinto1 is good enough...
         proc = sp.Popen(command, stdout=sp.PIPE, bufsize=0)
         if self.verbose:
             out = ToStderr()
@@ -305,8 +307,7 @@ class ydotoold(object):
         if idx < 0:
             raise RuntimeError('ydotoold exited without READY.')
         out.write(memoryview(buf)[:total])
-        self.thread = threading.Thread(
-            target=forward, args=[proc.stdout, out])
+        self.thread = threading.Thread(target=forward, args=[proc.stdout, out])
         self.thread.start()
         self.proc = proc
         return
@@ -330,13 +331,15 @@ class ydotoold(object):
             self.proc = None
 
 class Bash(object):
-    def __init__(self, sudo=False, stdout=sp.DEVNULL, stderr=sp.DEVNULL):
+    def __init__(self, sudo=False, stdout=sp.DEVNULL, stderr=sp.DEVNULL, **kwargs):
         """Initialize bash process."""
         self.proc = None
         self.bashin = None
-        self.open(sudo, stdout, stderr)
+        self.stderr = None
+        self.stdout = None
+        self.open(sudo, stdout, stderr, **kwargs)
 
-    def open(self, sudo=False, stdout=sp.DEVNULL, stderr=sp.DEVNULL):
+    def open(self, sudo=False, stdout=sp.DEVNULL, stderr=sp.DEVNULL, **kwargs):
         if self.proc is not None:
             return
         if sudo:
@@ -344,8 +347,13 @@ class Bash(object):
         else:
             command = ['bash']
         self.proc = sp.Popen(
-            command, stdin=sp.PIPE, stdout=stdout, stderr=stderr)
-        self.bashin = io.TextIOWrapper(self.proc.stdin)
+            command, stdin=sp.PIPE, stdout=stdout, stderr=stderr, **kwargs)
+        if kwargs.get('text', False):
+            self.bashin = self.proc.stdin
+        else:
+            self.bashin = io.TextIOWrapper(self.proc.stdin)
+        self.stdout = self.proc.stdout
+        self.stderr = self.proc.stderr
         self('trap "" SIGINT')
 
     def close(self):
@@ -388,16 +396,22 @@ class Bash(object):
         return self.proc is not None and self.proc.poll() is None
 
     def __call__(self, *args, **kwargs):
+        """Write to bash process.
+
+        Same as print(), except flush defaults to True
+        and file defaults to the bash stdin.
+        """
+        kwargs.setdefault('flush', True)
+        kwargs.setdefault('file', self.bashin)
         try:
-            print(*args, **kwargs, file=self.bashin)
-            self.bashin.flush()
+            print(*args, **kwargs)
         except Exception:
             traceback.print_exc()
 
 
 class ydotool(object):
     """Ydotool commands through a bash process."""
-    def __init__(self, sockpath=None, stdout=sp.DEVNULL, stderr=sp.DEVNULL, noaccel=False, verbose=False):
+    def __init__(self, sockpath=None, stderr=sp.DEVNULL, noaccel=False, verbose=False):
         self.verbose = verbose
         self.bash = None
         self.pos = None
@@ -408,16 +422,34 @@ class ydotool(object):
         if sockpath is None:
             sockpath = f'/dev/shm/{os.environ["USER"]}_ydo.sock'
         self.sockpath = sockpath
-        self.open(stdout, stderr)
+        self.open(stderr)
 
-    def open(self, stdout=None, stderr=None):
+    def open(self, stderr=None):
         if self.bash is not None:
             return
-        self.bash = Bash(os.environ['USER'] != 'root', stdout=stdout, stderr=stderr)
+        self.bash = Bash(os.environ['USER'] != 'root', stdout=sp.PIPE, stderr=stderr)
         if self.noaccel is not None:
             self.noaccel.push()
         self.pos = MousePosition()
         self.bash('export YDOTOOL_SOCKET={}'.format(shlex.quote(self.sockpath)))
+        self.bash(textwrap.dedent('''
+            multimove() {
+                while (($#))
+                do
+                    ydotool move -x ${1} -y ${2}
+                    shift 2
+                done >&2
+            }'''))
+
+    def sync(self):
+        """Synchronize bash commands (echo and wait for output).
+
+        This means that for most commands, stdout should be redirected away
+        so synchronization does not possibly read some other command's output.
+        """
+        self.bash('echo')
+        self.bash.stdout.readline()
+
     def close(self):
         if self.bash is None:
             return
@@ -426,307 +458,10 @@ class ydotool(object):
         self.pos.close()
         self.bash.close()
         self.bash = None
-    # TODO maybe read/parse the mapping? ...
-    rawkeys = {
-        'ESC': 1,
-        '1': 2,
-        '2': 3,
-        '3': 4,
-        '4': 5,
-        '5': 6,
-        '6': 7,
-        '7': 8,
-        '8': 9,
-        '9': 10,
-        '0': 11,
-        'MINUS': 12,
-        'EQUAL': 13,
-        'BACKSPACE': 14,
-        'TAB': 15,
-        'Q': 16,
-        'W': 17,
-        'E': 18,
-        'R': 19,
-        'T': 20,
-        'Y': 21,
-        'U': 22,
-        'I': 23,
-        'O': 24,
-        'P': 25,
-        'LEFTBRACE': 26,
-        'RIGHTBRACE': 27,
-        'ENTER': 28,
-        'LEFTCTRL': 29,
-        'A': 30,
-        'S': 31,
-        'D': 32,
-        'F': 33,
-        'G': 34,
-        'H': 35,
-        'J': 36,
-        'K': 37,
-        'L': 38,
-        'SEMICOLON': 39,
-        'APOSTROPHE': 40,
-        'GRAVE': 41,
-        'LEFTSHIFT': 42,
-        'BACKSLASH': 43,
-        'Z': 44,
-        'X': 45,
-        'C': 46,
-        'V': 47,
-        'B': 48,
-        'N': 49,
-        'M': 50,
-        'COMMA': 51,
-        'DOT': 52,
-        'SLASH': 53,
-        'RIGHTSHIFT': 54,
-        'KPASTERISK': 55,
-        'LEFTALT': 56,
-        'SPACE': 57,
-        'CAPSLOCK': 58,
-        'F1': 59,
-        'F2': 60,
-        'F3': 61,
-        'F4': 62,
-        'F5': 63,
-        'F6': 64,
-        'F7': 65,
-        'F8': 66,
-        'F9': 67,
-        'F10': 68,
-        'NUMLOCK': 69,
-        'SCROLLLOCK': 70,
-        'KP7': 71,
-        'KP8': 72,
-        'KP9': 73,
-        'KPMINUS': 74,
-        'KP4': 75,
-        'KP5': 76,
-        'KP6': 77,
-        'KPPLUS': 78,
-        'KP1': 79,
-        'KP2': 80,
-        'KP3': 81,
-        'KP0': 82,
-        'KPDOT': 83,
-        'ZENKAKUHANKAKU': 85,
-        '102ND': 86,
-        'F11': 87,
-        'F12': 88,
-        'RO': 89,
-        'KATAKANA': 90,
-        'HIRAGANA': 91,
-        'HENKAN': 92,
-        'KATAKANAHIRAGANA': 93,
-        'MUHENKAN': 94,
-        'KPJPCOMMA': 95,
-        'KPENTER': 96,
-        'RIGHTCTRL': 97,
-        'KPSLASH': 98,
-        'SYSRQ': 99,
-        'RIGHTALT': 100,
-        'HOME': 102,
-        'UP': 103,
-        'PAGEUP': 104,
-        'LEFT': 105,
-        'RIGHT': 106,
-        'END': 107,
-        'DOWN': 108,
-        'PAGEDOWN': 109,
-        'INSERT': 110,
-        'DELETE': 111,
-        'MUTE': 113,
-        'VOLUMEDOWN': 114,
-        'VOLUMEUP': 115,
-        'POWER': 116,
-        'KPEQUAL': 117,
-        'PAUSE': 119,
-        'KPCOMMA': 121,
-        'HANGEUL': 122,
-        'HANJA': 123,
-        'YEN': 124,
-        'LEFTMETA': 125,
-        'RIGHTMETA': 126,
-        'COMPOSE': 127,
-        'STOP': 128,
-        'AGAIN': 129,
-        'PROPS': 130,
-        'UNDO': 131,
-        'FRONT': 132,
-        'COPY': 133,
-        'OPEN': 134,
-        'PASTE': 135,
-        'FIND': 136,
-        'CUT': 137,
-        'HELP': 138,
-        'CALC': 140,
-        'SLEEP': 142,
-        'WWW': 150,
-        'COFFEE': 152,
-        'BACK': 158,
-        'FORWARD': 159,
-        'EJECTCD': 161,
-        'NEXTSONG': 163,
-        'PLAYPAUSE': 164,
-        'PREVIOUSSONG': 165,
-        'STOPCD': 166,
-        'REFRESH': 173,
-        'EDIT': 176,
-        'SCROLLUP': 177,
-        'SCROLLDOWN': 178,
-        'KPLEFTPAREN': 179,
-        'KPRIGHTPAREN': 180,
-        'F13': 183,
-        'F14': 184,
-        'F15': 185,
-        'F16': 186,
-        'F17': 187,
-        'F18': 188,
-        'F19': 189,
-        'F20': 190,
-        'F21': 191,
-        'F22': 192,
-        'F23': 193,
-        'F24': 194,
-        'UNKNOWN': 240,
-    }
-    tclkeys = {
-        'Escape': 1,
-        '1': 2,
-        '2': 3,
-        '3': 4,
-        '4': 5,
-        '5': 6,
-        '6': 7,
-        '7': 8,
-        '8': 9,
-        '9': 10,
-        '0': 11,
-        'q': 16,
-        'w': 17,
-        'e': 18,
-        'r': 19,
-        't': 20,
-        'y': 21,
-        'u': 22,
-        'i': 23,
-        'o': 24,
-        'p': 25,
-        'a': 30,
-        's': 31,
-        'd': 32,
-        'f': 33,
-        'g': 34,
-        'h': 35,
-        'j': 36,
-        'k': 37,
-        'l': 38,
-        'z': 44,
-        'x': 45,
-        'c': 46,
-        'v': 47,
-        'b': 48,
-        'n': 49,
-        'm': 50,
-        'F1': 59,
-        'F2': 60,
-        'F3': 61,
-        'F4': 62,
-        'F5': 63,
-        'F6': 64,
-        'F7': 65,
-        'F8': 66,
-        'F9': 67,
-        'F10': 68,
-        'F11': 87,
-        'F12': 88,
-        'F13': 183,
-        'F14': 184,
-        'F15': 185,
-        'F16': 186,
-        'F17': 187,
-        'F18': 188,
-        'F19': 189,
-        'F20': 190,
-        'F21': 191,
-        'F22': 192,
-        'F23': 193,
-        'F24': 194,
-
-        'minus': 12,
-        'equal': 13,
-        'BackSpace': 14,
-        'Tab': 15,
-        'braceleft': 26,
-        'braceright': 27,
-        'Return': 28,
-        'semicolon': 39,
-        'apostrophe': 40,
-        'grave': 41,
-        'backslash': 43,
-        'comma': 51,
-        'period': 52,
-        'slash': 53,
-        'space': 57,
-
-        'Caps_Lock': 58,
-        'Shift': 42,
-        'Shift_L': 42,
-        'Shift_R': 54,
-        'Alt': 56,
-        'Alt_L': 56,
-        'Alt_R': 100,
-        'Control': 29,
-        'Control_L': 29,
-        'Control_R': 97,
-        'Super': 125,
-        'Super_L': 125,
-        'Super_R': 126,
-        'Meta': 125,
-        'Meta_L': 125,
-        'Meta_R': 126,
 
 
-        'Up': 103,
-        'Left': 105,
-        'Right': 106,
-        'Down': 108,
-
-        'Insert': 110,
-        'Home': 102,
-        'Prior': 104,
-        'Delete': 111,
-        'End': 107,
-        'Next': 109,
-
-        # keypad
-        'asterisk': 55,
-        'Num_Lock': 69,
-        'Scroll_Lock': 70,
-        'KP_7': 71,
-        'KP_8': 72,
-        'KP_9': 73,
-        'KP_minus': 74,
-        'KP_4': 75,
-        'KP_5': 76,
-        'KP_6': 77,
-        'KP_plus': 78,
-        'KP_1': 79,
-        'KP_2': 80,
-        'KP_3': 81,
-        'KP_0': 82,
-        'KP_period': 83,
-        'KP_Return': 96,
-        'KP_slash': 98,
-    }
-    def keys(arg):
-        pass
-
-    def type(self, text, nextdelay=0, keydelay=12):
-        self.bash('ydotool type',  shlex.quote(text))
-
+    def type(self, text, nextdelay=0, keydelay=12, flush=True):
+        self.bash('ydotool type', shlex.quote(text), '>&2', flush=flush)
 
     LEFT = 0x00
     RIGHT = 0x01
@@ -739,12 +474,59 @@ class ydotool(object):
 
     DOWN = 0x40
     UP = 0x80
-    def click(self, code=UP|DOWN|LEFT, repeat=1, delay=25):
+    def click(self, code=UP|DOWN|LEFT, repeat=1, delay=25, flush=True):
         self.bash(
             'ydotool click 0x{:02x}'.format(code),
             '--repeat', repeat,
             '--next-delay', delay,
-        )
+            '>&2', flush=flush)
+
+    # TODO maybe read/parse the mapping? ...
+    # sudo libinput read -o out.yaml, sleep(1), terminate(),
+    # then parse for key: name, form a dict, ...
+    # is outputting to stdout possible? otherwise use process substitution?
+    rawkeys = {
+        'ESC': 1, '1': 2, '2': 3, '3': 4, '4': 5, '5': 6, '6': 7, '7': 8, '8': 9, '9': 10, '0': 11,
+        'MINUS': 12, 'EQUAL': 13, 'BACKSPACE': 14, 'TAB': 15,
+        'Q': 16, 'W': 17, 'E': 18, 'R': 19, 'T': 20, 'Y': 21, 'U': 22, 'I': 23, 'O': 24, 'P': 25,
+        'LEFTBRACE': 26, 'RIGHTBRACE': 27, 'ENTER': 28, 'LEFTCTRL': 29,
+        'A': 30, 'S': 31, 'D': 32, 'F': 33, 'G': 34, 'H': 35, 'J': 36, 'K': 37, 'L': 38,
+        'SEMICOLON': 39, 'APOSTROPHE': 40, 'GRAVE': 41, 'LEFTSHIFT': 42, 'BACKSLASH': 43,
+        'Z': 44, 'X': 45, 'C': 46, 'V': 47, 'B': 48, 'N': 49, 'M': 50,
+        'COMMA': 51, 'DOT': 52, 'SLASH': 53, 'RIGHTSHIFT': 54, 'KPASTERISK': 55, 'LEFTALT': 56, 'SPACE': 57, 'CAPSLOCK': 58,
+        'F1': 59, 'F2': 60, 'F3': 61, 'F4': 62, 'F5': 63, 'F6': 64, 'F7': 65, 'F8': 66, 'F9': 67, 'F10': 68,
+        'NUMLOCK': 69, 'SCROLLLOCK': 70, 'KP7': 71, 'KP8': 72, 'KP9': 73,
+        'KPMINUS': 74, 'KP4': 75, 'KP5': 76, 'KP6': 77, 'KPPLUS': 78,
+        'KP1': 79, 'KP2': 80, 'KP3': 81, 'KP0': 82, 'KPDOT': 83,
+        'ZENKAKUHANKAKU': 85, '102ND': 86, 'F11': 87, 'F12': 88, 'RO': 89,
+        'KATAKANA': 90, 'HIRAGANA': 91, 'HENKAN': 92, 'KATAKANAHIRAGANA': 93, 'MUHENKAN': 94,
+        'KPJPCOMMA': 95, 'KPENTER': 96, 'RIGHTCTRL': 97, 'KPSLASH': 98, 'SYSRQ': 99, 'RIGHTALT': 100,
+        'HOME': 102, 'UP': 103, 'PAGEUP': 104, 'LEFT': 105, 'RIGHT': 106, 'END': 107, 'DOWN': 108,
+        'PAGEDOWN': 109, 'INSERT': 110, 'DELETE': 111,
+        'MUTE': 113, 'VOLUMEDOWN': 114, 'VOLUMEUP': 115, 'POWER': 116, 'KPEQUAL': 117, 'PAUSE': 119,
+        'KPCOMMA': 121, 'HANGEUL': 122, 'HANJA': 123, 'YEN': 124, 'LEFTMETA': 125, 'RIGHTMETA': 126,
+        'COMPOSE': 127, 'STOP': 128, 'AGAIN': 129, 'PROPS': 130, 'UNDO': 131,
+        'FRONT': 132, 'COPY': 133, 'OPEN': 134, 'PASTE': 135, 'FIND': 136, 'CUT': 137,
+        'HELP': 138, 'CALC': 140, 'SLEEP': 142, 'WWW': 150, 'COFFEE': 152, 'BACK': 158, 'FORWARD': 159,
+        'EJECTCD': 161, 'NEXTSONG': 163, 'PLAYPAUSE': 164, 'PREVIOUSSONG': 165, 'STOPCD': 166, 'REFRESH': 173,
+        'EDIT': 176, 'SCROLLUP': 177, 'SCROLLDOWN': 178, 'KPLEFTPAREN': 179, 'KPRIGHTPAREN': 180,
+        'F13': 183, 'F14': 184, 'F15': 185, 'F16': 186, 'F17': 187, 'F18': 188, 'F19': 189, 'F20': 190, 'F21': 191, 'F22': 192, 'F23': 193, 'F24': 194,
+        'UNKNOWN': 240,
+    }
+    def keys(*specs):
+        """Press keys in order.
+
+        specs: str: the key to press (down then up)
+               tuple: (key, state) where state = 1 (down), or 0 (up).
+        """
+        seq = []
+        for spec in specs:
+            if isinstance(spec, str):
+                seq.append(spec + ':1')
+                seq.append(spec + ':0')
+            else:
+                seq.append(':'.join((spec[0], int(bool(spec[1])))))
+        # TODO
 
     def travel(self, coordinates, absolute=True, sleep=(lambda e:None)):
         """Move mouse approximately along the given coordinates.
@@ -770,7 +552,8 @@ class ydotool(object):
         while ptidx < len(coordinates):
             dx = nx-x
             dy = ny-y
-            self.bash('ydotool mousemove -x {} -y {}'.format(dx, dy))
+            self.bash('ydotool mousemove -x {} -y {} >&2'.format(dx, dy))
+            self.bash.stdout.readline()
             nx, ny = self.pos.readmouse()
             ax = nx-x
             ay = ny-y
@@ -788,48 +571,80 @@ class ydotool(object):
             sleep(delay)
         self.move(nx, ny, True)
 
+    def calibrate(self, start=10, stop=100, step=10, samples=3):
+        """Calibrate mouse motion to actual motion."""
+        def reset(dim):
+            delta = [0, 0]
+            delta[dim] = -1
+            alt = 1 - dim
+            mid = (self.pos.W//2, self.pos.H//2)
+            pos = self.pos.readmouse()
+            while pos[dim] != 0:
+                if pos[alt] < mid[alt]:
+                    delta[alt] = 1
+                elif pos[alt] == mid[alt]:
+                    delta[alt] = 0
+                else:
+                    delta[alt] = -1
+                self.bash(
+                    'for ((x=0; x < 50; ++x)); '
+                    'do ydotool mousemove -x', delta[0], '-y', delta[1],
+                    '; done >&2', flush=False)
+                self.sync()
+                pos = self.pos.readmouse()
 
-    def measure(self):
-        """Measure movement caused by input x,y."""
-        for i in range(30):
-            self.bash('ydotool mousemove -x -100 -y 0')
-        time.sleep(1)
-        cx, cy = self.pos.readmouse()
-        tstart = time.time()
-        for i in range(100):
-            self.bash('ydotool mousemove -x 1 -y 0')
-        elapsed = time.time() - tstart
-        netmove = 100
-        time.sleep(1)
-        nx, ny = self.pos.readmouse()
-        print('100px in', elapsed, '->', nx-cx, ny-cy)
+        results = []
+        for dim in range(2):
+            data = {}
+            delta = [0, 0]
+            delta[dim] = 1
+            for npix in range(start, stop, step):
+                for sample in range(samples):
+                    reset(dim)
+                    cpos = self.pos.readmouse()
+                    self.bash(
+                        'for ((x=0; x <', npix, '; ++x));'
+                        ' do ydotool mousemove -x', delta[0], '-y', delta[1],
+                        '; done >&2', flush=False)
+                    self.sync()
+                    npos = self.pos.readmouse()
+                    npos[dim] - cpos[dim]
+                    data.setdefault(npix, []).append(npos[dim] - cpos[dim])
+                    cpos = npos
+            results.append(data)
 
-        for i in range(30):
-            self.bash('ydotool mousemove -x 0 -y -100')
-        time.sleep(1)
-        cx, cy = self.pos.readmouse()
-        tstart = time.time()
-        for i in range(100):
-            self.bash('ydotool mousemove -x 0 -y 1')
-        elapsed = time.time() - tstart
-        netmove = 100
-        time.sleep(1)
-        nx, ny = self.pos.readmouse()
-        print('100px in', elapsed, '->', nx-cx, ny-cy)
+        for dim, data in enumerate(results):
+            eprint('dim:', dim)
+            for k, v in data.items():
+                eprint(' ', k, ':', v)
+        return results
 
-        time.sleep(1)
-        cx, cy = self.pos.readmouse()
-        tstart = time.time()
-        for i in range(100):
-            self.bash('ydotool mousemove -x 1 -y 1')
-        elapsed = time.time() - tstart
-        netmove = 100
-        time.sleep(1)
-        nx, ny = self.pos.readmouse()
-        print('100px in', elapsed, '->', nx-cx, ny-cy)
-        # TODO:
-        # bash(cmd) only writes the command
-        # it does not wait for the command to finish...
+    def deltas(self, x, y):
+        """Return sequence of deltas for a net move of x, y."""
+        nstep = max(abs(x), abs(y))
+        ret = []
+        px = py = 0
+        for i in range(1, nstep+1):
+            nx = (x*i // nstep)
+            ny = (y*i // nstep)
+            ret.append((nx-px, ny-py))
+            px = nx
+            py = ny
+        return ret
+
+    def cmove(self, x, y, calibration, absolute=False):
+        """Calibrated motion. Move x, y according to calibration.
+
+        x, y: The desired movement.
+        calibration: result of calibrate()
+        absolute: x, y are absolute target coordinates.
+        """
+        if absolute:
+            cx, cy = self.pos.readmouse()
+            x -= cx
+            y -= cy
+        # TODO
+
 
 
     def move(self, x, y, absolute=False, check=5):
@@ -864,7 +679,8 @@ class ydotool(object):
             odst = abs(dx) + abs(dy)
             it = 0
             while 1:
-                self.bash('ydotool mousemove -x {} -y {}'.format(dx, dy))
+                self.bash('ydotool mousemove -x {} -y {} >&2'.format(dx, dy), flush=False)
+                self.sync()
                 nx, ny = self.pos.readmouse()
                 if (nx, ny) == (x,y):
                     if self.verbose:
@@ -903,12 +719,12 @@ class ydotool(object):
                 W = (-W, W)['r' in absolute]
                 H = (-H, H)['b' in absolute]
                 self.bash((
-                    'ydotool mousemove -x 0 -y {}\n'
-                    'ydotool mousemove -x {} -y 0\n'
-                    'ydotool mousemove -x {} -y {}'
+                    'ydotool mousemove -x 0 -y {} >&2\n'
+                    'ydotool mousemove -x {} -y 0 >&2\n'
+                    'ydotool mousemove -x {} -y {} >&2'
                     ).format(H, W, x-max(0, W-1), y-max(0, H-1)))
             else:
-                self.bash('ydotool mousemove -x {} -y {}'.format(x, y))
+                self.bash('ydotool mousemove -x {} -y {} >&2'.format(x, y))
 
     def __enter__(self):
         self.open()
