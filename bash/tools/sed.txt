@@ -1,0 +1,86 @@
+-0- general
+-1- flags
+-2- script
+
+
+______________________________
+-0- general
+usage: sed [flags] script file...
+
+______________________________
+-1- flags
+	-n, --quiet, --silent
+	suppress auto-print pattern space
+
+	-e
+	script expression
+
+	-f
+	script file
+
+	-isuffix --in-place=suffix
+	edit in-place
+		suffix, if given will be used to create a backup
+
+	-l N
+	length for l command
+
+	-b, --binary
+	binary mode
+
+	-E, -r, --regexp-extended
+	extended regexps
+
+	--debug
+	annotate program execution
+
+______________________________
+-2- script
+	The script is a series of commands separated by newline or semicolon.
+
+	A command is [addr]X[options].
+	If addr is omitted, then it is assumed to be every line.
+
+	addr is usually a start,stop pair
+	where each item can be:
+		line number
+		line~step
+		$ (last line)
+		/regexp/
+		\cregexpc
+
+	GNU sed also allows:
+		0,addr2
+		addr1,+N    from addr1 then N lines
+		addr1,~N    every multple of N line starting from addr 1
+
+	______________________________
+	-2.1- commands
+		no addrs:
+			:label
+				set a label
+			#comment
+				add a comment
+			}
+				close a block
+
+		1 addr
+			=
+				print line number
+			a text
+				append text to pattern space
+			i text
+				insert text to beginning of pattern space
+			q code
+				quit with exit code and print if no -n
+			Q code
+				same as q except without printing (GNU)
+			r fname
+				read file fname and append to patternspace
+			R fname
+				read a single line from fname and append to pattern space (GNU)
+		2addr
+			{
+				start a block of commands.
+			b label
+				jump to label go to end if label is omitted
