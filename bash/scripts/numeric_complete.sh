@@ -73,6 +73,7 @@ NCMP_CACHE_SIZE=${NCMP_CACHE_SIZE:-10}
 . "${BASH_SOURCE[0]/%numeric_complete.sh/util}/shoptstack.sh"
 . "${BASH_SOURCE[0]/%numeric_complete.sh/util}/chinfo.sh"
 . "${BASH_SOURCE[0]/%numeric_complete.sh/util}/cache.sh"
+. "${BASH_SOURCE[0]/%numeric_complete.sh/util}/shparse.sh"
 ch_make NCMP_CACHE ${NCMP_CACHE_SIZE}
 
 # Store internal state
@@ -734,6 +735,33 @@ ncmp_print_matches() # [termwidth=${COLUMNS}] [minpad=1] [style='%d. ']
 	done
 }
 
+ncmp_last_word() # <text> [out=RESULT] [begin=BEG] [end=END]
+{
+	# Return the last word for completion.
+	# Assume inside a completion function.
+	local text="${1}"
+	local textlen="${#text}"
+	local -n out="${2:-RESULT}"
+	local -n beg="${3:-BEG}"
+	local -n end="${4:-END}"
+	end=0
+	while ((0 <= end && end < textlen))
+	do
+		shparse_parse_word "${text}" 0 "${3}" "${4}" "${end}"
+	done
+	if ((end < 0))
+	then
+		if [[ "${1:beg:1}" = ['"`'\'] ]]
+		then
+			ncmp_last_word "${incomplete:1}" "${@:2}"
+			return
+		fi
+	fi
+	COMP_WORDBREAKS="${COMP_WORDBREAKS:-$' \t\n\\\"\\\'><=;|&(:'}"
+	out="${1:beg}"
+	out="${out##*${COMP_WORDBREAKS}}"
+	return
+}
 
 ncmp_complete() # <cmd> <word> <preword>
 {
@@ -743,13 +771,8 @@ ncmp_complete() # <cmd> <word> <preword>
 	else
 		local searched=0
 	fi
+	# Ensure NCMP_CACHE[0] is set to avoid length issues.
 	NCMP_CACHE[0]="${NCMP_CACHE[0]}"
-	# TODO:
-	# the unset causes the length to be different...
-	# solution:
-	# determine/save whether the search was set to a variable
-	# then set it always
-	# refer to the variable instead.
 
 	if [[ \
 		"${2}" =~ ^[[:digit:]]+$ \
@@ -972,7 +995,9 @@ then
 		&& [[ "${fmt[10]}" = '\e[87G\e[30;47m%2d.\e[0m %s' ]] \
 		&& echo pass || echo fail
 
-
+	ncmp_last_word '"this is a str and /home/us' \
+		&& [[ "${RESULT}" = '/home/us' ]] \
+		&& echo pass || echo fail
 
 
 

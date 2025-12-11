@@ -316,6 +316,9 @@ ______________________________
 				printf '# %s\n' "${x[@]:-${y[*]}}"
 				# a b c
 
+				COMP_WORDBREAKS="${COMP_WORDBREAKS:-$' \t\n\\\"\\\'><=;|&(:'}"
+				?? TODO: explain this...
+
 				It ALMOST seems like the entire ${...}
 				gets replaced by expr2 and then everything
 				is re-evaluated, except for when working with nested quotes.
