@@ -1,0 +1,119 @@
+https://www.regular-expressions.info/posix.html
+https://stackoverflow.com/questions/8639519/differences-between-regex-types
+
+NOTE: there seems to be some conflicts regarding various features between regex types...
+
+Regular Expressions.
+contents
+-0- basics
+-1- flavors
+	-1.1- posix basic regular expressions (BRE)
+	-1.2- posix extended regular expressions (ERE)
+	-1.3- perl
+
+______________________________
+-0- basics
+
+Patterns match the left-most pattern, and then the longest pattern.
+ex: pattern (set|setvalue)
+"set or setvalue" -> set
+"setvalue" -> setvalue
+
+c
+	any character matches itself (except for special characters)
+\
+	escape the next character.  For BRE, \ activates special meanings
+	for some special characters but suppresses others.
+	Also escapes some characters:
+		\a: bell
+		\f: form feed
+		\n: newline
+		\r: carriage return
+		\t: tab
+		\v: vertical tab
+		\cx: control-x
+		\dxxx: decimal value (binary)
+		\o: octal value (binary)
+		\b: backspace (but conflicts with above \b so excluded for sed)
+
+		escape extensions
+		\w: word
+		\W: non-word
+		\b: word boundary
+		\B: not word-boundary
+		\s: whitespace
+		\S: not whitespace
+		\<: word start
+		\>: word end
+		\`: start of pattern space (multiline, only 1st line whereas ^ is all lines)
+
+*
+	sequence of 0 or more of previous expr
+.
+	anything
+^
+	beginning if at beginning, else a ^
+$
+	end of line (if at end)
+[list]
+	"bracket expression"
+	any char in list, or anything NOT in list if list prefixed with ^
+	to match a -, put it at the end
+	to match a ], put it at the beginning
+	to match a ^, put it at the end(before the final - if it exists)
+		([something-^] would mean [somethin] and then the range [g-^], so - must come after
+
+	list may also contain character classes:
+		[:alnum:] alphanumerics
+		[:alpha:] alphabetical
+		[:blank:] space/tab
+		[:cntrl:] control characters (ascii 000-037, 177 etc)
+		[:digit:] digits
+		[:graph:] graphical (alnum + punct)
+		[:lower:] lowercase
+		[:pirnt:] printable
+		[:punct:] ascii punctuation
+		[:space:] space (tabs, formfeed, newlines, etc)
+		[:upper:] uppercase
+		[:xdigit:] hexdigits
+
+extra metacharacters not in the original unix regex, and so require a backslash:
+	\(\)
+		A group
+	\{n\}
+		match n repetitions
+	\{n,m\}
+		match between n and m repetitions
+	\{n,\}
+		n or more repetitions
+	\N
+		N = int 1-9, backreference, refer to a group
+	\n
+		newline
+
+Some support (but not posix):
+	\|
+		either or for atom before or after.
+	\+
+		1 or more of previous atom
+	\?
+		1 or none of previous atom
+
+
+______________________________
+-1- flavors
+	______________________________
+	-1.1- posix basic regular expressions (BRE)
+	This is the basic regex, used by default for various tools like sed, grep, etc.
+
+	______________________________
+	-1.2- posix extended regular expressions (ERE)
+	This is an extension off of unix grep and NOT BRE.  In practice, it is
+	basically BRE, but metacharacters always have special meaning which is
+	removed by \
+
+	______________________________
+	-1.3- perl
+	perl adds some extra groups:
+	(?:...) non-capturing group
+	(?!...) negative lookahead
