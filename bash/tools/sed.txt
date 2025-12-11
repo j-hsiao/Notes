@@ -1,6 +1,8 @@
 -0- general
 -1- flags
 -2- script
+	-2.0- addresses
+	-2.1- commands
 
 
 ______________________________
@@ -39,19 +41,27 @@ ______________________________
 	The script is a series of commands separated by newline or semicolon.
 
 	A command is [addr]X[options].
+	______________________________
+	-2.0- addresses
 	If addr is omitted, then it is assumed to be every line.
 
 	addr is usually a start,stop pair
 	where each item can be:
 		line number
 		line~step
-		$ (last line)
+			line + N * step, where N >= 0
+		$
+			last line
 		/regexp/
+			regexp matches anywhere in the current pattern space
 		\cregexpc
+			c is any character.
 
 	GNU sed also allows:
-		0,addr2
-		addr1,+N    from addr1 then N lines
+		0,/regexp/  Beginning until the first occurrence of regexp
+		            (1,/regexp/ would never stop on the first line, so if
+		            first line matches regexp, it will not stop).
+		addr1,+N    include addr1 and then N lines after.
 		addr1,~N    every multple of N line starting from addr 1
 
 	______________________________
@@ -84,3 +94,77 @@ ______________________________
 				start a block of commands.
 			b label
 				jump to label go to end if label is omitted
+			c text
+				replace lines with text
+			d
+				delete pattern space and continue
+			D
+				Delete first line and continue without reading new data
+			h H
+				copy/append pattern to holdspace
+			g G
+				copy/append holdspace to pattern
+			l [width]
+				list current line in "visually unambiguous" form
+				If width given, then break line at [width] characters (GNU)
+			n N
+				Read/append next line into pattern space
+			p
+				print current pattern space
+			P
+				print first line in pattern space
+			s/regexp/replacement/flags
+				replace regexp with replacement. & means the matched text. \1-\9 are groups
+				flags:
+					g: substitute globally
+					N: only substitute the Nth match
+					p: print result after substitution
+					w fname: same as p, but write to a file instead (GNU: support /dev/stderr, /dev/stdout)
+					i: case insensitive/sensitive
+					m: multiline mode.  ^ and $ in the middle must correspond to empty string.
+					   . will not match a newline
+					   \` and \' will always match beginning/end of pattern space
+					GNU:
+						e: run the substitution as a shell command and replace with output (like find -exec)
+						I: case insensitive/sensitive
+						M: multiline
+			t label
+				Go to label if any s since the last line read or last tT command succeded.
+			T label
+				Go to label if no s since the last line read or last tT command succeded. (GNU)
+			w filename
+				write patternspace to filename
+			W filename
+				write first line of pattern space to filename (GNU)
+			x
+				Swap pattern and hold space
+			y/source/dest/
+				transliterate characters in patternspace from source to dest
+
+
+example:
+	Parse a python file and find all the flags with action='store_true' or action='store_false'
+
+	sed -n '/\.add_argument(/,/)$/{
+		H
+		/\.add_argument(/h
+		/)$/!d
+		g
+		/action[[:blank:]]*=[[:blank:]]*['\''"]store_/!d
+		s/[a-zA-Z0-9_]*[[:blank:]]*=.*//
+		s/[[:blank:]]*p.add_argument([[:space:]]*//
+		s/['\''",]//g
+		p
+	}'
+
+explanation:
+	for line containing '\.add_argument()' to line ending with ')':
+		Append to hold space
+		if line matches '\.add_argument()', replace the holdspace.
+		If line does not end with ')', delete pattern space and continue
+		Copy holdspace to patternspace (all the lines of add_argument(...))
+		If patternspace does not match "action='store_", then continue
+		Delete all key-word arguments.
+		delete up to the add_argument(
+		Remove all quotes and commas
+		print result.
