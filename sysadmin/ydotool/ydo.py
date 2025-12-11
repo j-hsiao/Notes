@@ -735,11 +735,24 @@ class ydotool(object):
         self.close()
 
 if __name__ == '__main__':
-    with MousePosition(True) as m:
-        t = tk.Toplevel(m.tk)
-        t.title('top')
-        t.bindtags((str(m.tk),) + t.bindtags())
-        t.bind('<space>', lambda e: print(m.readmouse(False)))
-        t.bind('<Return>', lambda e: print(m.readmouse(True)))
-        t.bind('<Escape>', 'destroy '+str(t))
-        t.wait_window()
+    import argparse
+    p = argparse.ArgumentParser()
+    p.add_argument('-d', '--daemon', action='store_true')
+    args = p.parse_args()
+    if args.daemon:
+        with ydotoold() as d:
+            try:
+                print('ctrl+c to exit')
+                while 1:
+                    time.sleep(60)
+            except KeyboardInterrupt:
+                pass
+    else:
+        with MousePosition(True) as m:
+            t = tk.Toplevel(m.tk)
+            t.title('top')
+            t.bindtags((str(m.tk),) + t.bindtags())
+            t.bind('<space>', lambda e: print(m.readmouse(False)))
+            t.bind('<Return>', lambda e: print(m.readmouse(True)))
+            t.bind('<Escape>', 'destroy '+str(t))
+            t.wait_window()
