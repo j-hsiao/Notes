@@ -9,6 +9,7 @@ ______________________________
 contents
 
 -0- general
+	-0.0- arithmetic expressions
 	-0.1- logic
 	-0.2- variables
 		-0.2.0- expansions
@@ -71,6 +72,31 @@ contents
 
 ______________________________
 -0- general
+	______________________________
+	-0.0- arithmetic expressions
+	Arithmetic expressions are expressions that will be evaluated in an arithmetic context.
+	These include:
+		$((here))
+		((here))
+		variable_name[here]
+
+	Arithmetic expressions can contain the usual numbers, parentheses, operators, but also
+	variables.  Variables will be recursively expanded until empty or no more variables.
+	Variables are expanded individually meaning they are not expanded into text.
+	This matters when a variable contains an expr.  Parameter expansion happens before
+	arithmetic expansion.
+
+	example:
+		a=1
+		b=2
+		c='a+b'
+		d='a + b + c
+
+		expression  result  analysis
+		$((d))      6       d = (c + a + b) = ((a + b) + (1) + (2)) = (((1) + (2)) + (1) + (2)) = ((1 + 2) + 1 + 2) = (3 + 1 + 2) = 6
+		$((d * 2))  12      d * 2 = (c + a + b) * 2 = ((a + b) + (1) + (2)) * 2 = (((1) + (2)) + (1) + (2)) * 2 = ((1 + 2) + 1 + 2)*2 = 6*2 = 12
+		$(($d * 2)) 12      a + b + c * 2 = (1) + (2) + (a+b) * 2 = 1 + 2 + ((1) + (2)) * 2 = 3 + 3 * 2 = 3 + 6 = 9
+
 	______________________________
 	-0.1- logic
 		every command has an exit code.  The exit code determines truthiness.
