@@ -69,12 +69,39 @@
 
 # Default cache size
 NCMP_CACHE_SIZE=${NCMP_CACHE_SIZE:-10}
-
 . "${BASH_SOURCE[0]/%numeric_complete.sh/util}/shoptstack.sh"
 . "${BASH_SOURCE[0]/%numeric_complete.sh/util}/chinfo.sh"
 . "${BASH_SOURCE[0]/%numeric_complete.sh/util}/cache.sh"
 . "${BASH_SOURCE[0]/%numeric_complete.sh/util}/shparse.sh"
 ch_make NCMP_CACHE ${NCMP_CACHE_SIZE}
+
+ncmp_run()
+{
+	# Set up useful variables but put in function to prevent namespace pollution.
+	local NCMP_CACHE_PREFIX=0
+	local NCMP_QUERY=$((NCMP_CACHE_PREFIX++))
+	local NCMP_COUNT=$((NCMP_CACHE_PREFIX++))
+	local declare -n NCMP_DNAME=NCMP_CACHE_index
+	local NCMP_CHOICE='NCMP_CACHE_PREFIX'
+	local NCMP_LENGTH='NCMP_CACHE_PREFIX + NCMP_CACHE[NCMP_COUNT]'
+	local NCMP_REFINE='NCMP_CACHE_PREFIX + NCMP_CACHE[NCMP_COUNT]*2'
+
+	if [[ "${TERM}" = *color* || "${COLORTERM}" = *color* ]]
+	then
+		local NCMP_BLUE='\e[01;34m'
+		local NCMP_RESET='\e[0m'
+		local NCMP_INVERT='\e[30;47m'
+	else
+		local NCMP_BLUE=
+		local NCMP_RESET=
+		local NCMP_INVERT=
+	fi
+	"${@}"
+}
+
+
+# "${x/%*\//${NCMP_RESET}${NCMP_BLUE}${x%/}${NCMP_RESET}/}"
+
 
 # Store internal state
 declare -gA NCMP_STATE
@@ -90,6 +117,7 @@ NCMP_STATE['editing_mode']=
 NCMP_STATE['show_all_if_ambiguous']=
 
 ncmp_refresh_readline() {
+	# refresh cached readline data.
 	local line
 	while read line
 	do
@@ -154,32 +182,6 @@ then
 	fi
 fi
 ncmp_refresh_readline
-
-ncmp_set_pager() # default pager and arguments
-{
-	# Determine if less is a suitable pager and set it.
-	# Otherwise, use the default pager if given.
-	NUMERIC_COMPLETE_pager=()
-	local lessname lessver lessother
-	if read lessname lessver lessother < <(less --version 2>&1)
-	then
-		if [[ "${lessver}" =~ ^[0-9]+$ ]]
-		then
-			if [[ "${lessver}" -ge 600 ]]
-			then
-				NUMERIC_COMPLETE_pager=(less -R -~ --header 2)
-			else
-				NUMERIC_COMPLETE_pager=(less -R -~ +1)
-			fi
-			return
-		fi
-	fi
-	if (("${#}"))
-	then
-		NUMERIC_COMPLETE_pager=("${@}")
-	fi
-	return 1
-}
 
 ncmp_pathsplit() # <path> [dname_var=dname] [basename_var=bname] [fulldir=dpath]
 # Parse <path> into dir name and base name and full normalized dir name.
