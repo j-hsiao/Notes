@@ -47,6 +47,8 @@
 # $((...))
 # `...`
 
+
+[[ "${BASH_SOURCE[0]}" != "${0}" ]] && declare -Fp shparse_parse_expr &>/dev/null && (($# == 0)) && return
 . "${BASH_SOURCE[0]%shparse.sh}restore_rematch.sh"
 
 # vim brace/paren matching gets messed up

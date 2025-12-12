@@ -1,5 +1,7 @@
 #!/bin/bash
 
+[[ "${BASH_SOURCE[0]}" != "${0}" ]] && declare -Fp restore_BASH_REMATCH &>/dev/null && (($# == 0)) && return
+
 # BASH_REMATCH is a global array.
 # A function call might or might not modify BASH_REMATCH.
 # This allows functions to still use regex =~ operator
