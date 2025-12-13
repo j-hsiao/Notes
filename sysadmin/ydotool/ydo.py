@@ -407,6 +407,7 @@ class Bash(object):
             print(*args, **kwargs)
         except Exception:
             traceback.print_exc()
+        return self
 
 
 class ydotool(object):
@@ -431,15 +432,19 @@ class ydotool(object):
         if self.noaccel is not None:
             self.noaccel.push()
         self.pos = MousePosition()
-        self.bash('export YDOTOOL_SOCKET={}'.format(shlex.quote(self.sockpath)))
+        self.bash(
+            'export YDOTOOL_SOCKET={}'.format(
+                shlex.quote(self.sockpath)))
         self.bash(textwrap.dedent('''
             multimove() {
-                while (($#))
+                while ((${#}))
                 do
                     ydotool move -x ${1} -y ${2}
                     shift 2
                 done >&2
-            }'''))
+            }
+            echo ready
+            ''')).stdout.readline()
 
     def sync(self):
         """Synchronize bash commands (echo and wait for output).
@@ -447,8 +452,7 @@ class ydotool(object):
         This means that for most commands, stdout should be redirected away
         so synchronization does not possibly read some other command's output.
         """
-        self.bash('echo')
-        self.bash.stdout.readline()
+        self.bash('echo').stdout.readline()
 
     def close(self):
         if self.bash is None:
@@ -742,9 +746,7 @@ if __name__ == '__main__':
     if args.daemon:
         with ydotoold() as d:
             try:
-                print('ctrl+c to exit')
-                while 1:
-                    time.sleep(60)
+                input('Press return to exit.')
             except KeyboardInterrupt:
                 pass
     else:
