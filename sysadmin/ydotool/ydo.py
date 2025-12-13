@@ -435,7 +435,7 @@ class ydotool(object):
         self.bash(
             'export YDOTOOL_SOCKET={}'.format(
                 shlex.quote(self.sockpath)))
-        self.bash(textwrap.dedent('''
+        if self.bash(textwrap.dedent('''
             multimove() {
                 while ((${#}))
                 do
@@ -444,7 +444,9 @@ class ydotool(object):
                 done >&2
             }
             echo ready
-            ''')).stdout.readline()
+            ''')).stdout.readline().strip() != b'ready':
+            self.close()
+            raise RuntimeError('Failed to start ydotool.')
 
     def sync(self):
         """Synchronize bash commands (echo and wait for output).
@@ -575,7 +577,7 @@ class ydotool(object):
             sleep(delay)
         self.move(nx, ny, True)
 
-    def calibrate(self, start=10, stop=100, step=10, samples=3):
+    def calibrate(self, cases=range(10, 100, 10), samples=3):
         """Calibrate mouse motion to actual motion."""
         def reset(dim):
             delta = [0, 0]
@@ -593,8 +595,7 @@ class ydotool(object):
                 self.bash(
                     'for ((x=0; x < 50; ++x)); '
                     'do ydotool mousemove -x', delta[0], '-y', delta[1],
-                    '; done >&2', flush=False)
-                self.sync()
+                    '; done >&2; echo').stdout.readline()
                 pos = self.pos.readmouse()
 
         results = []
@@ -602,7 +603,7 @@ class ydotool(object):
             data = {}
             delta = [0, 0]
             delta[dim] = 1
-            for npix in range(start, stop, step):
+            for npix in cases:
                 for sample in range(samples):
                     reset(dim)
                     cpos = self.pos.readmouse()
@@ -742,6 +743,7 @@ if __name__ == '__main__':
     import argparse
     p = argparse.ArgumentParser()
     p.add_argument('-d', '--daemon', action='store_true')
+    p.add_argument('-c', '--calibrate', action='store_true')
     args = p.parse_args()
     if args.daemon:
         with ydotoold() as d:
@@ -749,6 +751,9 @@ if __name__ == '__main__':
                 input('Press return to exit.')
             except KeyboardInterrupt:
                 pass
+    elif args.calibrate:
+        with ydotool() as y:
+            y.calibrate(list(range(1, 10)) + list(range(10, 110, 10)))
     else:
         with MousePosition(True) as m:
             t = tk.Toplevel(m.tk)
