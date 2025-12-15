@@ -438,23 +438,27 @@ class ydotool(object):
         if self.bash(textwrap.dedent('''
             smove()
             {
-                local coords=()
-                local x="${1}"
-                local y="${2}"
-                local steps=$((${x#*-} > ${y#*-} ? ${x#*-} : ${y#*-}))
-                local i px=0 py=0 nx ny
-                for ((i=1; i <= steps; ++i))
+                local x="${1}" y="${2}"
+                if ((x == 0 && y == 0)); then return; fi
+                if ((${x#*-} > ${y#*-}))
+                then
+                    local main=x sub=y
+                else
+                    local main=y sub=x
+                fi
+                local i=0 dx dy end=${!main#*-} step='++i'
+                ((d${main} = ${!main//[^-]}1))
+                if ((${!sub}))
+                then
+                    ((end *= ${!sub#*-}))
+                    step=''
+                    eval d${sub}='"${!sub//[^-]}(-(i / ${!main#*-}) + (i+=${!sub#*-})/${!main#*-})"'
+                else
+                    ((d${sub} = 0))
+                fi
+                for ((; i<end; step))
                 do
-                    ((nx = (i*x)/steps))
-                    ((ny = (i*y)/steps))
-                    coords+=($((nx-px)) $((ny-py)))
-                    ((py = ny))
-                    ((px = nx))
-                done
-                local i=0
-                for ((; i<${#coords[@]}; i += 2 ))
-                do
-                    ydotool mousemove -x ${coords[i]} -y ${coords[i+1]}
+                    ydotool mousemove -x $((dx)) -y $((dy))
                 done
             }
             multimove() {
@@ -598,51 +602,35 @@ class ydotool(object):
             sleep(delay)
         self.move(nx, ny, True)
 
-    def calibrate(self, cases=range(10, 100, 10), samples=3, fromstill=0):
+    def calibrate(self, cases=range(10, 100, 10), samples=3, wait=0):
         """Calibrate mouse motion to actual motion."""
         def reset(dim):
-            delta = [0, 0]
-            delta[dim] = -1
-            alt = 1 - dim
             mid = (self.pos.W//2, self.pos.H//2)
+            target = [0, 0]
+            target[1-dim] = mid[1-dim]
             pos = self.pos.readmouse()
             while pos[dim] != 0:
-                if pos[alt] < mid[alt]:
-                    delta[alt] = 1
-                elif pos[alt] == mid[alt]:
-                    delta[alt] = 0
-                else:
-                    delta[alt] = -1
                 self.bash(
-                    'for ((x=0; x < 50; ++x)); '
-                    'do ydotool mousemove -x', delta[0], '-y', delta[1],
-                    '; done >&2; echo').stdout.readline()
+                    'smove', target[0] - pos[0], target[1] - pos[1],
+                    ' >&2; echo').stdout.readline()
                 pos = self.pos.readmouse()
 
         results = {}
-        for delta in ((1,0), (0,1), (1,1)):
-            data = {}
-            for npix in cases:
-                eprint(npix, end=': ')
-                data[npix] = []
-                for sample in range(samples):
-                    reset(0)
-                    if fromstill:
-                        time.sleep(fromstill)
-                    cpos = self.pos.readmouse()
-                    self.bash(
-                        'smove {} {}\necho'.format(
-                            *[npix*_ for _ in delta])).stdout.readline()
-                    npos = self.pos.readmouse()
-                    data[npix].append([a-b for a,b in zip(npos, cpos)])
-                    eprint(data[npix][-1], end=', ')
-                    cpos = npos
-                eprint()
-            results[delta] = data
-        for delta, data in results.items():
-            eprint('delta:', delta)
-            for k, v in data.items():
-                eprint(' ', k, ':', v)
+        for delta in cases:
+            eprint(delta, end=': ')
+            results[delta] = []
+            for sample in range(samples):
+                reset(int(delta[1] > delta[0]))
+                if wait:
+                    time.sleep(wait)
+                cpos = self.pos.readmouse()
+                self.bash(
+                    'smove {} {} >&2\necho'.format(*delta)).stdout.readline()
+                npos = self.pos.readmouse()
+                results[delta].append([a-b for a,b in zip(npos, cpos)])
+                eprint(results[delta][-1], end=', ')
+                cpos = npos
+            eprint()
         return results
 
     @staticmethod
@@ -765,7 +753,9 @@ if __name__ == '__main__':
     import argparse
     p = argparse.ArgumentParser()
     p.add_argument('-d', '--daemon', action='store_true')
-    p.add_argument('-c', '--calibrate', action='store_true', type=float)
+    p.add_argument(
+        '-c', '--calibrate', type=float, default=0, nargs='?',
+        help='seconds to wait for calibration.')
     args = p.parse_args()
     if args.daemon:
         with ydotoold() as d:
@@ -775,17 +765,16 @@ if __name__ == '__main__':
                 pass
     elif args.calibrate is not None:
         with ydotool() as y:
+            values = list(range(1, 10)) + list(range(10, 110, 10))
             y.calibrate(
-                list(range(1, 10)) + list(range(10, 110, 10)),
-                fromstill=args.calibrate)
-            # start = y.pos.readmouse()
-            # print('start', start)
-            # input()
-            # y.bash('smove 100 100')
-            # input()
-            # stop = y.pos.readmouse()
-            # print('stop', stop)
-            # print('delta:', [a-b for a,b in zip(stop,start)])
+                (
+                    [(v,0) for v in values]
+                    + [(0,v) for v in values]
+                    + [(v,v) for v in values]
+                    + [(v,v//2) for v in values]
+                    + [(v//2,v) for v in values]
+                ),
+                wait=args.calibrate)
     else:
         with MousePosition(True) as m:
             t = tk.Toplevel(m.tk)
