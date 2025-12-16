@@ -12,6 +12,7 @@ import os
 import pty
 import select
 import shlex
+import itertools
 import subprocess as sp
 import sys
 import textwrap
@@ -602,8 +603,68 @@ class ydotool(object):
             sleep(delay)
         self.move(nx, ny, True)
 
-    def calibrate(self, cases=range(10, 100, 10), samples=3, wait=0):
-        """Calibrate mouse motion to actual motion."""
+    def calibrate2(self, cases=itertools.chain.from_iterable(
+            [[(v,0), (0,v), (v, v), (v, v//2), (v//2, v)] for v in range(10, 100, 10)]),
+        samples=3, wait=0):
+        """Calibrate actual motion to mouse motion (single ydo call).
+
+        cases: cases of relative mouse motions.
+        samples: number of samples to collect for each case.
+        wait: wait time after readmouse (idle mouse duration.)
+        return {wait_time: {avg_screen_motion: required_mouse_motion}}
+        """
+        if isinstance(wait, (float, int)):
+            wait = [wait]
+        if not wait:
+            wait = [0]
+        results = {}
+        for tm in wait:
+            wresults = results[tm] = {}
+            eprint(f'wait {tm:.3f} seconds')
+            for delta in cases:
+                eprint('  ({:4d}, {:4d})'.format(*delta), end='')
+                tx = 0
+                ty = 0
+                self.bash(
+                    'ydotool mousemove -x {-delta[0]} -y {-delta[1]} >&2; echo'
+                    ).stdout.readline()
+                for sample in range(samples):
+                    p1 = self.pos.readmouse()
+                    if tm:
+                        time.sleep(tm)
+                    self.bash('ydotool mousemove -x {} -y {} >&2; echo'.format(
+                        *delta)).stdout.readline()
+                    p2 = self.pos.readmouse()
+                    if tm:
+                        time.sleep(tm)
+                    self.bash(
+                        'ydotool mousemove -x {-delta[0]} -y {-delta[1]} >&2; echo'
+                        ).stdout.readline()
+                    dx = p2[0]-p1[0]
+                    dy = p2[1]-p1[1]
+                    eprint(f'({dx:4d}, {dy:4d}), ', end='')
+                    tx += dx
+                    ty += dy
+                eprint()
+                tx /= samples
+                ty /= samples
+                wresults[(int(round(tx)), int(round(ty)))] = delta
+        return results
+
+    def calibrate(
+        self,
+        cases=itertools.chain.from_iterable(
+            [[(v,0), (0,v), (v, v), (v, v//2), (v//2, v)] for v in range(10, 100, 10)]),
+        samples=3, wait=0
+    ):
+        """Calibrate actual motion to mouse motion (incremental 1-pix loop).
+
+        cases: list of (x,y) relative mouse motions.
+        samples: int, number of samples to measure per case.
+        wait: amount of time to wait just before moving the mouse.
+              (idle mouse duration.)
+        Return {wait_time: {avg_screen_motion: required_mouse_motion}}
+        """
         def reset(dim):
             mid = (self.pos.W//2, self.pos.H//2)
             target = [0, 0]
@@ -614,53 +675,83 @@ class ydotool(object):
                     'smove', target[0] - pos[0], target[1] - pos[1],
                     ' >&2; echo').stdout.readline()
                 pos = self.pos.readmouse()
-
+        if isinstance(wait, (float, int)):
+            wait = [wait]
+        if not wait:
+            wait = [0]
         results = {}
-        for delta in cases:
-            eprint(delta, end=': ')
-            results[delta] = []
-            for sample in range(samples):
-                reset(int(delta[1] > delta[0]))
-                if wait:
-                    time.sleep(wait)
-                cpos = self.pos.readmouse()
-                self.bash(
-                    'smove {} {} >&2\necho'.format(*delta)).stdout.readline()
-                npos = self.pos.readmouse()
-                results[delta].append([a-b for a,b in zip(npos, cpos)])
-                eprint(results[delta][-1], end=', ')
-                cpos = npos
-            eprint()
+        for tm in wait:
+            wresults = results[tm] = {}
+            eprint(f'wait {tm:.3f} seconds')
+            for delta in cases:
+                eprint('  ({:4d}, {:4d}): '.format(*delta), end='')
+                tx = 0
+                ty = 0
+                for sample in range(samples):
+                    reset(int(delta[1] > delta[0]))
+                    p1 = self.pos.readmouse()
+                    if tm:
+                        time.sleep(tm)
+                    self.bash(
+                        'smove {} {} >&2\necho'.format(*delta)).stdout.readline()
+                    p2 = self.pos.readmouse()
+                    dx = p2[0]-p1[0]
+                    dy = p2[1]-p1[0]
+                    eprint(f'({dx:4d}, {dy:4d}), ', end='')
+                    tx += dx
+                    ty += dy
+                eprint()
+                tx /= samples
+                ty /= samples
+                wresults[(int(round(tx)), int(round(ty)))] = delta
         return results
 
-    @staticmethod
-    def deltas(x, y):
-        """Return sequence of deltas for a net move of x, y."""
-        nstep = max(abs(x), abs(y))
-        ret = []
-        px = py = 0
-        for i in range(1, nstep+1):
-            nx = (x*i // nstep)
-            ny = (y*i // nstep)
-            ret.append((nx-px, ny-py))
-            px = nx
-            py = ny
-        return ret
-
     def cmove(self, x, y, calibration, absolute=False):
-        """Calibrated motion. Move x, y according to calibration.
+        """Calculate the mouse (mx,my) to move for screen motion (x,y).
 
-        x, y: The desired movement.
-        calibration: result of calibrate()
-        absolute: x, y are absolute target coordinates.
+        x, y: int, The desired screen movement.
+        calibration: dict, result of calibrate(),
+                     {waittime: {screenmotion: mousemotion}}.
+        absolute: bool, Indicate whether x,y are absolute coordinates.
         """
         if absolute:
-            cx, cy = self.pos.readmouse()
-            x -= cx
-            y -= cy
-        # TODO
-
-
+            x, y = [d-s for d, s in zip((x,y), self.pos.readmouse())]
+        wt = min(calibration)
+        curve = calibration[wt]
+        target = (x, y)
+        mousemotion = []
+        for dim in range(2):
+            val = abs(target[dim])
+            if val == 0:
+                mousemotion.append(0)
+                continue
+            lo = hi = None
+            for screen in curve:
+                check = abs(screen[dim])
+                if check == val:
+                    lo = hi = screen
+                elif check < val:
+                    if lo is None or abs(lo[dim]) < check:
+                        lo = screen
+                else:
+                    if hi is None or check < abs(hi[dim]):
+                        hi = screen
+            if lo is None or hi is None or lo == hi:
+                screen = lo or hi
+                mouse = curve[screen]
+                mousemotion.append(int(round(target[dim] * abs(mouse[dim]) / abs(screen[dim]))))
+            else:
+                lomouse = abs(curve[lo][dim])
+                loscreen = abs(lo[dim])
+                himouse = abs(curve[hi][dim])
+                hiscreen = abs(hi[dim])
+                mousemotion.append(
+                    int(round(
+                        lomouse
+                        +(val-loscreen)*(himouse-lomouse)/(hiscreen-loscreen))))
+                if target[dim] < 0:
+                    mousemotion[-1] *= -1
+        return mousemotion
 
     def move(self, x, y, absolute=False, check=5):
         """Move mouse to x, y.
@@ -754,7 +845,7 @@ if __name__ == '__main__':
     p = argparse.ArgumentParser()
     p.add_argument('-d', '--daemon', action='store_true')
     p.add_argument(
-        '-c', '--calibrate', type=float, default=0, nargs='?',
+        '-c', '--calibrate', type=float, default=[0], nargs='*',
         help='seconds to wait for calibration.')
     args = p.parse_args()
     if args.daemon:
@@ -766,15 +857,7 @@ if __name__ == '__main__':
     elif args.calibrate is not None:
         with ydotool() as y:
             values = list(range(1, 10)) + list(range(10, 110, 10))
-            y.calibrate(
-                (
-                    [(v,0) for v in values]
-                    + [(0,v) for v in values]
-                    + [(v,v) for v in values]
-                    + [(v,v//2) for v in values]
-                    + [(v//2,v) for v in values]
-                ),
-                wait=args.calibrate)
+            y.calibrate(wait=args.calibrate)
     else:
         with MousePosition(True) as m:
             t = tk.Toplevel(m.tk)
