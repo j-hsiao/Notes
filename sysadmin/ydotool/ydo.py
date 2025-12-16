@@ -622,7 +622,7 @@ class ydotool(object):
             wresults = results[tm] = {}
             eprint(f'wait {tm:.3f} seconds')
             for delta in cases:
-                eprint('  ({:4d}, {:4d})'.format(*delta), end='')
+                eprint('  ({:4d}, {:4d}): '.format(*delta), end='')
                 tx = 0
                 ty = 0
                 self.bash(
@@ -638,7 +638,7 @@ class ydotool(object):
                     if tm:
                         time.sleep(tm)
                     self.bash(
-                        'ydotool mousemove -x {-delta[0]} -y {-delta[1]} >&2; echo'
+                        f'ydotool mousemove -x {-delta[0]} -y {-delta[1]} >&2; echo'
                         ).stdout.readline()
                     dx = p2[0]-p1[0]
                     dy = p2[1]-p1[1]
@@ -671,9 +671,13 @@ class ydotool(object):
             target[1-dim] = mid[1-dim]
             pos = self.pos.readmouse()
             while pos[dim] != 0:
-                self.bash(
-                    'smove', target[0] - pos[0], target[1] - pos[1],
-                    ' >&2; echo').stdout.readline()
+                dx = (target[0] - pos[0])
+                dy = (target[1] - pos[1])
+                if abs(dx) > 1:
+                    dx //= 2
+                if abs(dy) > 1:
+                    dy //= 2
+                self.bash('smove', dx, dy, ' >&2; echo').stdout.readline()
                 pos = self.pos.readmouse()
         if isinstance(wait, (float, int)):
             wait = [wait]
@@ -696,7 +700,7 @@ class ydotool(object):
                         'smove {} {} >&2\necho'.format(*delta)).stdout.readline()
                     p2 = self.pos.readmouse()
                     dx = p2[0]-p1[0]
-                    dy = p2[1]-p1[0]
+                    dy = p2[1]-p1[1]
                     eprint(f'({dx:4d}, {dy:4d}), ', end='')
                     tx += dx
                     ty += dy
@@ -845,7 +849,10 @@ if __name__ == '__main__':
     p = argparse.ArgumentParser()
     p.add_argument('-d', '--daemon', action='store_true')
     p.add_argument(
-        '-c', '--calibrate', type=float, default=[0], nargs='*',
+        '-c', '--calibrate', type=float, nargs='*',
+        help='seconds to wait for calibration.')
+    p.add_argument(
+        '--calibrate2', type=float, nargs='*',
         help='seconds to wait for calibration.')
     args = p.parse_args()
     if args.daemon:
@@ -856,8 +863,10 @@ if __name__ == '__main__':
                 pass
     elif args.calibrate is not None:
         with ydotool() as y:
-            values = list(range(1, 10)) + list(range(10, 110, 10))
             y.calibrate(wait=args.calibrate)
+    elif args.calibrate2 is not None:
+        with ydotool() as y:
+            y.calibrate2(wait=args.calibrate2)
     else:
         with MousePosition(True) as m:
             t = tk.Toplevel(m.tk)
