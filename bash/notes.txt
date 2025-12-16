@@ -48,6 +48,7 @@ contents
 		-0.10.8- <() process substitution
 		-0.10.9- {} command grouping
 		-0.10.10- ${} parameter expansion
+	-0.11- traps
 -1- regexp
 -2- completion
 -3- ps1 (prompt)
@@ -1129,6 +1130,30 @@ ______________________________
 		______________________________
 		-0.10.10- ${} parameter expansion
 			see -0.2- variables
+	______________________________
+	-0.11- traps
+	Bash has the trap command which allows executing a given script
+	on some condition which is usually receiving a signal (SIG*).
+	There are special sigspecs which are DEBUG, EXIT, ERR, and RETURN.
+
+	trap - sigspec will "reset to its original value".
+	From the man page:
+		"each specified signal is reset to its original disposition (the
+		value it had upon entrance to the shell)"
+
+	However, for RETURN, it seems like it returns upon entrance to
+	the function instead of entrance to the shell.
+
+	This means that trap can be used as a "finally" clause
+	ex:
+		myfun() {
+			trap 'my cleanup; trap - RETURN' RETURN
+		}
+	If RETURN already had a trap upon entering myfun, then after exiting myfun,
+	the RETURN trap will be restored to its original value (before entering)
+	If the extra '; trap - RETURN' was not given inside myfun, then any trap
+	specification inside myfun will override the trap going into myfun
+
 ______________________________
 -1-regexp
 	______________________________

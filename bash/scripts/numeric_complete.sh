@@ -66,41 +66,17 @@
 # 		In the end though, it seems like parsing is still required
 # 		ex: hello${HO[tab] fails to do any completions with compgen
 
+[[ "${BASH_SOURCE[0]}" != "${0}" ]] && declare -Fp ncmp_run &>/dev/null && (($# == 0)) && return
+
+. "${BASH_SOURCE[0]/%numeric_complete.sh}util/restore_rematch.sh"
+. "${BASH_SOURCE[0]/%numeric_complete.sh}util/shoptstack.sh"
+. "${BASH_SOURCE[0]/%numeric_complete.sh}util/chinfo.sh"
+. "${BASH_SOURCE[0]/%numeric_complete.sh}util/cache.sh"
+. "${BASH_SOURCE[0]/%numeric_complete.sh}util/shparse.sh"
 
 # Default cache size
 NCMP_CACHE_SIZE=${NCMP_CACHE_SIZE:-10}
-. "${BASH_SOURCE[0]/%numeric_complete.sh/util}/shoptstack.sh"
-. "${BASH_SOURCE[0]/%numeric_complete.sh/util}/chinfo.sh"
-. "${BASH_SOURCE[0]/%numeric_complete.sh/util}/cache.sh"
-. "${BASH_SOURCE[0]/%numeric_complete.sh/util}/shparse.sh"
 ch_make NCMP_CACHE ${NCMP_CACHE_SIZE}
-
-ncmp_run()
-{
-	# Set up useful variables but put in function to prevent namespace pollution.
-	local NCMP_CACHE_PREFIX=0
-	local NCMP_QUERY=$((NCMP_CACHE_PREFIX++))
-	local NCMP_COUNT=$((NCMP_CACHE_PREFIX++))
-	local declare -n NCMP_DNAME=NCMP_CACHE_index
-	local NCMP_CHOICE='NCMP_CACHE_PREFIX'
-	local NCMP_LENGTH='NCMP_CACHE_PREFIX + NCMP_CACHE[NCMP_COUNT]'
-	local NCMP_REFINE='NCMP_CACHE_PREFIX + NCMP_CACHE[NCMP_COUNT]*2'
-
-	if [[ "${TERM}" = *color* || "${COLORTERM}" = *color* ]]
-	then
-		local NCMP_BLUE='\e[01;34m'
-		local NCMP_RESET='\e[0m'
-		local NCMP_INVERT='\e[30;47m'
-	else
-		local NCMP_BLUE=
-		local NCMP_RESET=
-		local NCMP_INVERT=
-	fi
-	"${@}"
-}
-
-
-# "${x/%*\//${NCMP_RESET}${NCMP_BLUE}${x%/}${NCMP_RESET}/}"
 
 
 # Store internal state
@@ -137,6 +113,7 @@ ncmp_refresh_readline() {
 		esac
 	done < <(command bind -v)
 }
+ncmp_refresh_readline
 
 if ! declare -f ncmp_orig_bind &>/dev/null
 then
@@ -176,12 +153,32 @@ then
 		ncmp_refresh_readline
 		return "${ret}"
 	}
-	if [[ "${0}" != "${BASH_SOURCE[0]}" ]]
-	then
-		bind
-	fi
 fi
-ncmp_refresh_readline
+ncmp_run()
+{
+	# Set up useful variables but put in function to reduce polluting environment with many variables.
+	# all ncmp functions expect to be called under ncmp_run and so expect these variables
+	# to be available
+	local NCMP_CACHE_PREFIX=0
+	local NCMP_QUERY=$((NCMP_CACHE_PREFIX++))
+	local NCMP_COUNT=$((NCMP_CACHE_PREFIX++))
+	local -n NCMP_DNAME=NCMP_CACHE_index
+	local NCMP_CHOICE='NCMP_CACHE_PREFIX'
+	local NCMP_LENGTH='NCMP_CACHE_PREFIX + NCMP_CACHE[NCMP_COUNT]'
+	local NCMP_REFINE='NCMP_CACHE_PREFIX + NCMP_CACHE[NCMP_COUNT]*2'
+
+	if [[ "${TERM}" = *color* || "${COLORTERM}" = *color* ]]
+	then
+		local NCMP_BLUE='\e[01;34m'
+		local NCMP_RESET='\e[0m'
+		local NCMP_INVERT='\e[30;47m'
+	else
+		local NCMP_BLUE=
+		local NCMP_RESET=
+		local NCMP_INVERT=
+	fi
+	"${@}"
+}
 
 ncmp_pathsplit() # <path> [dname_var=dname] [basename_var=bname] [fulldir=dpath]
 # Parse <path> into dir name and base name and full normalized dir name.
