@@ -207,7 +207,7 @@ shparse_parse_backtick() # <text> [out=RESULT] [begin=BEG] [end=END] [initial=0]
 	# might be interpreted as part of a subexpression instead.
 
 	local orig_rematch=("${BASH_REMATCH[@]}")
-	if [[ "${1: ${5:-0}}" =~ \`(\\.|[^\\\`])*\` ]]
+	if [[ "${1: ${5:-0}}" =~ ^\`(\\.|[^\\\`])*\` ]]
 	then
 		local region="${1:0:${5:-0}+${#BASH_REMATCH[0]}-1}"
 		local tickfix=1
@@ -336,7 +336,7 @@ shparse_parse_dollar() # <text> [out=RESULT] [begin=BEG] [end=END] [initial=0]
 			;;
 		\$[a-zA-Z_]*)
 			local orig_rematch=("${BASH_REMATCH[@]}")
-			[[ "${1: ${5:-0}}" =~ \$[a-zA-Z_][a-zA-Z_0-9]* ]]
+			[[ "${1: ${5:-0}}" =~ ^\$[a-zA-Z_][a-zA-Z_0-9]* ]]
 			if is_variable "${2:-RESULT}"
 			then
 				eval "${2:-RESULT}=\"${BASH_REMATCH[0]}\""
