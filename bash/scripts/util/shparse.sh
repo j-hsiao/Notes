@@ -66,10 +66,8 @@ is_variable() # <varname>
 {
 	# Success if is variable name, else error.
 	local orig_rematch=("${BASH_REMATCH[@]}")
+	trap 'restore_BASH_REMATCH orig_rematch; trap - RETURN' RETURN
 	[[ "${1}" =~ ^[a-zA-Z_][a-zA-Z_0-9]*$ ]]
-	local ret=$?
-	restore_BASH_REMATCH orig_rematch
-	return "${ret}"
 }
 
 shparse_parse_expr() # <text> [out=RESULT] [begin=BEG] [end=END] [initial=0]
@@ -115,6 +113,7 @@ shparse_parse_generic() # <pattern> <beginning> <text> [out=RESULT] [begin=BEG] 
 	# printf "${indent}"'  %s\n' "${1}"
 
 	local orig_rematch=("${BASH_REMATCH[@]}")
+	trap 'restore_BASH_REMATCH orig_rematch; trap - RETURN' RETURN
 	local -n shppg__end="${6:-END}"
 	shppg__end=$((${7:-0} + ${2}))
 	while [[ "${3:shppg__end}" =~ ^${1} ]]
@@ -127,7 +126,6 @@ shparse_parse_generic() # <pattern> <beginning> <text> [out=RESULT] [begin=BEG] 
 				$((shppg__end + ${#BASH_REMATCH[0]} - ${#BASH_REMATCH[-2]}))
 			if ((shppg__end < 0))
 			then
-				restore_BASH_REMATCH orig_rematch
 				return
 			fi
 		else
@@ -137,7 +135,6 @@ shparse_parse_generic() # <pattern> <beginning> <text> [out=RESULT] [begin=BEG] 
 			then
 				eval "${4:-RESULT}=${3: ${7:-0}:shppg__end - ${7:-0}}"
 			fi
-			restore_BASH_REMATCH orig_rematch
 			return
 		fi
 	done
@@ -145,7 +142,6 @@ shparse_parse_generic() # <pattern> <beginning> <text> [out=RESULT] [begin=BEG] 
 
 	eval "${5:-BEG}=${7:-0}"
 	shppg__end=-1
-	restore_BASH_REMATCH orig_rematch
 	return
 }
 
@@ -285,16 +281,15 @@ shparse_parse_command_sub() # <text> [out=RESULT] [begin=BEG] [end=END] [initial
 	local -n shppcs__end="${4:-END}"
 	shppcs__end=$((${5-0} + 2))
 	local orig_rematch=("${BASH_REMATCH[@]}")
+	trap 'restore_BASH_REMATCH orig_rematch; trap - RETURN' RETURN
 	while [[ "${1:shppcs__end:1}" = [^$'\x29'] ]]
 	do
 		shparse_parse_word "${1}" 0 "${3}" "${4}" "${shppcs__end}"
 		if ((shppcs__end < 0))
 		then
-			restore_BASH_REMATCH orig_rematch
 			return
 		fi
 	done
-	restore_BASH_REMATCH orig_rematch
 	if [[ "${1:shppcs__end:1}" = $'\x29' ]]
 	then
 		((++shppcs__end))
