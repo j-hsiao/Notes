@@ -14,9 +14,9 @@
 # 	Using ${2}, you lose information that the current word to be completed
 # 	is a single-quoted string.
 # 	ex 2:
-# 		"a string ${param[tab]
-# 		${2} = a string ${param
-# 		word = "a string ${param
+# 		"a string ${param[tab]}
+# 		${2} = a string ${param  (without the })
+# 		word = "a string ${param}
 # 	In both cases, the extra "a string" is included in the value.
 # 	However, using COMP_WORDS, information about the double-quoted
 # 	string is included.
@@ -64,15 +64,15 @@
 # 		distinguishing between file and dir.
 #
 # 		In the end though, it seems like parsing is still required
-# 		ex: hello${HO[tab] fails to do any completions with compgen
+# 		ex: hello${HO[tab]} fails to do any completions with compgen
 
 [[ "${BASH_SOURCE[0]}" != "${0}" ]] && declare -Fp ncmp_run &>/dev/null && (($# == 0)) && return
 
-. "${BASH_SOURCE[0]/%numeric_complete.sh}util/restore_rematch.sh"
-. "${BASH_SOURCE[0]/%numeric_complete.sh}util/shoptstack.sh"
-. "${BASH_SOURCE[0]/%numeric_complete.sh}util/chinfo.sh"
-. "${BASH_SOURCE[0]/%numeric_complete.sh}util/cache.sh"
-. "${BASH_SOURCE[0]/%numeric_complete.sh}util/shparse.sh"
+. "${BASH_SOURCE[0]%"${BASH_SOURCE[0]##*/}"}util/restore_rematch.sh"
+. "${BASH_SOURCE[0]%"${BASH_SOURCE[0]##*/}"}util/shoptstack.sh"
+. "${BASH_SOURCE[0]%"${BASH_SOURCE[0]##*/}"}util/chinfo.sh"
+. "${BASH_SOURCE[0]%"${BASH_SOURCE[0]##*/}"}util/cache.sh"
+. "${BASH_SOURCE[0]%"${BASH_SOURCE[0]##*/}"}util/shparse.sh"
 
 # Default cache size
 NCMP_CACHE_SIZE=${NCMP_CACHE_SIZE:-10}
@@ -163,19 +163,19 @@ ncmp_run()
 	local NCMP_QUERY=$((NCMP_CACHE_PREFIX++))
 	local NCMP_COUNT=$((NCMP_CACHE_PREFIX++))
 	local -n NCMP_DNAME=NCMP_CACHE_index
-	local NCMP_CHOICE='NCMP_CACHE_PREFIX'
-	local NCMP_LENGTH='NCMP_CACHE_PREFIX + NCMP_CACHE[NCMP_COUNT]'
-	local NCMP_REFINE='NCMP_CACHE_PREFIX + NCMP_CACHE[NCMP_COUNT]*2'
+	local NCMP_CHOICE='NCMP_CACHE_PREFIX' # choices, may contain ansi colors
+	local NCMP_LENGTH='NCMP_CACHE_PREFIX + NCMP_CACHE[NCMP_COUNT]' # display lengths
+	local NCMP_REFINE='NCMP_CACHE_PREFIX + NCMP_CACHE[NCMP_COUNT]*2' # chosen indices
 
 	if [[ "${TERM}" = *color* || "${COLORTERM}" = *color* ]]
 	then
 		local NCMP_BLUE='\e[01;34m'
 		local NCMP_RESET='\e[0m'
-		local NCMP_INVERT='\e[30;47m'
+		local NCMP_NUMBER='\e[30;47m'
 	else
 		local NCMP_BLUE=
 		local NCMP_RESET=
-		local NCMP_INVERT=
+		local NCMP_NUMBER=
 	fi
 	"${@}"
 }
@@ -187,9 +187,11 @@ ncmp_pathsplit() # <path> [dname_var=dname] [basename_var=bname] [fulldir=dpath]
 #       dir1/dir2/ will be split as dir1/dir2/ and ''
 {
 	local -n ncmpps__dname="${2:-dname}" ncmpps__bname="${3:-bname}" ncmpps__dpath="${4:-dpath}"
-	[[ "${1}" =~ (.*/)?(.*) ]] # load into BASH_REMATCH
+	local orig_rematch=("${BASH_REMATCH[@]}")
+	[[ "${1}" =~ (.*/)?(.*) ]]
 	ncmpps__dname="${BASH_REMATCH[1]}"
 	ncmpps__bname="${BASH_REMATCH[2]}"
+	restore_BASH_REMATCH orig_rematch
 	ss_push extglob
 	ncmpps__dpath="${ncmpps__dname//+(\/)/\/}"
 	ncmpps__dpath="${ncmpps__dpath/#~*([^\/])/${HOME}}"
@@ -215,7 +217,109 @@ ncmp_find() # <string> <query> [out=RESULT]
 	fi
 }
 
+ncmp_expand_prompt2() # [prompt=${PS1}] [out=]
+{
+	# Expand prompt as a prompt string.  If out is provided, then store
+	# the result to out.  Otherwise, print the result.
+	local prompt="${1:-"${PS1}"}"
+	if (("${BASH_VERSINFO[0]:-3}" > 4 || ("${BASH_VERSINFO[0]:-3}" == 4 && "${BASH_VERSINFO[1]:-3}" >= 4)))
+	then
+		printf ${2:+-v "${2}"} '%s' "${prompt@P}"
+		return
+	fi
 
+	local parts=()
+	local idx=0
+	local orig_rematch=("${BASH_REMATCH[@]}")
+	trap 'restore_BASH_REMATCH orig_rematch; trap - RETURN' RETURN
+	while [[ "${prompt:idx}" =~ ^(("\$'"|[^'$\'])*)(['$\']) ]]
+	do
+		if (("${#BASH_REMATCH[0]}" == 0))
+		then
+			printf ${2:+-v "${2}"} '%s' "${parts[@]}"
+			return
+		fi
+		if (("${#BASH_REMATCH[-2]}"))
+		then
+			parts+=("${BASH_REMATCH[-2]}")
+			((idx+="${#BASH_REMATCH[-2]}"))
+		fi
+		if (("${#BASH_REMATCH[-1]}"))
+		then
+			case "${BASH_REMATCH[-1]}" in
+				'$')
+					local beg end part
+					shparse_parse_dollar "${prompt}" 'parts[${#parts[@]}]' beg end "${idx}"
+					if ((end < 0))
+					then
+						parts+=("${prompt:idx}")
+						idx="${#prompt}"
+					else
+						idx="${end}"
+					fi
+					;;
+				'\')
+					case "${prompt:idx:2}" in
+						\\[aenr]) printf -v "parts[${#parts[@]}]" "${prompt:idx:2}";;
+						'\d') parts+=("$(date '+%a %b %d')");;
+						'\h') parts+=("${HOSTNAME%%.*}");;
+						'\H') parts+=("${HOSTNAME}");;
+						'\j') parts+=("$(jobs|wc-l)");;
+						'\l') parts+=("$(tty)"); parts[-1]="${parts[-1]##*/}";;
+						'\s') parts+=("${SHELL##*/}");;
+						'\t') parts+=("$(date '+%H:%M:%S')");;
+						'\T') parts+=("$(date '+%I:%M:%S')");;
+						'\@') parts+=("$(date '+%I:%M %p')");;
+						'\A') parts+=("$(date '+%H:%M')");;
+						'\u') parts+=("${USER}");;
+						'\v') parts+=("${BASH_VERSINFO[0]}.${BASH_VERSINFO[1]}");;
+						'\V') parts+=("${BASH_VERSINFO[0]}.${BASH_VERSINFO[1]}.${BASH_VERSINFO[2]}");;
+						'\w') parts+=("${PWD/#"${HOME}"/"${PROMPT_DIRTRIM:-"~"}"}");;
+						'\W')
+							if [[ "${PWD}" = "${HOME}" ]]
+							then
+								parts+=('~')
+							else
+								parts+=("${PWD##*/}")
+							fi
+							;;
+						'\!') parts+=("${HISTCMD}");;
+						'\#')
+							# TODO: the command number number of this command
+							# doesn't seem to be any way to get this, but ti
+							# also doesn't seem all that useful either...
+							;;
+						'\$')
+							if ((UID == 0))
+							then
+								parts+=('#')
+							else
+								parts+=('$')
+							fi
+							;;
+						'\\') parts+=('\');;
+						'\['*|'\]'*) ;;
+						*)
+							if [[ "${prompt:idx}" =~ ^$'\\D\x7b'([^$'\x7d']*)($'\x7d'|$) ]]
+							then
+								parts+=("$(date "+${BASH_REMATCH[1]}")")
+								idx+="${#BASH_REMATCH[0]}"
+							elif [[ "${prompt:idx}" =~ ^'\'([0-7]{1,2}$|[0-7]{3,3}) ]]
+							then
+								printf -v "parts[${#parts[@]}]" "${ncmpep__out:idx:4}"
+								((idx += "${#BASH_REMATCH[0]}"))
+							else
+								parts+=('\')
+								((++idx))
+							fi
+							continue
+							;;
+					esac
+					;;
+			esac
+		fi
+	done
+}
 
 
 ncmp_expand_prompt() # [prompt=${PS1}] [out=RESULT]
