@@ -178,6 +178,9 @@ ______________________________
 
 		______________________________
 		-0.2.0- expansions
+			NOTE: *single quoting* only acts differently
+			on double-quoted existence expansions.  All other cases tested, they
+			seem to act as expected.
 			______________________________
 			-0.2.0.1- normal expansion
 				${varname}
