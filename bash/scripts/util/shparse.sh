@@ -62,12 +62,14 @@
 # {: 0x7b
 # }: 0x7d
 
-is_variable() # <varname>
+is_output() # <varname>
 {
 	# Success if is variable name, else error.
-	local orig_rematch=("${BASH_REMATCH[@]}")
-	trap 'restore_BASH_REMATCH orig_rematch; trap - RETURN' RETURN
-	[[ "${1}" =~ ^[a-zA-Z_][a-zA-Z_0-9]*$ ]]
+	# NOTE: only checks the first character
+	# because the output could also be an expr
+	# like arrayvar[idx] or something which is
+	# valid to assign to, but is not a variable name.
+	[[ "${1}" = [a-zA-Z_]* ]]
 }
 
 shparse_parse_expr() # <text> [out=RESULT] [begin=BEG] [end=END] [initial=0]
@@ -131,7 +133,7 @@ shparse_parse_generic() # <pattern> <beginning> <text> [out=RESULT] [begin=BEG] 
 		else
 			((shppg__end+="${#BASH_REMATCH[0]}"))
 			eval "${5:-BEG}=${7:-0}"
-			if is_variable "${4:-RESULT}"
+			if is_output "${4:-RESULT}"
 			then
 				eval "${4:-RESULT}=${3: ${7:-0}:shppg__end - ${7:-0}}"
 			fi
@@ -226,7 +228,7 @@ shparse_parse_backtick() # <text> [out=RESULT] [begin=BEG] [end=END] [initial=0]
 		if ((tickfix))
 		then
 			((++shppbt__end))
-			if is_variable "${2:-RESULT}"
+			if is_output "${2:-RESULT}"
 			then
 				eval "${2:-RESULT}=${1: ${5:-0} : shppbt__end - ${5:-0}}"
 			fi
@@ -293,7 +295,7 @@ shparse_parse_command_sub() # <text> [out=RESULT] [begin=BEG] [end=END] [initial
 	if [[ "${1:shppcs__end:1}" = $'\x29' ]]
 	then
 		((++shppcs__end))
-		if is_variable "${2:-RESULT}"
+		if is_output "${2:-RESULT}"
 		then
 			eval "${2:-RESULT}=${1: ${5:-0}: shppcs__end - ${5:-0}}"
 		fi
@@ -327,7 +329,7 @@ shparse_parse_dollar() # <text> [out=RESULT] [begin=BEG] [end=END] [initial=0]
 			shparse_parse_ansi_c "${@}"
 			;;
 		\$[-*@#?!0-9$]*)
-			if is_variable "${2:-RESULT}"
+			if is_output "${2:-RESULT}"
 			then
 				eval "${2:-RESULT}=\"${1: ${5:-0}:2}\""
 			fi
@@ -337,7 +339,7 @@ shparse_parse_dollar() # <text> [out=RESULT] [begin=BEG] [end=END] [initial=0]
 		\$[a-zA-Z_]*)
 			local orig_rematch=("${BASH_REMATCH[@]}")
 			[[ "${1: ${5:-0}}" =~ ^\$[a-zA-Z_][a-zA-Z_0-9]* ]]
-			if is_variable "${2:-RESULT}"
+			if is_output "${2:-RESULT}"
 			then
 				eval "${2:-RESULT}=\"${BASH_REMATCH[0]}\""
 			fi
@@ -354,7 +356,7 @@ shparse_parse_dollar() # <text> [out=RESULT] [begin=BEG] [end=END] [initial=0]
 			then
 				shppd__beg=${5:-0}
 			fi
-			if ((shppd__end >= 0)) && is_variable "${2:-RESULT}"
+			if ((shppd__end >= 0)) && is_output "${2:-RESULT}"
 			then
 				eval "${2:-RESULT}=${1:shppd__beg:shppd__end}"
 			fi
@@ -372,7 +374,7 @@ shparse_parse_dollar() # <text> [out=RESULT] [begin=BEG] [end=END] [initial=0]
 			# invalid dollar expr, just a raw dollar sign
 			eval "${3:-BEG}"='"${5:-0}"'
 			eval "${4:-END}"='"$((${5:-0}+1))"'
-			if is_variable "${2:-RESULT}"
+			if is_output "${2:-RESULT}"
 			then
 				eval "${2:-RESULT}=$"
 			fi
