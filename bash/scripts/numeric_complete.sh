@@ -1,6 +1,9 @@
 #!/bin/bash
-
-# sidenote: observation
+# Settings:
+# 	NUMERIC_COMPLETE_color
+# 	  ls --color=* value.  Default to never (color can affect
+# 	  performance, especially in network file)
+## sidenote: observation
 # completion function,
 # 	${1} = command
 # 	${2} = word(partial?sub?)
@@ -166,6 +169,8 @@ ncmp_run()
 	local NCMP_CHOICE='NCMP_CACHE_PREFIX' # choices, may contain ansi colors
 	local NCMP_LENGTH='NCMP_CACHE_PREFIX + NCMP_CACHE[NCMP_COUNT]' # display lengths
 	local NCMP_REFINE='NCMP_CACHE_PREFIX + NCMP_CACHE[NCMP_COUNT]*2' # chosen indices
+	# TODO?
+	local NCMP_ANSI_CODE_PATTERN=$'\e[*([\x30-\x3f'
 
 	if [[ "${TERM}" = *color* || "${COLORTERM}" = *color* ]]
 	then
@@ -358,8 +363,7 @@ ncmp_count_lines() # <text> [width=${COLUMNS}] [out=RESULT]
 
 ncmp_escape2shell() # <text> [out=RESULT]
 {
-	# Convert <text> from ls -b style escaping
-	# to shell-style escaping
+	# Convert <text> from ls -b style escaping to shell-style escaping
 	local -n ncmpe2s__out="${2:-RESULT}"
 	printf -v ncmpe2s__out "${1//'\ '/ }"
 	# ${ncmpe2s__tmp@Q} always adds quotes regardless of whether they are necessary or not.
@@ -371,14 +375,7 @@ NCMP_CACHE_STATE=3
 
 ncmp_read_dir() # <dname> [force=]
 {
-	# Read and preprocess <dname> into the cache.
-	# The cache (NCMP_CACHE) will contain:
-	# 1. The current query
-	# 2. The number of entries
-	# 3. The display entries (maybe with colors, etc)
-	# 4. the raw entries (no colors) for length + searching
-	# 5. the display lengths.
-	#
+	# Load directory entries into NCMP_CACHE.
 	# If [force] is not empty, then force re-reading the
 	# directory.  This is useful if there was some change
 	# to a directory and the cache is outdated.
@@ -394,6 +391,7 @@ ncmp_read_dir() # <dname> [force=]
 		# Sidenote, using compgen can be very very slow...
 		# ls = 0.18 seconds, but compgen = 3 seconds if compgen -df -o plusdirs (to distinguish directories)
 		# or compgen -df 2 seconds
+		# find path -printf '%y %f' can also be much slower than ls -Apb.
 		# If this is the case, ls seems to be way more preferrable to compgen
 		# but compgen does give some benefits like no need to implement
 		# parsing partial bash/readline parsing.
@@ -403,7 +401,6 @@ ncmp_read_dir() # <dname> [force=]
 		# [0x30–0x3F]*  (0–9:;<=>?)
 		# [0x20–0x2F]*  ( !"#$%&'()*+,-./)
 		# 0x40–0x7E     (@A–Z[\]^_`a–z{|}~)
-
 		if [[ "${NUMERIC_COMPLETE_color:-never}" = 'never' ]]
 		then
 			NCMP_CACHE+=("${NCMP_CACHE[@]}")
