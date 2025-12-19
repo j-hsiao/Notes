@@ -75,7 +75,7 @@ is_output() # <varname>
 shparse_parse_expr() # <text> [out=RESULT] [begin=BEG] [end=END] [initial=0]
 {
 	# Parse <Text> as a single expr indicated by <text>[initial]
-	case "${text: ${5:-0}:1}" in
+	case "${1: ${5:-0}:1}" in
 		\$)
 			local subparse=shparse_parse_dollar
 			;;
@@ -108,9 +108,9 @@ shparse_parse_generic() # <pattern> <beginning> <text> [out=RESULT] [begin=BEG] 
 	# <beginning> is the number of characters that starts this expression.
 	# 4-7 matches 2-5 for the general stand-alone parser arguments.
 
-	local indent
+	# local indent
 	# printf -v indent "%${#BASH_SOURCE[@]}s" ''
-	# printf "${indent}"'PARSING GENERIC\n'
+	# printf "${indent}"'PARSING GENERIC from %d\n' "${7:-0}"
 	# printf "${indent}"'  "%s"\n' "${3}"
 	# printf "${indent}"'  %s\n' "${1}"
 
@@ -124,6 +124,8 @@ shparse_parse_generic() # <pattern> <beginning> <text> [out=RESULT] [begin=BEG] 
 		# printf "${indent}"'    "%s"\n' "${BASH_REMATCH[@]}"
 		if [[ -n "${BASH_REMATCH[-2]}" ]]
 		then
+			# printf "${indent}    subexpression: %s\n" \
+			# 	"${3: shppg__end + ${#BASH_REMATCH[0]} - ${#BASH_REMATCH[-2]}}"
 			shparse_parse_expr "${3}" 0 "${5}" "${6}" \
 				$((shppg__end + ${#BASH_REMATCH[0]} - ${#BASH_REMATCH[-2]}))
 			if ((shppg__end < 0))
@@ -470,6 +472,7 @@ then
 	run_test ' $HOME extra' "$HOME" 1 6 '$HOME' 1
 	run_test ' $HOME!notvalid' "$HOME" 1 6 '$HOME' 1
 	run_test ' $%not a $ expansion' '$' 1 2 '$' 1
+	run_test ' ${debian_chroot:+($debian_chroot)} extra' "${debian_chroot:+($debian_chroot)}" 1 35 '${debian_chroot:+($debian_chroot)}' 1
 
 	start_test shparse_parse_backtick
 	run_test 'hello`echo \\\`$HOME\\\$HOME\\\a`extra' \`${HOME}\$HOME\\a 5 33 '`echo \\\`$HOME\\\$HOME\\\a`' 5
