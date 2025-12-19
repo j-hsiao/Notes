@@ -305,49 +305,26 @@ ncmp_expand_prompt() # [prompt=${PS1}] [out=]
 	done
 }
 
-ncmp_max() # <int_array_name> [start=0] [stop=end] [output=RESULT]
+ncmp_most() # <op> <int_array_name> [start=0] [stop=end] [output=RESULT]
 {
 	# Calculate the maximum value from [start, stop).
 	# If the range is empty, then output will be empty.
-	local -n ncmpmx__array="${1}" ncmpmx__output="${4:-RESULT}"
-	local start="${2:-0}" stop="${3:-${#ncmpmx__array[@]}}"
-	((stop = stop < ${#ncmpmx__array[@]} ? stop : ${#ncmpmx__array[@]}))
+	local op="${1}"
+	local -n ncmpmost__array="${2}" ncmpmost__output="${5:-RESULT}"
+	local start="${3:-0}" stop="${#ncmpmost__array[@]}"
+	((stop = stop <= ${4:-stop} ? stop : ${4:-stop}))
 	if (("${start}" >= "${stop}"))
 	then
-		ncmpmx__output=
+		ncmpmost__output=
 		return
 	fi
-	ncmpmx__output="${ncmpmx__array[start]}"
-	while ((start < stop))
+	ncmpmost__output="${ncmpmost__array[start]}"
+	while ((++start < stop))
 	do
-		if ((ncmpmx__output < "${ncmpmx__array[start]}"))
+		if ((ncmpmost__array[start] ${op} ncmpmost__output))
 		then
-			ncmpmx__output="${ncmpmx__array[start]}"
+			ncmpmost__output="${ncmpmost__array[start]}"
 		fi
-		((++start))
-	done
-}
-
-ncmp_min() # <int_array_name> [start=0] [stop=end] [output=RESULT]
-{
-	# Calculate the minimum value from [start, stop).
-	# If the range is empty, then output will be empty.
-	local -n ncmpmn__array="${1}" ncmpmn__output="${4:-RESULT}"
-	local start="${2:-0}" stop="${3:-${#ncmpmn__array[@]}}"
-	((stop = stop < ${#ncmpmn__array[@]} ? stop : ${#ncmpmn__array[@]}))
-	if (("${start}" >= "${stop}"))
-	then
-		ncmpmn__output=
-		return
-	fi
-	ncmpmn__output="${ncmpmn__array[start]}"
-	while ((start < stop))
-	do
-		if ((ncmpmn__output > "${ncmpmn__array[start]}"))
-		then
-			ncmpmn__output="${ncmpmn__array[start]}"
-		fi
-		((++start))
 	done
 }
 
@@ -595,7 +572,7 @@ ncmp_cols_viable() # <strwidth_array> <numcols> <width> [colwidths=RESULT]
 	while ((col < ${cols}))
 	do
 		local stop=$(((col+1)*rows))
-		ncmp_max "${1}" "${start}" "${stop}" ncmpcv__colwidths[col]
+		ncmp_most '>' "${1}" "${start}" "${stop}" ncmpcv__colwidths[col]
 		((total += ncmpcv__colwidths[col++]))
 		((start = stop))
 	done
@@ -629,7 +606,7 @@ ncmp_calcfmt() # <strwidth_array> [termwidth=${COLUMNS}] [minpad=1] [style='\e[3
 	ci_strdisplaylen "${prelen}" prelen
 
 	local shortest
-	ncmp_min "${1}" '' '' shortest
+	ncmp_most '<' "${1}" '' '' shortest
 
 	local ncols="$((termwidth / shortest + (termwidth%shortest ? 1 : 0)))"
 	((ncols = ncols > choices ? choices : ncols))
@@ -861,27 +838,27 @@ else
 	echo 'Testing max().'
 	#        0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8
 	testarr=(6 5 1 2 8 9 7 6 1 2 9 3 5 7 1 2 9 8 4 1 8 3 4 5 4 3 6 7 1 0 2 3 4 0 9 1 2 3 4)
-	ncmp_max testarr
+	ncmp_most '>' testarr
 	(( ${RESULT} == 9 )) && echo pass || echo "fail: ${RESULT}"
-	ncmp_max testarr 0 5
+	ncmp_most '>' testarr 0 5
 	(( ${RESULT} == 8 )) && echo pass || echo "fail: ${RESULT}"
-	ncmp_max testarr 11 14
+	ncmp_most '>' testarr 11 14
 	(( ${RESULT} == 7 )) && echo pass || echo "fail: ${RESULT}"
-	ncmp_max testarr 0 0
+	ncmp_most '>' testarr 0 0
 	[[ "${RESULT}" == '' ]] && echo pass || echo "fail: ${RESULT}"
-	ncmp_max testarr 2 0
+	ncmp_most '>' testarr 2 0
 	[[ "${RESULT}" == '' ]] && echo pass || echo "fail: ${RESULT}"
 
 	echo 'Testing min()'
-	ncmp_min testarr
+	ncmp_most '<' testarr
 	(( ${RESULT} == 0 )) && echo pass || echo "fail: ${RESULT}"
-	ncmp_min testarr 0 5
+	ncmp_most '<' testarr 0 5
 	(( ${RESULT} == 1 )) && echo pass || echo "fail: ${RESULT}"
-	ncmp_min testarr 11 14
+	ncmp_most '<' testarr 11 14
 	(( ${RESULT} == 3 )) && echo pass || echo "fail: ${RESULT}"
-	ncmp_min testarr 0 0
+	ncmp_most '<' testarr 0 0
 	[[ "${RESULT}" == '' ]] && echo pass || echo "fail: ${RESULT}"
-	ncmp_min testarr 2 0
+	ncmp_most '<' testarr 2 0
 	[[ "${RESULT}" == '' ]] && echo pass || echo "fail: ${RESULT}"
 
 	echo 'Testing cout_lines()'
