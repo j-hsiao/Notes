@@ -111,7 +111,7 @@ ncmp_refresh_readline() {
 				NCMP_STATE['show_all_if_ambiguous']="${line#*show-all-if-ambiguous }"
 				;;
 		esac
-	done < <(command bind -v)
+	done < <(command bind -v 2>/dev/null)
 }
 ncmp_refresh_readline
 
@@ -202,22 +202,7 @@ ncmp_pathsplit() # <path> [dname_var=dname] [basename_var=bname] [fulldir=dpath]
 	fi
 }
 
-ncmp_find() # <string> <query> [out=RESULT]
-{
-	# Find the position of <query> in <string> and assign to [out]
-	local -n ncmpf__out="${3:-RESULT}"
-	local curidx=-1
-	local total="${#1}"
-	local removed="${1#*"${2}"}"
-	if ((${#removed} == total))
-	then
-		ncmpf__out=-1
-	else
-		((ncmpf__out = ${#1} - ${#2} - ${#removed}))
-	fi
-}
-
-ncmp_expand_prompt2() # [prompt=${PS1}] [out=]
+ncmp_expand_prompt() # [prompt=${PS1}] [out=]
 {
 	# Expand prompt as a prompt string.  If out is provided, then store
 	# the result to out.  Otherwise, print the result.
@@ -232,17 +217,12 @@ ncmp_expand_prompt2() # [prompt=${PS1}] [out=]
 	local idx=0
 	local orig_rematch=("${BASH_REMATCH[@]}")
 	trap 'restore_BASH_REMATCH orig_rematch; trap - RETURN' RETURN
-	while [[ "${prompt:idx}" =~ ^(("\$'"|[^'$\'])*)(['$\']) ]]
+	while [[ "${prompt:idx}" =~ ^(("\$'"|[^'$\'])*)(['$\'])? ]]
 	do
-		if (("${#BASH_REMATCH[0]}" == 0))
+		if (("${#BASH_REMATCH[1]}"))
 		then
-			printf ${2:+-v "${2}"} '%s' "${parts[@]}"
-			return
-		fi
-		if (("${#BASH_REMATCH[-2]}"))
-		then
-			parts+=("${BASH_REMATCH[-2]}")
-			((idx+="${#BASH_REMATCH[-2]}"))
+			parts+=("${BASH_REMATCH[1]}")
+			((idx+="${#BASH_REMATCH[1]}"))
 		fi
 		if (("${#BASH_REMATCH[-1]}"))
 		then
@@ -304,9 +284,9 @@ ncmp_expand_prompt2() # [prompt=${PS1}] [out=]
 							then
 								parts+=("$(date "+${BASH_REMATCH[1]}")")
 								idx+="${#BASH_REMATCH[0]}"
-							elif [[ "${prompt:idx}" =~ ^'\'([0-7]{1,2}$|[0-7]{3,3}) ]]
+							elif [[ "${prompt:idx}" =~ ^'\'[0-7]($|[0-7]($|[0-7])) ]]
 							then
-								printf -v "parts[${#parts[@]}]" "${ncmpep__out:idx:4}"
+								printf -v "parts[${#parts[@]}]" "${BASH_REMATCH[0]}"
 								((idx += "${#BASH_REMATCH[0]}"))
 							else
 								parts+=('\')
@@ -315,146 +295,15 @@ ncmp_expand_prompt2() # [prompt=${PS1}] [out=]
 							continue
 							;;
 					esac
+					((idx += 2))
 					;;
 			esac
+		else
+			printf ${2:+-v "${2}"} '%s' "${parts[@]}"
+			return
 		fi
 	done
 }
-
-
-ncmp_expand_prompt() # [prompt=${PS1}] [out=RESULT]
-{
-# Expand a prompt string
-	local -n ncmpep__out="${2:-RESULT}"
-	ncmpep__out="${1:-${PS1}}"
-
-	if (("${BASH_VERSINFO[0]:-3}" > 4 || ("${BASH_VERSINFO[0]:-3}" == 4 && "${BASH_VERSINFO[1]:-3}" >= 4)))
-	then
-		ncmpep__out="${ncmpep__out@P}"
-		return
-	fi
-
-	local parts=()
-	local idx=0 stop
-	while ((idx < "${#ncmpep__out}"))
-	do
-		ncmp_find "${ncmpep__out:idx}" '\' stop
-		if ((stop < 0))
-		then
-			parts+=("${ncmpep__out:idx}")
-			break
-		elif ((stop > 0))
-		then
-			parts+=("${ncmpep__out:idx:stop}")
-			((idx += stop))
-		fi
-		case "${ncmpep__out:idx}" in
-			'\a'*|'\e'*|'\n'*|'\r'*)
-				printf -v "parts[${#parts[@]}]" "${ncmpep__out:idx:2}"
-				;;
-			'\d'*)
-				parts+=("$(date '+%a %b %d')")
-				;;
-			'\D{'*)
-				local stop
-				ncmp_find "${ncmpep__out:idx+3}" '}' stop
-				if ((stop >= 0))
-				then
-					parts+=("$(date "+${ncmpep__out:idx+3:stop}")")
-					((idx += stop + 4))
-				else
-					parts+=("$(date "+${ncmpep__out:idx+3}")")
-					idx="${#ncmpep__out}"
-				fi
-				continue
-				;;
-			'\h'*)
-				parts+=("${HOSTNAME%%.*}")
-				;;
-			'\H'*)
-				parts+=("${HOSTNAME}")
-				;;
-			'\j'*)
-				parts+=("$(jobs|wc -l)")
-				;;
-			'\l'*)
-				parts+=("$(tty)")
-				parts[-1]="${parts[-1]##*/}"
-				;;
-			'\s'*)
-				parts+=("${SHELL##*/}")
-				;;
-			'\t'*)
-				parts+=("$(date '+%H:%M:%S')")
-				;;
-			'\T'*)
-				parts+=("$(date '+%I:%M:%S')")
-				;;
-			'\@'*)
-				parts+=("$(date '+%I:%M %p')")
-				;;
-			'\A'*)
-				parts+=("$(date '+%H:%M')")
-				;;
-			'\u'*)
-				parts+=("${USER}")
-				;;
-			'\v'*)
-				parts+=("${BASH_VERSINFO[0]}.${BASH_VERSINFO[1]}")
-				;;
-			'\V'*)
-				parts+=("${BASH_VERSINFO[0]}.${BASH_VERSINFO[1]}.${BASH_VERSINFO[2]}")
-				;;
-			'\w'*)
-				parts+=("${PWD/#"${HOME}"/${PROMPT_DIRTRIM:-~}}")
-				;;
-			'\W'*)
-				if [[ "${PWD}" = "${HOME}" ]]
-				then
-					parts+=('~')
-				else
-					parts+=("${PWD##*/}")
-				fi
-				;;
-			'\!'*)
-				parts+=("${HISTCMD}")
-				;;
-			'\#'*)
-				# TODO: the command number number of this command
-				# doesn't seem to be any way to get this, but ti
-				# also doesn't seem all that useful either...
-				;;
-			'\$'*)
-				if ((UID == 0))
-				then
-					parts+=('#')
-				else
-					parts+=('$')
-				fi
-				;;
-			'\'[0-9][0-9][0-9]*)
-				printf -v "parts[${#parts[@]}]" "${ncmpep__out:idx:4}"
-				((idx += 4))
-				continue
-				;;
-			'\\'*)
-				parts+=('\')
-				;;
-			'\['*|'\]'*)
-				;;
-			*)
-				parts+=('\')
-				((++idx))
-				continue
-				;;
-		esac
-		((idx += 2))
-		# read dummy || return
-	done
-	printf '"%s"\n' "${parts[@]}"
-	printf -v "${2:-RESULT}" '%s' "${parts[@]}"
-}
-
 
 ncmp_max() # <int_array_name> [start=0] [stop=end] [output=RESULT]
 {
@@ -952,45 +801,45 @@ NUMERIC_COMPLETE_prefix="${NUMERIC_COMPLETE_prefix:-;}"
 NUMERIC_COMPLETE_complete="${NUMERIC_COMPLETE_complete:-l}"
 NUMERIC_COMPLETE_normal="${NUMERIC_COMPLETE_normal:-k}"
 
-alias "${NUMERIC_COMPLETE_alias}"=''
-
-complete -o filenames -o noquote -F ncmp_complete "${NUMERIC_COMPLETE_alias}"
-
-
-# Use a macro to insert the `NUMERIC_COMPLETE_alias` command so that
-# numeric completion can be triggered.  This is better than using
-# complete -D because commands can already have their own completion
-# function.  (Many can have _longopt as the completion function) This
-# guarantees that numeric completion will be performed.
-
-# '\e ': set the mark
-# '\C-an ' insert the n alias command to trigger completion
-# '\C-x\C-x' jump back to mark
-# '\C-f\C-f' mark only marks column, not textual position, move forward
-#            2 chars to cover the inserted 'n '
-# '\t'       trigger completion.
-#
-# '\e'      enter command mode
-# 'mz'      save mark to z
-# '0in \e'  insert 'n '
-# '`zll'    jump back to position (only saves column position not text position so ll)
-# 'a\t'     trigger completion
-
-
-command bind -m emacs \""${NUMERIC_COMPLETE_prefix}${NUMERIC_COMPLETE_complete}"'":"\e \C-a'"${NUMERIC_COMPLETE_alias}"' \C-x\C-x'"${NUMERIC_COMPLETE_alias//?/\\C-f}"'\C-f\t"'
-command bind -m vi-insert \""${NUMERIC_COMPLETE_prefix}${NUMERIC_COMPLETE_complete}"'":"\emz0i'"${NUMERIC_COMPLETE_alias}"' \e`z'"$((${#NUMERIC_COMPLETE_alias}+1))"'la\t"'
-
-# Remove ${#NUMERIC_COMPLETE_alias} worth of characters from the
-# beginning and an extra space.  I cannot find any way to check whether
-# the command is the alias or not, so it will always just remove a number
-# of characters.
-command bind -m emacs \""${NUMERIC_COMPLETE_prefix}${NUMERIC_COMPLETE_normal}"'":"'"${NUMERIC_COMPLETE_alias//?/\\C-b}"'\C-b\e \C-a'"${NUMERIC_COMPLETE_alias//?/\\C-d}"'\C-d\C-x\C-x \C-b\C-d"'
-command bind -m vi-insert \""${NUMERIC_COMPLETE_prefix}${NUMERIC_COMPLETE_normal}"'":"\e'"$((${#NUMERIC_COMPLETE_alias}+1))h"'mz0'"$((${#NUMERIC_COMPLETE_alias}+1))x"'`za"'
-
-
-# testing
-if [[ "${0}" = "${BASH_SOURCE[0]}" ]]
+if [[ "${0}" != "${BASH_SOURCE[0]}" ]]
 then
+	if [[ "${1}" != 'nobind' ]]
+	then
+		alias "${NUMERIC_COMPLETE_alias}"=''
+
+		complete -o filenames -o noquote -F ncmp_complete "${NUMERIC_COMPLETE_alias}"
+
+		# Use a macro to insert the `NUMERIC_COMPLETE_alias` command so that
+		# numeric completion can be triggered.  This is better than using
+		# complete -D because commands can already have their own completion
+		# function.  (Many can have _longopt as the completion function) This
+		# guarantees that numeric completion will be performed.
+
+		# '\e ': set the mark
+		# '\C-an ' insert the n alias command to trigger completion
+		# '\C-x\C-x' jump back to mark
+		# '\C-f\C-f' mark only marks column, not textual position, move forward
+		#            2 chars to cover the inserted 'n '
+		# '\t'       trigger completion.
+		#
+		# '\e'      enter command mode
+		# 'mz'      save mark to z
+		# '0in \e'  insert 'n '
+		# '`zll'    jump back to position (only saves column position not text position so ll)
+		# 'a\t'     trigger completion
+
+
+		command bind -m emacs \""${NUMERIC_COMPLETE_prefix}${NUMERIC_COMPLETE_complete}"'":"\e \C-a'"${NUMERIC_COMPLETE_alias}"' \C-x\C-x'"${NUMERIC_COMPLETE_alias//?/\\C-f}"'\C-f\t"'
+		command bind -m vi-insert \""${NUMERIC_COMPLETE_prefix}${NUMERIC_COMPLETE_complete}"'":"\emz0i'"${NUMERIC_COMPLETE_alias}"' \e`z'"$((${#NUMERIC_COMPLETE_alias}+1))"'la\t"'
+
+		# Remove ${#NUMERIC_COMPLETE_alias} worth of characters from the
+		# beginning and an extra space.  I cannot find any way to check whether
+		# the command is the alias or not, so it will always just remove a number
+		# of characters.
+		command bind -m emacs \""${NUMERIC_COMPLETE_prefix}${NUMERIC_COMPLETE_normal}"'":"'"${NUMERIC_COMPLETE_alias//?/\\C-b}"'\C-b\e \C-a'"${NUMERIC_COMPLETE_alias//?/\\C-d}"'\C-d\C-x\C-x \C-b\C-d"'
+		command bind -m vi-insert \""${NUMERIC_COMPLETE_prefix}${NUMERIC_COMPLETE_normal}"'":"\e'"$((${#NUMERIC_COMPLETE_alias}+1))h"'mz0'"$((${#NUMERIC_COMPLETE_alias}+1))x"'`za"'
+	fi
+else
 	echo 'Testing splitpath().'
 	splitpath_testcases=( \
 		'/:/::/' \
