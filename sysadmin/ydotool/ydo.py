@@ -603,6 +603,33 @@ class ydotool(object):
             sleep(delay)
         self.move(nx, ny, True)
 
+    def calibrate_motion(self, motion, samples=3, absolute=True, reset=0.6):
+        """Convert a screen motion arc into a mousemotion arc.
+
+        motion: [(x, y, delay)...]
+        samples: number of consecutive successes to determine motion.
+        absolute: x,y are absolute coordinates
+        reset: float (sec), number of seconds required to reset mouse.
+        """
+        pass
+
+    def calibrate3(self, msecs=range(0,2000,100), samples=3):
+        data = {}
+        for msec in msecs:
+            data[msec] = []
+            eprint('{:4d}: '.format(msec), end='')
+            for i in range(samples):
+                start = self.pos.readmouse()
+                time.sleep(msec/1000.0)
+                self.bash('ydotool mousemove -x 10 -y 10 >&2; echo').stdout.readline()
+                stop = self.pos.readmouse()
+                time.sleep(msec/1000.0)
+                self.bash('ydotool mousemove -x -10 -y -10 >&2; echo').stdout.readline()
+                data[msec].append((stop[0]-start[0], stop[1]-start[1]))
+                eprint('({:4d}, {:4d}), '.format(*data[msec][-1]), end='')
+            eprint()
+        return data
+
     def calibrate2(self, cases=itertools.chain.from_iterable(
             [[(v,0), (0,v), (v, v), (v, v//2), (v//2, v)] for v in range(10, 100, 10)]),
         samples=3, wait=0):
@@ -854,6 +881,7 @@ if __name__ == '__main__':
     p.add_argument(
         '--calibrate2', type=float, nargs='*',
         help='seconds to wait for calibration.')
+    p.add_argument('-y', '--ydotool', action='store_true')
     args = p.parse_args()
     if args.daemon:
         with ydotoold() as d:
@@ -867,6 +895,10 @@ if __name__ == '__main__':
     elif args.calibrate2 is not None:
         with ydotool() as y:
             y.calibrate2(wait=args.calibrate2)
+    elif args.ydotool:
+        with ydotool() as y:
+            import code
+            code.interact(local=locals())
     else:
         with MousePosition(True) as m:
             t = tk.Toplevel(m.tk)
