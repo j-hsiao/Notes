@@ -611,6 +611,7 @@ class ydotool(object):
         samples: number of consecutive successes to determine motion.
         reset: float (sec), number of seconds required to reset mouse.
         """
+        msec = 1.0 / 1000
         fixed = []
         def adjust_bounds(lo, hi, result, target):
             result = abs(result)
@@ -629,25 +630,45 @@ class ydotool(object):
                         return mid, hi+1
                     else:
                         return mid, hi
-        px, py, _ = motion[0]
-
-        for idx in range(1, len(motion)):
-            time.sleep(.1)
+        def preprocess(px, py, idx):
             tx, ty, delay = motion[idx]
-            msec = 1.0 / 1000
             dx = tx-px
             dy = ty-py
-            eprint('target point:', tx, ty)
-            eprint('  target delta:', dx, dy)
-            if dx == 0 and dy == 0:
-                # inaccurate motion result in skipping a motion.
-                continue
+            eprint(f'target step: ({px}, {py}) -> ({tx}, {ty})')
+            return dx, dy, tx, ty
+        def prep_range(dx, dy):
             sx = -1 if dx < 0 else (1 if dx > 0 else 0)
             sy = -1 if dy < 0 else (1 if dy > 0 else 0)
-            hix = abs(dx)*2
-            hiy = abs(dy)*2
-            lox = 1 if hix else 0
-            loy = 1 if hix else 0
+            return sx, sy, (1 if dx else 0), abs(dx*2), (1 if dy else 0), abs(dy*2)
+
+        def pick_best(tx, ty, attempts):
+            bestdelta = None
+            bestpos = None
+            bestdif = None
+            for delta, results in attempts.items():
+                netx = 0
+                nety = 0
+                for x, y in results:
+                    netx += x
+                    nety += y
+                netx /= len(results)
+                nety /= len(results)
+                diff = abs(netx - tx) + abs(nety - ty)
+                if bestdelta is None or diff < bestdif:
+                    bestdelta = delta
+                    bestpos = (netx, nety)
+                    bestdif = diff
+            return bestdelta, bestpos
+
+
+
+        px, py, _ = motion[0]
+        for idx in range(1, len(motion)):
+            time.sleep(.1)
+            dx, dy, tx, ty = preprocess(px, py, idx)
+            if dx == 0 and dy == 0:
+                continue
+            sx, sy, lox, hix, loy, hiy = prep_range(dx, dy)
             count = 0
             attempts = defaultdict(list)
             while count < samples:
@@ -660,33 +681,17 @@ class ydotool(object):
                 time.sleep(delay*msec)
                 self.bash(f'ydotool mousemove -x {gx} -y {gy} >&2; echo').stdout.readline()
                 x, y = self.pos.readmouse()
-                rx = x - px
-                ry = y - py
-                eprint(f'  mouse {gx},{gy} -> screen {rx}, {ry}:')
+                eprint(f'  mouse guess ({gx},{gy}) -> screen ({x}, {y}):')
                 attempts[(gx, gy)].append((x, y))
                 if dx == rx and dy == ry:
                     count += 1
                 else:
                     if len(attempts[(gx, gy)]) >= samples:
-                        eprint('  Attempted bad setting multiple times.')
-                        bestdelta = None
-                        bestdiffx = None
-                        bestdiffy = None
-                        for delta, results in attempts.items():
-                            netx = 0
-                            nety = 0
-                            for result in results:
-                                netx += result[0]
-                                nety += result[1]
-                            diffx = (netx / len(results)) - tx
-                            diffy = (nety / len(results)) - ty
-                            if bestdelta is None or (abs(diffx) + abs(diffy)) < (abs(bestdiffx) + abs(bestdiffy)):
-                                bestdelta = delta
-                                bestdiffx = diffx
-                                bestdiffy = diffy
-                        if bestdiffx < margin and bestdiffy < margin:
+                        eprint('  No Exact motion.')
+                        bestdelta, bestpos = pick_best(tx, ty, attempts)
+                        if abs(bestpos[0] - tx) < margin and  abs(bestpos[1] - ty) < margin:
                             gx, gy = bestdelta
-                            px, py = bestdiffx + tx, bestdiffy + ty
+                            x, y = bestpos
                             break
                         else:
                             eprint('  failed to find within margin.')
