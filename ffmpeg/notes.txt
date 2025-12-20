@@ -2,6 +2,7 @@ contents
 -1- general
 	-1.0- frames
 	-1.1- PTS/DTS
+	-1.2- screen/audio
 -2- stream selection
 -3- options
 	-3.1- AV options
@@ -123,6 +124,16 @@ copying: use -codec copy: only perform mux/demux, no decode/encode
 	where 1-9 are bframes using both 0 and 10.  These frames are decoded
 	in order, but the PTS of 10 would be after the PTS of 1-9.
 
+	------------------------------
+	-1.2- screen/audio
+	------------------------------
+	audio:
+		ffmpeg -f pulse -ac 2 -i default -c:a aac out.m4a
+			ac = audio channels, default is 2? maybe? not sure
+			NOTE: mp3 requires mp3 encoding...
+	video:
+		ffmpeg -f x11grab -r fps -s WxH -i ${DISPLAY} out.mkv
+		doesn't work on wayland...
 
 ------------------------------
 -2- stream selection
