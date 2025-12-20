@@ -5,6 +5,7 @@ Notes on sudo:
     This means there is no special handling required for sudo password.
     Once the process is started, then there's no need for anymore sudo.
 """
+from collections import defaultdict
 import codecs
 import getpass
 import io
@@ -603,15 +604,105 @@ class ydotool(object):
             sleep(delay)
         self.move(nx, ny, True)
 
-    def calibrate_motion(self, motion, samples=3, absolute=True, reset=0.6):
+    def calibrate_motion(self, motion, samples=3, margin=10):
         """Convert a screen motion arc into a mousemotion arc.
 
         motion: [(x, y, delay)...]
         samples: number of consecutive successes to determine motion.
-        absolute: x,y are absolute coordinates
         reset: float (sec), number of seconds required to reset mouse.
         """
-        pass
+        fixed = []
+        def adjust_bounds(lo, hi, result, target):
+            result = abs(result)
+            target = abs(target)
+            if result == target:
+                return lo, hi
+            else:
+                mid = lo + (hi-lo)//2
+                if result > target:
+                    if lo == mid:
+                        return max(lo-1, 1), mid
+                    else:
+                        return lo, mid
+                else:
+                    if lo == mid:
+                        return mid, hi+1
+                    else:
+                        return mid, hi
+        px, py, _ = motion[0]
+
+        for idx in range(1, len(motion)):
+            time.sleep(.1)
+            tx, ty, delay = motion[idx]
+            msec = 1.0 / 1000
+            dx = tx-px
+            dy = ty-py
+            eprint('target point:', tx, ty)
+            eprint('  target delta:', dx, dy)
+            if dx == 0 and dy == 0:
+                # inaccurate motion result in skipping a motion.
+                continue
+            sx = -1 if dx < 0 else (1 if dx > 0 else 0)
+            sy = -1 if dy < 0 else (1 if dy > 0 else 0)
+            hix = abs(dx)*2
+            hiy = abs(dy)*2
+            lox = 1 if hix else 0
+            loy = 1 if hix else 0
+            count = 0
+            attempts = defaultdict(list)
+            while count < samples:
+                gx = (lox + (hix - lox)//2) * sx
+                gy = (loy + (hiy - loy)//2) * sy
+                self.move(motion[0][0], motion[0][1], True, 5)
+                for x, y, t in fixed:
+                    time.sleep(t*msec)
+                    self.bash(f'ydotool mousemove -x {x} -y {y} >&2; echo').stdout.readline()
+                time.sleep(delay*msec)
+                self.bash(f'ydotool mousemove -x {gx} -y {gy} >&2; echo').stdout.readline()
+                x, y = self.pos.readmouse()
+                rx = x - px
+                ry = y - py
+                eprint(f'  mouse {gx},{gy} -> screen {rx}, {ry}:')
+                attempts[(gx, gy)].append((x, y))
+                if dx == rx and dy == ry:
+                    count += 1
+                else:
+                    if len(attempts[(gx, gy)]) >= samples:
+                        eprint('  Attempted bad setting multiple times.')
+                        bestdelta = None
+                        bestdiffx = None
+                        bestdiffy = None
+                        for delta, results in attempts.items():
+                            netx = 0
+                            nety = 0
+                            for result in results:
+                                netx += result[0]
+                                nety += result[1]
+                            diffx = (netx / len(results)) - tx
+                            diffy = (nety / len(results)) - ty
+                            if bestdelta is None or (abs(diffx) + abs(diffy)) < (abs(bestdiffx) + abs(bestdiffy)):
+                                bestdelta = delta
+                                bestdiffx = diffx
+                                bestdiffy = diffy
+                        if bestdiffx < margin and bestdiffy < margin:
+                            gx, gy = bestdelta
+                            px, py = bestdiffx + tx, bestdiffy + ty
+                            break
+                        else:
+                            eprint('  failed to find within margin.')
+                            return fixed
+                    eprint(f'    x: ({lox}-{hix}) -> ', end='')
+                    lox, hix = adjust_bounds(lox, hix, rx, dx)
+                    eprint(f'({lox}-{hix}), y: ({loy}-{hiy}) -> ', end='')
+                    loy, hiy = adjust_bounds(loy, hiy, ry, dy)
+                    eprint(f'({loy}-{hiy})')
+            px = x
+            py = y
+            fixed.append((gx, gy, delay))
+            eprint(f'  final delta: {gx}, {gy}')
+            eprint(f'  final point: {x}, {y}')
+        return fixed
+
 
     def calibrate3(self, msecs=range(0,2000,100), samples=3):
         data = {}
