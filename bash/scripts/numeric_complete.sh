@@ -170,7 +170,8 @@ ncmp_run()
 	local NCMP_LENGTH='NCMP_CACHE_PREFIX + NCMP_CACHE[NCMP_COUNT]' # display lengths
 	local NCMP_REFINE='NCMP_CACHE_PREFIX + NCMP_CACHE[NCMP_COUNT]*2' # chosen indices
 	# TODO?
-	local NCMP_ANSI_CODE_PATTERN=$'\e[*([\x30-\x3f'
+	# requires extglob and preferably globasciiranges
+	local NCMP_ANSI_CODE_PATTERN=$'\e\[*([\x30-\x3f])*([\x20-\x2f])[\x40-\x7e]'
 
 	if [[ "${TERM}" = *color* || "${COLORTERM}" = *color* ]]
 	then
@@ -211,10 +212,10 @@ ncmp_expand_prompt() # [prompt=${PS1}] [out=]
 {
 	# Expand prompt as a prompt string.  If out is provided, then store
 	# the result to out.  Otherwise, print the result.
-	local prompt="${1:-"${PS1}"}"
+	local ncmpep__prompt="${1:-"${PS1}"}"
 	if (("${BASH_VERSINFO[0]:-3}" > 4 || ("${BASH_VERSINFO[0]:-3}" == 4 && "${BASH_VERSINFO[1]:-3}" >= 4)))
 	then
-		printf ${2:+-v "${2}"} '%s' "${prompt@P}"
+		printf ${2:+-v "${2}"} '%s' "${ncmpep__prompt@P}"
 		return
 	fi
 
@@ -222,7 +223,7 @@ ncmp_expand_prompt() # [prompt=${PS1}] [out=]
 	local idx=0
 	local orig_rematch=("${BASH_REMATCH[@]}")
 	trap 'restore_BASH_REMATCH orig_rematch; trap - RETURN' RETURN
-	while [[ "${prompt:idx}" =~ ^(("\$'"|[^'$\'])*)(['$\'])? ]]
+	while [[ "${ncmpep__prompt:idx}" =~ ^(("\$'"|[^'$\'])*)(['$\'])? ]]
 	do
 		if (("${#BASH_REMATCH[1]}"))
 		then
@@ -234,18 +235,18 @@ ncmp_expand_prompt() # [prompt=${PS1}] [out=]
 			case "${BASH_REMATCH[-1]}" in
 				'$')
 					local beg end part
-					shparse_parse_dollar "${prompt}" 'parts[${#parts[@]}]' beg end "${idx}"
+					shparse_parse_dollar "${ncmpep__prompt}" 'parts[${#parts[@]}]' beg end "${idx}"
 					if ((end < 0))
 					then
-						parts+=("${prompt:idx}")
-						idx="${#prompt}"
+						parts+=("${ncmpep__prompt:idx}")
+						idx="${#ncmpep__prompt}"
 					else
 						idx="${end}"
 					fi
 					;;
 				'\')
-					case "${prompt:idx:2}" in
-						\\[aenr]) printf -v "parts[${#parts[@]}]" "${prompt:idx:2}";;
+					case "${ncmpep__prompt:idx:2}" in
+						\\[aenr]) printf -v "parts[${#parts[@]}]" "${ncmpep__prompt:idx:2}";;
 						'\d') parts+=("$(date '+%a %b %d')");;
 						'\h') parts+=("${HOSTNAME%%.*}");;
 						'\H') parts+=("${HOSTNAME}");;
@@ -285,11 +286,11 @@ ncmp_expand_prompt() # [prompt=${PS1}] [out=]
 						'\\') parts+=('\');;
 						'\['*|'\]'*) ;;
 						*)
-							if [[ "${prompt:idx}" =~ ^$'\\D\x7b'([^$'\x7d']*)($'\x7d'|$) ]]
+							if [[ "${ncmpep__prompt:idx}" =~ ^$'\\D\x7b'([^$'\x7d']*)($'\x7d'|$) ]]
 							then
 								parts+=("$(date "+${BASH_REMATCH[1]}")")
 								idx+="${#BASH_REMATCH[0]}"
-							elif [[ "${prompt:idx}" =~ ^'\'[0-7]($|[0-7]($|[0-7])) ]]
+							elif [[ "${ncmpep__prompt:idx}" =~ ^'\'[0-7]($|[0-7]($|[0-7])) ]]
 							then
 								printf -v "parts[${#parts[@]}]" "${BASH_REMATCH[0]}"
 								((idx += "${#BASH_REMATCH[0]}"))
@@ -310,55 +311,65 @@ ncmp_expand_prompt() # [prompt=${PS1}] [out=]
 	done
 }
 
-ncmp_most() # <op> <int_array_name> [start=0] [stop=end] [output=RESULT]
-{
-	# Calculate the maximum value from [start, stop).
-	# If the range is empty, then output will be empty.
-	local op="${1}"
-	local -n ncmpmost__array="${2}" ncmpmost__output="${5:-RESULT}"
-	local start="${3:-0}" stop="${#ncmpmost__array[@]}"
-	((stop = stop <= ${4:-stop} ? stop : ${4:-stop}))
-	if (("${start}" >= "${stop}"))
-	then
-		ncmpmost__output=
-		return
-	fi
-	ncmpmost__output="${ncmpmost__array[start]}"
-	while ((++start < stop))
-	do
-		if ((ncmpmost__array[start] ${op} ncmpmost__output))
-		then
-			ncmpmost__output="${ncmpmost__array[start]}"
-		fi
-	done
-}
-
 ncmp_count_lines() # <text> [width=${COLUMNS}] [out=RESULT]
 {
-	# Count the number of lines <text> would take in a terminal of <width>.
+	# Count the number of lines <text> would occupy in a terminal of <width>.
 	local ncmpcl__text="${1}" ncmpcl__width="${2:-${COLUMNS}}"
 	local -n ncmpcl__out="${3:-RESULT}"
 	ncmpcl__out=1
-	local col=0 idx=0
-	while ((idx < "${#ncmpcl__text}"))
+	local col=0 idx clen
+	local textlen="${#ncmpcl__text}"
+	for ((idx=0; idx < textlen; ++idx))
 	do
-		if [[ "${ncmpcl__text:idx:1}" = $'\n' ]]
+		local chara="${ncmpcl__text:idx:1}"
+		if [[ "${chara}" = $'\n' ]]
+		then
+			((col=0, ++ncmpcl__out))
+		elif [[ "${chara}" = $'\r' ]]
 		then
 			((col=0))
-			((++ncmpcl__out))
 		else
-			local clen
-			ci_charwidth "${ncmpcl__text:idx:1}" clen
-			if ((col + clen <= ncmpcl__width))
-			then
-				((col += clen))
-			else
-				((col = clen))
-				((++ncmpcl__out))
-			fi
+			ci_charwidth "${chara}" clen
+			((col + clen <= ncmpcl__width ? (col+=clen) : (col=clen, ++ncmpcl__out)))
 		fi
-		((++idx))
 	done
+}
+ncmp_mimic_prompt() # <command> <pos>
+{
+	# Mimic the bash prompt.
+	# Leave the cursor at position <pos> of <command>
+	# This is necessary so that the choices can be displayed and the cursor
+	# ends up in an appropriate position to continue typing the command.
+	local pre=
+	if [[ "${NCMP_STATE['show_mode_in_prompt']}" = 'on' ]]
+	then
+		if [[ "${NCMP_STATE['editing_mode']}" = 'emacs' ]]
+		then
+			pre+='@'
+		else
+			pre+='(ins)'
+		fi
+	fi
+	# @P operator requires bash 4.4+
+	local prompt rawprompt prompt_nonprinting='\\\[*(@([^\\]|\\[^\'$'\x5d'']))\\\]'
+	ncmp_expand_prompt "${PS1}" prompt
+	ncmp_expand_prompt "${PS1//@(${prompt_nonprinting}|${NCMP_ANSI_CODE_PATTERN})}" rawprompt
+	# Cursor position is saved as position in screen, not buffer.  If printing
+	# would cause scrolling, then the position will be wrong.
+	prompt="${prompt%"${prompt##*$'\n'}"}${pre}${prompt##*$'\n'}"
+	rawprompt="${rawprompt%"${rawprompt##*$'\n'}"}${pre}${rawprompt##*$'\n'}"
+	local numlines
+	ncmp_count_lines "${rawprompt}${1}" '' numlines
+	if ((--numlines > 0))
+	then
+		printf '\r%s\e[%dA' "${prompt}${1}" "${numlines}"
+	fi
+	printf '\r%s' "${prompt}"
+
+	# printf "${1:0:${2}}"$'\e[s'"${1:${2}}"$'\e[u'
+	# wiki says \e7 \e8 are more widely supported
+	# than \e[s and \e[u
+	printf "${1:0:${2}}"$'\e7'"${1:${2}}"$'\e8'
 }
 
 ncmp_escape2shell() # <text> [out=RESULT]
@@ -508,46 +519,28 @@ ncmp_load_matches() # <query>
 	done
 }
 
-ncmp_mimic_prompt() # <command> <pos>
-{
-	# Mimic the bash prompt.
-	# Leave the cursor at position <pos> of <command>
-	# This is necessary so that the choices can be displayed and the cursor
-	# ends up in an appropriate position to continue typing the command.
-	local pre=
-	if [[ "${NCMP_STATE['show_mode_in_prompt']}" = 'on' ]]
-	then
-		if [[ "${NCMP_STATE['editing_mode']}" = 'emacs' ]]
-		then
-			pre+='@'
-		else
-			pre+='(ins)'
-		fi
-	fi
-	# @P operator requires bash 4.4+
-	local prompt
-	ncmp_expand_prompt "${PS1}" prompt
-	# \e[s saves position on screen, not in text buffer. If the
-	# terminal is scrolled (ex. commandline at the bottom), then
-	# the position becomes incorrect.  Thus, ensure the commandline
-	# is not at the bottom by printing newlines to ensure no scrolling
-	# will occurr (assuming the prompt is not going to exceed the
-	# window height).  Using \b does not work because it does not wrap
-	# up to the previous line.
-	[[ "${prompt}" =~ (.*$'\n')?(.*) ]]
-	prompt="${BASH_REMATCH[1]}${pre}${BASH_REMATCH[2]}" 
-	local numlines
-	ncmp_count_lines "${prompt}${1}" '' numlines
-	if ((numlines > 1))
-	then
-		printf "\\r${prompt}${1}\\e[$((numlines-1))A"
-	fi
-	printf "\\r${prompt}"
 
-	# printf "${1:0:${2}}"$'\e[s'"${1:${2}}"$'\e[u'
-	# wiki says \e7 \e8 are more widely supported
-	# than \e[s and \e[u
-	printf "${1:0:${2}}"$'\e7'"${1:${2}}"$'\e8'
+ncmp_most() # <op> <int_array_name> [start=0] [stop=end] [output=RESULT]
+{
+	# Calculate the maximum value from [start, stop).
+	# If the range is empty, then output will be empty.
+	local op="${1}"
+	local -n ncmpmost__array="${2}" ncmpmost__output="${5:-RESULT}"
+	local start="${3:-0}" stop="${#ncmpmost__array[@]}"
+	((stop = stop <= ${4:-stop} ? stop : ${4:-stop}))
+	if (("${start}" >= "${stop}"))
+	then
+		ncmpmost__output=
+		return
+	fi
+	ncmpmost__output="${ncmpmost__array[start]}"
+	while ((++start < stop))
+	do
+		if ((ncmpmost__array[start] ${op} ncmpmost__output))
+		then
+			ncmpmost__output="${ncmpmost__array[start]}"
+		fi
+	done
 }
 
 ncmp_cols_viable() # <strwidth_array> <numcols> <width> [colwidths=RESULT]
@@ -679,7 +672,7 @@ ncmp_last_word() # <text> [out=RESULT] [begin=BEG] [end=END]
 	then
 		if [[ "${1:beg:1}" = ['"`'\'] ]]
 		then
-			ncmp_last_word "${incomplete:1}" "${@:2}"
+			ncmp_last_word "${1:1}" "${@:2}"
 			return
 		fi
 	fi
@@ -858,7 +851,7 @@ else
 	ncmp_most '<' testarr 2 0
 	[[ "${RESULT}" == '' ]] && echo pass || echo "fail: ${RESULT}"
 
-	echo 'Testing cout_lines()'
+	echo 'Testing count_lines()'
 	ncmp_count_lines hello 11
 	((${RESULT} == 1)) && echo pass || echo "fail: ${RESULT} vs 1"
 	ncmp_count_lines hello\ world 11
