@@ -614,6 +614,7 @@ class ydotool(object):
         msec = 1.0 / 1000
         fixed = []
         def adjust_bounds(lo, hi, result, target):
+            """Adjust the bounds of closest mouse delta."""
             result = abs(result)
             target = abs(target)
             if result == target:
@@ -630,12 +631,6 @@ class ydotool(object):
                         return mid, hi+1
                     else:
                         return mid, hi
-        def preprocess(px, py, idx):
-            tx, ty, delay = motion[idx]
-            dx = tx-px
-            dy = ty-py
-            eprint(f'target step: ({px}, {py}) -> ({tx}, {ty})')
-            return dx, dy, tx, ty
         def prep_range(dx, dy):
             sx = -1 if dx < 0 else (1 if dx > 0 else 0)
             sy = -1 if dy < 0 else (1 if dy > 0 else 0)
@@ -660,52 +655,54 @@ class ydotool(object):
                     bestdif = diff
             return bestdelta, bestpos
 
+        def add_delta(motion, calibrated, position, samples=3, margin=float('inf')):
+            """Add a single delta to calibrated motion.
 
+            motion: sequence of tuple: [(x,y,delay)...], screen positions,
+                    delay in msec.
+            calibrated: sequence of tuple: [(dx, dy, delay)...] mouse deltas,
+                        delay in msec.
+            position: estimated ending position of input calibrated.
 
-        px, py, _ = motion[0]
-        for idx in range(1, len(motion)):
-            time.sleep(.1)
-            dx, dy, tx, ty = preprocess(px, py, idx)
+            Return the new position.
+            """
+            tx, ty, delay = motion[len(calibrated)+1]
+            prex, prey = position
+            dx = tx - prex
+            dy = ty - prey
+            eprint(f'target step: ({px}, {py}) -> ({tx}, {ty})')
             if dx == 0 and dy == 0:
-                continue
+                return position
             sx, sy, lox, hix, loy, hiy = prep_range(dx, dy)
-            count = 0
             attempts = defaultdict(list)
-            while count < samples:
-                gx = (lox + (hix - lox)//2) * sx
-                gy = (loy + (hiy - loy)//2) * sy
+            while 1:
+                gx = (lox + (hix-lox)//2)*sx
+                gy = (loy + (hiy-loy)//2)*sy
                 self.move(motion[0][0], motion[0][1], True, 5)
-                for x, y, t in fixed:
-                    time.sleep(t*msec)
+                for x, y, t in calibrated:
+                    time.sleep(t/1000.0)
                     self.bash(f'ydotool mousemove -x {x} -y {y} >&2; echo').stdout.readline()
-                time.sleep(delay*msec)
+                time.sleep(delay/1000.0)
                 self.bash(f'ydotool mousemove -x {gx} -y {gy} >&2; echo').stdout.readline()
                 x, y = self.pos.readmouse()
                 eprint(f'  mouse guess ({gx},{gy}) -> screen ({x}, {y}):')
-                attempts[(gx, gy)].append((x, y))
-                if dx == rx and dy == ry:
-                    count += 1
-                else:
-                    if len(attempts[(gx, gy)]) >= samples:
-                        eprint('  No Exact motion.')
-                        bestdelta, bestpos = pick_best(tx, ty, attempts)
-                        if abs(bestpos[0] - tx) < margin and  abs(bestpos[1] - ty) < margin:
-                            gx, gy = bestdelta
-                            x, y = bestpos
-                            break
+                attempts[(gx, gy)].append((x,y))
+                if len(attempts[(gx,gy)]) >= samples:
+                    bestdelta, bestpos = pick_best(tx, ty, attempts):
+                    if bestdelta == (gx, gy):
+                        if abs(bestpos[0] - tx) < margin and abs(bestpos[1] - ty) < margin:
+                            calibrated.append(bestdelta + (delay,))
+                            eprint(f'  final delta: {bestdelta}')
+                            eprint(f'  final point: ({x}, {y})')
+                            return bestpos
                         else:
-                            eprint('  failed to find within margin.')
-                            return fixed
+                            eprint('  Not within margin.')
+                            return None
                     eprint(f'    x: ({lox}-{hix}) -> ', end='')
-                    lox, hix = adjust_bounds(lox, hix, rx, dx)
+                    lox, hix = adjust_bounds(lox, hix, x-prex, dx)
                     eprint(f'({lox}-{hix}), y: ({loy}-{hiy}) -> ', end='')
-                    loy, hiy = adjust_bounds(loy, hiy, ry, dy)
+                    loy, hiy = adjust_bounds(loy, hiy, y-prey, dy)
                     eprint(f'({loy}-{hiy})')
-            px = x
-            py = y
-            fixed.append((gx, gy, delay))
-            eprint(f'  final delta: {gx}, {gy}')
-            eprint(f'  final point: {x}, {y}')
         return fixed
 
 
