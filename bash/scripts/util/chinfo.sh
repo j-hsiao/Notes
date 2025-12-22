@@ -9,16 +9,16 @@ ci_2char() # <num> [outname=RESULT]
 	# <num>: the number to convert
 	# [outname]: the variable to store the result.
 	local -n ci2c__out="${2:-RESULT}"
-	local num="${1}"
-	if ((num <= 0xff))
+	local ci2c__num="${1}"
+	if ((ci2c__num <= 0xff))
 	then
-		local code=x length=2
-	elif ((num <= 0xffff))
+		local ci2c__code=x ci2c__length=2
+	elif ((ci2c__num <= 0xffff))
 	then
-		local code=u length=4
-	elif ((num <= 0xffffffff))
+		local ci2c__code=u ci2c__length=4
+	elif ((ci2c__num <= 0xffffffff))
 	then
-		local code=U length=8
+		local ci2c__code=U ci2c__length=8
 	else
 		ci2c__out=
 		return 1
@@ -26,11 +26,11 @@ ci_2char() # <num> [outname=RESULT]
 	# Is there a difference? portability?  It seems to have no
 	# difference in performance.
 
-	# printf -v num "\\\\%s%0${length}x" "${code}" "${num}"
-	# ci2c__out="${num@E}"
+	# printf -v ci2c__num "\\\\%s%0${ci2c__length}x" "${ci2c__code}" "${ci2c__num}"
+	# ci2c__out="${ci2c__num@E}"
 
-	printf -v num "%0${length}x" "${num}"
-	printf -v ci2c__out "\\${code}${num}"
+	printf -v ci2c__num "%0${ci2c__length}x" "${ci2c__num}"
+	printf -v ci2c__out "\\${ci2c__code}${ci2c__num}"
 }
 
 ci_2num() # <char> [outname=RESULT]
