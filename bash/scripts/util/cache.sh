@@ -28,45 +28,50 @@ ch_make() # <name> [size=10]
 ch_key() # <name> [out=RESULT]
 {
 	# Return the current key for the cache.
-	local -n chgt__arr="${1}_index"
-	eval "${2:-RESULT}="'"${chgt__arr[0]}"'
+	local -n chk__arr="${1}_index"
+	eval "${2:-RESULT}="'"${chk__arr[0]}"'
 }
 
-ch_get() # <name> <key> [out]
+ch_get() # <name> <key>
 {
 	# Point <name> to the corresponding cache entry.
-	# <name> is the name-reference variable created from ch_make.
-	# if [out] is provided, then set it to the actual variable name.
+	# <name> is the name used with ch_make to create a new cache.
 	# If it does not exist, create a new one, possibly invalidating
 	# the oldest entry.  If found, then return code 0
 	# If new, then return code 1.
 	# NOTE: the new entry might or might not have old data.
 	# Check the return code to know if it should be reinitialized or not.
 	local -n chgt__arr="${1}_index"
-	local idx=-2
-	while (((idx+=2) < ${#chgt__arr[@]}))
+	local chgt__idx chgt__end=${#chgt__arr[@]}
+	for ((chgt__idx=0; chgt__idx<chgt__end; chgt__idx+=2))
 	do
-		if [[ "${chgt__arr[idx]}" = "${2}" ]]
+		if [[ "${chgt__arr[chgt__idx]}" = "${2}" ]]
 		then
-			local pick="${chgt__arr[++idx]}"
-			while ((idx >= 2))
-			do
-				chgt__arr[idx]="${chgt__arr[idx-2]}"
-				((--idx))
-			done
-			chgt__arr[0]="${2}"
-			chgt__arr[1]="${pick}"
-			declare -gn "${1}"="${pick}"
+			# new array is about 4x faster than iteration, both are linear.
+			# Although I suppose generally this isn't going to be large enough
+			# or called often enough to make much of a difference...
+			if ((chgt__idx*4 < ${#chgt__arr[@]}))
+			then
+				local chgt__value="${chgt__arr[++chgt__idx]}"
+				for ((; chgt__idx>=2; --chgt__idx))
+				do
+					chgt__arr[chgt__idx]="${chgt__arr[chgt__idx-2]}"
+				done
+				chgt__arr[0]="${2}"
+				chgt__arr[1]="${chgt__value}"
+			else
+				chgt__arr=(
+					"${chgt__arr[@]:chgt__idx:2}"
+					"${chgt__arr[@]:0:chgt__idx}"
+					"${chgt__arr[@]:chgt__idx+2}"
+				)
+			fi
+			declare -gn "${1}=${chgt__arr[1]}"
 			return 0
 		fi
 	done
-	chgt__arr=("${2}" "${chgt__arr[-1]}" "${chgt__arr[@]:0:idx-2}")
+	chgt__arr=("${2}" "${chgt__arr[-1]}" "${chgt__arr[@]:0:chgt__idx-2}")
 	declare -gn "${1}=${chgt__arr[1]}"
-	if [[ -n "${3}" ]]
-	then
-		local -n chgt__truname="${3}"
-		chgt__truname="${chgt__arr[1]}"
-	fi
 	return 1
 }
 
