@@ -611,10 +611,8 @@ class ydotool(object):
         samples: number of consecutive successes to determine motion.
         reset: float (sec), number of seconds required to reset mouse.
         """
-        msec = 1.0 / 1000
-        fixed = []
         def adjust_bounds(lo, hi, result, target):
-            """Adjust the bounds of closest mouse delta."""
+            """Adjust the bounds of best mouse delta."""
             result = abs(result)
             target = abs(target)
             if result == target:
@@ -632,30 +630,36 @@ class ydotool(object):
                     else:
                         return mid, hi
         def prep_range(dx, dy):
+            """Prepare the potential range of mouse delta"""
             sx = -1 if dx < 0 else (1 if dx > 0 else 0)
             sy = -1 if dy < 0 else (1 if dy > 0 else 0)
             return sx, sy, (1 if dx else 0), abs(dx*2), (1 if dy else 0), abs(dy*2)
 
         def pick_best(tx, ty, attempts):
+            """Choose the best delta among the given attempts.
+
+            tx, ty: target ending postion
+            attempts: {(dx,dy): [(rx,ry), ...]} dict of mouse delta to resulting position.
+            """
             bestdelta = None
             bestpos = None
             bestdif = None
             for delta, results in attempts.items():
-                netx = 0
-                nety = 0
+                avgx = 0
+                avgy = 0
                 for x, y in results:
-                    netx += x
-                    nety += y
-                netx /= len(results)
-                nety /= len(results)
-                diff = abs(netx - tx) + abs(nety - ty)
+                    avgx += x
+                    avgy += y
+                avgx /= len(results)
+                avgy /= len(results)
+                diff = abs(avgx - tx) + abs(avgy - ty)
                 if bestdelta is None or diff < bestdif:
                     bestdelta = delta
-                    bestpos = (netx, nety)
+                    bestpos = (int(round(avgx)), int(round(avgy)))
                     bestdif = diff
             return bestdelta, bestpos
 
-        def add_delta(motion, calibrated, position, samples=3, margin=float('inf')):
+        def add_delta(motion, targetidx, calibrated, position, samples=3, margin=float('inf')):
             """Add a single delta to calibrated motion.
 
             motion: sequence of tuple: [(x,y,delay)...], screen positions,
@@ -666,7 +670,7 @@ class ydotool(object):
 
             Return the new position.
             """
-            tx, ty, delay = motion[len(calibrated)+1]
+            tx, ty, delay = motion[targetidx]
             prex, prey = position
             dx = tx - prex
             dy = ty - prey
@@ -703,8 +707,30 @@ class ydotool(object):
                     eprint(f'({lox}-{hix}), y: ({loy}-{hiy}) -> ', end='')
                     loy, hiy = adjust_bounds(loy, hiy, y-prey, dy)
                     eprint(f'({loy}-{hiy})')
-        return fixed
-
+        def best_idx(motion, position, idx):
+            """Choose the best index for the next target given motion and current position and idx."""
+            best = idx
+            delta = abs(motion[idx][0] - position[0]) + abs(motion[idx][1] - position[1])
+            for candidate in range(idx+1, len(motion)):
+                ndelta = (abs(motion[candidate][0] - position[0])
+                          + abs(motion[candidate][1] - position[1]))
+                if ndelta < delta:
+                    best = candidate
+                    delta = ndelta
+                else:
+                    break
+            return best
+        calibrated = []
+        position = motion[0][:2]
+        idx = 1
+        while idx < len(motion):
+            position = add_delta(motion, idx, calibrated, position, samples, margin)
+            nidx = best_idx(motion, position, idx)
+            if nidx != len(motion)-1 or idx == nidx:
+                idx = nidx+1
+            else:
+                idx = nidx
+        return calibrated
 
     def calibrate3(self, msecs=range(0,2000,100), samples=3):
         data = {}
