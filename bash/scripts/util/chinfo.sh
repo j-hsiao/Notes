@@ -23,12 +23,6 @@ ci_2char() # <num> [outname=RESULT]
 		ci2c__out=
 		return 1
 	fi
-	# Is there a difference? portability?  It seems to have no
-	# difference in performance.
-
-	# printf -v ci2c__num "\\\\%s%0${ci2c__length}x" "${ci2c__code}" "${ci2c__num}"
-	# ci2c__out="${ci2c__num@E}"
-
 	printf -v ci2c__num "%0${ci2c__length}x" "${ci2c__num}"
 	printf -v ci2c__out "\\${ci2c__code}${ci2c__num}"
 }
@@ -58,61 +52,15 @@ CHINFO_STRLEN_LUT=(
 )
 
 # Reorganized the table into a binary tree, 38 pivot points, rest are leaf nodes
-CHINFO_STRLEN_TREE=( \
-	12442 \
-	8369 65131 \
-	879 11021 63743 65510 \
-	710 4447 9000 12351 19967 65039 65376 262141 \
-	159 727 1161 7521 8426 9002 12350 12438 19893 55203 64106 65059 65279 65500 120831 1114109 \
-	126 687 711 733 1154 4347 7467 1 0 1 2 1 2 1 2 0 2 1 2 1 2 1 0 2 1 2 1 2 1 2 1 1 \
-	1 0 1 0 1 0 1 0 1 0 1 2 1 0 \
+CHINFO_STRLEN_TREE=(
+	12442 # 0
+	8369 65131 # 1-2
+	879 11021 63743 65510 # 3-6
+	710 4447 9000 12351 19967 65039 65376 262141 # 7-14
+	159 727 1161 7521 8426 9002 12350 12438 19893 55203 64106 65059 65279 65500 120831 1114109 # 15-30
+	126 687 711 733 1154 4347 7467 1 0 1 2 1 2 1 2 0 2 1 2 1 2 1 0 2 1 2 1 2 1 2 1 1 # 31-62
+	1 0 1 0 1 0 1 0 1 0 1 2 1 0 # 63-76
 )
-# after some testing, it seems like
-# using a separate process might actually be faster
-# even on cygwin
-# since calculating the string length is still somewhat slow...
-ci_charwidth() # <char> [out=RESULT]
-{
-	# Calculate the width of a character.
-	# <char>: The character to convert.
-	# [out]: The variable to store the result.
-	local -n cicwidth__out="${2:-RESULT}"
-	local codepoint
-	printf -v codepoint '%d' "'${1}"
-
-	# ascii is common case so search it first,
-	# seems to approximately double strdisplaylen speed
-	if ((codepoint <= 126))
-	then
-		cicwidth__out=$((codepoint != 0x0f && codepoint != 0x0e))
-		return
-	fi
-	# Using the linear LUT table
-	# local idx=0
-	# while ((idx < ${#CHINFO_STRLEN_LUT[@]}))
-	# do
-	# 	if ((codepoint <= CHINFO_STRLEN_LUT[idx]))
-	# 	then
-	# 		cicwidth__out="${CHINFO_STRLEN_LUT[idx+1]}"
-	# 		return
-	# 	fi
-	# 	((idx += 2))
-	# done
-
-	# using the binary tree, seems faster than the LUT
-	local idx=0
-	while ((idx <= 37))
-	do
-		if ((codepoint <= CHINFO_STRLEN_TREE[idx]))
-		then
-			((idx=idx*2 + 1))
-		else
-			((idx=idx*2 + 2))
-		fi
-		((++idx))
-	done
-	cicwidth__out="${CHINFO_STRLEN_TREE[idx]}"
-}
 
 ci_codewidth() # <codepoint> [out=RESULT]
 {
@@ -120,44 +68,50 @@ ci_codewidth() # <codepoint> [out=RESULT]
 	# ci_charwidth would be equivalent to:
 	# 	printf -v codepoint '%d' "'${1}"
 	# 	ci_codewidth "${codepoint}"
-	# <codepoint>: The character codepoint integer to convert.
+	# <codepoint>: The character cw__codepoint integer to convert.
 	# [out]: The variable to store the result.
-	local -n cicwidth__out="${2:-RESULT}"
-	local codepoint="${1}"
+	local -n cicw__out="${2:-RESULT}"
+	local cicw__codepoint="${1}"
 
 	# ascii is common case so search it first,
 	# seems to approximately double strdisplaylen speed
-	if ((codepoint <= 126))
+	if ((cicw__codepoint <= 126))
 	then
-		cicwidth__out=$((codepoint != 0x0f && codepoint != 0x0e))
+		cicw__out=$((cicw__codepoint != 0x0f && cicw__codepoint != 0x0e))
 		return
 	fi
+	local cicw__idx=0
+
 	# Using the linear LUT table
-	# local idx=0
-	# while ((idx < ${#CHINFO_STRLEN_LUT[@]}))
+	# while ((cicw__idx < ${#CHINFO_STRLEN_LUT[@]}))
 	# do
-	# 	if ((codepoint <= CHINFO_STRLEN_LUT[idx]))
+	# 	if ((cicw__codepoint <= CHINFO_STRLEN_LUT[cicw__idx]))
 	# 	then
-	# 		cicwidth__out="${CHINFO_STRLEN_LUT[idx+1]}"
+	# 		cicw__out="${CHINFO_STRLEN_LUT[cicw__idx+1]}"
 	# 		return
 	# 	fi
-	# 	((idx += 2))
+	# 	((cicw__idx += 2))
 	# done
 
 	# using the binary tree, seems faster than the LUT
-	local idx=0
-	while ((idx <= 37))
+	while ((cicw__idx <= 37))
 	do
-		if ((codepoint <= CHINFO_STRLEN_TREE[idx]))
+		if ((cicw__codepoint <= CHINFO_STRLEN_TREE[cicw__idx]))
 		then
-			((idx=idx*2 + 1))
+			((cicw__idx=cicw__idx*2 + 1))
 		else
-			((idx=idx*2 + 2))
+			((cicw__idx=cicw__idx*2 + 2))
 		fi
-		((++idx))
 	done
-	cicwidth__out="${CHINFO_STRLEN_TREE[idx]}"
+	cicw__out="${CHINFO_STRLEN_TREE[cicw__idx]}"
 }
+ci_charwidth() # <char> [out=RESULT]
+{
+	local cicw__codepoint
+	printf -v cicw__codepoint '%d' "'${1}"
+	ci_codewidth "${cicw__codepoint}" "${2}"
+}
+
 
 ci_strdisplaylen() # <word> [out=RESULT]
 {
@@ -167,15 +121,14 @@ ci_strdisplaylen() # <word> [out=RESULT]
 	# NOTE: Tabs can be visually variable in length, but without position
 	#       the actual length cannot be determined.  Avoid having tab
 	#       characters in <word>.
-	local idx=0 total=0 clen end=${#1}
-	while ((idx < end))
+	local cisdl__idx=-1 cisdl__total=0 cisdl__clen cisdl__end=${#1}
+	while ((++cisdl__idx < cisdl__end))
 	do
-		ci_charwidth "${1:idx:1}" clen
-		((total += clen))
-		((++idx))
+		ci_charwidth "${1:cisdl__idx:1}" cisdl__clen
+		((cisdl__total += cisdl__clen))
 	done
 	local -n cisdl__out="${2:-RESULT}"
-	cisdl__out=${total}
+	cisdl__out=${cisdl__total}
 }
 
 CI_PYEXE=
@@ -259,6 +212,20 @@ else
 			((++idx))
 		done
 	}
+	ci_strdisplaylens2() # <outarr> <inarr> [outidx=0] [inbeg=0] [inend=${#inarr[@]}]
+	{
+		# Calculate string lengths from inarr[inbeg:inend] and store to outarr[outidx:]
+		local -n cisdls__out="${1}"
+		local -n cisdls__in="${2}"
+		local cisdls__outidx="${3:-0}"
+		local cisdls__inbeg="${4:-0}"
+		local cisdls__inend="${5:-${#cisdls__in[@]}}"
+		for ((; cisdls__inbeg < cisdls__inend; ++cisdls__inbeg, ++cisdls__outidx))
+		do
+			ci_strdisplaylen "${cisdls__in[cisdls__inbeg]}" 'cisdls__out[cisdls__outidx]'
+		done
+	}
+
 fi
 
 if [[ "${0}" = "${BASH_SOURCE[0]}" ]]
