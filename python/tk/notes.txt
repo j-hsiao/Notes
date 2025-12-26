@@ -49,6 +49,27 @@ Contents
 	-3.13- Spinbox
 	-3.14- Text
 
+------------------------------
+miscellaneous observations
+1. different platforms (windows, wsl, x-wayland)
+   (?tk seems to not support wayland? so only x-wayland)
+   seem to have slightly different behaviors:
+   1. only windows seems to allow mouse warping
+   2. Upon deiconify and full screen, windows only has <Enter> (which gives proper mouse position)
+      wsl, x-wayland follows <Enter> with <Motion>.
+      However, <Enter> has old mouse position and <Motion> has correct mouse position.
+      attempting to detech which is which seems to fail...
+      ex: update() does not wait for the triggered <Motion>, sometimes, not even the triggered <Enter>
+      to complete...
+   3. after deiconify/fullscreen, update() only seems to wait for <Configure>
+      sometimes <Enter> is before or after.  On windows, <Enter> seems to always
+      be after... <Motion> is only after multiple update() calls.
+   4. Seems like to detect whether <Motion> will be fired after deiconify+fullscreen
+      must just wait some time after deiconify+fullscreen, and then see if it
+      was fired or not, assuming the wait time is long enough and user did not move mouse
+
+
+
 ______________________________
 -0- tcl
 	Tcl is the interpreter (handles parsing and running commands).
@@ -86,7 +107,7 @@ ______________________________
 		______________________________
 		-0.0.2- eval
 			eval() takes a single string argument that is an expression/script for tcl to
-			interpet.  This means that the full tcl syntax is allowed.  However, it does
+			interpret.  This means that the full tcl syntax is allowed.  However, it does
 			not attempt to interpret the output, so it always returns a str.
 
 			ex increment a variable:
