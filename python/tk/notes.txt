@@ -61,6 +61,10 @@ miscellaneous observations
       attempting to detech which is which seems to fail...
       ex: update() does not wait for the triggered <Motion>, sometimes, not even the triggered <Enter>
       to complete...
+      Tested on arch, the <motion> event only fires if fullscreen
+      is turned on after deiconify
+      on wsl, if geometry to full screen, then toggle fullscreen
+      on deiconify/withdraw, then events are fired twice
    3. after deiconify/fullscreen, update() only seems to wait for <Configure>
       sometimes <Enter> is before or after.  On windows, <Enter> seems to always
       be after... <Motion> is only after multiple update() calls.
