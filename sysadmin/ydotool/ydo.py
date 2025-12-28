@@ -113,7 +113,7 @@ class MousePosition(object):
         Return the root and the screen shape.
         """
         r = tk.Tk()
-        r.geometry(f'{self.W}x{self.H}+0+0')
+        r.geometry(f'{r.winfo_screenwidth()}x{r.winfo_screenheight()}+0+0')
         r.attributes('-topmost', True, '-fullscreen', True)
         r.withdraw()
         r.createcommand(self.HIDE_CMD, self.hide)
