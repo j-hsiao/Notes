@@ -153,13 +153,13 @@ then
 		if ((${#} < 1000))
 		then
 			local -n cisdls__out="${1}"
-			local idx=${2} tmp
+			local cisdls__offset="${2:-0}"
 			shift 2
-			for x in "${@}"
+			local cisdls__idx cisdls__stop="${#}"
+			for ((cisdls__idx=0; cisdls__idx<cisdls__stop; ++cisdls__idx))
 			do
-				ci_strdisplaylen "${x}" tmp
-				cisdls__out+=("${tmp}")
-				((++idx))
+				ci_strdisplaylen "${1}" "cisdls__out[cisdls__idx + cisdls__offset]"
+				shift
 			done
 			return
 		fi
@@ -167,9 +167,10 @@ then
 		# ------------------------------
 		# python implementation
 		# ------------------------------
-		readarray -O "${2}" -t "${1}" < <("${CI_PYEXE}" -c '
+		if ((0))
+		then
+			readarray -O "${2}" -t "${1}" < <("${CI_PYEXE}" -c '
 import sys
-
 lut = (
     (126   , 1),
     (159   , 0),   (687   , 1),   (710    , 0),   (711  , 1),
@@ -181,8 +182,6 @@ lut = (
     (65131 , 2),   (65279 , 1),   (65376  , 2),   (65500, 1),   (65510, 2),
     (120831, 1),   (262141, 2),   (1114109, 1),
 )
-
-
 for item in sys.argv[1:]:
     total = 0
     for ch in item:
@@ -194,8 +193,36 @@ for item in sys.argv[1:]:
                 total += w
                 break
     print(total)
-' "${@:3}")
-    return
+			' "${@:3}")
+		else
+			readarray -O "${2}" -t "${1}" < <("${CI_PYEXE}" -c '
+import sys
+tree=(
+    12442,
+    8369, 65131,
+    879, 11021, 63743, 65510,
+    710, 4447, 9000, 12351, 19967, 65039, 65376, 262141,
+    159, 727, 1161, 7521, 8426, 9002, 12350, 12438, 19893, 55203, 64106, 65059, 65279, 65500, 120831, 1114109,
+    126, 687, 711, 733, 1154, 4347, 7467, 1, 0, 1, 2, 1, 2, 1, 2, 0, 2, 1, 2, 1, 2, 1, 0, 2, 1, 2, 1, 2, 1, 2, 1, 1,
+    1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 2, 1, 0,
+)
+for item in sys.argv[1:]:
+    total = 0
+    for ch in item:
+        num = ord(ch)
+        if num <= 126:
+            total += num != 0x0f and num != 0x0e
+            continue
+        i=0
+        while i <= 37:
+            if num <= tree[i]:
+                i = i*2 + 1
+            else:
+                i = i*2 + 2
+        total += tree[i]
+    print(total)
+			' "${@:3}")
+		fi
 	}
 else
 	ci_strdisplaylens() # <out> <idx> <words...>
@@ -204,28 +231,15 @@ else
 		# using ci_strdisplaylen
 		# ------------------------------
 		local -n cisdls__out="${1}"
-		local idx=${2}
+		local cisdls__offset="${2:-0}"
 		shift 2
-		for x in "${@}"
+		local cisdls__idx cisdls__stop="${#}"
+		for ((cisdls__idx=0; cisdls__idx<cisdls__stop; ++cisdls__idx))
 		do
-			ci_strdisplaylen "${x}" cisdls__out[idx]
-			((++idx))
+			ci_strdisplaylen "${1}" "cisdls__out[cisdls__idx + cisdls__offset]"
+			shift
 		done
 	}
-	ci_strdisplaylens2() # <outarr> <inarr> [outidx=0] [inbeg=0] [inend=${#inarr[@]}]
-	{
-		# Calculate string lengths from inarr[inbeg:inend] and store to outarr[outidx:]
-		local -n cisdls__out="${1}"
-		local -n cisdls__in="${2}"
-		local cisdls__outidx="${3:-0}"
-		local cisdls__inbeg="${4:-0}"
-		local cisdls__inend="${5:-${#cisdls__in[@]}}"
-		for ((; cisdls__inbeg < cisdls__inend; ++cisdls__inbeg, ++cisdls__outidx))
-		do
-			ci_strdisplaylen "${cisdls__in[cisdls__inbeg]}" 'cisdls__out[cisdls__outidx]'
-		done
-	}
-
 fi
 
 if [[ "${0}" = "${BASH_SOURCE[0]}" ]]
