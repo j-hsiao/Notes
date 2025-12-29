@@ -61,6 +61,8 @@
 # ): 0x29
 # {: 0x7b
 # }: 0x7d
+# [: 0x5b
+# ]: 0x5d
 
 is_output() # <varname>
 {
@@ -69,7 +71,9 @@ is_output() # <varname>
 	# because the output could also be an expr
 	# like arrayvar[idx] or something which is
 	# valid to assign to, but is not a variable name.
-	[[ "${1}" = [a-zA-Z_]* ]]
+	local orig_rematch=("${BASH_REMATCH[@]}")
+	trap 'restore_BASH_REMATCH orig_rematch; trap - RETURN' RETURN
+	[[ "${1}" =~ ^[a-zA-Z_][a-zA-Z_0-9]*(\[.*\])?$ ]]
 }
 
 shparse_parse_expr() # <text> [out=RESULT] [begin=BEG] [end=END] [initial=0]
