@@ -17,8 +17,8 @@ then
 		# Restore BASH_REMATCH from <arrname>.
 		# <arrname>: name of an array variable with the contents of the
 		#            original BASH_REMATCH to restore.
-		local -n shprbm__arr="${1}"
-		BASH_REMATCH=("${shprbm__arr[@]}")
+		local -n rbm__arr="${1}"
+		BASH_REMATCH=("${rbm__arr[@]}")
 	}
 else
 	restore_BASH_REMATCH() # <arrname>
@@ -26,14 +26,14 @@ else
 		# Restore BASH_REMATCH from <arrname>.
 		# <arrname>: name of an array variable with the contents of the
 		#            original BASH_REMATCH to restore.
-		local -n shprbm__arr="${1}"
-		local shprbm__str='[[ "${shprbm__arr[0]}" =~ '
-		local idx=0
-		while ((++idx < ${#shprbm__arr[@]}))
+		local -n rbm__arr="${1}"
+		local rbm__str='[[ "${rbm__arr[0]}" =~ '
+		local rbm__idx=0
+		while ((++rbm__idx < ${#rbm__arr[@]}))
 		do
-			shprbm__str+='("${shprbm__arr['${idx}']}").*'
+			rbm__str+='("${rbm__arr['${rbm__idx}']}").*'
 		done
-		eval "${shprbm__str} ]]"
+		eval "${rbm__str} ]]"
 	}
 fi
 
