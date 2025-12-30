@@ -1,0 +1,18 @@
+xargs: Take arguments from stdin and put them onto the commandline.
+
+Similar to:
+orig="${IFS}"
+IFS=$'\n'
+command line $(myprog)
+IFS="${orig}"
+
+
+Flags:
+	-0: use null byte instead of newline
+	-d: delimiter,
+	    single char
+	    C-like backslash escape
+	    hex
+	    octal
+	-n: number of args to add to commandline at a time.
+	-P: maxprocs
