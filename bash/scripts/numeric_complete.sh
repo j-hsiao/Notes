@@ -85,39 +85,19 @@ ch_make NCMP_CACHE ${NCMP_CACHE_SIZE}
 # Store internal state
 declare -gA NCMP_STATE
 
-# The readline completion-ignore-case and show-mode-in-prompt
-# settings are needed to determine numeric completion behavior.
-# However, on Cygwin, bind is noticeably very slow.  A solution
-# would be to cache the value of the settings into variables.
-
-NCMP_STATE['completion_ignore_case']=
-NCMP_STATE['show_mode_in_prompt']=
-NCMP_STATE['editing_mode']=
-NCMP_STATE['show_all_if_ambiguous']=
-
 ncmp_refresh_readline() {
-	# refresh cached readline data.
-	local line
-	while read line
+	# Refresh cached readline settings.
+	# This is mostly to improve performance on cygwin.
+	local st opt val
+	while read -r st opt val
 	do
-		case "${line}" in
-			*completion-ignore-case*)
-				NCMP_STATE['completion_ignore_case']="${line#*completion-ignore-case }"
-				;;
-			*show-mode-in-prompt*)
-				NCMP_STATE['show_mode_in_prompt']="${line#*show-mode-in-prompt }"
-				;;
-			*editing-mode*)
-				NCMP_STATE['editing_mode']="${line#*editing-mode }"
-				;;
-			*show-all-if-ambiguous*)
-				NCMP_STATE['show_all_if_ambiguous']="${line#*show-all-if-ambiguous }"
-				;;
-		esac
+		NCMP_STATE["${opt}"]="${val}"
 	done < <(command bind -v 2>/dev/null)
 }
 ncmp_refresh_readline
 
+# Should I even bother with this?
+# it seems like this is never actually used...
 if ! declare -f ncmp_orig_bind &>/dev/null
 then
 	case "$(type -t bind)" in
@@ -127,7 +107,8 @@ then
 			}
 			;;
 		function)
-			if [[ ! "$(declare -f bind)" =~ .*'ncmp_orig_bind ' ]]
+			
+			if [[ "$(declare -f bind)" = *'ncmp_orig_bind ' ]]
 			then
 				printf 'Warning, experimental overriding function bind.\n'
 				eval ncmp_orig_"$(declare -f bind)"
@@ -137,13 +118,17 @@ then
 			;;
 		alias)
 			printf 'Warning, experimental overriding alias bind.\n'
-			NCMP_STATE['bind_alias']=$(alias bind)
-			ncmp_orig_bind() {
-				alias bind="${NCMP_STATE['bind_alias']}"
-				bind
-				unalias bind
-			}
+			ncmp_bind_alias=$(alias bind)
 			unalias bind
+			eval ncmp_bind_alias=${ncmp_bind_alias#*=}
+			if [[ "$(type -t bind)" = 'function' ]]
+			then
+				eval ncmp_orig2_"$(declare -f bind)"
+				eval $'ncmp_orig_bind() {\n'"${ncmp_bind_alias/#bind/ncmp_orig2_bind}"$'\n}'
+			else
+				eval $'ncmp_orig_bind() {\n'"${ncmp_bind_alias/#bind/command bind}"$'\n}'
+			fi
+			unset ncmp_bind_alias
 			;;
 		*)
 			printf 'Warning, overriding unknown bind implementation.'
@@ -151,10 +136,8 @@ then
 			;;
 	esac
 	bind() {
+		trap ncmp_refresh_readline RETURN
 		ncmp_orig_bind "${@}"
-		local ret=$?
-		ncmp_refresh_readline
-		return "${ret}"
 	}
 fi
 ncmp_run()
@@ -169,19 +152,23 @@ ncmp_run()
 	local NCMP_CHOICE='NCMP_CACHE_PREFIX' # choices, may contain ansi colors
 	local NCMP_LENGTH='NCMP_CACHE_PREFIX + NCMP_CACHE[NCMP_COUNT]' # display lengths
 	local NCMP_REFINE='NCMP_CACHE_PREFIX + NCMP_CACHE[NCMP_COUNT]*2' # chosen indices
-	# TODO?
-	# requires extglob and preferably globasciiranges
+
+	local BIND_SHOW_MODE_IN_PROMPT='show-mode-in-prompt'
+	local BIND_EDITING_MODE='editing-mode'
+	local BIND_COMPLETION_IGNORE_CASE='completion-ignore-case'
+
+	# NOTE: ansi code pattern requires extglob and globasciiranges
 	local NCMP_ANSI_CODE_PATTERN=$'\e\[*([\x30-\x3f])*([\x20-\x2f])[\x40-\x7e]'
 
 	if [[ "${TERM}" = *color* || "${COLORTERM}" = *color* ]]
 	then
-		local NCMP_BLUE='\e[01;34m'
-		local NCMP_RESET='\e[0m'
-		local NCMP_NUMBER='\e[30;47m'
+		local ANSI_BLUE='\e[01;34m'
+		local ANSI_RESET='\e[0m'
+		local ANSI_NUMBER='\e[30;47m'
 	else
-		local NCMP_BLUE=
-		local NCMP_RESET=
-		local NCMP_NUMBER=
+		local ANSI_BLUE=
+		local ANSI_RESET=
+		local ANSI_NUMBER=
 	fi
 	"${@}"
 }
@@ -193,11 +180,11 @@ ncmp_pathsplit() # <path> [dname_var=dname] [basename_var=bname] [fulldir=dpath]
 #       dir1/dir2/ will be split as dir1/dir2/ and ''
 {
 	local -n ncmpps__dname="${2:-dname}" ncmpps__bname="${3:-bname}" ncmpps__dpath="${4:-dpath}"
-	local orig_rematch=("${BASH_REMATCH[@]}")
+	local ncmpps__orig_rematch=("${BASH_REMATCH[@]}")
 	[[ "${1}" =~ (.*/)?(.*) ]]
 	ncmpps__dname="${BASH_REMATCH[1]}"
 	ncmpps__bname="${BASH_REMATCH[2]}"
-	restore_BASH_REMATCH orig_rematch
+	restore_BASH_REMATCH ncmpps__orig_rematch
 	ss_push extglob
 	ncmpps__dpath="${ncmpps__dname//+(\/)/\/}"
 	ncmpps__dpath="${ncmpps__dpath/#~*([^\/])/${HOME}}"
@@ -219,57 +206,57 @@ ncmp_expand_prompt() # [prompt=${PS1}] [out=]
 		return
 	fi
 
-	local parts=()
-	local idx=0
-	local orig_rematch=("${BASH_REMATCH[@]}")
-	trap 'restore_BASH_REMATCH orig_rematch; trap - RETURN' RETURN
-	while [[ "${ncmpep__prompt:idx}" =~ ^(("\$'"|[^'$\'])*)(['$\'])? ]]
+	local ncmpep__parts=()
+	local ncmpep__idx=0
+	local ncmpep__orig_rematch=("${BASH_REMATCH[@]}")
+	trap 'restore_BASH_REMATCH ncmpep__orig_rematch; trap - RETURN' RETURN
+	while [[ "${ncmpep__prompt:ncmpep__idx}" =~ ^(("\$'"|[^'$\'])*)(['$\'])? ]]
 	do
 		if (("${#BASH_REMATCH[1]}"))
 		then
-			parts+=("${BASH_REMATCH[1]}")
-			((idx+="${#BASH_REMATCH[1]}"))
+			ncmpep__parts+=("${BASH_REMATCH[1]}")
+			((ncmpep__idx+="${#BASH_REMATCH[1]}"))
 		fi
 		if (("${#BASH_REMATCH[-1]}"))
 		then
 			case "${BASH_REMATCH[-1]}" in
 				'$')
 					local beg end part
-					shparse_parse_dollar "${ncmpep__prompt}" 'parts[${#parts[@]}]' beg end "${idx}"
+					shparse_parse_dollar "${ncmpep__prompt}" 'ncmpep__parts[${#ncmpep__parts[@]}]' beg end "${ncmpep__idx}"
 					if ((end < 0))
 					then
-						parts+=("${ncmpep__prompt:idx}")
-						idx="${#ncmpep__prompt}"
+						ncmpep__parts+=("${ncmpep__prompt:ncmpep__idx}")
+						ncmpep__idx="${#ncmpep__prompt}"
 					else
-						idx="${end}"
+						ncmpep__idx="${end}"
 					fi
 					;;
 				'\')
-					case "${ncmpep__prompt:idx:2}" in
-						\\[aenr]) printf -v "parts[${#parts[@]}]" "${ncmpep__prompt:idx:2}";;
-						'\d') parts+=("$(date '+%a %b %d')");;
-						'\h') parts+=("${HOSTNAME%%.*}");;
-						'\H') parts+=("${HOSTNAME}");;
-						'\j') parts+=("$(jobs|wc-l)");;
-						'\l') parts+=("$(tty)"); parts[-1]="${parts[-1]##*/}";;
-						'\s') parts+=("${SHELL##*/}");;
-						'\t') parts+=("$(date '+%H:%M:%S')");;
-						'\T') parts+=("$(date '+%I:%M:%S')");;
-						'\@') parts+=("$(date '+%I:%M %p')");;
-						'\A') parts+=("$(date '+%H:%M')");;
-						'\u') parts+=("${USER}");;
-						'\v') parts+=("${BASH_VERSINFO[0]}.${BASH_VERSINFO[1]}");;
-						'\V') parts+=("${BASH_VERSINFO[0]}.${BASH_VERSINFO[1]}.${BASH_VERSINFO[2]}");;
-						'\w') parts+=("${PWD/#"${HOME}"/"${PROMPT_DIRTRIM:-"~"}"}");;
+					case "${ncmpep__prompt:ncmpep__idx:2}" in
+						\\[aenr]) printf -v "ncmpep__parts[${#ncmpep__parts[@]}]" "${ncmpep__prompt:ncmpep__idx:2}";;
+						'\d') ncmpep__parts+=("$(date '+%a %b %d')");;
+						'\h') ncmpep__parts+=("${HOSTNAME%%.*}");;
+						'\H') ncmpep__parts+=("${HOSTNAME}");;
+						'\j') ncmpep__parts+=("$(jobs|wc-l)");;
+						'\l') ncmpep__parts+=("$(tty)"); ncmpep__parts[-1]="${ncmpep__parts[-1]##*/}";;
+						'\s') ncmpep__parts+=("${SHELL##*/}");;
+						'\t') ncmpep__parts+=("$(date '+%H:%M:%S')");;
+						'\T') ncmpep__parts+=("$(date '+%I:%M:%S')");;
+						'\@') ncmpep__parts+=("$(date '+%I:%M %p')");;
+						'\A') ncmpep__parts+=("$(date '+%H:%M')");;
+						'\u') ncmpep__parts+=("${USER}");;
+						'\v') ncmpep__parts+=("${BASH_VERSINFO[0]}.${BASH_VERSINFO[1]}");;
+						'\V') ncmpep__parts+=("${BASH_VERSINFO[0]}.${BASH_VERSINFO[1]}.${BASH_VERSINFO[2]}");;
+						'\w') ncmpep__parts+=("${PWD/#"${HOME}"/"${PROMPT_DIRTRIM:-"~"}"}");;
 						'\W')
 							if [[ "${PWD}" = "${HOME}" ]]
 							then
-								parts+=('~')
+								ncmpep__parts+=('~')
 							else
-								parts+=("${PWD##*/}")
+								ncmpep__parts+=("${PWD##*/}")
 							fi
 							;;
-						'\!') parts+=("${HISTCMD}");;
+						'\!') ncmpep__parts+=("${HISTCMD}");;
 						'\#')
 							# TODO: the command number number of this command
 							# doesn't seem to be any way to get this, but ti
@@ -278,34 +265,34 @@ ncmp_expand_prompt() # [prompt=${PS1}] [out=]
 						'\$')
 							if ((UID == 0))
 							then
-								parts+=('#')
+								ncmpep__parts+=('#')
 							else
-								parts+=('$')
+								ncmpep__parts+=('$')
 							fi
 							;;
-						'\\') parts+=('\');;
+						'\\') ncmpep__parts+=('\');;
 						'\['*|'\]'*) ;;
 						*)
-							if [[ "${ncmpep__prompt:idx}" =~ ^$'\\D\x7b'([^$'\x7d']*)($'\x7d'|$) ]]
+							if [[ "${ncmpep__prompt:ncmpep__idx}" =~ ^$'\\D\x7b'([^$'\x7d']*)($'\x7d'|$) ]]
 							then
-								parts+=("$(date "+${BASH_REMATCH[1]}")")
-								idx+="${#BASH_REMATCH[0]}"
-							elif [[ "${ncmpep__prompt:idx}" =~ ^'\'[0-7]($|[0-7]($|[0-7])) ]]
+								ncmpep__parts+=("$(date "+${BASH_REMATCH[1]}")")
+								ncmpep__idx+="${#BASH_REMATCH[0]}"
+							elif [[ "${ncmpep__prompt:ncmpep__idx}" =~ ^'\'[0-7]($|[0-7]($|[0-7])) ]]
 							then
-								printf -v "parts[${#parts[@]}]" "${BASH_REMATCH[0]}"
-								((idx += "${#BASH_REMATCH[0]}"))
+								printf -v "ncmpep__parts[${#ncmpep__parts[@]}]" "${BASH_REMATCH[0]}"
+								((ncmpep__idx += "${#BASH_REMATCH[0]}"))
 							else
-								parts+=('\')
-								((++idx))
+								ncmpep__parts+=('\')
+								((++ncmpep__idx))
 							fi
 							continue
 							;;
 					esac
-					((idx += 2))
+					((ncmpep__idx += 2))
 					;;
 			esac
 		else
-			printf ${2:+-v "${2}"} '%s' "${parts[@]}"
+			printf ${2:+-v "${2}"} '%s' "${ncmpep__parts[@]}"
 			return
 		fi
 	done
@@ -317,20 +304,20 @@ ncmp_count_lines() # <text> [width=${COLUMNS}] [out=RESULT]
 	local ncmpcl__text="${1}" ncmpcl__width="${2:-${COLUMNS}}"
 	local -n ncmpcl__out="${3:-RESULT}"
 	ncmpcl__out=1
-	local col=0 idx clen
-	local textlen="${#ncmpcl__text}"
-	for ((idx=0; idx < textlen; ++idx))
+	local ncmpcl__col=0 ncmpcl__idx ncmpcl__clen
+	local ncmpcl__textlen="${#ncmpcl__text}"
+	for ((ncmpcl__idx=0; ncmpcl__idx < ncmpcl__textlen; ++ncmpcl__idx))
 	do
-		local chara="${ncmpcl__text:idx:1}"
-		if [[ "${chara}" = $'\n' ]]
+		local ncmpcl__chara="${ncmpcl__text:ncmpcl__idx:1}"
+		if [[ "${ncmpcl__chara}" = $'\n' ]]
 		then
-			((col=0, ++ncmpcl__out))
-		elif [[ "${chara}" = $'\r' ]]
+			((ncmpcl__col=0, ++ncmpcl__out))
+		elif [[ "${ncmpcl__chara}" = $'\r' ]]
 		then
-			((col=0))
+			((ncmpcl__col=0))
 		else
-			ci_charwidth "${chara}" clen
-			((col + clen <= ncmpcl__width ? (col+=clen) : (col=clen, ++ncmpcl__out)))
+			ci_charwidth "${ncmpcl__chara}" ncmpcl__clen
+			((ncmpcl__col + ncmpcl__clen <= ncmpcl__width ? (ncmpcl__col+=ncmpcl__clen) : (ncmpcl__col=ncmpcl__clen, ++ncmpcl__out)))
 		fi
 	done
 }
@@ -341,9 +328,9 @@ ncmp_mimic_prompt() # <command> <pos>
 	# This is necessary so that the choices can be displayed and the cursor
 	# ends up in an appropriate position to continue typing the command.
 	local pre=
-	if [[ "${NCMP_STATE['show_mode_in_prompt']}" = 'on' ]]
+	if [[ "${NCMP_STATE['show-mode-in-prompt']}" = 'on' ]]
 	then
-		if [[ "${NCMP_STATE['editing_mode']}" = 'emacs' ]]
+		if [[ "${NCMP_STATE['editing-mode']}" = 'emacs' ]]
 		then
 			pre+='@'
 		else
@@ -461,7 +448,7 @@ ncmp_load_matches() # <query>
 		return
 	fi
 
-	if [[ "${NCMP_STATE['completion_ignore_case']}" = 'on' && "${1,,}" = "${1}" ]]
+	if [[ "${NCMP_STATE['completion-ignore-case']}" = 'on' && "${1,,}" = "${1}" ]]
 	then
 		local query="${1^^}"
 		if [[ "${1#"${NCMP_CACHE[0]}"}" = "${1}" ]]
@@ -924,7 +911,7 @@ else
 
 	if (($#))
 	then
-		echo "NCMP_STATE['completion_ignore_case']: ${NCMP_STATE['completion_ignore_case']}"
+		echo "NCMP_STATE['completion-ignore-case']: ${NCMP_STATE['completion-ignore-case']}"
 		echo "${NCMP_STATE[@]@K}"
 
 		time ncmp_read_dir "${1}"
