@@ -21,8 +21,10 @@ then
 		BASH_REMATCH=("${rbm__arr[@]}")
 	}
 else
+	echo 'WARNING: restore_BASH_REMATCH will fail of regex pattern has nested groups.' >&2
 	restore_BASH_REMATCH() # <arrname>
 	{
+		# NOTE: this only works for non-nested groups...
 		# Restore BASH_REMATCH from <arrname>.
 		# <arrname>: name of an array variable with the contents of the
 		#            original BASH_REMATCH to restore.

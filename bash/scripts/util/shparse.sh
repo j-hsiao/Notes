@@ -118,8 +118,8 @@ shparse_parse_generic() # <pattern> <beginning> <text> [out=RESULT] [begin=BEG] 
 	# printf "${indent}"'  "%s"\n' "${3}"
 	# printf "${indent}"'  %s\n' "${1}"
 
-	local orig_rematch=("${BASH_REMATCH[@]}")
-	trap 'restore_BASH_REMATCH orig_rematch; trap - RETURN' RETURN
+	local shppg__orig_rematch=("${BASH_REMATCH[@]}")
+	trap 'restore_BASH_REMATCH shppg__orig_rematch; trap - RETURN' RETURN
 	local -n shppg__end="${6:-END}"
 	shppg__end=$((${7:-0} + ${2}))
 	while [[ "${3:shppg__end}" =~ ^${1} ]]
@@ -214,24 +214,24 @@ shparse_parse_backtick() # <text> [out=RESULT] [begin=BEG] [end=END] [initial=0]
 	# before subexpressions are parsed or the ending backtick
 	# might be interpreted as part of a subexpression instead.
 
-	local orig_rematch=("${BASH_REMATCH[@]}")
+	local shppbt__orig_rematch=("${BASH_REMATCH[@]}")
 	if [[ "${1: ${5:-0}}" =~ ^\`(\\.|[^\\\`])*\` ]]
 	then
-		local region="${1:0:${5:-0}+${#BASH_REMATCH[0]}-1}"
-		local tickfix=1
+		local shppbt__region="${1:0:${5:-0}+${#BASH_REMATCH[0]}-1}"
+		local shppbt__tickfix=1
 	else
-		local region="${1}"
-		local tickfix=0
+		local shppbt__region="${1}"
+		local shppbt__tickfix=0
 	fi
 	# Still need to parse even if does not match in case there are
 	# any subexprs that are incomplete.
-	shparse_parse_generic '(\\.|[^$"'\''\\])*((\$|"|'\'')|($))' 1 "${region}" 0 "${@:3}"
+	shparse_parse_generic '(\\.|[^$"'\''\\])*((\$|"|'\'')|($))' 1 "${shppbt__region}" 0 "${@:3}"
 
 	local -n shppbt__end="${4:-END}"
 	if ((shppbt__end >= 0))
 	then
 		eval "${3:-BEG}="'"${5:-0}"'
-		if ((tickfix))
+		if ((shppbt__tickfix))
 		then
 			((++shppbt__end))
 			if is_output "${2:-RESULT}"
@@ -242,7 +242,7 @@ shparse_parse_backtick() # <text> [out=RESULT] [begin=BEG] [end=END] [initial=0]
 			shppbt__end=-1
 		fi
 	fi
-	restore_BASH_REMATCH orig_rematch
+	restore_BASH_REMATCH shppbt__orig_rematch
 }
 
 shparse_parse_parameter_expansion() # <text> [out=RESULT] [begin=BEG] [end=END] [initial=0]
@@ -288,8 +288,8 @@ shparse_parse_command_sub() # <text> [out=RESULT] [begin=BEG] [end=END] [initial
 
 	local -n shppcs__end="${4:-END}"
 	shppcs__end=$((${5-0} + 2))
-	local orig_rematch=("${BASH_REMATCH[@]}")
-	trap 'restore_BASH_REMATCH orig_rematch; trap - RETURN' RETURN
+	local shppcs__orig_rematch=("${BASH_REMATCH[@]}")
+	trap 'restore_BASH_REMATCH shppcs__orig_rematch; trap - RETURN' RETURN
 	while [[ "${1:shppcs__end:1}" = [^$'\x29'] ]]
 	do
 		shparse_parse_word "${1}" 0 "${3}" "${4}" "${shppcs__end}"
@@ -308,7 +308,6 @@ shparse_parse_command_sub() # <text> [out=RESULT] [begin=BEG] [end=END] [initial
 		eval "${3:-BEG}="'"${5:-0}"'
 	else
 		local -n shppcs__beg="${3:-BEG}"
-		local lastword="${1:shppcs__beg}"
 		[[ "${1:shppcs__beg}" =~ (\\.|[^$'\\"$\x29\x7d'\'"${IFS}"])*(["${IFS}"]*)$  ]]
 		if [[ -n "${BASH_REMATCH[-1]}" ]]
 		then
