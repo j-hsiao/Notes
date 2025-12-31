@@ -148,23 +148,26 @@ ncmp_run()
 	local NCMP_CACHE_PREFIX=0
 	local NCMP_QUERY=$((NCMP_CACHE_PREFIX++))
 	local NCMP_COUNT=$((NCMP_CACHE_PREFIX++))
+	local NCMP_ITEMS='NCMP_CACHE[NCMP_COUNT]'
 	local -n NCMP_DNAME=NCMP_CACHE_index
 	local NCMP_CHOICE='NCMP_CACHE_PREFIX' # choices, may contain ansi colors
-	local NCMP_LENGTH='NCMP_CACHE_PREFIX + NCMP_CACHE[NCMP_COUNT]' # display lengths
-	local NCMP_REFINE='NCMP_CACHE_PREFIX + NCMP_CACHE[NCMP_COUNT]*2' # chosen indices
+	local NCMP_LENGTH='NCMP_CACHE_PREFIX + NCMP_ITEMS' # display lengths
+	local NCMP_REFINE='NCMP_CACHE_PREFIX + NCMP_ITEMS*2' # chosen indices
 
 	local BIND_SHOW_MODE_IN_PROMPT='show-mode-in-prompt'
 	local BIND_EDITING_MODE='editing-mode'
 	local BIND_COMPLETION_IGNORE_CASE='completion-ignore-case'
 
 	# NOTE: ansi code pattern requires extglob and globasciiranges
-	local NCMP_ANSI_CODE_PATTERN=$'\e\[*([\x30-\x3f])*([\x20-\x2f])[\x40-\x7e]'
+	# https://en.wikipedia.org/wiki/ANSI_escape_code
+	# *([0-?])*([ -/])[@-~]
+	local NCMP_ANSI_CODE_PATTERN=$'\e\\[*([\x30-\x3f])*([\x20-\x2f])[\x40-\x7e]'
 
 	if [[ "${TERM}" = *color* || "${COLORTERM}" = *color* ]]
 	then
-		local ANSI_BLUE='\e[01;34m'
-		local ANSI_RESET='\e[0m'
-		local ANSI_NUMBER='\e[30;47m'
+		local ANSI_BLUE=$'\e[01;34m'
+		local ANSI_RESET=$'\e[0m'
+		local ANSI_NUMBER=$'\e[30;47m'
 	else
 		local ANSI_BLUE=
 		local ANSI_RESET=
@@ -369,8 +372,6 @@ ncmp_escape2shell() # <text> [out=RESULT]
 	printf -v ncmpe2s__out '%q' "${ncmpe2s__out}"
 }
 
-NCMP_CACHE_STATE=3
-
 ncmp_read_dir() # <dname> [force=]
 {
 	# Load directory entries into NCMP_CACHE.
@@ -379,13 +380,6 @@ ncmp_read_dir() # <dname> [force=]
 	# to a directory and the cache is outdated.
 	if ! ch_get NCMP_CACHE "${1}" || [[ -n "${2}" ]]
 	then
-		# NOTE: Tried implementing to find entries with a common prefix
-		# but it was very slow, linear search much faster, tested up to
-		# 1000 items.
-
-		ss_push extglob globasciiranges
-		NCMP_CACHE=()
-
 		# Sidenote, using compgen can be very very slow...
 		# ls = 0.18 seconds, but compgen = 3 seconds if compgen -df -o plusdirs (to distinguish directories)
 		# or compgen -df 2 seconds
@@ -394,151 +388,120 @@ ncmp_read_dir() # <dname> [force=]
 		# but compgen does give some benefits like no need to implement
 		# parsing partial bash/readline parsing.
 
-		readarray -O${NCMP_CACHE_STATE} -t NCMP_CACHE < <(ls -Apb --color="${NUMERIC_COMPLETE_color:-never}" "${1}" 2>/dev/null)
+		NCMP_CACHE=()
+		readarray -O${NCMP_CACHE_PREFIX} -t NCMP_CACHE \
+			< <(ls -Apb --color="${NUMERIC_COMPLETE_color:-never}" "${1}" 2>/dev/null)
 		# https://en.wikipedia.org/wiki/ANSI_escape_code
 		# [0x30–0x3F]*  (0–9:;<=>?)
 		# [0x20–0x2F]*  ( !"#$%&'()*+,-./)
 		# 0x40–0x7E     (@A–Z[\]^_`a–z{|}~)
-		if [[ "${NUMERIC_COMPLETE_color:-never}" = 'never' ]]
+		if [[ "${NUMERIC_COMPLETE_color:-never}" = 'always' ]]
 		then
-			NCMP_CACHE+=("${NCMP_CACHE[@]}")
-			if [[ -z "${NUMERIC_COMPLETE_color}" ]]
-			then
-				#Color directories indicated by the -p flag
-				local idx="$((${#NCMP_CACHE[@]} / 2))"
-				while ((--idx > 0))
-				do
-					if [[ "${NCMP_CACHE[idx+NCMP_CACHE_STATE]: -1}" = '/' ]]
-					then
-						NCMP_CACHE[idx+NCMP_CACHE_STATE]=$'\e[0m\e[01;34m'"${NCMP_CACHE[idx+NCMP_CACHE_STATE]%/}"$'\e[0m/'
-					fi
-				done
-			fi
+			ss_push extglob globasciiranges
+			local raw=("${NCMP_CACHE[@]//${NCMP_ANSI_CODE_PATTERN}}")
+			ss_pop
+			NCMP_CACHE[NCMP_COUNT]="${#NCMP_CACHE[@]}"
+			ci_strdisplaylens NCMP_CACHE "$((NCMP_LENGTH))" "${raw[@]}"
 		else
-			NCMP_CACHE+=("${NCMP_CACHE[@]//$'\e['*(['0'-'?'])*(['!'-'/'])['@'-'~']}")
+			NCMP_CACHE[NCMP_COUNT]="${#NCMP_CACHE[@]}"
+			ci_strdisplaylens NCMP_CACHE "$((NCMP_LENGTH))" "${NCMP_CACHE[@]:NCMP_CHOICE:NCMP_ITEMS}"
+			local i
+			for ((i=NCMP_CHOICE; i<NCMP_LENGTH; ++i))
+			do
+				if [[ "${NCMP_CACHE[i]: -1}" = '/' ]]
+				then
+					NCMP_CACHE[i]="${ANSI_RESET}${ANSI_BLUE}${NCMP_CACHE[i]%/}${ANSI_RESET}/"
+				fi
+			done
 		fi
-		NCMP_CACHE[1]="$((${#NCMP_CACHE[@]}/2))"
-		ci_strdisplaylens NCMP_CACHE $((NCMP_CACHE[1]*2 + NCMP_CACHE_STATE)) \
-		"${NCMP_CACHE[@]:NCMP_CACHE[1]+NCMP_CACHE_STATE:NCMP_CACHE[1]}"
-		ss_pop
 	fi
 }
+
 
 ncmp_load_matches() # <query>
 {
-	# Load matches of <query> (raw index) into the end of NCMP_CACHE.
-	# NCMP_CACHE[0] should be the last query if applicable.
-	# <query> would be the new query.
-	#
-	# If readline completion-ignore-case is on, then if query is all
-	# lower case, ignore case.  If query contains upper case, then
-	# match case.  Otherwise, only match exact.
-
-	# side note... This generally seems to be quite fast,
-	# maybe refining previous match is not necessary?
-	local out=$((NCMP_CACHE[1]*3 + NCMP_CACHE_STATE))
+	# Load indices matching <query> [0-NCMP_ITEMS) into the refine segment of NCMP_CACHE.
+	# If readline completion-ignore-case and <query> is lowercase, then ignorecase.
+	local idx out=$((NCMP_REFINE))
+	NCMP_CACHE[NCMP_QUERY]="${1}"
 	if [[ -z "${1}" ]]
 	then
-		local idx=$((NCMP_CACHE[1] + NCMP_CACHE_STATE - 1)) end=$((NCMP_CACHE[1]*2 + NCMP_CACHE_STATE))
-		while ((++idx < end))
+		for ((idx=0; idx<NCMP_ITEMS; ++idx))
 		do
-			NCMP_CACHE[out++]="${idx}"
+			NCMP_CACHE[out++]=${idx}
 		done
-		NCMP_CACHE[0]=''
-		return
-	fi
-
-	if [[ "${NCMP_STATE['completion-ignore-case']}" = 'on' && "${1,,}" = "${1}" ]]
-	then
-		local query="${1^^}"
-		if [[ "${1#"${NCMP_CACHE[0]}"}" = "${1}" ]]
-		then
-			local idx=$((NCMP_CACHE[1] + NCMP_CACHE_STATE - 1)) end=$((NCMP_CACHE[1]*2 + NCMP_CACHE_STATE)) candidate
-			while ((++idx < end))
-			do
-				candidate="${NCMP_CACHE[idx]^^}"
-				if [[ "${candidate#"${query}"}" != "${candidate}" ]]
-				then
-					NCMP_CACHE[out++]="${idx}"
-				fi
-			done
-		else
-			local idx="${out}" end="${#NCMP_CACHE[@]}" candidate
-			while ((idx < end))
-			do
-				candidate="${NCMP_CACHE[NCMP_CACHE[idx]]^^}"
-				if [[ "${candidate#"${query}"}" != "${candidate}" ]]
-				then
-					NCMP_CACHE[out++]="${NCMP_CACHE[idx]}"
-				fi
-				((++idx))
-			done
-		fi
 	else
-		if [[ "${1#"${NCMP_CACHE[0]}"}" = "${1}" ]]
+		# From testing, performance doesn't seem to be an issue passing through all
+		# choices instead of only refined choices.  The code is much simpler like this
+		ss_push extglob globasciiranges
+		if [[ ${NCMP_STATE[$BIND_COMPLETION_IGNORE_CASE],,} = 'on' && "${1}" = "${1,,}" ]]
 		then
-			local idx=$((NCMP_CACHE[1] + NCMP_CACHE_STATE - 1)) end=$((NCMP_CACHE[1]*2 + NCMP_CACHE_STATE))
-			while ((++idx < end))
+			for ((idx=0; idx<NCMP_ITEMS; ++idx))
 			do
-				if [[ "${NCMP_CACHE[idx]#"${1}"}" != "${NCMP_CACHE[idx]}" ]]
+				local raw="${NCMP_CACHE[idx+NCMP_CHOICE]//${NCMP_ANSI_CODE_PATTERN}}"
+				if [[ "${raw,,}" = "${1}"* ]]
 				then
 					NCMP_CACHE[out++]="${idx}"
 				fi
 			done
 		else
-			local idx="${out}" end="${#NCMP_CACHE[@]}" candidate
-			while ((idx < end))
+			for ((idx=0; idx<NCMP_ITEMS; ++idx))
 			do
-				candidate="${NCMP_CACHE[NCMP_CACHE[idx]]}"
-				if [[ "${candidate#"${1}"}" != "${candidate}" ]]
+				if [[ "${NCMP_CACHE[idx+NCMP_CHOICE]//${NCMP_ANSI_CODE_PATTERN}}" = "${1}"* ]]
 				then
-					NCMP_CACHE[out++]="${NCMP_CACHE[idx]}"
+					NCMP_CACHE[out++]="${idx}"
 				fi
-				((++idx))
 			done
 		fi
+		ss_pop
 	fi
-	NCMP_CACHE[0]="${1}"
-	end=${#NCMP_CACHE[@]}
-	while ((out < end))
+	for ((idx=${#NCMP_CACHE[@]}-1; idx >= out; --idx))
 	do
-		unset NCMP_CACHE[out++]
+		unset NCMP_CACHE[idx]
 	done
 }
 
-
-ncmp_most() # <op> <int_array_name> [start=0] [stop=end] [output=RESULT]
+ncmp_reduce() # <op> <int_array_name> [start=0] [stop=end] [output=RESULT]
 {
-	# Calculate the maximum value from [start, stop).
+	# Reduce the input array with the given operation.
 	# If the range is empty, then output will be empty.
-	local op="${1}"
-	local -n ncmpmost__array="${2}" ncmpmost__output="${5:-RESULT}"
-	local start="${3:-0}" stop="${#ncmpmost__array[@]}"
-	((stop = stop <= ${4:-stop} ? stop : ${4:-stop}))
-	if (("${start}" >= "${stop}"))
+	local ncmprd__op="${1}"
+	local -n ncmprd__array="${2}"
+	local -n ncmprd__output="${5:-RESULT}"
+	local ncmprd__start=$(("${3:-0}"))
+	local ncmprd__stop="${#ncmprd__array[@]}"
+	((ncmprd__stop = ncmprd__stop <= ${4:-ncmprd__stop} ? ncmprd__stop : ${4:-ncmprd__stop}))
+	if (("${ncmprd__start}" >= "${ncmprd__stop}"))
 	then
-		ncmpmost__output=
+		ncmprd__output=
 		return
 	fi
-	ncmpmost__output="${ncmpmost__array[start]}"
-	while ((++start < stop))
+	ncmprd__output="${ncmprd__array[ncmprd__start]}"
+	while ((++ncmprd__start < ncmprd__stop))
 	do
-		if ((ncmpmost__array[start] ${op} ncmpmost__output))
+		if ((ncmprd__array[ncmprd__start] ${ncmprd__op} ncmprd__output))
 		then
-			ncmpmost__output="${ncmpmost__array[start]}"
+			ncmprd__output="${ncmprd__array[ncmprd__start]}"
 		fi
 	done
 }
 
 ncmp_cols_viable() # <strwidth_array> <numcols> <width> [colwidths=RESULT]
 {
-	# Check that <numcols> columns of <strwidth_array>
-	# can fit within <width>
-	local -n ncmpcv__arr="${1}" ncmpcv__colwidths="${4:-RESULT}"
-	local cols="${2}" width="${3}"
+	# Calculate column widths of <numcols> columns if within <width>.
+	# <strwidth_array>: the array containing widths of strings
+	# <numcols>: The number of columns.
+	# <width>: The target display width.
+	# [colwidths]: The output array name, defaults to RESULT.
+	local -n ncmpcv__arr="${1}"
+	local -n ncmpcv__colwidths="${4:-RESULT}"
+	local ncmpcv__cols="${2}"
+	local ncmpcv__width="${3}"
 
-	local rows=$(((${#ncmpcv__arr[@]} / cols) + (${#ncmpcv__arr[@]} % cols > 0)))
-	if ((cols != (${#ncmpcv__arr[@]} / rows) + (${#ncmpcv__arr[@]} % rows > 0)))
+	# ex: 4 items, 3 columns, must have at least 2 rows
+	# BUT 2 rows -> only 2 columns, invalid
+	local ncmpcv__rows=$(((${#ncmpcv__arr[@]} / ncmpcv__cols) + (${#ncmpcv__arr[@]} % ncmpcv__cols > 0)))
+	if ((ncmpcv__cols != (${#ncmpcv__arr[@]} / ncmpcv__rows) + (${#ncmpcv__arr[@]} % ncmpcv__rows > 0)))
 	then
 		return 1
 	fi
@@ -546,14 +509,14 @@ ncmp_cols_viable() # <strwidth_array> <numcols> <width> [colwidths=RESULT]
 	local col=0 total=0
 	local start=0
 	ncmpcv__colwidths=()
-	while ((col < ${cols}))
+	while ((col < ${ncmpcv__cols}))
 	do
-		local stop=$(((col+1)*rows))
-		ncmp_most '>' "${1}" "${start}" "${stop}" ncmpcv__colwidths[col]
+		local stop=$(((col+1)*ncmpcv__rows))
+		ncmp_reduce '>' "${1}" "${start}" "${stop}" ncmpcv__colwidths[col]
 		((total += ncmpcv__colwidths[col++]))
 		((start = stop))
 	done
-	return $((total > width))
+	return $((total > ncmpcv__width))
 }
 ncmp_calcfmt() # <strwidth_array> [termwidth=${COLUMNS}] [minpad=1] [style='\e[30;47m%d.\e[0m ']
                # [fmt=fmt]
@@ -583,7 +546,7 @@ ncmp_calcfmt() # <strwidth_array> [termwidth=${COLUMNS}] [minpad=1] [style='\e[3
 	ci_strdisplaylen "${prelen}" prelen
 
 	local shortest
-	ncmp_most '<' "${1}" '' '' shortest
+	ncmp_reduce '<' "${1}" '' '' shortest
 
 	local ncols="$((termwidth / shortest + (termwidth%shortest ? 1 : 0)))"
 	((ncols = ncols > choices ? choices : ncols))
@@ -612,6 +575,7 @@ ncmp_calcfmt() # <strwidth_array> [termwidth=${COLUMNS}] [minpad=1] [style='\e[3
 
 }
 
+NCMP_CACHE_STATE=3
 ncmp_print_matches() # [termwidth=${COLUMNS}] [minpad=1] [style='%d. ']
 {
 	# Print the loaded choices as a table.
@@ -757,7 +721,7 @@ NUMERIC_COMPLETE_normal="${NUMERIC_COMPLETE_normal:-k}"
 
 if [[ "${0}" != "${BASH_SOURCE[0]}" ]]
 then
-	if [[ "${1}" != 'nobind' ]]
+	if [[ "${-}" == *i* && "${1}" != 'nobind' ]]
 	then
 		alias "${NUMERIC_COMPLETE_alias}"=''
 
@@ -781,7 +745,6 @@ then
 		# '0in \e'  insert 'n '
 		# '`zll'    jump back to position (only saves column position not text position so ll)
 		# 'a\t'     trigger completion
-
 
 		command bind -m emacs \""${NUMERIC_COMPLETE_prefix}${NUMERIC_COMPLETE_complete}"'":"\e \C-a'"${NUMERIC_COMPLETE_alias}"' \C-x\C-x'"${NUMERIC_COMPLETE_alias//?/\\C-f}"'\C-f\t"'
 		command bind -m vi-insert \""${NUMERIC_COMPLETE_prefix}${NUMERIC_COMPLETE_complete}"'":"\emz0i'"${NUMERIC_COMPLETE_alias}"' \e`z'"$((${#NUMERIC_COMPLETE_alias}+1))"'la\t"'
@@ -815,27 +778,27 @@ else
 	echo 'Testing max().'
 	#        0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8
 	testarr=(6 5 1 2 8 9 7 6 1 2 9 3 5 7 1 2 9 8 4 1 8 3 4 5 4 3 6 7 1 0 2 3 4 0 9 1 2 3 4)
-	ncmp_most '>' testarr
+	ncmp_reduce '>' testarr
 	(( ${RESULT} == 9 )) && echo pass || echo "fail: ${RESULT}"
-	ncmp_most '>' testarr 0 5
+	ncmp_reduce '>' testarr 0 5
 	(( ${RESULT} == 8 )) && echo pass || echo "fail: ${RESULT}"
-	ncmp_most '>' testarr 11 14
+	ncmp_reduce '>' testarr 11 14
 	(( ${RESULT} == 7 )) && echo pass || echo "fail: ${RESULT}"
-	ncmp_most '>' testarr 0 0
+	ncmp_reduce '>' testarr 0 0
 	[[ "${RESULT}" == '' ]] && echo pass || echo "fail: ${RESULT}"
-	ncmp_most '>' testarr 2 0
+	ncmp_reduce '>' testarr 2 0
 	[[ "${RESULT}" == '' ]] && echo pass || echo "fail: ${RESULT}"
 
 	echo 'Testing min()'
-	ncmp_most '<' testarr
+	ncmp_reduce '<' testarr
 	(( ${RESULT} == 0 )) && echo pass || echo "fail: ${RESULT}"
-	ncmp_most '<' testarr 0 5
+	ncmp_reduce '<' testarr 0 5
 	(( ${RESULT} == 1 )) && echo pass || echo "fail: ${RESULT}"
-	ncmp_most '<' testarr 11 14
+	ncmp_reduce '<' testarr 11 14
 	(( ${RESULT} == 3 )) && echo pass || echo "fail: ${RESULT}"
-	ncmp_most '<' testarr 0 0
+	ncmp_reduce '<' testarr 0 0
 	[[ "${RESULT}" == '' ]] && echo pass || echo "fail: ${RESULT}"
-	ncmp_most '<' testarr 2 0
+	ncmp_reduce '<' testarr 2 0
 	[[ "${RESULT}" == '' ]] && echo pass || echo "fail: ${RESULT}"
 
 	echo 'Testing count_lines()'
