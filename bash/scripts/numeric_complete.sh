@@ -163,6 +163,7 @@ ncmp_run()
 	# *([0-?])*([ -/])[@-~]
 	local NCMP_ANSI_CODE_PATTERN=$'\e\\[*([\x30-\x3f])*([\x20-\x2f])[\x40-\x7e]'
 
+	local NCMP_ANSI_COLUMN_FORMAT='\\e[%dG'
 	if [[ "${TERM}" = *color* || "${COLORTERM}" = *color* ]]
 	then
 		local ANSI_BLUE=$'\e[01;34m'
@@ -417,7 +418,6 @@ ncmp_read_dir() # <dname> [force=]
 	fi
 }
 
-
 ncmp_load_matches() # <query>
 {
 	# Load indices matching <query> [0-NCMP_ITEMS) into the refine segment of NCMP_CACHE.
@@ -496,30 +496,25 @@ ncmp_cols_viable() # <strwidth_array> <numcols> <width> [colwidths=RESULT]
 	local -n ncmpcv__arr="${1}"
 	local -n ncmpcv__colwidths="${4:-RESULT}"
 	local ncmpcv__cols="${2}"
-	local ncmpcv__width="${3}"
 
-	# ex: 4 items, 3 columns, must have at least 2 rows
-	# BUT 2 rows -> only 2 columns, invalid
-	local ncmpcv__rows=$(((${#ncmpcv__arr[@]} / ncmpcv__cols) + (${#ncmpcv__arr[@]} % ncmpcv__cols > 0)))
-	if ((ncmpcv__cols != (${#ncmpcv__arr[@]} / ncmpcv__rows) + (${#ncmpcv__arr[@]} % ncmpcv__rows > 0)))
+	local ncmpcv__remainder=$((${#ncmpcv__arr[@]} % ncmpcv__cols))
+	local ncmpcv__rows=$((${#ncmpcv__arr[@]} / ncmpcv__cols))
+	if ((ncmpcv__remainder && ncmpcv__remainder + ncmpcv__rows < ncmpcv__cols))
 	then
 		return 1
 	fi
 
-	local col=0 total=0
-	local start=0
+	((ncmpcv__rows += (ncmpcv__remainder > 0)))
+	local ncmpcv__col=0
 	ncmpcv__colwidths=()
-	while ((col < ${ncmpcv__cols}))
+	for ((ncmpcv__col=0; ncmpcv__col < ncmpcv__cols; ++ncmpcv__col))
 	do
-		local stop=$(((col+1)*ncmpcv__rows))
-		ncmp_reduce '>' "${1}" "${start}" "${stop}" ncmpcv__colwidths[col]
-		((total += ncmpcv__colwidths[col++]))
-		((start = stop))
+		ncmp_reduce '>' "${1}" "$((ncmpcv__col * ncmpcv__rows))" "$(((ncmpcv__col+1) * ncmpcv__rows))" 'ncmpcv__colwidths[ncmpcv__col]'
 	done
-	return $((total > ncmpcv__width))
+	((${ncmpcv__colwidths[@]/%/+}0 <= "${3}"))
 }
-ncmp_calcfmt() # <strwidth_array> [termwidth=${COLUMNS}] [minpad=1] [style='\e[30;47m%d.\e[0m ']
-               # [fmt=fmt]
+ncmp_calcfmt() # <strwidth_array> [termwidth=${COLUMNS}] [minpad=1]
+               # [style="${ANSI_RESET}${ANSI_NUMBER}%d.${ANSI_RESET}"] [fmt=fmt]
 {
 	# Calculate the printf format strings per column.
 	# The formats use ANSI escape codes to place the column text in the
@@ -532,53 +527,54 @@ ncmp_calcfmt() # <strwidth_array> [termwidth=${COLUMNS}] [minpad=1] [style='\e[3
 	# 	[style]: The numbering style, must contain '%d'
 	# 	[fmt]: The output array variable name to hold the format strings.
 	# 	       The length of this array is the number of columns.
-	local -n ncmpcf__arr="${1}" ncmpcf__fmt="${5:-fmt}"
-	local choices="${#ncmpcf__arr[@]}" termwidth="${2:-${COLUMNS}}" \
-		minpad="${3:-1}" prefmt="${4:-\\e[30;47m%d.\\e[0m }"
-	if ((!choices)); then ncmpcf__fmt=(); return; fi
-	prefmt="${prefmt/\%d/%${#choices}d}"
 
-	local prelen
-	printf -v prelen "${prefmt}" "${choices}"
+	local -n ncmpcf__arr="${1}"
+	local -n ncmpcf__fmt="${5:-fmt}"
+	local ncmpcf__nchoices="${#ncmpcf__arr[@]}"
+	local ncmpcf__termwidth="${2:-${COLUMNS:-$(tput cols)}}"
+	local ncmpcf__minpad="${3:-1}"
+	((ncmpcf__termwidth += ncmpcf__minpad))
+	local ncmpcf__numfmt="${4:-"${ANSI_RESET/$'\e'/'\e'}${ANSI_NUMBER/$'\e'/'\e'}%d.${ANSI_RESET/$'\e'/'\e'} "}"
+	if ((!ncmpcf__nchoices)); then ncmpcf__fmt=(); return; fi
+	ncmpcf__numfmt="${ncmpcf__numfmt/'%d'/"%${#ncmpcf__nchoices}d"}"
+
+	local ncmpcf__numlen
+	printf -v ncmpcf__numlen "${ncmpcf__numfmt}" "${ncmpcf__nchoices}"
 	ss_push extglob globasciiranges
-	prelen="${prelen//$'\e['*(['0'-'?'])*(['!'-'/'])['@'-'~']}"
+	ncmpcf__numlen="${ncmpcf__numlen//${NCMP_ANSI_CODE_PATTERN}}"
 	ss_pop
-	ci_strdisplaylen "${prelen}" prelen
-
-	local shortest
-	ncmp_reduce '<' "${1}" '' '' shortest
-
-	local ncols="$((termwidth / shortest + (termwidth%shortest ? 1 : 0)))"
-	((ncols = ncols > choices ? choices : ncols))
-	while ((ncols*(shortest + prelen + minpad) - minpad > termwidth))
+	ci_strdisplaylen "${ncmpcf__numlen}" ncmpcf__numlen
+	local ncmpcf__ncols
+	ncmp_reduce '<' "${1}" '' '' ncmpcf__ncols
+	ncmpcf__ncols=$((ncmpcf__termwidth / (ncmpcf__ncols + ncmpcf__numlen + ncmpcf__minpad)))
+	ncmpcf__ncols=$((ncmpcf__ncols > ncmpcf__nchoices ? ncmpcf__nchoices : ncmpcf__ncols))
+	local ncmpcf__colwidths=()
+	while ((ncmpcf__ncols > 1)) && ! ncmp_cols_viable "${1}" "${ncmpcf__ncols}" \
+		$((ncmpcf__termwidth - ncmpcf__ncols*(ncmpcf__numlen+ncmpcf__minpad))) ncmpcf__colwidths
 	do
-		((--ncols))
+		((--ncmpcf__ncols))
 	done
-	local colwidths=()
-	while ((ncols > 0)) && ! ncmp_cols_viable "${1}" "${ncols}" \
-		$((termwidth - ncols*(prelen+minpad) + minpad)) colwidths
-	do
-		((--ncols))
-	done
-	ncmpcf__fmt=()
-	if ((ncols == 0))
+
+	if ((ncmpcf__ncols <= 1))
 	then
-		printf -v ncmpcf__fmt[0] '\r%s%%s' "${prefmt}"
+		ncmpcf__fmt=('\r'"${ncmpcf__numfmt}"'%s\n')
 	else
-		local colstart=1 idx=-1
-		while ((++idx < ncols))
+		ncmpcf__fmt=()
+		local ncmpcf__idx=0
+		local ncmpcf__colstart=1
+		for ((ncmpcf__idx=0; ncmpcf__idx<ncmpcf__ncols; ++ncmpcf__idx))
 		do
-			printf -v ncmpcf__fmt[idx] '\\e[%dG%s%%s' "${colstart}" "${prefmt}"
-			((colstart+=prelen + colwidths[idx] + minpad))
+			printf -v ncmpcf__fmt[ncmpcf__idx] "${NCMP_ANSI_COLUMN_FORMAT}"'%s%%s' \
+				"${ncmpcf__colstart}" "${ncmpcf__numfmt}"
+			((ncmpcf__colstart+=ncmpcf__numlen + ncmpcf__colwidths[ncmpcf__idx] + ncmpcf__minpad))
 		done
 	fi
-
 }
 
 NCMP_CACHE_STATE=3
 ncmp_print_matches() # [termwidth=${COLUMNS}] [minpad=1] [style='%d. ']
 {
-	# Print the loaded choices as a table.
+	# Print the currently loaded matches as a table (ansi required).
 	local strlens=() strs=() idx="$((NCMP_CACHE[1]*3 + NCMP_CACHE_STATE-1))"
 	while ((++idx < ${#NCMP_CACHE[@]}))
 	do
@@ -815,53 +811,54 @@ else
 	echo "Testing cols_viable"
 	ncmp_cols_viable strlens 3 22 && echo pass || echo "fail"
 	ncmp_cols_viable strlens 3 21 && echo fail || echo pass
+	ncmp_cols_viable strlens 10 6000 && echo fail || echo pass
 
 	# columns   colwidths       prelen  padding     total
 	# 2         +10 +10         +4*2    +1          29
 	# 3         +10 +10 +2      +4*3    +2          36
 	# 4         +2 +10 +10 +2   +4*4    +3          43
 	echo "Testing calcfmt"
-	ncmp_calcfmt strlens 29 1 '' fmt && ((${#fmt[@]} == 2)) \
-		&& [[ "${fmt[0]}" = '\e[1G\e[30;47m%2d.\e[0m %s' ]] \
-		&& [[ "${fmt[1]}" = '\e[16G\e[30;47m%2d.\e[0m %s' ]] \
+	ncmp_run ncmp_calcfmt strlens 29 1 '' fmt && ((${#fmt[@]} == 2)) \
+		&& [[ "${fmt[0]}" = '\e[1G\e[0m\e[30;47m%2d.\e[0m %s' ]] \
+		&& [[ "${fmt[1]}" = '\e[16G\e[0m\e[30;47m%2d.\e[0m %s' ]] \
 		&& echo pass || echo fail
 
-	ncmp_calcfmt strlens 35 1 '' fmt && ((${#fmt[@]} == 2)) \
-		&& [[ "${fmt[0]}" = '\e[1G\e[30;47m%2d.\e[0m %s' ]] \
-		&& [[ "${fmt[1]}" = '\e[16G\e[30;47m%2d.\e[0m %s' ]] \
+	ncmp_run ncmp_calcfmt strlens 35 1 '' fmt && ((${#fmt[@]} == 2)) \
+		&& [[ "${fmt[0]}" = '\e[1G\e[0m\e[30;47m%2d.\e[0m %s' ]] \
+		&& [[ "${fmt[1]}" = '\e[16G\e[0m\e[30;47m%2d.\e[0m %s' ]] \
 		&& echo pass || echo fail
 
-	ncmp_calcfmt strlens 36 1 '' fmt && ((${#fmt[@]} == 3)) \
-		&& [[ "${fmt[0]}" = '\e[1G\e[30;47m%2d.\e[0m %s' ]] \
-		&& [[ "${fmt[1]}" = '\e[16G\e[30;47m%2d.\e[0m %s' ]] \
-		&& [[ "${fmt[2]}" = '\e[31G\e[30;47m%2d.\e[0m %s' ]] \
+	ncmp_run ncmp_calcfmt strlens 36 1 '' fmt && ((${#fmt[@]} == 3)) \
+		&& [[ "${fmt[0]}" = '\e[1G\e[0m\e[30;47m%2d.\e[0m %s' ]] \
+		&& [[ "${fmt[1]}" = '\e[16G\e[0m\e[30;47m%2d.\e[0m %s' ]] \
+		&& [[ "${fmt[2]}" = '\e[31G\e[0m\e[30;47m%2d.\e[0m %s' ]] \
 		&& echo pass || echo fail
 
-	ncmp_calcfmt strlens 42 1 '' fmt && ((${#fmt[@]} == 3)) \
-		&& [[ "${fmt[0]}" = '\e[1G\e[30;47m%2d.\e[0m %s' ]] \
-		&& [[ "${fmt[1]}" = '\e[16G\e[30;47m%2d.\e[0m %s' ]] \
-		&& [[ "${fmt[2]}" = '\e[31G\e[30;47m%2d.\e[0m %s' ]] \
+	ncmp_run ncmp_calcfmt strlens 42 1 '' fmt && ((${#fmt[@]} == 3)) \
+		&& [[ "${fmt[0]}" = '\e[1G\e[0m\e[30;47m%2d.\e[0m %s' ]] \
+		&& [[ "${fmt[1]}" = '\e[16G\e[0m\e[30;47m%2d.\e[0m %s' ]] \
+		&& [[ "${fmt[2]}" = '\e[31G\e[0m\e[30;47m%2d.\e[0m %s' ]] \
 		&& echo pass || echo fail
 
-	ncmp_calcfmt strlens 43 1 '' fmt && ((${#fmt[@]} == 4)) \
-		&& [[ "${fmt[0]}" = '\e[1G\e[30;47m%2d.\e[0m %s' ]] \
-		&& [[ "${fmt[1]}" = '\e[8G\e[30;47m%2d.\e[0m %s' ]] \
-		&& [[ "${fmt[2]}" = '\e[23G\e[30;47m%2d.\e[0m %s' ]] \
-		&& [[ "${fmt[3]}" = '\e[38G\e[30;47m%2d.\e[0m %s' ]] \
+	ncmp_run ncmp_calcfmt strlens 43 1 '' fmt && ((${#fmt[@]} == 4)) \
+		&& [[ "${fmt[0]}" = '\e[1G\e[0m\e[30;47m%2d.\e[0m %s' ]] \
+		&& [[ "${fmt[1]}" = '\e[8G\e[0m\e[30;47m%2d.\e[0m %s' ]] \
+		&& [[ "${fmt[2]}" = '\e[23G\e[0m\e[30;47m%2d.\e[0m %s' ]] \
+		&& [[ "${fmt[3]}" = '\e[38G\e[0m\e[30;47m%2d.\e[0m %s' ]] \
 		&& echo pass || echo fail
 
-	ncmp_calcfmt strlens 1000 1 '' fmt && ((${#fmt[@]} == 11)) \
-		&& [[ "${fmt[0]}" = '\e[1G\e[30;47m%2d.\e[0m %s' ]] \
-		&& [[ "${fmt[1]}" = '\e[8G\e[30;47m%2d.\e[0m %s' ]] \
-		&& [[ "${fmt[2]}" = '\e[15G\e[30;47m%2d.\e[0m %s' ]] \
-		&& [[ "${fmt[3]}" = '\e[22G\e[30;47m%2d.\e[0m %s' ]] \
-		&& [[ "${fmt[4]}" = '\e[37G\e[30;47m%2d.\e[0m %s' ]] \
-		&& [[ "${fmt[5]}" = '\e[44G\e[30;47m%2d.\e[0m %s' ]] \
-		&& [[ "${fmt[6]}" = '\e[51G\e[30;47m%2d.\e[0m %s' ]] \
-		&& [[ "${fmt[7]}" = '\e[58G\e[30;47m%2d.\e[0m %s' ]] \
-		&& [[ "${fmt[8]}" = '\e[73G\e[30;47m%2d.\e[0m %s' ]] \
-		&& [[ "${fmt[9]}" = '\e[80G\e[30;47m%2d.\e[0m %s' ]] \
-		&& [[ "${fmt[10]}" = '\e[87G\e[30;47m%2d.\e[0m %s' ]] \
+	ncmp_run ncmp_calcfmt strlens 1000 1 '' fmt && ((${#fmt[@]} == 11)) \
+		&& [[ "${fmt[0]}" = '\e[1G\e[0m\e[30;47m%2d.\e[0m %s' ]] \
+		&& [[ "${fmt[1]}" = '\e[8G\e[0m\e[30;47m%2d.\e[0m %s' ]] \
+		&& [[ "${fmt[2]}" = '\e[15G\e[0m\e[30;47m%2d.\e[0m %s' ]] \
+		&& [[ "${fmt[3]}" = '\e[22G\e[0m\e[30;47m%2d.\e[0m %s' ]] \
+		&& [[ "${fmt[4]}" = '\e[37G\e[0m\e[30;47m%2d.\e[0m %s' ]] \
+		&& [[ "${fmt[5]}" = '\e[44G\e[0m\e[30;47m%2d.\e[0m %s' ]] \
+		&& [[ "${fmt[6]}" = '\e[51G\e[0m\e[30;47m%2d.\e[0m %s' ]] \
+		&& [[ "${fmt[7]}" = '\e[58G\e[0m\e[30;47m%2d.\e[0m %s' ]] \
+		&& [[ "${fmt[8]}" = '\e[73G\e[0m\e[30;47m%2d.\e[0m %s' ]] \
+		&& [[ "${fmt[9]}" = '\e[80G\e[0m\e[30;47m%2d.\e[0m %s' ]] \
+		&& [[ "${fmt[10]}" = '\e[87G\e[0m\e[30;47m%2d.\e[0m %s' ]] \
 		&& echo pass || echo fail
 
 	ncmp_last_word '"this is a str and /home/us' \
