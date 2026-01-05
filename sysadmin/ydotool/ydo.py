@@ -21,6 +21,7 @@ import threading
 import time
 import tkinter as tk
 import traceback
+import uuid
 
 threading.Thread()
 
@@ -52,6 +53,40 @@ def oswriteall(fd, text):
     while total < target:
         total += os.write(fd, view[total:])
 
+
+def detect_deiconify_motion_type(r):
+    """Detect whether a <Motion> will be visible or not after deiconify.
+
+    From observation:
+        1. X generally results in multiple <Configure> events.
+        2. Windows only has 1 <Configure> event.
+        3. WSL usually has 6 configure events for a new Toplevel with this sequence.
+        4. Using vncserver/vncviewer NO <Motion> event fires, BUT still multiple
+           <Configure>, but less than WSL
+    , a <Motion> will be fired if multiple configures
+    happen between deiconify and enter.
+    """
+    t = tk.Toplevel(r)
+    # There generally seems to be a potential for double <Motion>
+    # if mouse happens to be inside of t when it first deiconifies.
+    # so make it tiny and out of the way corner/edge is much more likely
+    # than some other position prbly...
+    # It seems geometry +0+0 vs +5+5 results in an extra <Configure>
+    # for X (so (vnc)3->4 and (wsl)5->6)
+    # need testing on arch/wayland
+    t.geometry('1x1+5+5')
+    t.withdraw()
+    vname = 'v'+uuid.uuid4().hex
+    r.call('set', vname, '0')
+    t.bind('<Enter>', f'puts "enterred... %x %y %X %Y"\nif {{${vname} == 4 || ${vname} == 1}} {{destroy {t}}}')
+    t.bind('<Configure>', f'set {vname} [expr ${vname} + 1]')
+    t.bind('<Motion>', f'puts "motioned %x %y %X %Y"\ndestroy {t}')
+    t.attributes('-topmost', True, '-fullscreen', True)
+    t.deiconify()
+    t.wait_window()
+    config_count = r.eval(f'expr ${vname}')
+    r.call('unset', vname)
+    return int(config_count) > 4, config_count
 
 
 class OSRead(object):
