@@ -569,20 +569,14 @@ ncmp_calcfmt() # <strwidth_array> [termwidth=${COLUMNS}] [minpad=1]
 	fi
 }
 
-NCMP_CACHE_STATE=3
-ncmp_print_matches() # [termwidth=${COLUMNS}] [minpad=1] \
+ncmp_print_choices() # <choicesarr> <strlensarr> [termwidth="${COLUMNS}"] [minpad=1]
                      # [style="${ANSI_RESET}${ANSI_NUMBER}%d.${ANSI_RESET}"]
 {
-	# Print the currently loaded matches as a table (ansi required).
-	local strlens=() strs=() idx
-	for ((idx=$((NCMP_REFINE)); idx<${#NCMP_CACHE[@]}; ++idx))
-	do
-		strlens+=("${NCMP_CACHE[NCMP_CACHE[idx]+NCMP_LENGTH]}")
-		strs+=("${NCMP_CACHE[NCMP_CACHE[idx]+NCMP_CHOICE]}")
-	done
+	local -n strs="${1}"
+	local -n strlens="${2}"
 
 	local fmts=()
-	ncmp_calcfmt strlens "${1}" "${2}" "${3}" fmts
+	ncmp_calcfmt strlens "${3}" "${4}" "${5}" fmts
 	local row=0
 	local ncols="${#fmts[@]}"
 	local rows="$((${#strlens[@]} / ncols + (${#strlens[@]} % ncols > 0)))"
@@ -603,11 +597,26 @@ ncmp_print_matches() # [termwidth=${COLUMNS}] [minpad=1] \
 	done
 }
 
+ncmp_print_matches() # [termwidth=${COLUMNS}] [minpad=1]
+                     # [style="${ANSI_RESET}${ANSI_NUMBER}%d.${ANSI_RESET}"]
+{
+	# Print the currently loaded matches as a table (ansi required).
+	local strlens=() strs=() idx
+	for ((idx=$((NCMP_REFINE)); idx<${#NCMP_CACHE[@]}; ++idx))
+	do
+		strlens+=("${NCMP_CACHE[NCMP_CACHE[idx]+NCMP_LENGTH]}")
+		strs+=("${NCMP_CACHE[NCMP_CACHE[idx]+NCMP_CHOICE]}")
+	done
+	ncmp_print_choices strs strlens "${@}"
+}
+
 ncmp_last_word() # <text> [out=RESULT] [begin=BEG] [end=END]
 {
 	# Return the (pre-eval) last word for completion.
-	# Assume inside a completion function. NOTE: out might be
-	# edited to make a valid eval.
+	# <text>: the text to process
+	# out: The output variable to hold the relevant text
+	# begin: The starting index of the last word.
+	# end: The ending index of last word (or -1 if incomplete construct.)
 	local ncmplw__text="${1}"
 	local ncmplw__textlen="${#ncmplw__text}"
 	local -n ncmplw__out="${2:-RESULT}"
@@ -625,14 +634,6 @@ ncmp_last_word() # <text> [out=RESULT] [begin=BEG] [end=END]
 				ncmp_last_word "${1:1}" "${@:2}"
 				return
 				;;
-			\')
-				ncmplw__out="${1:ncmplw__beg}'"
-				return
-				;;
-			\")
-				ncmplw__out="${1:ncmplw__beg}\""
-				return
-				;;
 		esac
 	fi
 	ncmplw__out="${1:ncmplw__beg}"
@@ -640,6 +641,23 @@ ncmp_last_word() # <text> [out=RESULT] [begin=BEG] [end=END]
 	return
 }
 
+ncmp_complete_variable() # <vname> <query>
+{
+	eval local candidates='("${!'"${1}"'@}")'
+	if (("${#candidates[@]}" == 1))
+	then
+		COMPREPLY=("${2/%"${1}"/"${candidates[0]}"}")
+	else
+		local strlens=()
+		local idx
+		for ((idx=0; idx<"${#candidates[@]}"; ++idx))
+		do
+			strlens+=("${#candidates[idx]}")
+		done
+	fi
+}
+
+NCMP_CACHE_STATE=3
 ncmp_complete() # <cmd> <word> <preword>
 {
 	if [[ -z "${NCMP_CACHE_PREFIX}" ]]
@@ -658,22 +676,9 @@ ncmp_complete() # <cmd> <word> <preword>
 
 	local orig_rematch=("${BASH_REMATCH[@]}")
 	trap 'restore_BASH_REMATCH orig_rematch; trap - RETURN' RETURN
-	if [[ "${word}" =~ '$'('{'['!#']?)?([a-zA-Z_][a-zA-Z0-9_]*) ]]
+	if [[ "${word}" =~ '$'('{'['!#']?)?([a-zA-Z_][a-zA-Z0-9_]*)$ ]]
 	then
-		echo parmexp
-		eval local candidates='("${!'"${BASH_REMATCH[-1]}"'@}")'
-		if (("${#candidates[@]}" == 1))
-		then
-			COMPREPLY=('' ' ')
-			# COMPREPLY=("${candidates[0]}")
-		else
-			:
-			# TODO:
-			# 1. load candidates into NCMP_CACHE
-			# 2. print choices
-			COMPREPLY=('' ' ')
-		fi
-		echo "${candidates[@]}"
+		ncmp_complete_variable "${BASH_REMATCH[-1]}" "${2}"
 		return
 	fi
 
@@ -771,7 +776,7 @@ then
 	then
 		alias "${NUMERIC_COMPLETE_alias}"=''
 
-		complete -o filenames -o noquote -F ncmp_complete "${NUMERIC_COMPLETE_alias}"
+		complete -o noquote -F ncmp_complete "${NUMERIC_COMPLETE_alias}"
 
 		# Use a macro to insert the `NUMERIC_COMPLETE_alias` command so that
 		# numeric completion can be triggered.  This is better than using
