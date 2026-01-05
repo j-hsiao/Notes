@@ -157,6 +157,7 @@ ncmp_run()
 	local BIND_SHOW_MODE_IN_PROMPT='show-mode-in-prompt'
 	local BIND_EDITING_MODE='editing-mode'
 	local BIND_COMPLETION_IGNORE_CASE='completion-ignore-case'
+	local COMP_WORDBREAKS="${COMP_WORDBREAKS:-$' \t\n\\\"\\\'><=;|&(:'}"
 
 	# NOTE: ansi code pattern requires extglob and globasciiranges
 	# https://en.wikipedia.org/wiki/ANSI_escape_code
@@ -499,10 +500,7 @@ ncmp_cols_viable() # <strwidth_array> <numcols> <width> [colwidths=RESULT]
 
 	local ncmpcv__remainder=$((${#ncmpcv__arr[@]} % ncmpcv__cols))
 	local ncmpcv__rows=$((${#ncmpcv__arr[@]} / ncmpcv__cols))
-	if ((ncmpcv__remainder && ncmpcv__remainder + ncmpcv__rows < ncmpcv__cols))
-	then
-		return 1
-	fi
+	((ncmpcv__remainder && ncmpcv__remainder + ncmpcv__rows < ncmpcv__cols)) && return 1
 
 	((ncmpcv__rows += (ncmpcv__remainder > 0)))
 	local ncmpcv__col=0
@@ -557,7 +555,7 @@ ncmp_calcfmt() # <strwidth_array> [termwidth=${COLUMNS}] [minpad=1]
 
 	if ((ncmpcf__ncols <= 1))
 	then
-		ncmpcf__fmt=('\r'"${ncmpcf__numfmt}"'%s\n')
+		ncmpcf__fmt=('\r'"${ncmpcf__numfmt}"'%s')
 	else
 		ncmpcf__fmt=()
 		local ncmpcf__idx=0
@@ -572,25 +570,29 @@ ncmp_calcfmt() # <strwidth_array> [termwidth=${COLUMNS}] [minpad=1]
 }
 
 NCMP_CACHE_STATE=3
-ncmp_print_matches() # [termwidth=${COLUMNS}] [minpad=1] [style='%d. ']
+ncmp_print_matches() # [termwidth=${COLUMNS}] [minpad=1] \
+                     # [style="${ANSI_RESET}${ANSI_NUMBER}%d.${ANSI_RESET}"]
 {
 	# Print the currently loaded matches as a table (ansi required).
-	local strlens=() strs=() idx="$((NCMP_CACHE[1]*3 + NCMP_CACHE_STATE-1))"
-	while ((++idx < ${#NCMP_CACHE[@]}))
+	local strlens=() strs=() idx
+	for ((idx=$((NCMP_REFINE)); idx<${#NCMP_CACHE[@]}; ++idx))
 	do
-		strlens+=("${NCMP_CACHE[NCMP_CACHE[idx]+NCMP_CACHE[1]]}")
-		strs+=("${NCMP_CACHE[NCMP_CACHE[idx]-NCMP_CACHE[1]]}")
+		strlens+=("${NCMP_CACHE[NCMP_CACHE[idx]+NCMP_LENGTH]}")
+		strs+=("${NCMP_CACHE[NCMP_CACHE[idx]+NCMP_CHOICE]}")
 	done
+
 	local fmts=()
 	ncmp_calcfmt strlens "${1}" "${2}" "${3}" fmts
-	local row=-1 ncols="${#fmts[@]}"
-	if ((!ncols)); then return; fi
-	local rows="$(((${#strlens[@]} / ncols) + (${#strlens[@]}%ncols > 0)))"
-	while ((++row < rows))
+	local row=0
+	local ncols="${#fmts[@]}"
+	local rows="$((${#strlens[@]} / ncols + (${#strlens[@]} % ncols > 0)))"
+	echo "number of columns: ${ncols}"
+	for ((row=0; row<rows; ++row))
 	do
+		# newline from the current commandline the blanks from ambiguous
+		# compreply will move to the next line at the end.
 		printf '\n'
-		local col=-1
-		while ((++col < ncols))
+		for ((col=0; col<ncols; ++col))
 		do
 			idx=$((row + rows*col))
 			if ((idx < ${#strs[@]}))
@@ -603,111 +605,159 @@ ncmp_print_matches() # [termwidth=${COLUMNS}] [minpad=1] [style='%d. ']
 
 ncmp_last_word() # <text> [out=RESULT] [begin=BEG] [end=END]
 {
-	# Return the last word for completion.
-	# Assume inside a completion function.
-	local text="${1}"
-	local textlen="${#text}"
-	local -n out="${2:-RESULT}"
-	local -n beg="${3:-BEG}"
-	local -n end="${4:-END}"
-	end=0
-	while ((0 <= end && end < textlen))
+	# Return the (pre-eval) last word for completion.
+	# Assume inside a completion function. NOTE: out might be
+	# edited to make a valid eval.
+	local ncmplw__text="${1}"
+	local ncmplw__textlen="${#ncmplw__text}"
+	local -n ncmplw__out="${2:-RESULT}"
+	local -n ncmplw__beg="${3:-BEG}"
+	local -n ncmplw__end="${4:-END}"
+	ncmplw__end=0
+	while ((0 <= ncmplw__end && ncmplw__end < ncmplw__textlen))
 	do
-		shparse_parse_word "${text}" 0 "${3}" "${4}" "${end}"
+		shparse_parse_word "${ncmplw__text}" 0 "${3}" "${4}" "${ncmplw__end}"
 	done
-	if ((end < 0))
+	if ((ncmplw__end < 0))
 	then
-		if [[ "${1:beg:1}" = ['"`'\'] ]]
-		then
-			ncmp_last_word "${1:1}" "${@:2}"
-			return
-		fi
+		case "${1:ncmplw__beg:1}" in
+			'`')
+				ncmp_last_word "${1:1}" "${@:2}"
+				return
+				;;
+			\')
+				ncmplw__out="${1:ncmplw__beg}'"
+				return
+				;;
+			\")
+				ncmplw__out="${1:ncmplw__beg}\""
+				return
+				;;
+		esac
 	fi
-	COMP_WORDBREAKS="${COMP_WORDBREAKS:-$' \t\n\\\"\\\'><=;|&(:'}"
-	out="${1:beg}"
-	out="${out##*${COMP_WORDBREAKS}}"
+	ncmplw__out="${1:ncmplw__beg}"
+	ncmplw__out="${ncmplw__out##*[${COMP_WORDBREAKS}]}"
 	return
 }
 
 ncmp_complete() # <cmd> <word> <preword>
 {
-	if [[ -n "${NCMP_CACHE[0]}" || -z "${NCMP_CACHE[0]-a}" ]]
+	if [[ -z "${NCMP_CACHE_PREFIX}" ]]
 	then
-		local searched=1
-	else
-		local searched=0
-	fi
-	# Ensure NCMP_CACHE[0] is set to avoid length issues.
-	NCMP_CACHE[0]="${NCMP_CACHE[0]}"
-
-	if [[ \
-		"${2}" =~ ^[[:digit:]]+$ \
-		&& "${2}" -gt 0 \
-		&& "${2}" -le "$((${#NCMP_CACHE[@]} - (NCMP_CACHE[1]*3 + NCMP_CACHE_STATE)))" \
-	]]
-	then
-		# shortcut to select from the last item, ex. if selecting multiple items from same directory
-		local RESULT="${2}"
-		ncmp_escape2shell "${NCMP_CACHE[NCMP_CACHE[NCMP_CACHE[1]*3 + NCMP_CACHE_STATE - 1 + RESULT]]}" RESULT
-		# Evaluating the offset index within the [] causes error token error message
-		# in cygwin bash 5.2.21
-		# ncmp_escape2shell "${NCMP_CACHE[NCMP_CACHE[NCMP_CACHE[1]*3 + NCMP_CACHE_STATE - 1 + ${2}]]}" RESULT
-		COMPREPLY=("${NCMP_CACHE[2]}${RESULT}")
+		ncmp_run ncmp_complete "${@}"
 		return
 	fi
 
-	local dname bname dpath
-	ncmp_pathsplit "${2}" dname bname dpath
-	ncmp_read_dir "${dpath}"
-	NCMP_CACHE[2]="${dname}"
+	local word beg end
+	ncmp_last_word "${COMP_LINE:0:COMP_POINT}" word beg end
+	echo
+	echo "${beg} - ${end}"
+	echo "arg input: ${2}"
+	echo "calc word: ${word}"
+	echo "raw text : ${COMP_LINE:beg:(end >= 0 ? end : COMP_POINT)-beg}"
 
-	if ((searched))
+	local orig_rematch=("${BASH_REMATCH[@]}")
+	trap 'restore_BASH_REMATCH orig_rematch; trap - RETURN' RETURN
+	if [[ "${word}" =~ '$'('{'['!#']?)?([a-zA-Z_][a-zA-Z0-9_]*) ]]
 	then
-		if [[ "${NCMP_CACHE[0]}" = "${bname}" ]]
+		echo parmexp
+		eval local candidates='("${!'"${BASH_REMATCH[-1]}"'@}")'
+		if (("${#candidates[@]}" == 1))
 		then
-			ncmp_read_dir "${dpath}" a
-			NCMP_CACHE[2]="${dname}"
-		elif [[ \
-			"${bname:0:${#NCMP_CACHE[0]}}" = "${NCMP_CACHE[0]}" \
-			&& "${bname:${#NCMP_CACHE[0]}}" =~ ^[[:digit:]]+$ \
-			&& "${bname:${#NCMP_CACHE[0]}}" -gt 0 \
-			&& "${bname:${#NCMP_CACHE[0]}}" -le "$((${#NCMP_CACHE[@]} - (NCMP_CACHE[1]*3 + NCMP_CACHE_STATE)))" \
-		]]
-		then
-			local RESULT="${bname:${#NCMP_CACHE[0]}}"
-			ncmp_escape2shell "${NCMP_CACHE[NCMP_CACHE[NCMP_CACHE[1]*3 + NCMP_CACHE_STATE - 1 + RESULT]]}" RESULT
-			# Evaluating the offset index within the [] causes error token error message
-			# in cygwin bash 5.2.21
-			# ncmp_escape2shell "${NCMP_CACHE[NCMP_CACHE[NCMP_CACHE[1]*3 + NCMP_CACHE_STATE - 1 + ${2}]]}" RESULT
-			COMPREPLY=("${dname}${RESULT}")
-			unset NCMP_CACHE[0]
-			return
+			COMPREPLY=('' ' ')
+			# COMPREPLY=("${candidates[0]}")
+		else
+			:
+			# TODO:
+			# 1. load candidates into NCMP_CACHE
+			# 2. print choices
+			COMPREPLY=('' ' ')
 		fi
+		echo "${candidates[@]}"
+		return
 	fi
 
-	ncmp_load_matches "${bname}"
 
-	if ((${#NCMP_CACHE[@]} == NCMP_CACHE[1]*3 + NCMP_CACHE_STATE + 1))
-	then
-		local RESULT
-		ncmp_escape2shell "${NCMP_CACHE[NCMP_CACHE[NCMP_CACHE[1]*3 + NCMP_CACHE_STATE]]}" RESULT
-		COMPREPLY=("${dname}${RESULT}")
-		unset NCMP_CACHE[0]
-	else
-		ncmp_print_matches "${COLUMNS:-$(tput cols)}" 2
-		if ((COMP_TYPE == 9))
-		then
-			# numeric completion always behaves as if
-			# show-all-if-ambiguous whenever shown, the '' and ' ' are
-			# always displayed, resulting in a blank line before the
-			# next prompt.  Mimic this behiavor with double newline.
-			printf '\n\n'
-			ncmp_mimic_prompt "${COMP_LINE}" "${COMP_POINT}"
-		fi
-		# cannot use an ANSI escape to move the up a line since it will
-		# be escaped by bash.
-		COMPREPLY=('' ' ')
-	fi
+
+	COMPREPLY=('' ' ')
+
+	# if [[ -n "${NCMP_CACHE[0]}" || -z "${NCMP_CACHE[0]-a}" ]]
+	# then
+	# 	local searched=1
+	# else
+	# 	local searched=0
+	# fi
+	# # Ensure NCMP_CACHE[0] is set to avoid length issues.
+	# NCMP_CACHE[0]="${NCMP_CACHE[0]}"
+
+	# if [[ \
+	# 	"${2}" =~ ^[[:digit:]]+$ \
+	# 	&& "${2}" -gt 0 \
+	# 	&& "${2}" -le "$((${#NCMP_CACHE[@]} - (NCMP_CACHE[1]*3 + NCMP_CACHE_STATE)))" \
+	# ]]
+	# then
+	# 	# shortcut to select from the last item, ex. if selecting multiple items from same directory
+	# 	local RESULT="${2}"
+	# 	ncmp_escape2shell "${NCMP_CACHE[NCMP_CACHE[NCMP_CACHE[1]*3 + NCMP_CACHE_STATE - 1 + RESULT]]}" RESULT
+	# 	# Evaluating the offset index within the [] causes error token error message
+	# 	# in cygwin bash 5.2.21
+	# 	# ncmp_escape2shell "${NCMP_CACHE[NCMP_CACHE[NCMP_CACHE[1]*3 + NCMP_CACHE_STATE - 1 + ${2}]]}" RESULT
+	# 	COMPREPLY=("${NCMP_CACHE[2]}${RESULT}")
+	# 	return
+	# fi
+
+	# local dname bname dpath
+	# ncmp_pathsplit "${2}" dname bname dpath
+	# ncmp_read_dir "${dpath}"
+	# NCMP_CACHE[2]="${dname}"
+
+	# if ((searched))
+	# then
+	# 	if [[ "${NCMP_CACHE[0]}" = "${bname}" ]]
+	# 	then
+	# 		ncmp_read_dir "${dpath}" a
+	# 		NCMP_CACHE[2]="${dname}"
+	# 	elif [[ \
+	# 		"${bname:0:${#NCMP_CACHE[0]}}" = "${NCMP_CACHE[0]}" \
+	# 		&& "${bname:${#NCMP_CACHE[0]}}" =~ ^[[:digit:]]+$ \
+	# 		&& "${bname:${#NCMP_CACHE[0]}}" -gt 0 \
+	# 		&& "${bname:${#NCMP_CACHE[0]}}" -le "$((${#NCMP_CACHE[@]} - (NCMP_CACHE[1]*3 + NCMP_CACHE_STATE)))" \
+	# 	]]
+	# 	then
+	# 		local RESULT="${bname:${#NCMP_CACHE[0]}}"
+	# 		ncmp_escape2shell "${NCMP_CACHE[NCMP_CACHE[NCMP_CACHE[1]*3 + NCMP_CACHE_STATE - 1 + RESULT]]}" RESULT
+	# 		# Evaluating the offset index within the [] causes error token error message
+	# 		# in cygwin bash 5.2.21
+	# 		# ncmp_escape2shell "${NCMP_CACHE[NCMP_CACHE[NCMP_CACHE[1]*3 + NCMP_CACHE_STATE - 1 + ${2}]]}" RESULT
+	# 		COMPREPLY=("${dname}${RESULT}")
+	# 		unset NCMP_CACHE[0]
+	# 		return
+	# 	fi
+	# fi
+
+	# ncmp_load_matches "${bname}"
+
+	# if ((${#NCMP_CACHE[@]} == NCMP_CACHE[1]*3 + NCMP_CACHE_STATE + 1))
+	# then
+	# 	local RESULT
+	# 	ncmp_escape2shell "${NCMP_CACHE[NCMP_CACHE[NCMP_CACHE[1]*3 + NCMP_CACHE_STATE]]}" RESULT
+	# 	COMPREPLY=("${dname}${RESULT}")
+	# 	unset NCMP_CACHE[0]
+	# else
+	# 	ncmp_print_matches "${COLUMNS:-$(tput cols)}" 2
+	# 	if ((COMP_TYPE == 9))
+	# 	then
+	# 		# numeric completion always behaves as if
+	# 		# show-all-if-ambiguous whenever shown, the '' and ' ' are
+	# 		# always displayed, resulting in a blank line before the
+	# 		# next prompt.  Mimic this behiavor with double newline.
+	# 		printf '\n\n'
+	# 		ncmp_mimic_prompt "${COMP_LINE}" "${COMP_POINT}"
+	# 	fi
+	# 	# cannot use an ANSI escape to move the up a line since it will
+	# 	# be escaped by bash.
+	# 	COMPREPLY=('' ' ')
+	# fi
 }
 
 NUMERIC_COMPLETE_alias="${NUMERIC_COMPLETE_alias:-n}"
@@ -861,12 +911,18 @@ else
 		&& [[ "${fmt[10]}" = '\e[87G\e[0m\e[30;47m%2d.\e[0m %s' ]] \
 		&& echo pass || echo fail
 
-	ncmp_last_word '"this is a str and /home/us' \
-		&& [[ "${RESULT}" = '/home/us' ]] \
+	echo "testing last word"
+	ncmp_last_word 'whatever "this is a str and /home/us' \
+		&& [[ "${RESULT}" = '"this is a str and /home/us"' ]] \
 		&& echo pass || echo fail
 
+	ncmp_last_word '"this is a str and ${HO' \
+		&& [[ "${RESULT}" = '${HO' ]] \
+		&& echo pass || echo fail
 
-
+	ncmp_last_word "'"'this is a str and ${HO' \
+		&& [[ "${RESULT}" = "'"'this is a str and ${HO'"'" ]] \
+		&& echo pass || echo fail "${RESULT}"
 
 
 	if (($#))
