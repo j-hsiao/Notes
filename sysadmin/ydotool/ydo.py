@@ -63,8 +63,7 @@ def detect_deiconify_motion_type(r):
         3. WSL usually has 6 configure events for a new Toplevel with this sequence.
         4. Using vncserver/vncviewer NO <Motion> event fires, BUT still multiple
            <Configure>, but less than WSL
-    , a <Motion> will be fired if multiple configures
-    happen between deiconify and enter.
+    Return (Motion is expected?, number of configs before ready)
     """
     t = tk.Toplevel(r)
     # There generally seems to be a potential for double <Motion>
@@ -72,7 +71,7 @@ def detect_deiconify_motion_type(r):
     # so make it tiny and out of the way corner/edge is much more likely
     # than some other position prbly...
     # It seems geometry +0+0 vs +5+5 results in an extra <Configure>
-    # for X (so (vnc)3->4 and (wsl)5->6)
+    # for X (so (vnc)3->4 (wsl)5->6 (arch wayland) (1-2) -> (2-3)
     # need testing on arch/wayland
     t.geometry('1x1+5+5')
     t.withdraw()
@@ -86,7 +85,7 @@ def detect_deiconify_motion_type(r):
     t.wait_window()
     config_count = r.eval(f'expr ${vname}')
     r.call('unset', vname)
-    return int(config_count) > 4, config_count
+    return (int(config_count) != 1 and int(config_count) != 4), config_count
 
 
 class OSRead(object):
