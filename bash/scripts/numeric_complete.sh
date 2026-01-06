@@ -146,8 +146,9 @@ ncmp_run()
 	# all ncmp functions expect to be called under ncmp_run and so expect these variables
 	# to be available
 	local NCMP_CACHE_PREFIX=0
-	local NCMP_QUERY=$((NCMP_CACHE_PREFIX++))
+	local NCMP_QUERY=$((NCMP_CACHE_PREFIX++))   # The portion to be replaced.
 	local NCMP_COUNT=$((NCMP_CACHE_PREFIX++))
+	local NCMP_CLDIR=$((NCMP_CACHE_PREFIX++))
 	local NCMP_ITEMS='NCMP_CACHE[NCMP_COUNT]'
 	local -n NCMP_DNAME=NCMP_CACHE_index
 	local NCMP_CHOICE='NCMP_CACHE_PREFIX' # choices, may contain ansi colors
@@ -572,26 +573,25 @@ ncmp_calcfmt() # <strwidth_array> [termwidth=${COLUMNS}] [minpad=1]
 ncmp_print_choices() # <choicesarr> <strlensarr> [termwidth="${COLUMNS}"] [minpad=1]
                      # [style="${ANSI_RESET}${ANSI_NUMBER}%d.${ANSI_RESET}"]
 {
-	local -n strs="${1}"
-	local -n strlens="${2}"
+	local -n ncmppc__strs="${1}"
+	local -n ncmppc__strlens="${2}"
 
 	local fmts=()
-	ncmp_calcfmt strlens "${3}" "${4}" "${5}" fmts
-	local row=0
-	local ncols="${#fmts[@]}"
-	local rows="$((${#strlens[@]} / ncols + (${#strlens[@]} % ncols > 0)))"
-	echo "number of columns: ${ncols}"
-	for ((row=0; row<rows; ++row))
+	ncmp_calcfmt ncmppc__strlens "${3}" "${4}" "${5}" fmts
+	local ncmppc__row=0
+	local ncmppc__ncols="${#fmts[@]}"
+	local ncmppc__rows="$((${#ncmppc__strlens[@]} / ncmppc__ncols + (${#ncmppc__strlens[@]} % ncmppc__ncols > 0)))"
+	for ((ncmppc__row=0; ncmppc__row<ncmppc__rows; ++ncmppc__row))
 	do
 		# newline from the current commandline the blanks from ambiguous
 		# compreply will move to the next line at the end.
 		printf '\n'
-		for ((col=0; col<ncols; ++col))
+		for ((col=0; col<ncmppc__ncols; ++col))
 		do
-			idx=$((row + rows*col))
-			if ((idx < ${#strs[@]}))
+			idx=$((ncmppc__row + ncmppc__rows*col))
+			if ((idx < ${#ncmppc__strs[@]}))
 			then
-				printf "${fmts[col]}" $((idx+1)) "${strs[idx]}"
+				printf "${fmts[col]}" $((idx+1)) "${ncmppc__strs[idx]}"
 			fi
 		done
 	done
@@ -637,23 +637,50 @@ ncmp_last_word() # <text> [out=RESULT] [begin=BEG] [end=END]
 		esac
 	fi
 	ncmplw__out="${1:ncmplw__beg}"
-	ncmplw__out="${ncmplw__out##*[${COMP_WORDBREAKS}]}"
 	return
 }
-
-ncmp_complete_variable() # <vname> <query>
+ncmp_tabcomplete() # <query>
 {
-	eval local candidates='("${!'"${1}"'@}")'
+	# Perform numeric tab completion.
+	local choicenum="${1#"${NCMP_CACHE[NCMP_QUERY]}"}"
+	local orig_rematch=("${BASH_REMATCH[@]}")
+	trap 'restore_BASH_REMATCH orig_rematch; trap - RETURN' RETURN
+	if [[
+		"${choicenum}" =~ ^[[:digit:]]+$ \
+		&& "${choicenum}" -gt 0 \
+		&& "${choicenum}" -le $((${#NCMP_CACHE[@]} - NCMP_REFINE)) ]]
+	then
+		local newvalue="${NCMP_CACHE[NCMP_CHOICE + NCMP_CACHE[NCMP_REFINE+choicenum-1]]}"
+		COMPREPLY=("${NCMP_CACHE[NCMP_CLDIR]}${newvalue}")
+		NCMP_CACHE[NCMP_QUERY]=
+		return 0
+	fi
+	return 1
+}
+
+
+ncmp_complete_variable() # <query>
+{
+	local vname="${1##*['${!#']}"
+	eval local candidates='("${!'"${vname}"'@}")'
 	if (("${#candidates[@]}" == 1))
 	then
-		COMPREPLY=("${2/%"${1}"/"${candidates[0]}"}")
+		COMPREPLY=("${1%${vname}}${candidates[0]}")
 	else
-		local strlens=()
+		ch_get NCMP_CACHE NCMP_BASH_VARIABLE_QUERY
+		NCMP_CACHE=()
+		NCMP_CACHE[NCMP_QUERY]="${1}"
+		NCMP_CACHE[NCMP_COUNT]="${#candidates[@]}"
+		NCMP_CACHE[NCMP_CLDIR]="${1%${vname}}"
 		local idx
-		for ((idx=0; idx<"${#candidates[@]}"; ++idx))
+		for ((idx=0; idx<${#candidates[@]}; ++idx))
 		do
-			strlens+=("${#candidates[idx]}")
+			NCMP_CACHE[NCMP_CHOICE+idx]="${candidates[idx]}"
+			NCMP_CACHE[NCMP_LENGTH+idx]="${#candidates[idx]}"
+			NCMP_CACHE[NCMP_REFINE+idx]="${idx}"
 		done
+		ncmp_print_matches
+		COMPREPLY=('' ' ')
 	fi
 }
 
@@ -665,22 +692,46 @@ ncmp_complete() # <cmd> <word> <preword>
 		ncmp_run ncmp_complete "${@}"
 		return
 	fi
+	ncmp_tabcomplete "${2}" && return
 
 	local word beg end
 	ncmp_last_word "${COMP_LINE:0:COMP_POINT}" word beg end
+	local orig_rematch=("${BASH_REMATCH[@]}")
+	trap 'restore_BASH_REMATCH orig_rematch; trap - RETURN' RETURN
+	if [[ "${word}" =~ '$'('{'['!#']?)?([a-zA-Z_][a-zA-Z0-9_]*)$ ]]
+	then
+		ncmp_complete_variable "${2}"
+		return
+	fi
 	echo
 	echo "${beg} - ${end}"
 	echo "arg input: ${2}"
 	echo "calc word: ${word}"
 	echo "raw text : ${COMP_LINE:beg:(end >= 0 ? end : COMP_POINT)-beg}"
+	echo "${COMP_WORDBREAKS@Q}"
 
-	local orig_rematch=("${BASH_REMATCH[@]}")
-	trap 'restore_BASH_REMATCH orig_rematch; trap - RETURN' RETURN
-	if [[ "${word}" =~ '$'('{'['!#']?)?([a-zA-Z_][a-zA-Z0-9_]*)$ ]]
+	local forceread=
+	if [[ "${2}" = "${NCMP_CACHE[NCMP_QUERY]}" ]]
 	then
-		ncmp_complete_variable "${BASH_REMATCH[-1]}" "${2}"
-		return
+		forceread=1
 	fi
+
+	local value
+	if ((end < 0))
+	then
+		case "${word}" in
+			'"'*)
+				eval value="${word}\""
+				;;
+			"'"*)
+				eval value="${word}'"
+				;;
+			*)
+				# dunno what to do...
+				;;
+		esac
+	fi
+
 
 
 
@@ -776,7 +827,7 @@ then
 	then
 		alias "${NUMERIC_COMPLETE_alias}"=''
 
-		complete -o noquote -F ncmp_complete "${NUMERIC_COMPLETE_alias}"
+		complete -o nospace -o noquote -F ncmp_complete "${NUMERIC_COMPLETE_alias}"
 
 		# Use a macro to insert the `NUMERIC_COMPLETE_alias` command so that
 		# numeric completion can be triggered.  This is better than using
