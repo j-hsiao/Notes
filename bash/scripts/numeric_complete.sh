@@ -425,7 +425,6 @@ ncmp_load_matches() # <query>
 	# Load indices matching <query> [0-NCMP_ITEMS) into the refine segment of NCMP_CACHE.
 	# If readline completion-ignore-case and <query> is lowercase, then ignorecase.
 	local idx out=$((NCMP_REFINE))
-	NCMP_CACHE[NCMP_QUERY]="${1}"
 	if [[ -z "${1}" ]]
 	then
 		for ((idx=0; idx<NCMP_ITEMS; ++idx))
@@ -461,6 +460,7 @@ ncmp_load_matches() # <query>
 	do
 		unset NCMP_CACHE[idx]
 	done
+	((out != NCMP_REFINE))
 }
 
 ncmp_reduce() # <op> <int_array_name> [start=0] [stop=end] [output=RESULT]
@@ -635,9 +635,39 @@ ncmp_last_word() # <text> [out=RESULT] [begin=BEG] [end=END]
 				return
 				;;
 		esac
+	elif [[ "${1: -1}" = [[:blank:]] ]]
+	then
+		ncmplw__beg="${#1}"
 	fi
 	ncmplw__out="${1:ncmplw__beg}"
 	return
+}
+ncmp_trail() # <dpath> <newvalue> [out=OUT]
+{
+	# Calculate the appropriate trailer to <newvalue> given <dpath>.
+	# Brace-expanded array variables will be trailed with opening brace
+	# for indexing.  Other variables will have no trailer.  Dirnames
+	# already have an ending /.  Filenames will be trailed with a space.
+	case "${1}" in
+		'_NCMP_BASH_VARIABLE_QUERY')
+			local ncmpt__tp=$(declare -p "${2}")
+			ncmpt__tp="${ncmpt__tp#declare }"
+			ncmpt__tp="${ncmpt__tp%% *}"
+			if [[ "${ncmpt__tp}" = -*[aA]* && "${NCMP_CACHE[NCMP_CLDIR]}" = *[$'\x7b!#'] ]]
+			then
+				eval "${3:-OUT}=["
+			else
+				eval "${3:-OUT}="
+			fi
+			;;
+		/*)
+			case "${2}" in
+				*/) eval "${3:-OUT}=" ;;
+				*) eval "${3:-OUT}=' '" ;;
+			esac
+			;;
+		*) eval "${3:-OUT}=''" ;;
+	esac
 }
 ncmp_tabcomplete() # <query>
 {
@@ -651,23 +681,32 @@ ncmp_tabcomplete() # <query>
 		&& "${choicenum}" -le $((${#NCMP_CACHE[@]} - NCMP_REFINE)) ]]
 	then
 		local newvalue="${NCMP_CACHE[NCMP_CHOICE + NCMP_CACHE[NCMP_REFINE+choicenum-1]]}"
-		COMPREPLY=("${NCMP_CACHE[NCMP_CLDIR]}${newvalue}")
+		newvalue="${newvalue//${NCMP_ANSI_CODE_PATTERN}}"
+		local trail
+		ncmp_trail "${NCMP_DNAME}" "${newvalue}" trail
+		COMPREPLY=("${NCMP_CACHE[NCMP_CLDIR]}${newvalue}${trail}")
 		NCMP_CACHE[NCMP_QUERY]=
 		return 0
 	fi
 	return 1
 }
 
-
 ncmp_complete_variable() # <query>
 {
 	local vname="${1##*['${!#']}"
-	eval local candidates='("${!'"${vname}"'@}")'
+	if [[ -n "${vname}" ]]
+	then
+		eval local candidates='("${!'"${vname}"'@}")'
+	else
+		local candidates=()
+		readarray -t candidates < <(compgen -v "${vname}")
+	fi
 	if (("${#candidates[@]}" == 1))
 	then
 		COMPREPLY=("${1%${vname}}${candidates[0]}")
 	else
-		ch_get NCMP_CACHE NCMP_BASH_VARIABLE_QUERY
+		# working with variables are fast
+		ch_get NCMP_CACHE '_NCMP_BASH_VARIABLE_QUERY'
 		NCMP_CACHE=()
 		NCMP_CACHE[NCMP_QUERY]="${1}"
 		NCMP_CACHE[NCMP_COUNT]="${#candidates[@]}"
@@ -696,124 +735,47 @@ ncmp_complete() # <cmd> <word> <preword>
 
 	local word beg end
 	ncmp_last_word "${COMP_LINE:0:COMP_POINT}" word beg end
+	if [[ end -ge 0 && "${word: -1}" = [[:blank:]] ]];then word=; fi
 	local orig_rematch=("${BASH_REMATCH[@]}")
 	trap 'restore_BASH_REMATCH orig_rematch; trap - RETURN' RETURN
-	if [[ "${word}" =~ '$'('{'['!#']?)?([a-zA-Z_][a-zA-Z0-9_]*)$ ]]
+	if [[ "${word}" =~ '$'('{'['!#']?)?([a-zA-Z_][a-zA-Z0-9_]*)?$ ]]
 	then
 		ncmp_complete_variable "${2}"
 		return
 	fi
-	echo
-	echo "${beg} - ${end}"
-	echo "arg input: ${2}"
-	echo "calc word: ${word}"
-	echo "raw text : ${COMP_LINE:beg:(end >= 0 ? end : COMP_POINT)-beg}"
-	echo "${COMP_WORDBREAKS@Q}"
-
 	local forceread=
-	if [[ "${2}" = "${NCMP_CACHE[NCMP_QUERY]}" ]]
-	then
-		forceread=1
-	fi
-
+	[[ "${2}" = "${NCMP_CACHE[NCMP_QUERY]}" ]] && forceread=1
 	local value
 	if ((end < 0))
 	then
 		case "${word}" in
-			'"'*)
-				eval value="${word}\""
-				;;
-			"'"*)
-				eval value="${word}'"
-				;;
-			*)
-				# dunno what to do...
-				;;
+			'"'*) eval value="${word}\"" ;;
+			"'"*) eval value="${word}'" ;;
+			*) eval value="${word}" ;;
 		esac
+	else
+		eval value="${word}"
 	fi
-
-
-
-
+	local dname bname dpath
+	ncmp_pathsplit "${value}" dname bname dpath
+	ncmp_read_dir "${dpath}" "${forceread}"
+	NCMP_CACHE[NCMP_QUERY]="${2}"
+	NCMP_CACHE[NCMP_CLDIR]="${2%"${bname}"}"
+	if ncmp_load_matches "${bname}"
+	then
+		if ((${#NCMP_CACHE[@]} - NCMP_REFINE == 1))
+		then
+			local trail
+			local newvalue="${NCMP_CACHE[NCMP_CACHE[NCMP_REFINE] + NCMP_CHOICE]}"
+			newvalue="${newvalue//${NCMP_ANSI_CODE_PATTERN}}"
+			ncmp_trail "${NCMP_DNAME}" "${newvalue}" trail
+			COMPREPLY=("${NCMP_CACHE[NCMP_CLDIR]}${newvalue}${trail}")
+			return
+		else
+			ncmp_print_matches
+		fi
+	fi
 	COMPREPLY=('' ' ')
-
-	# if [[ -n "${NCMP_CACHE[0]}" || -z "${NCMP_CACHE[0]-a}" ]]
-	# then
-	# 	local searched=1
-	# else
-	# 	local searched=0
-	# fi
-	# # Ensure NCMP_CACHE[0] is set to avoid length issues.
-	# NCMP_CACHE[0]="${NCMP_CACHE[0]}"
-
-	# if [[ \
-	# 	"${2}" =~ ^[[:digit:]]+$ \
-	# 	&& "${2}" -gt 0 \
-	# 	&& "${2}" -le "$((${#NCMP_CACHE[@]} - (NCMP_CACHE[1]*3 + NCMP_CACHE_STATE)))" \
-	# ]]
-	# then
-	# 	# shortcut to select from the last item, ex. if selecting multiple items from same directory
-	# 	local RESULT="${2}"
-	# 	ncmp_escape2shell "${NCMP_CACHE[NCMP_CACHE[NCMP_CACHE[1]*3 + NCMP_CACHE_STATE - 1 + RESULT]]}" RESULT
-	# 	# Evaluating the offset index within the [] causes error token error message
-	# 	# in cygwin bash 5.2.21
-	# 	# ncmp_escape2shell "${NCMP_CACHE[NCMP_CACHE[NCMP_CACHE[1]*3 + NCMP_CACHE_STATE - 1 + ${2}]]}" RESULT
-	# 	COMPREPLY=("${NCMP_CACHE[2]}${RESULT}")
-	# 	return
-	# fi
-
-	# local dname bname dpath
-	# ncmp_pathsplit "${2}" dname bname dpath
-	# ncmp_read_dir "${dpath}"
-	# NCMP_CACHE[2]="${dname}"
-
-	# if ((searched))
-	# then
-	# 	if [[ "${NCMP_CACHE[0]}" = "${bname}" ]]
-	# 	then
-	# 		ncmp_read_dir "${dpath}" a
-	# 		NCMP_CACHE[2]="${dname}"
-	# 	elif [[ \
-	# 		"${bname:0:${#NCMP_CACHE[0]}}" = "${NCMP_CACHE[0]}" \
-	# 		&& "${bname:${#NCMP_CACHE[0]}}" =~ ^[[:digit:]]+$ \
-	# 		&& "${bname:${#NCMP_CACHE[0]}}" -gt 0 \
-	# 		&& "${bname:${#NCMP_CACHE[0]}}" -le "$((${#NCMP_CACHE[@]} - (NCMP_CACHE[1]*3 + NCMP_CACHE_STATE)))" \
-	# 	]]
-	# 	then
-	# 		local RESULT="${bname:${#NCMP_CACHE[0]}}"
-	# 		ncmp_escape2shell "${NCMP_CACHE[NCMP_CACHE[NCMP_CACHE[1]*3 + NCMP_CACHE_STATE - 1 + RESULT]]}" RESULT
-	# 		# Evaluating the offset index within the [] causes error token error message
-	# 		# in cygwin bash 5.2.21
-	# 		# ncmp_escape2shell "${NCMP_CACHE[NCMP_CACHE[NCMP_CACHE[1]*3 + NCMP_CACHE_STATE - 1 + ${2}]]}" RESULT
-	# 		COMPREPLY=("${dname}${RESULT}")
-	# 		unset NCMP_CACHE[0]
-	# 		return
-	# 	fi
-	# fi
-
-	# ncmp_load_matches "${bname}"
-
-	# if ((${#NCMP_CACHE[@]} == NCMP_CACHE[1]*3 + NCMP_CACHE_STATE + 1))
-	# then
-	# 	local RESULT
-	# 	ncmp_escape2shell "${NCMP_CACHE[NCMP_CACHE[NCMP_CACHE[1]*3 + NCMP_CACHE_STATE]]}" RESULT
-	# 	COMPREPLY=("${dname}${RESULT}")
-	# 	unset NCMP_CACHE[0]
-	# else
-	# 	ncmp_print_matches "${COLUMNS:-$(tput cols)}" 2
-	# 	if ((COMP_TYPE == 9))
-	# 	then
-	# 		# numeric completion always behaves as if
-	# 		# show-all-if-ambiguous whenever shown, the '' and ' ' are
-	# 		# always displayed, resulting in a blank line before the
-	# 		# next prompt.  Mimic this behiavor with double newline.
-	# 		printf '\n\n'
-	# 		ncmp_mimic_prompt "${COMP_LINE}" "${COMP_POINT}"
-	# 	fi
-	# 	# cannot use an ANSI escape to move the up a line since it will
-	# 	# be escaped by bash.
-	# 	COMPREPLY=('' ' ')
-	# fi
 }
 
 NUMERIC_COMPLETE_alias="${NUMERIC_COMPLETE_alias:-n}"
