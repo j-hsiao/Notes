@@ -10,7 +10,6 @@ import codecs
 import getpass
 import io
 import os
-import pty
 import select
 import shlex
 import itertools
@@ -54,7 +53,7 @@ def oswriteall(fd, text):
         total += os.write(fd, view[total:])
 
 
-def detect_deiconify_motion_type(r):
+def detect_deiconify_motion_type(r, nsamples=0, verbose=False):
     """Detect whether a <Motion> will be visible or not after deiconify.
 
     From observation:
@@ -65,27 +64,40 @@ def detect_deiconify_motion_type(r):
            <Configure>, but less than WSL
     Return (Motion is expected?, number of configs before ready)
     """
-    t = tk.Toplevel(r)
-    # There generally seems to be a potential for double <Motion>
-    # if mouse happens to be inside of t when it first deiconifies.
-    # so make it tiny and out of the way corner/edge is much more likely
-    # than some other position prbly...
-    # It seems geometry +0+0 vs +5+5 results in an extra <Configure>
-    # for X (so (vnc)3->4 (wsl)5->6 (arch wayland) (1-2) -> (2-3)
-    # need testing on arch/wayland
-    t.geometry('1x1+5+5')
-    t.withdraw()
-    vname = 'v'+uuid.uuid4().hex
-    r.call('set', vname, '0')
-    t.bind('<Enter>', f'puts "enterred... %x %y %X %Y"\nif {{${vname} == 4 || ${vname} == 1}} {{destroy {t}}}')
-    t.bind('<Configure>', f'set {vname} [expr ${vname} + 1]')
-    t.bind('<Motion>', f'puts "motioned %x %y %X %Y"\ndestroy {t}')
-    t.attributes('-topmost', True, '-fullscreen', True)
-    t.deiconify()
-    t.wait_window()
-    config_count = r.eval(f'expr ${vname}')
-    r.call('unset', vname)
-    return (int(config_count) != 1 and int(config_count) != 4), config_count
+    if nsamples:
+        counts = []
+        total = 0
+        for i in range(nsamples):
+            expectmotion, configcount = detect_deiconify_motion_type(r, 0, verbose)
+            total += expectmotion
+            counts.append(configcount)
+        return (total > nsamples//2, sum(counts) / float(nsamples), counts)
+    else:
+        t = tk.Toplevel(r)
+        # There generally seems to be a potential for double <Motion>
+        # if mouse happens to be inside of t when it first deiconifies.
+        # so make it tiny and out of the way corner/edge is much more likely
+        # than some other position prbly...
+        # It seems geometry +0+0 vs +5+5 results in an extra <Configure>
+        # for X (so (vnc: 3->4) (wsl: 5->6) (arch wayland: (1-2) -> (2-3))
+        t.geometry('1x1+5+5')
+        t.withdraw()
+        vname = 'v'+uuid.uuid4().hex
+        r.call('set', vname, '0')
+        if verbose:
+            t.bind('<Enter>', f'puts "enterred... %x %y %X %Y [expr ${vname}]"\nif {{${vname} == 4 || ${vname} == 1}} {{destroy {t}}}')
+            t.bind('<Configure>', f'set {vname} [expr ${vname} + 1]\nputs "configure [expr ${vname}]"')
+            t.bind('<Motion>', f'puts "motioned %x %y %X %Y [expr ${vname}]"\ndestroy {t}')
+        else:
+            t.bind('<Enter>', f'if {{${vname} == 4 || ${vname} == 1}} {{destroy {t}}}')
+            t.bind('<Configure>', f'set {vname} [expr ${vname} + 1]')
+            t.bind('<Motion>', f'destroy {t}')
+        t.attributes('-topmost', True, '-fullscreen', True)
+        t.deiconify()
+        t.wait_window()
+        config_count = int(r.eval(f'expr ${vname}'))
+        r.call('unset', vname)
+        return (int(config_count) != 1 and int(config_count) != 4), config_count
 
 
 class OSRead(object):
@@ -1034,6 +1046,7 @@ if __name__ == '__main__':
     p.add_argument(
         '--calibrate2', type=float, nargs='*',
         help='seconds to wait for calibration.')
+    p.add_argument('--mtype', action='store_true')
     p.add_argument('-y', '--ydotool', action='store_true')
     args = p.parse_args()
     if args.daemon:
@@ -1042,16 +1055,29 @@ if __name__ == '__main__':
                 input('Press return to exit.')
             except KeyboardInterrupt:
                 pass
+    elif args.ydotool:
+        with ydotool() as y:
+            import code
+            code.interact(local=locals())
+    elif args.mtype:
+        r = tk.Tk()
+        r.withdraw()
+        verbose = True
+        while 1:
+            cmd = input('>>> ')
+            if cmd == 'exit':
+                break
+            elif cmd.lower() == 'false' or cmd.lower() == 'true':
+                verbose = cmd.lower() == 'true'
+                print('verbose:', verbose)
+                continue
+            print(detect_deiconify_motion_type(r, (int(cmd) if cmd.isdigit() else 0), True))
     elif args.calibrate is not None:
         with ydotool() as y:
             y.calibrate(wait=args.calibrate)
     elif args.calibrate2 is not None:
         with ydotool() as y:
             y.calibrate2(wait=args.calibrate2)
-    elif args.ydotool:
-        with ydotool() as y:
-            import code
-            code.interact(local=locals())
     else:
         with MousePosition(True) as m:
             t = tk.Toplevel(m.tk)
