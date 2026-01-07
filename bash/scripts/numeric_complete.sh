@@ -24,7 +24,13 @@
 # 	However, using COMP_WORDS, information about the double-quoted
 # 	string is included.
 #
-
+# ISSUES:
+# 1. ${HOME}[tab]
+#    parsed, becomes /home/${USER}, so dpath = /home/, base = ${USER}
+#    BUT if then prefix is empty... so this turns into ${USER}/
+#    parse the dir and bname separately so if bname contains multi-level
+#    dirs, there is no problem?
+#
 # Numeric tab completion.
 #
 # Generally, I think the c-escape style is visually better, but isn't shell compatible.
@@ -393,7 +399,7 @@ ncmp_read_dir() # <dname> [force=]
 
 		NCMP_CACHE=()
 		readarray -O${NCMP_CACHE_PREFIX} -t NCMP_CACHE \
-			< <(ls -Apb --color="${NUMERIC_COMPLETE_color:-never}" "${1}" 2>/dev/null)
+			< <(ls -ApbL --color="${NUMERIC_COMPLETE_color:-never}" "${1}" 2>/dev/null)
 		# https://en.wikipedia.org/wiki/ANSI_escape_code
 		# [0x30–0x3F]*  (0–9:;<=>?)
 		# [0x20–0x2F]*  ( !"#$%&'()*+,-./)
@@ -682,6 +688,9 @@ ncmp_tabcomplete() # <query>
 	then
 		local newvalue="${NCMP_CACHE[NCMP_CHOICE + NCMP_CACHE[NCMP_REFINE+choicenum-1]]}"
 		newvalue="${newvalue//${NCMP_ANSI_CODE_PATTERN}}"
+		# TODO: if being quoted, don't need escapes
+		# but also depends on the type of quote?
+		ncmp_escape2shell "${newvalue}" newvalue
 		local trail
 		ncmp_trail "${NCMP_DNAME}" "${newvalue}" trail
 		COMPREPLY=("${NCMP_CACHE[NCMP_CLDIR]}${newvalue}${trail}")
@@ -704,8 +713,10 @@ ncmp_complete_variable() # <query>
 	if (("${#candidates[@]}" == 1))
 	then
 		COMPREPLY=("${1%${vname}}${candidates[0]}")
+		return 1
 	else
-		# working with variables are fast
+		# working with variables are fast so just
+		# use a throw-away dir value and refill every time.
 		ch_get NCMP_CACHE '_NCMP_BASH_VARIABLE_QUERY'
 		NCMP_CACHE=()
 		NCMP_CACHE[NCMP_QUERY]="${1}"
@@ -718,12 +729,64 @@ ncmp_complete_variable() # <query>
 			NCMP_CACHE[NCMP_LENGTH+idx]="${#candidates[idx]}"
 			NCMP_CACHE[NCMP_REFINE+idx]="${idx}"
 		done
-		ncmp_print_matches
-		COMPREPLY=('' ' ')
+	fi
+}
+ncmp_complete_filedir() # <query>
+{
+	# Perform file/dir completion.
+	# NOTE: expect caller to have word, end, beg defined,
+	# which indicate the region of COMP_LINE that is being
+	# completed.
+	local forceread=
+	[[ "${1}" = "${NCMP_CACHE[NCMP_QUERY]}" ]] && forceread=1
+	if ((end < 0))
+	then
+		case "${word}" in
+			'"'*|'$"'*) COMPREPLY=("${word}"'"');;
+			"'"*) COMPREPLY=("${word}'");;
+			*) COMPREPLY=('' ' ');;
+		esac
+		return 1
+	fi
+	eval local value="${word}"
+	local postdname predname bname dpath
+	ncmp_pathsplit "${value}" postdname bname dpath
+	ncmp_read_dir "${dpath}" "${forceread}"
+	ncmp_pathsplit "${1}" predname value dpath
+	NCMP_CACHE[NCMP_QUERY]="${1}"
+	if [[ "${dpath}" != "${NCMP_DNAME}" ]]
+	then
+		# TODO: figure this out?
+		# cases where this might happen:
+		# 1. dpath contains unevaled exprs like parameter expansion.
+		#    a. dpath adds ${PWD} if it does not start with a /
+		#       does expanded version start with a /?
+		#       recalculate predname dpath etc?
+		predname="${NCMP_DNAME}"
+	fi
+	NCMP_CACHE[NCMP_CLDIR]="${predname}"
+	if ncmp_load_matches "${bname}"
+	then
+		if ((${#NCMP_CACHE[@]} - NCMP_REFINE == 1))
+		then
+			local trail
+			local newvalue="${NCMP_CACHE[NCMP_CACHE[NCMP_REFINE] + NCMP_CHOICE]}"
+			newvalue="${newvalue//${NCMP_ANSI_CODE_PATTERN}}"
+			# TODO: if being quoted, don't need escapes
+			# but also depends on the type of quote?
+			ncmp_escape2shell "${newvalue}" newvalue
+			if [[ "${end}" -lt 0 && ("${word}" = [\'\"]* || "${word}" = \$\"*) ]]
+			then
+				trail=
+			else
+				ncmp_trail "${NCMP_DNAME}" "${newvalue}" trail
+			fi
+			COMPREPLY=("${NCMP_CACHE[NCMP_CLDIR]}${newvalue}${trail}")
+			return 1
+		fi
 	fi
 }
 
-NCMP_CACHE_STATE=3
 ncmp_complete() # <cmd> <word> <preword>
 {
 	if [[ -z "${NCMP_CACHE_PREFIX}" ]]
@@ -732,49 +795,19 @@ ncmp_complete() # <cmd> <word> <preword>
 		return
 	fi
 	ncmp_tabcomplete "${2}" && return
-
 	local word beg end
 	ncmp_last_word "${COMP_LINE:0:COMP_POINT}" word beg end
 	if [[ end -ge 0 && "${word: -1}" = [[:blank:]] ]];then word=; fi
 	local orig_rematch=("${BASH_REMATCH[@]}")
 	trap 'restore_BASH_REMATCH orig_rematch; trap - RETURN' RETURN
+
 	if [[ "${word}" =~ '$'('{'['!#']?)?([a-zA-Z_][a-zA-Z0-9_]*)?$ ]]
 	then
-		ncmp_complete_variable "${2}"
-		return
-	fi
-	local forceread=
-	[[ "${2}" = "${NCMP_CACHE[NCMP_QUERY]}" ]] && forceread=1
-	local value
-	if ((end < 0))
-	then
-		case "${word}" in
-			'"'*) eval value="${word}\"" ;;
-			"'"*) eval value="${word}'" ;;
-			*) eval value="${word}" ;;
-		esac
+		ncmp_complete_variable "${2}" || return
 	else
-		eval value="${word}"
+		ncmp_complete_filedir "${2}" || return
 	fi
-	local dname bname dpath
-	ncmp_pathsplit "${value}" dname bname dpath
-	ncmp_read_dir "${dpath}" "${forceread}"
-	NCMP_CACHE[NCMP_QUERY]="${2}"
-	NCMP_CACHE[NCMP_CLDIR]="${2%"${bname}"}"
-	if ncmp_load_matches "${bname}"
-	then
-		if ((${#NCMP_CACHE[@]} - NCMP_REFINE == 1))
-		then
-			local trail
-			local newvalue="${NCMP_CACHE[NCMP_CACHE[NCMP_REFINE] + NCMP_CHOICE]}"
-			newvalue="${newvalue//${NCMP_ANSI_CODE_PATTERN}}"
-			ncmp_trail "${NCMP_DNAME}" "${newvalue}" trail
-			COMPREPLY=("${NCMP_CACHE[NCMP_CLDIR]}${newvalue}${trail}")
-			return
-		else
-			ncmp_print_matches
-		fi
-	fi
+	((${#NCMP_CACHE[@]} != NCMP_REFINE)) && ncmp_print_matches
 	COMPREPLY=('' ' ')
 }
 
@@ -946,22 +979,24 @@ else
 	if (($#))
 	then
 		echo "NCMP_STATE['completion-ignore-case']: ${NCMP_STATE['completion-ignore-case']}"
-		echo "${NCMP_STATE[@]@K}"
-
-		time ncmp_read_dir "${1}"
-		nitems="${NCMP_CACHE[1]}"
-		echo "${nitems} items"
-		printf '  "%s"\n' "${NCMP_CACHE[@]}"
-
-		while read line
-		do
-			ncmp_load_matches "${line}"
-			for idx in "${NCMP_CACHE[@]:NCMP_CACHE_STATE+NCMP_CACHE[1]*3}"
+		echo "NCMP_STATE:"
+		printf '%s\n' "${NCMP_STATE[@]@K}" | xargs -n 2 printf '  %s: %s\n'
+		debug_readdir() {
+			time ncmp_read_dir "${1}"
+			nitems="$((NCMP_ITEMS))"
+			echo "${nitems} items"
+			echo "NCMP_CACHE:"
+			printf '%s\n' "${NCMP_CACHE[@]@K}" | xargs -n printf '  %s: %s\n'
+			while read line
 			do
-				echo "  ${idx}: ${NCMP_CACHE[idx]}"
+				ncmp_load_matches "${line}"
+				for ((idx=0; idx<${#NCMP_CACHE[@]}-NCMP_REFINE; ++idx))
+				do
+					echo "${idx} : dnum ${NCMP_CACHE[NCMP_REFINE+idx]} : ${NCMP_CACHE[NCMP_CACHE[NCMP_REFINE+idx]]}"
+				done
+				ncmp_print_matches
 			done
-
-			ncmp_print_matches
-		done
+		}
+		ncmp_run debug_readdir
 	fi
 fi

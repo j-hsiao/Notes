@@ -1466,6 +1466,30 @@ https://www.gnu.org/software/bash/manual/html_node/Programmable-Completion-Built
 				contextual info... ex: '${HOME}/[tab] should not be completed ?since it is
 				a single-quote? but "${HOME}/[tab]" can be completed no problem...??
 
+			NOTE 2
+				Bash completion seems to have an unwritten rule.
+				Ex:
+					some command whatever stuff'[tab]
+					"${2}" will be after the single quote
+					If COMPREPLY starts with a single quote, it will replace the already
+					existing single quote.  Otherwise, it is placed after the currently
+					existing single quote and then another single quote is added to the end.
+
+					That is to say...
+					stuff1'stuff2[tab]
+					COMPREPLY     result
+					('hello')     stuff1'hello'
+					('hello ')    stuff1'hello '
+					("'hello '")  stuff1'hello '
+					("'")         stuff1'
+					("''")        stuff1''
+					("'hello")    stuff1'hello'
+					("'hello ")   stuff1'hello '
+
+					The same seems to apply for double quotes
+
+
+
 		-G pat expand for completions
 		-P: prefix prepended to completion results
 		-S: suffix to append to completion results
