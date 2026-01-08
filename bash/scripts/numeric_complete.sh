@@ -155,7 +155,9 @@ ncmp_run()
 	local NCMP_QUERY=$((NCMP_CACHE_PREFIX++))   # The portion to be replaced.
 	local NCMP_COUNT=$((NCMP_CACHE_PREFIX++))
 	local NCMP_CLDIR=$((NCMP_CACHE_PREFIX++))
+	local NCMP_MATCH=$((NCMP_CACHE_PREFIX++))
 	local NCMP_ITEMS='NCMP_CACHE[NCMP_COUNT]'
+	local NCMP_MATCHES='NCMP_CACHE[NCMP_MATCH]'
 	local -n NCMP_DNAME=NCMP_CACHE_index
 	local NCMP_CHOICE='NCMP_CACHE_PREFIX' # choices, may contain ansi colors
 	local NCMP_LENGTH='NCMP_CACHE_PREFIX + NCMP_ITEMS' # display lengths
@@ -462,11 +464,11 @@ ncmp_load_matches() # <query>
 		fi
 		ss_pop
 	fi
-	for ((idx=${#NCMP_CACHE[@]}-1; idx >= out; --idx))
+	for ((idx=out - NCMP_REFINE; idx < NCMP_MATCHES; ++idx))
 	do
-		unset NCMP_CACHE[idx]
+		unset NCMP_CACHE[idx+NCMP_REFINE]
 	done
-	((out != NCMP_REFINE))
+	((NCMP_CACHE[NCMP_MATCH] = out - NCMP_REFINE))
 }
 
 ncmp_reduce() # <op> <int_array_name> [start=0] [stop=end] [output=RESULT]
@@ -608,10 +610,10 @@ ncmp_print_matches() # [termwidth=${COLUMNS}] [minpad=1]
 {
 	# Print the currently loaded matches as a table (ansi required).
 	local strlens=() strs=() idx
-	for ((idx=$((NCMP_REFINE)); idx<${#NCMP_CACHE[@]}; ++idx))
+	for ((idx=0; idx<NCMP_MATCHES; ++idx))
 	do
-		strlens+=("${NCMP_CACHE[NCMP_CACHE[idx]+NCMP_LENGTH]}")
-		strs+=("${NCMP_CACHE[NCMP_CACHE[idx]+NCMP_CHOICE]}")
+		strlens+=("${NCMP_CACHE[NCMP_CACHE[idx+NCMP_REFINE]+NCMP_LENGTH]}")
+		strs+=("${NCMP_CACHE[NCMP_CACHE[idx+NCMP_REFINE]+NCMP_CHOICE]}")
 	done
 	ncmp_print_choices strs strlens "${@}"
 }
@@ -684,7 +686,7 @@ ncmp_tabcomplete() # <query>
 	if [[
 		"${choicenum}" =~ ^[[:digit:]]+$ \
 		&& "${choicenum}" -gt 0 \
-		&& "${choicenum}" -le $((${#NCMP_CACHE[@]} - NCMP_REFINE)) ]]
+		&& "${choicenum}" -le $((NCMP_MATCHES)) ]]
 	then
 		local newvalue="${NCMP_CACHE[NCMP_CHOICE + NCMP_CACHE[NCMP_REFINE+choicenum-1]]}"
 		newvalue="${newvalue//${NCMP_ANSI_CODE_PATTERN}}"
@@ -712,7 +714,18 @@ ncmp_complete_variable() # <query>
 	fi
 	if (("${#candidates[@]}" == 1))
 	then
-		COMPREPLY=("${1%${vname}}${candidates[0]}")
+		if [[ "${vname}" = "${candidates[0]}" ]]
+		then
+			# exact match, wrap up the parameter expansion
+			if [[ "${1}" = *'$'"${vname}" ]]
+			then
+				COMPREPLY=("${1%${vname}}{${candidates[0]}}")
+			else
+				COMPREPLY=("${1%${vname}}${candidates[0]}"$'\x7d')
+			fi
+		else
+			COMPREPLY=("${1%${vname}}${candidates[0]}")
+		fi
 		return 1
 	else
 		# working with variables are fast so just
@@ -722,6 +735,7 @@ ncmp_complete_variable() # <query>
 		NCMP_CACHE[NCMP_QUERY]="${1}"
 		NCMP_CACHE[NCMP_COUNT]="${#candidates[@]}"
 		NCMP_CACHE[NCMP_CLDIR]="${1%${vname}}"
+		NCMP_CACHE[NCMP_MATCH]="${#candidates[@]}"
 		local idx
 		for ((idx=0; idx<${#candidates[@]}; ++idx))
 		do
@@ -749,25 +763,39 @@ ncmp_complete_filedir() # <query>
 		return 1
 	fi
 	eval local value="${word}"
-	local postdname predname bname dpath
-	ncmp_pathsplit "${value}" postdname bname dpath
+	local dname bname dpath
+	ncmp_pathsplit "${value}" dname bname dpath
 	ncmp_read_dir "${dpath}" "${forceread}"
-	ncmp_pathsplit "${1}" predname value dpath
 	NCMP_CACHE[NCMP_QUERY]="${1}"
-	if [[ "${dpath}" != "${NCMP_DNAME}" ]]
-	then
-		# TODO: figure this out?
-		# cases where this might happen:
-		# 1. dpath contains unevaled exprs like parameter expansion.
-		#    a. dpath adds ${PWD} if it does not start with a /
-		#       does expanded version start with a /?
-		#       recalculate predname dpath etc?
-		predname="${NCMP_DNAME}"
-	fi
-	NCMP_CACHE[NCMP_CLDIR]="${predname}"
+	NCMP_CACHE[NCMP_CLDIR]="${dname}"
 	if ncmp_load_matches "${bname}"
 	then
-		if ((${#NCMP_CACHE[@]} - NCMP_REFINE == 1))
+		if [[ -z "${bname}" ]]
+		then
+			NCMP_CACHE[NCMP_CLDIR]="${word}"
+		else
+			local predname prebname
+			ncmp_pathsplit "${1}" predname prebname dpath
+			eval "prebname=${prebname}"
+			if ((NCMP_MATCHES == 1))
+			then
+				ss_push globasciiranges extglob
+				local candidate="${NCMP_CACHE[NCMP_CHOICE + NCMP_CACHE[NCMP_REFINE]]//${NCMP_ANSI_CODE_PATTERN}}"
+				ss_pop
+				if [[ "${bname}" = "${candidate%/}" ]]
+				then
+					COMPREPLY=("${word}${candidate#"${bname}"}")
+					return 1
+				fi
+			fi
+			if [[ "${prebname}" = */* ]]
+			then
+				NCMP_CACHE[NCMP_CLDIR]="${NCMP_DNAME}"
+			else
+				NCMP_CACHE[NCMP_CLDIR]="${predname}"
+			fi
+		fi
+		if ((NCMP_MATCHES == 1))
 		then
 			local trail
 			local newvalue="${NCMP_CACHE[NCMP_CACHE[NCMP_REFINE] + NCMP_CHOICE]}"
@@ -807,7 +835,7 @@ ncmp_complete() # <cmd> <word> <preword>
 	else
 		ncmp_complete_filedir "${2}" || return
 	fi
-	((${#NCMP_CACHE[@]} != NCMP_REFINE)) && ncmp_print_matches
+	((NCMP_MATCHES)) && ncmp_print_matches
 	COMPREPLY=('' ' ')
 }
 
@@ -990,7 +1018,7 @@ else
 			while read line
 			do
 				ncmp_load_matches "${line}"
-				for ((idx=0; idx<${#NCMP_CACHE[@]}-NCMP_REFINE; ++idx))
+				for ((idx=0; idx<NCMP_MATCHES; ++idx))
 				do
 					echo "${idx} : dnum ${NCMP_CACHE[NCMP_REFINE+idx]} : ${NCMP_CACHE[NCMP_CACHE[NCMP_REFINE+idx]]}"
 				done
