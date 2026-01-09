@@ -55,8 +55,7 @@ p = argparse.ArgumentParser(
     ),
 )
 p.add_argument('time', help='The target date or delay.')
-p.add_argument('message', help='message to display', default='', nargs='?')
-p.add_argument('-q', '--quiet', action='store_true')
+p.add_argument('message', help='message to display', default='', nargs=argparse.REMAINDER)
 p.add_argument('-v', '--verbose', action='store_true')
 p.add_argument('-t', '--title', default='remind', help='message title')
 p.add_argument(
@@ -84,49 +83,14 @@ p.add_argument(
 "
 
 DATE_PARSE="
+pat = re.compile(r'^(?:(?=.*[ -])(?:(?=.*-.*-)(?P<year>\d+)?-)?(?:(?P<month>\d+)?-)?(?P<day>\d+)? ?)?(?:(?P<hours>\d+(?:\.\d+)?)?:)?(?P<minutes>\d+(?:\.\d+)?)?(?::(?P<seconds>\d+(?:\.\d+)?)?)?$')
 def parse_time(spec):
-    parts = re.split(r'(\d+(?:\.\d+)?)', spec.strip())
-    it = iter(parts)
-    pre = next(it)
-    ymd = []
-    hms = []
-    try:
-        for num, post in zip(it, it):
-            if pre == '':
-                if post == '' or post == ':':
-                    out = hms
-                else:
-                    out = ymd
-            out.append(float(num))
-            if post == ' ':
-                out = hms
-            pre = post
-    except NameError:
-        raise ValueError('Bad time spec: {}'.format(repr(spec)))
-
-    if ymd:
-        if len(parts[1]) == 4:
-            while len(ymd) < 3:
-                ymd.append(0.0)
-        else:
-            ymd = ([0.0] * (3-len(ymd))) + ymd
-        while len(hms) < 3:
-            hms.append(0.0)
-    else:
-        assert hms
-        ymd = [0.0]*3
-        if len(hms) == 1:
-            hms = [0.0, hms[0], 0.0]
-        elif len(hms) == 2:
-            hms.append(0.0)
-
-    try:
-        assert len(ymd) == 3
-        assert len(hms) == 3
-    except AssertionError:
-        raise ValueError('Bad time spec {}'.format(repr(spec)))
-    ymd.extend(hms)
-    return ymd
+    m = pat.match(spec)
+    if not m:
+        raise ValueError('Bad datetime specification: {}'.format(spec))
+    vals = list(m.groups())
+    assert len(vals) == 6
+    return vals
 "
 GET_TDELTA="
 import sys
@@ -135,58 +99,75 @@ import datetime
 import time
 import re
 import tkinter as tk
+import os
+quiet = os.environ.get('QUIET')
+if quiet:
+    class Dummy(object):
+        def write(self, data):
+            return len(data)
+        def close(self):
+            pass
+        def flush(self):
+            pass
+    sys.stdout = Dummy()
+    sys.stderr = Dummy()
 try:
     from tkinter import messagebox
 except ImportError:
     import tkMessageBox as messagebox
 import platform
 
+def eprint(*args, **kwargs):
+    kwargs.setdefault('file', sys.stderr)
+    print(*args, **kwargs)
+
 ${PARSER_SCRIPT}
 try:
     args = p.parse_args()
 except SystemExit:
     sys.exit(1)
-if args.quiet:
+args.message = ' '.join(args.message)
+
+if quiet:
     args.verbose = False
 ${DATE_PARSE}
-times = parse_time(args.time)
 now = datetime.datetime.now()
+times = parse_time(args.time)
 if args.verbose:
-    print('now:', now, file=sys.stderr)
-    print(times, file=sys.stderr)
+    eprint('now:', now)
+    eprint('parsed times:', times)
 if args.delay:
-    if times[0] or times[1]:
+    if any(times[:2]):
         raise ValueError('Year/Month not supported for delay interpretation.')
-    info = {k:v for k, v in zip(['days', 'hours', 'minutes', 'seconds'], times[2:])}
+    info = dict(zip(
+        'days hours minutes seconds'.split(),
+        [float(i) if i else 0 for i in times[2:]]))
     tdelta = datetime.timedelta(**info)
     if args.verbose:
-        print('delay:', file=sys.stderr)
+        eprint('delay:')
         for k, v in info.items():
-            print('  {}: {}'.format(k, v), file=sys.stderr)
+            eprint('  {}: {}'.format(k, v))
 else:
-    replace = dict()
-    microsecond = int((times[-1] - int(times[-1])) * 1000000)
-    times = [int(_) for _ in times]
-    times.append(microsecond)
-    keys=['year', 'month', 'day', 'hour', 'minute', 'second', 'microsecond']
-    adding = False
-    for k, v in zip(keys, times):
-        if v or adding:
-            adding = True
-            if v == 0 and (k == 'month' or k == 'day'):
-                replace[k] = 1
-            else:
-                replace[k] = v
-    if args.verbose:
-        print(replace, file=sys.stderr)
-    target = now.replace(**replace)
+    found = 0
+    extra_seconds = 0
+    for i in range(len(times)-1, -1, -1):
+        if times[i]:
+            f = float(times[i])
+            times[i] = int(f)
+            extra_seconds += (f-times[i]) * (0, 0, 24*60*60, 60*60, 60, 1)[i]
+            found = 1
+            if not times[i]:
+                times[i] = (1, 1, 1, 0, 0, 0)[i]
+        else:
+            times[i] = now.timetuple()[i] if found else (1, 1, 1, 0, 0, 0)[i]
+    target = datetime.datetime(*times) + datetime.timedelta(seconds=extra_seconds)
     if target < now and target.hour < 12:
         if args.verbose:
-            print('Warning, negative duration, assuming pm.', file=sys.stderr)
-        target = target.replace(hour=target.hour+12)
+            eprint('Warning, negative duration, assuming pm.')
+        target += datetime.timedelta(hours=12)
     tdelta = target - now
-if not args.quiet:
-    print('Reminding at:', now + tdelta, file=sys.stderr)
+if not quiet:
+    eprint('Reminding at:', now + tdelta, ':', args.message)
 "
 
 PYSCRIPT="
@@ -202,6 +183,7 @@ while now < target:
 
 r = tk.Tk()
 r.title('remind')
+r.withdraw()
 # using withdraw() would hide it from view. When working with
 # something else, there would be no visual indication of the reminder
 # except when alt+tab and see it in the list or no other windows open
@@ -230,19 +212,23 @@ r.destroy()
 # always run reminder in background, but don't want errors or help message
 # in background
 
-env "${MYENV[@]}" "${PYEXE}" -c "${GET_TDELTA}" "${@}" || exit 1
-
-if [ -n "${JOB}" ]
+if [[ -n "${HELP}" ]]
 then
-	if [ -z "${HELP}" ]
+	env QUIET= "${MYENV[@]}" "${PYEXE}" -c "${GET_TDELTA}" "${@}"
+else
+	env QUIET=1 "${MYENV[@]}" "${PYEXE}" -c "${PYSCRIPT}" "${@}" &
+	jobpid=$!
+	printf 'pid: %s ' ${jobpid}
+	if ! env QUIET= "${MYENV[@]}" "${PYEXE}" -c "${GET_TDELTA}" "${@}"
 	then
-		# put this script into the background
-		# run py in current script = job remains
+		 wait
+		 exit 1
+	fi
+
+	if [[ -n "${JOB}" ]]
+	then
+		echo putting into background and waiting
 		bash -c "kill -s SIGSTOP $$; kill -s SIGCONT $$&" &
 		wait
 	fi
-	env "${MYENV[@]}" "${PYEXE}" -c "${PYSCRIPT}" "${@}" -q
-else
-	# run py in background, no job
-	env "${MYENV[@]}" "${PYEXE}" -c "${PYSCRIPT}" "${@}" -q &
 fi
