@@ -5,7 +5,7 @@ Notes on sudo:
     This means there is no special handling required for sudo password.
     Once the process is started, then there's no need for anymore sudo.
 """
-from collections import defaultdict
+from collections import defaultdict, deque
 import codecs
 import getpass
 import io
@@ -139,6 +139,93 @@ def forward(src, dst):
             total += dst.write(view[total:amt])
         amt = readinto(buf)
     dst.flush()
+
+class DragMotion(object):
+    """Use tkinter to read current mouse position using drag+motion."""
+    INIT_TARGET = 'InitToTarget'
+    MOVE_TARGET = 'MoveToTarget'
+    def __init__(self, verbose=False):
+        self.verbose = verbose
+        self.tk, self.done, self.W, self.H = self.open()
+
+    def open(self):
+        r = tk.Tk()
+        r.geometry('1x1+0+0')
+        r.withdraw()
+        withmotion, _ = detect_deiconify_motion_type(r)
+        r.createcommand(self.INIT_TARGET, self._initial_move)
+        r.createcommand(self.MOVE_TARGET, self._move_to_target)
+        r.bind('<ButtonRelease-1>', f'wm withdraw {r}')
+        # TODO? move window depending on target and current mouse position
+        r.bind('<Button-1>', f'wm attributes {r} -fullscreen false\nwm geometry {r} 1x1+0+0')
+        # <Enter> fires too soon on arch x-wayland, how to handle?
+        if withmotion:
+            r.bind('<Motion>', f'{self.INIT_TARGET} %X %Y')
+        else:
+            r.bind('<Enter>', f'{self.INIT_TARGET} %X %Y')
+        r.bind('<B1-Motion>', f'{self.MOVE_TARGET} %X %Y')
+        return r, tk.IntVar(r, 0), r.winfo_screenwidth(), r.winfo_screenheight()
+
+    def close(self):
+        if getattr(self, 'tk', None) is not None:
+            self.tk.destroy()
+            self.tk = None
+
+    def __enter__(self):
+        if getattr(self, 'tk', None) is None:
+            self.tk, self.down, self.W, self.H = self.open()
+        return self
+    def __exit__(self, tp, exc, tb):
+        self.close()
+    def __del__(self):
+        self.close()
+
+    def _move_to_target(self, *args):
+        x, y = map(int, args)
+        if self.verbose:
+            eprint(x, y)
+        dx = self.path[0] - x
+        dy = self.path[1] - y
+        if dx or dy:
+            stepx = dx / max(1, abs(dx))
+            stepy = dy / max(1, abs(dy))
+            self.ydotool.bash(
+                f'ydotool mousemove -x {stepx} -y {stepy}')
+        else:
+            self.path.popleft()
+            self.path.popleft()
+            if self.path:
+                if self.verbose:
+                    eprint('intermediate reached.')
+                self._move_to_target(x, y)
+            else:
+                if self.verbose:
+                    eprint('final target reached')
+                self.ydotool.click('UP')
+                self.done.set(1)
+
+    def _initial_move(self, *args):
+        print('enterred, going to click... to begin motion...')
+        self.tk.update()
+        self.ydotool.click('DOWN')
+        self._move_to_target(*args)
+
+    def move(self, ydotool, *coords):
+        """Move mouse according to coords.
+
+        coords: sequence of alternating x, y coordinates.
+        """
+        self.path = deque(coords)
+        self.ydotool = ydotool
+        try:
+            self.tk.deiconify()
+            self.tk.attributes('-fullscreen', True, '-topmost', False)
+            self.tk.wait_variable(self.done)
+        finally:
+            self.path
+            del self.ydotool
+
+
 
 class MousePosition(object):
     """Use tkinter window to track mouse position."""
@@ -554,6 +641,11 @@ class ydotool(object):
     DOWN = 0x40
     UP = 0x80
     def click(self, code=UP|DOWN|LEFT, repeat=1, delay=25, flush=True):
+        if isinstance(code, str):
+            newcode = 0
+            for c in code.split('|'):
+                newcode |= getattr(self, c)
+            code = newcode
         self.bash(
             'ydotool click 0x{:02x}'.format(code),
             '--repeat', repeat,
@@ -1048,6 +1140,7 @@ if __name__ == '__main__':
         help='seconds to wait for calibration.')
     p.add_argument('--mtype', action='store_true')
     p.add_argument('-y', '--ydotool', action='store_true')
+    p.add_argument('--drag', action='store_true')
     args = p.parse_args()
     if args.daemon:
         with ydotoold() as d:
@@ -1078,6 +1171,21 @@ if __name__ == '__main__':
     elif args.calibrate2 is not None:
         with ydotool() as y:
             y.calibrate2(wait=args.calibrate2)
+    elif args.ydotool:
+        with ydotool() as y:
+            import code
+            code.interact(local=locals())
+    elif args.drag:
+        import ast
+        with ydotool() as y:
+            with DragMotion(True) as drag:
+                while 1:
+                    target = input('>>> ')
+                    if not target or target == 'exit':
+                        break
+                    target = ast.literal_eval(target)
+                    drag.move(y, *target)
+                    print('arrived')
     else:
         with MousePosition(True) as m:
             t = tk.Toplevel(m.tk)
