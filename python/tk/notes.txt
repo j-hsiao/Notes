@@ -622,8 +622,31 @@ ______________________________
 
 	______________________________
 	-1.5- fonts
-		py2: tkFont
-		py3: tkinter.font
+		py2: from Tkinter tkFont
+		py3: from tkinter import font
+
+		Fonts are strings
+			* name of a created font:
+				A named font (maybe created or default)
+					font create ?name? options
+					ex: copy the default font
+					eval font create [font actual TkDefaultFont]
+			* String of name and settings:
+				A string of the form:
+					family ?size? ?options...?
+						options:
+							normal bold roman italic underline overstrike
+			* A string of options same as with font create
+				-family (from [font families])
+				        guaranteed font families: Courier, Times, Helvetica
+				-size positive: points
+				      negative: pixels
+				-weight *normal bold
+				-slant  *roman italic
+				-underline  *false true
+				-overstrike *false true
+
+
 		font.Font(
 		    family: Courier, Times, Helvetica (mono, serif, sans-serif)
 		            guaranteed, others optional.
