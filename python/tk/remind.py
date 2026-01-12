@@ -58,6 +58,7 @@ DATE_FMT = '%Y-%m-%d %H:%M:%S.%f'
 DATE_SHOW = '%Y-%m-%d %H:%M:%S'
 class Server(object):
     def __init__(self, args):
+        self.persist = args.persist
         self.verbose = args.verbose
         self.port = args.port
         self.lock = threading.Lock()
@@ -95,6 +96,12 @@ class Server(object):
                     else:
                         self.eprint('  no notifications ready')
                         break
+                # It seems like at least deiconify is required
+                # or the popup might be behind everything else, and not even have an icon.
+                self.tk.deiconify()
+                self.tk.attributes('-topmost', True)
+                self.tk.update_idletasks()
+                self.tk.withdraw()
                 messagebox.showinfo(title='Reminder', message=f'{target.strftime(DATE_SHOW)}\n\n{message}')
             with self.lock:
                 if self.running:
@@ -130,7 +137,7 @@ class Server(object):
                         with s.makefile('r') as rf:
                             command = rf.readline().rstrip('\r\n')
                             if command == 'exit':
-                                s.sendall(b'ok\n')
+                                s.sendall(b'exiting\n')
                                 return
                             elif command == 'list':
                                 with s.makefile('w') as wf:
@@ -138,6 +145,8 @@ class Server(object):
                                     for i, (target, message) in enumerate(self.reminders):
                                         print(f'{i}: {target.strftime(DATE_SHOW)}: {message}', file=wf)
                                     wf.flush()
+                            elif command == 'check':
+                                pass
                             elif command == 'cancel':
                                 out = 0
                                 cancels = set(map(int, rf.read().split()))
@@ -158,7 +167,7 @@ class Server(object):
                                 else:
                                     message = rf.read()
                                     heapq.heappush(self.reminders, (target, message))
-                                    s.sendall(f'scheduled reminder\n\n{target.strftime(DATE_SHOW)}\n\n{message}\n'.encode('utf-8'))
+                                    s.sendall(f'{datetime.datetime.now().strftime(DATE_SHOW)}: Scheduled reminder:\n\n{target.strftime(DATE_SHOW)}\n\n{message}\n'.encode('utf-8'))
                     except Exception:
                         traceback.print_exc()
                     finally:
@@ -174,6 +183,8 @@ class Server(object):
                 if self.reminders:
                     wait = min(60, max(0, (self.reminders[0][0] - now).total_seconds()))
                     self.eprint('waittime is', wait)
+                elif self.persist:
+                    wait = None
                 else:
                     return
         except Exception:
@@ -196,16 +207,21 @@ def send_command(args, retrying=False):
         except Exception:
             if retrying:
                 traceback.print_exc()
-            elif args.cmd in COMMANDS:
-                print('Server not active.')
+            elif args.cmd in COMMANDS or not args.auto:
+                if args.verbose:
+                    print('Server not active.')
+                return 1
             else:
                 with open(os.path.join(os.environ['HOME'], '.reminder'), 'ab') as logf:
                     cmd = [sys.executable, sys.argv[0], '-s']
                     if args.verbose:
                         cmd.append('-v')
+                    if args.persist:
+                        cmd.append('--persist')
                     p = subprocess.Popen(
-                        cmd,
-                        stdout=subprocess.PIPE, stderr=logf.fileno(), bufsize=0)
+                        cmd, bufsize=0,
+                        stdout=subprocess.PIPE,
+                        stderr=logf.fileno())
                 p.stdout.readline()
                 print('Server pid:', p.pid)
                 send_command(args, True)
@@ -222,6 +238,7 @@ def send_command(args, retrying=False):
             with s.makefile('r') as rf:
                 for line in rf:
                     print(line, end='')
+        return 0
     finally:
         s.close()
 
@@ -232,6 +249,8 @@ if __name__ == '__main__':
     p.add_argument('-d', '--delay', action='store_true', help='the given times are delays.')
     p.add_argument('-v', '--verbose', action='store_true')
     p.add_argument('-c', '--check', action='store_true')
+    p.add_argument('-a', '--auto', action='store_true')
+    p.add_argument('--persist', action='store_true', help='Server remains up even if no more notifications.')
     p.add_argument('cmd', nargs='?', help=f'the client command: a time specification (YYYY-mm-dd HH:MM:SS), floats allowed, omissions allowed. or one of {COMMANDS}.')
     p.add_argument('extra', nargs='*', help='remaining extra arguments for command.')
     args = p.parse_args()
@@ -243,4 +262,4 @@ if __name__ == '__main__':
         print('server main thread number:', threading.get_native_id())
         Server(args).run()
     else:
-        send_command(args)
+        sys.exit(send_command(args))
