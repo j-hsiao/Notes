@@ -25,6 +25,7 @@ Contents
 	-1.7- clipboard
 	-1.8- window manager
 	-1.9- images
+	-1.10- threads
 -2- Bindings
 	-2.1- Event Sequences
 		-2.1.1- Modifiers
@@ -787,6 +788,15 @@ ______________________________
 		NOTE:
 			a reference to ImageTk.PhotoImage must be retained
 			or else the image will be freed.
+	______________________________
+	-1.10- threads
+	In general, tk is threadsafe (because python is threadsafe)
+	However, there are some things to note:
+	1. The tcl interpreter is single threaded.  This means that
+	   you cannot call any tk interpreter methods until it is idle.
+	2. event_generate() is generally what you would use to signal the tk interpreter
+	   from a different thread.  This way, all the tk methods etc would be running
+	   in the main thread.
 ______________________________
 -2- Bindings
 	Bindings associate some event sequence with a script.
