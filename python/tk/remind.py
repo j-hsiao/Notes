@@ -10,7 +10,10 @@ import subprocess
 import sys
 import threading
 import tkinter as tk
+import platform
+import shutil
 from tkinter import messagebox
+import ctypes
 import time
 import traceback
 import os
@@ -200,13 +203,33 @@ class Server(object):
                 self.running = False
             self.tk.event_generate('<<CheckNotifications>>', when='tail')
 
+
 def launch(args):
-    with open(os.path.join(os.environ['HOME'], '.reminder'), 'ab') as logf:
-        cmd = [sys.executable, sys.argv[0], '-s']
+    cmd = []
+    if platform.system() == 'Windows':
+        logname = os.path.join(os.environ.get('HOME', os.environ['USERPROFILE']), '.reminder')
+        if shutil.which('cygstart'):
+            # cygstart --hide seems to be the most reliable if available.
+            # It allows the terminal to always be closed, and does not result in a new
+            # window
+            cmd = ['cygstart', '--hide']
+        else:
+            # start /B would not create a new window, BUT the program
+            # will be killed if the terminal is closed.
+            cmd = ['cmd', '/C', 'start', '/MIN']
+
+            # If this case, server needs to run:
+            # to hide the terminal
+            # ctypes.windll.user32.ShowWindow(ctypes.windll.kernel32.GetConsoleWindow(), 0)
+    else:
+        logname = os.path.join(os.environ['HOME'], '.reminder')
+    with open(logname, 'ab') as logf:
+        cmd.extend([sys.executable, os.path.realpath(sys.argv[0]), '-s'])
         if args.verbose:
             cmd.append('-v')
         if args.persist:
             cmd.append('--persist')
+        print('launching', cmd)
         p = subprocess.Popen(
             cmd, bufsize=0,
             stdout=subprocess.PIPE,
