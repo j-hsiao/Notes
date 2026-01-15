@@ -1,6 +1,6 @@
 #!/bin/bash
 
-if [[ "$(uname -a)" =~ 'CYGWIN'.* ]] && type -fP py &>/dev/null
+if [[ -d /cygdrive ]] && type -fP py &>/dev/null
 then
 	# cygwin with windows py
 	py()
