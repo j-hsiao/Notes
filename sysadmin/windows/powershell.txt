@@ -3,6 +3,9 @@ powershell is one of the shells available by default on windows.
 -0- syntax
 	-0.1- variables
 	-0.2- strings
+-1- utilities
+	-1.0- -Command
+	-1.1- Start-Process
 
 ------------------------------
 -0- syntax
@@ -71,11 +74,70 @@ powershell is one of the shells available by default on windows.
 -1- utilities
 ------------------------------
 	------------------------------
-	-1.1- start
+	-1.0- -Command
 	------------------------------
-	start starts a process.
-	NOTE: This is NOT the same as the start command in cmd shell.
+	powershell -Command 'some command line'
 
-	start [program] -Args "single string of args that would be interpreted into multiple strings"
+	The command line could be separated into multiple arguments but
+	the result is inconsistent, easier and more consistent to just have
+	a single line.
+
+	Note that powershell has some weird parses with the command line and quoting
+
+	The commandline seems to be split by spaces and single quotes work as expected.
+	However, double quotes DO NOT.
+
+	double quotes are very very weird:
+	* single double-quote is seemingly completely ignored.
+	* double double-quote changes the remainder of the string into a single argument, followed by a space.
+	* triple double-quote gets interpreted as a single double-quote
+		BUT also terminates the double double-quote turning rest of the string into a single argument
+
+
+	------------------------------
+	-1.1- Start-Process
+	------------------------------
+	https://learn.microsoft.com/en-us/powershell/module/microsoft.powershell.management/start-process?view=powershell-7.5#-argumentlist
+
+	start a process.
+
+	start is aliased to Start-Process on windows.
+
+	Start-Process <program>
+		-Args|-ArgumentList <str|array>
+			Array is comma-delimited and can have these syntaxes:
+				a,b,c...
+				or @('a','b','c'...)
+
+				NOTE: DO NOT USE THIS! inconsistent crappiness
+				If using the @(), then each item MUST be quoted.
+					WEIRD OBSERVATIONS:
+					1. using standalone start-process, then single or double quotes are ok
+					2. using powershell -c 'start-process ... ', double quotes are always discarded?!
+					3. EVEN IF USING THE , SYNTAX, SPACES STILL SPLIT ARGUMENTS
+					   To avoid spliting, the argument itself must contain quotes to re-quote it,
+					   which means the comma syntax is terrible
+
+			str: a string of space-delimited arguments
+				The space-delimited syntax is also a bit wonky, but much more consistent and reasonable.
+				'arg1 arg2 arg3'
+				If an argument has a space, it must be double-quoted. (single quotes do not work!)
+
+				in powershell:
+				'arg1 arg2 "arg 3" ''arg 4''' -> ['arg1', 'arg2', 'arg 3', "'arg", "4'"]
+				If an item contains double quotes, then use the escaping double quote method
+
+				'arg1 arg2 "arg 3""" ''arg 4''' -> ['arg1', 'arg2', 'arg 3"', "'arg", "4'"]
+
+				Because single-quotes do not work in this argument, I would recommend
+				this string is a single-quote string.  Inside, use double-quote strings as needed.
+
+			ex:
+				'arg1,arg2,arg3 with space' -> ['arg1', 'arg2', 'arg3', 'with', 'space']
+				'arg1,arg2,''arg3 with space''' -> ['arg1', 'arg2', "\'arg3", 'with', "space'"]
+
+
+		-WindowStyle Normal|Hidden|Minimized|Maximized
+		-NoNewWindow|-nnw
 	example:
-	start py -Args "-c ""print('hello'); input()"""
+		start py -Args "-c ""print('hello'); input()"""
