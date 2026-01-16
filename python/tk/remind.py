@@ -11,9 +11,7 @@ import sys
 import threading
 import tkinter as tk
 import platform
-import shutil
 from tkinter import messagebox
-import ctypes
 import time
 import traceback
 import os
@@ -61,8 +59,13 @@ DATE_FMT = '%Y-%m-%d %H:%M:%S.%f'
 DATE_SHOW = '%Y-%m-%d %H:%M:%S'
 class Server(object):
     def __init__(self, args):
+        if args.hide:
+            import ctypes
+            ctypes.windll.user32.ShowWindow(
+                ctypes.windll.kernel32.GetConsoleWindow(), 0)
         self.persist = args.persist
         self.verbose = args.verbose
+        self.notify = args.notify
         self.reuse = args.reuse
         self.port = args.port
         self.lock = threading.Lock()
@@ -94,13 +97,10 @@ class Server(object):
         self.notifying.set(True)
         try:
             while 1:
-                self.eprint('  grabbing lock', datetime.datetime.now())
                 with self.lock:
-                    self.eprint('  lock grabbed', datetime.datetime.now())
                     if self.ready:
                         target, message = self.ready.popleft()
                     else:
-                        self.eprint('  no notifications ready')
                         break
                 # It seems like at least deiconify is required
                 # or the popup might be behind everything else, and not even have an icon.
@@ -108,20 +108,35 @@ class Server(object):
                 self.tk.attributes('-topmost', True)
                 self.tk.update_idletasks()
                 self.tk.withdraw()
-                messagebox.showinfo(title='Reminder', message=f'{target.strftime(DATE_SHOW)}\n\n{message}')
+                now = datetime.datetime.now()
+                if abs((now - target).total_seconds()) < 1:
+                    messagebox.showinfo(title='Reminder', message=f'{target.strftime(DATE_SHOW)}\n\n{message}')
+                else:
+                    messagebox.showinfo(title='Reminder', message=f'now: {now.strftime(DATE_SHOW)}\n\ntgt: {target.strftime(DATE_SHOW)}:\n\n{message}')
             with self.lock:
                 if self.running:
-                    self.eprint('  still running')
                     return
-            self.eprint('  running has ended...')
             if self.reminders:
-                self.eprint('  has unhandled messages.')
-                messagebox.showinfo(
-                    title='Unhandled messages',
-                    message='\n'.join([
-                        f'{target.strftime(DATE_SHOW)}:\n{message}\n'
-                        for target, message in self.reminders]))
-            self.eprint('  schedule destruction after idle')
+                tl = tk.Toplevel(self.tk)
+                txt = tk.Text(tl)
+                txt.grid(row=0, column=0, sticky='nsew')
+                tl.grid_columnconfigure(0, weight=1)
+                tl.grid_rowconfigure(0, weight=1)
+                yscroll = tk.Scrollbar(tl, command=txt.yview, orient='vertical')
+                xscroll = tk.Scrollbar(tl, command=txt.xview, orient='horizontal')
+                xscroll.grid(row=1, column=0, sticky='nsew')
+                yscroll.grid(row=0, column=1, rowspan=2, sticky='nsew')
+                txt.configure(xscrollcommand=xscroll.set, yscrollcommand=yscroll.set)
+                tl.title('Unhandled messages')
+                self.reminders.sort()
+                txt.insert('end', f'now: {datetime.datetime.now().strftime(DATE_SHOW)}\n\n')
+                for target, message in self.reminders:
+                    txt.insert('end', f'{target.strftime(DATE_SHOW)}: {message}\n\n')
+                txt.configure(state='disabled')
+                b = tk.Button(tl, text='ok', command=f'destroy {tl}')
+                b.grid(row=2, column=0, columnspan=2, sticky='nsew')
+                b.focus_set()
+                tl.wait_window()
             self.tk.call('after', 'idle', f'destroy {self.tk}')
         finally:
             self.notifying.set(False)
@@ -133,7 +148,15 @@ class Server(object):
                 L.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
             L.bind(('localhost', self.port))
             L.listen(5)
-            print(f'Server bound to {L.getsockname()}.')
+            if self.notify:
+                s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+                try:
+                    s.connect(('localhost', self.notify))
+                    s.recv(1)
+                finally:
+                    s.close()
+            else:
+                print(f'Server bound to {L.getsockname()}.')
             sys.stdout.flush()
             wait = None
             while 1:
@@ -189,7 +212,6 @@ class Server(object):
                     self.tk.event_generate('<<CheckNotifications>>', when='tail')
                 if self.reminders:
                     wait = min(60, max(0, (self.reminders[0][0] - now).total_seconds()))
-                    self.eprint('waittime is', wait)
                 elif self.persist:
                     wait = None
                 else:
@@ -198,46 +220,59 @@ class Server(object):
             traceback.print_exc()
         finally:
             L.close()
-            self.eprint('server socket closed')
             with self.lock:
                 self.running = False
             self.tk.event_generate('<<CheckNotifications>>', when='tail')
 
 
 def launch(args):
-    cmd = []
+    cmd = [sys.executable, os.path.realpath(sys.argv[0])]
+    cargs = ['-s', '--port', str(args.port)]
+    for opt in ('persist', 'reuse', 'verbose'):
+        if getattr(args, opt):
+            cargs.append('--'+opt)
     if platform.system() == 'Windows':
-        logname = os.path.join(os.environ.get('HOME', os.environ['USERPROFILE']), '.reminder')
+        import shutil
         if shutil.which('cygstart'):
             # cygstart --hide seems to be the most reliable if available.
             # It allows the terminal to always be closed, and does not result in a new
             # window
-            cmd = ['cygstart', '--hide']
+            cmd = ['cygstart', '--hide'] + cmd
         else:
             # start /B would not create a new window, BUT the program
             # will be killed if the terminal is closed.
-            cmd = ['cmd', '/C', 'start', '/MIN']
-
-            # If this case, server needs to run:
-            # to hide the terminal
-            # ctypes.windll.user32.ShowWindow(ctypes.windll.kernel32.GetConsoleWindow(), 0)
+            cmd = ['cmd', '/C', 'start', '/MIN'] + cmd
+            cargs.append('--hide')
+        cmd.extend(cargs)
+        L = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        try:
+            L.bind(('localhost', 0))
+            while L.getsockname()[1] == args.port:
+                L.close()
+                L = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+                L.bind(('localhost', 0))
+            L.listen(1)
+            cmd.extend(('--notify', str(L.getsockname()[1])))
+            with open(os.path.join(os.environ.get('HOME', os.environ['USERPROFILE']), '.reminder'), 'ab') as logf:
+                print('launching', cmd)
+                p = subprocess.Popen(cmd, stdout=logf.fileno(), stderr=logf.fileno())
+            L.settimeout(5)
+            s, a = L.accept()
+            s.close()
+        finally:
+            L.close()
     else:
-        logname = os.path.join(os.environ['HOME'], '.reminder')
-    with open(logname, 'ab') as logf:
-        cmd.extend([sys.executable, os.path.realpath(sys.argv[0]), '-s'])
-        if args.verbose:
-            cmd.append('-v')
-        if args.persist:
-            cmd.append('--persist')
-        print('launching', cmd)
-        p = subprocess.Popen(
-            cmd, bufsize=0,
-            stdout=subprocess.PIPE,
-            stderr=logf.fileno())
-    result = p.stdout.readline().decode('utf-8')
-    if not result.startswith('Server bound to '):
-        raise ValueError('Failed to bind to socket. Already up?')
-    print(result, end='')
+        cmd.extend(cargs)
+        with open(os.path.join(os.environ['HOME'], '.reminder'), 'ab') as logf:
+            print('launching', cmd)
+            p = subprocess.Popen(
+                cmd, bufsize=0,
+                stdout=subprocess.PIPE,
+                stderr=logf.fileno())
+        result = p.stdout.readline().decode('utf-8')
+        if not result.startswith('Server bound to '):
+            raise ValueError('Server startup failed: ' + result)
+        print(result, end='')
     print('Server pid:', p.pid)
     return p
 
@@ -255,7 +290,7 @@ def send_command(args, retrying=False):
         except Exception:
             if retrying:
                 traceback.print_exc()
-            elif args.cmd in COMMANDS or args.noauto:
+            elif args.cmd in COMMANDS:
                 if args.verbose:
                     print('Server not active.')
                 return 1
@@ -284,15 +319,17 @@ def send_command(args, retrying=False):
 if __name__ == '__main__':
     p = argparse.ArgumentParser()
     p.add_argument('-s', '--server', action='store_true', help='act as the server, otherwise client.')
-    p.add_argument('-p', '--port', type=int, default=58008, help='reminder server port.')
-    p.add_argument('-d', '--delay', action='store_true', help='the given times are delays.')
+    p.add_argument('-P', '--persist', action='store_true', help='Server remains up even if no more notifications.')
     p.add_argument('-r', '--reuse', action='store_true')
     p.add_argument('-v', '--verbose', action='store_true')
-    p.add_argument('-c', '--check', action='store_true', help='just check the time parsing.')
-    p.add_argument('-n', '--noauto', action='store_true', help='do not automatically start the server.')
-    p.add_argument('-P', '--persist', action='store_true', help='Server remains up even if no more notifications.')
+    p.add_argument('--hide', action='store_true', help='hide terminal on windows.')
+    p.add_argument('--notify', type=int, help='Connect to this port to notify server ready.')
+
     p.add_argument('cmd', nargs='?', help=f'the client command: a time specification (YYYY-mm-dd HH:MM:SS), floats allowed, omissions allowed. or one of {COMMANDS}.')
     p.add_argument('extra', nargs='*', help='remaining extra arguments for command.')
+    p.add_argument('-c', '--check', action='store_true', help='just check the time parsing.')
+    p.add_argument('-p', '--port', type=int, default=58008, help='reminder server port.')
+    p.add_argument('-d', '--delay', action='store_true', help='the given times are delays.')
     args = p.parse_args()
 
     if args.check:
