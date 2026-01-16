@@ -5,6 +5,7 @@ contents
 -4- file explorer
 -5- dialog boxes
 -6- personal setup
+-7- daemon
 
 
 
@@ -131,3 +132,33 @@ wsl setup
 
 	to mount windows drive in wsl:
 		sudo mount -t drvfs "Z:" /mnt/z
+
+------------------------------
+-7- daemon
+------------------------------
+On windows, I would usually start something in cygwin terminal or
+use wt.  However, cygwin will kill any child processes that aren't
+directly nohup. (bash -> windows version of python -> nohup -> target,
+target will be killed when the bash terminal is closed despite the
+nohup.  Only bash->nohup->... seems to work.) In wt, the terminal just
+waits until target exits before exiting.
+
+The most reliable ways to start a daemon-like process to run in the
+background are cygwin/cygstart and cmd/start. Both generally start
+the target program in a new terminal.  However, cygstart has a --hide
+option to hide that terminal allowing the target to effectively run in
+the background.  cmd/start on the otherhand, do not have a --hide
+option.  Instead, the target program must show/hide the terminal itself
+using windows api.
+
+ex: python
+	import ctypes
+	ctypes.windll.user32.ShowWindow(
+		ctypes.windll.kernel32.GetConsoleWindow(), 0/1)
+
+https://stackoverflow.com/questions/45549442/use-cmd-c-but-hide-the-console-window
+ex: powershell
+	powershell "start <path of batch file> -Args \"<batch file args>\" -WindowStyle Hidden"
+	(unsuccessful reproduction, probably quoting related...)
+
+	NOTE: it seem that powershell "start" is different from cmd "start"
