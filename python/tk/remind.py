@@ -170,6 +170,7 @@ class Server(object):
                                 s.sendall(b'exiting\n')
                                 return
                             elif command == 'list':
+                                self.reminders.sort()
                                 with s.makefile('w') as wf:
                                     print('Scheduled reminders:', file=wf)
                                     for i, (target, message) in enumerate(self.reminders):
