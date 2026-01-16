@@ -1,0 +1,81 @@
+powershell is one of the shells available by default on windows.
+
+-0- syntax
+	-0.1- variables
+	-0.2- strings
+
+------------------------------
+-0- syntax
+------------------------------
+	------------------------------
+	-0.1- variables
+	------------------------------
+	Variables are assigned with the syntax:
+
+		$varname = value
+
+	spaces are optional
+
+	$varname is also used to dereference the variable
+	${varname} can also be used to protect it from trailing characters.
+	------------------------------
+	-0.2- strings
+	------------------------------
+	In powershell, strings can be single or double quoted.
+	Similar to bash, double quoted strings allow variable expansion while single
+	quoted strings do not.
+
+	If the "command" is a string, then the string is evaluated and
+	printed (similar to the python repl)
+
+	Only basic variables can be in strings.  Arrays, indexing, etc
+	must be in a subexpr: $(indexing or array expr)
+	"PS version: $($PSVersionTable.PSVersion)"
+
+	UNLIKE MOST SHELLS, backtick is the escape character, NOT BACKSLASH
+
+	consecutive double-quotes in the context of a double-quote string will
+	be interpreted as an escaped double-quote.
+
+	consecutive single-quotes in the context of a single-quote string will
+	be interpreted as an escaped single-quote.
+
+	here-strings are like heredocs...
+	@"
+	herestring here
+	"@
+
+	Herestrings can be single or double quoted which behave as their corresponding
+	quoting type.  Quotes inside herestrings are interpreted literally.
+
+	Strings must be standalone, not like in bash.
+	"some string"this_is_a_syntax_error
+	------------------------------
+	-0.3- expressions
+	------------------------------
+	$(some math expr)
+	This allows replacing some calculation with the corresponding result.
+
+	------------------------------
+	-0.4- hashtables
+	------------------------------
+	$i = @{key = 'value'; key = 'value'; ...}
+
+	Hash tables are indexed with the syntax:
+	$vname.keyname.
+	The braces would go around the vname only:
+	${vname}.keyname
+
+
+------------------------------
+-1- utilities
+------------------------------
+	------------------------------
+	-1.1- start
+	------------------------------
+	start starts a process.
+	NOTE: This is NOT the same as the start command in cmd shell.
+
+	start [program] -Args "single string of args that would be interpreted into multiple strings"
+	example:
+	start py -Args "-c ""print('hello'); input()"""

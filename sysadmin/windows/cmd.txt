@@ -1,0 +1,12 @@
+cmd is the old shell available on windows.
+
+-0- syntax
+
+------------------------------
+-0- syntax
+------------------------------
+The command line is always parsed by the corresponding command and not
+the shell.  Arguments are given to the command as a single string.  It
+is up to the command itself to parse it into separate arguments.  This
+means that different commands will have different behaviors when it
+comes to quoting etc.
