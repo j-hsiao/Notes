@@ -1,6 +1,7 @@
 powershell is one of the shells available by default on windows.
 
 -0- syntax
+	-0.0- arguments
 	-0.1- variables
 	-0.2- strings
 -1- utilities
@@ -10,6 +11,67 @@ powershell is one of the shells available by default on windows.
 ------------------------------
 -0- syntax
 ------------------------------
+	------------------------------
+	-0.0- arguments
+	------------------------------
+	According to the docs, arguments are parsed by powershell and then
+	joined with a single space before being passed to the program.
+
+	However, this seems to be not quite right.
+	In practice, (at least with the py executable), it seems that
+	powershell adds double-quotes around each argument before
+	joining with a single space.  This causes weird quoting behavior.
+	(at least for py, it's different from start-process when given a single string
+	as -Args)
+	supporting observations:
+		case 1:
+			py t.py 'a " b'
+				0 't.py'
+				1 'a '
+				2 'b'
+
+			"a " b" -> "a " and b"(incomplete empty string so ignored)
+
+		case 2:
+			py t.py '"a " b"'
+				0 't.py'
+				1 'a'
+				2 ' b"'
+
+			""a " b"" -> 'a' and " b""(incomplete empty string so ignored)
+
+		case 3:
+			py '"t.py a "b c'
+				0 't.py'
+				1 'a'
+				2 'b c'
+
+			Even the script name is part of the single argument.
+			If it really was space joined arguments, there's only 1 argument
+			so there'd be no joining at all.  The filename should then
+			be seen as "t.py a ", but instead, it gets viewed as t.py.
+
+	HOWEVER there is 1 very odd observation which happens when no space-containing strings exist:
+		py '"t.py a b c'
+			can't open file '...t.py a b c'
+
+
+
+		------------------------------
+		-0.0.1- py
+		------------------------------
+		py seems to perform some string parsing as well.
+		In general, it seems py's parsing consists of:
+		1. form strings with double quotes
+		2. Within a string, \" will be a literal double quote
+		   \\ when preceding doublequote will be a single backslash
+		3. In all other cases, backslash is just a backslash. (similar to cmd parsing...)
+
+
+
+
+
+
 	------------------------------
 	-0.1- variables
 	------------------------------
