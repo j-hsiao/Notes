@@ -270,6 +270,8 @@ def launch_powershell(*args, **kwargs):
 
 
 def launch(args):
+    logname = os.path.join(
+        os.environ.get('HOME', os.environ.get('USERPROFILE', './')), '.reminder')
     cmd = [
         os.path.realpath(sys.executable),
         os.path.realpath(sys.argv[0]),
@@ -287,8 +289,6 @@ def launch(args):
                 L.bind(('localhost', 0))
             L.listen(1)
             cmd.extend(('--notify', str(L.getsockname()[1])))
-            logname = os.path.join(
-                os.environ.get('HOME', os.environ['USERPROFILE']), '.reminder')
             with open(logname, 'ab') as logf:
                 print('launching', cmd)
                 import shutil
@@ -308,8 +308,7 @@ def launch(args):
         finally:
             L.close()
     else:
-        cmd.extend(cargs)
-        with open(os.path.join(os.environ['HOME'], '.reminder'), 'ab') as logf:
+        with open(logname, 'ab') as logf:
             print('launching', cmd)
             p = subprocess.Popen(
                 cmd, bufsize=0,
