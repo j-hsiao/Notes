@@ -122,6 +122,7 @@ class Server(object):
                 txt.grid(row=0, column=0, sticky='nsew')
                 tl.grid_columnconfigure(0, weight=1)
                 tl.grid_rowconfigure(0, weight=1)
+                tl.attributes('-topmost', True)
                 yscroll = tk.Scrollbar(tl, command=txt.yview, orient='vertical')
                 xscroll = tk.Scrollbar(tl, command=txt.xview, orient='horizontal')
                 xscroll.grid(row=1, column=0, sticky='nsew')
@@ -172,6 +173,7 @@ class Server(object):
                             elif command == 'list':
                                 self.reminders.sort()
                                 with s.makefile('w') as wf:
+                                    print('Current time:', datetime.datetime.now(), file=wf)
                                     print('Scheduled reminders:', file=wf)
                                     for i, (target, message) in enumerate(self.reminders):
                                         print(f'{i}: {target.strftime(DATE_SHOW)}: {message}', file=wf)
@@ -226,25 +228,57 @@ class Server(object):
             self.tk.event_generate('<<CheckNotifications>>', when='tail')
 
 
+def launch_powershell(
+    exe=os.path.realpath(sys.executable), *args, **kwargs):
+    """Launch a powershell process with Start-Process.
+
+    exe: the powershell command to run.
+    args: sequence of [str | seq of str] (will be flattened.)
+
+    kwargs:
+    window: window style for the process, Normal, Hidden, Minimized,
+            Maximized or None None means use the current window
+            (-NoNewWindow)
+    wait: The returned Popen waits until the process is complete.
+    subprocess.Popen kwargs
+    """
+    pat = re.compile(r'(\\*")')
+    def dquote(s):
+        parts = pat.split(s)
+        parts[0] = '"' + parts[0]
+        parts[-1] = parts[-1] + '"'
+        for i in range(1, len(parts), 2):
+            parts[i] = '\\'*((len(parts[i])-1)*2) + '\\"'
+        return ''.join(parts)
+    cmdargs = []
+    for item in args:
+        if isinstance(item, str):
+            cmdargs.append(dquote(item))
+        else:
+            cmdargs.extend([dquote(sub) for sub in item])
+    print(cmdargs)
+    psArgs = " ".join(cmdargs).replace("'", "''")
+    window = kwargs.pop('window', None)
+    if window is None:
+        winflag = '-NoNewWindow'
+    else:
+        winflag = f'-WindowStyle {window}'
+    wait = '-Wait' if kwargs.pop('wait', False) else ''
+    return subprocess.Popen([
+        'powershell', '-Command',
+        f'Start-Process {dquote(exe)} {wait} {winflag} -Args \'{psArgs}\''], **kwargs
+    )
+
+
 def launch(args):
-    cmd = [sys.executable, os.path.realpath(sys.argv[0])]
-    cargs = ['-s', '--port', str(args.port)]
+    cmd = [
+        os.path.realpath(sys.executable),
+        os.path.realpath(sys.argv[0]),
+        '-s', '--port', str(args.port)]
     for opt in ('persist', 'reuse', 'verbose'):
         if getattr(args, opt):
-            cargs.append('--'+opt)
+            cmd.append('--'+opt)
     if platform.system() == 'Windows':
-        import shutil
-        if shutil.which('cygstart'):
-            # cygstart --hide seems to be the most reliable if available.
-            # It allows the terminal to always be closed, and does not result in a new
-            # window
-            cmd = ['cygstart', '--hide'] + cmd
-        else:
-            # start /B would not create a new window, BUT the program
-            # will be killed if the terminal is closed.
-            cmd = ['cmd', '/C', 'start', '/MIN'] + cmd
-            cargs.append('--hide')
-        cmd.extend(cargs)
         L = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         try:
             L.bind(('localhost', 0))
@@ -254,9 +288,21 @@ def launch(args):
                 L.bind(('localhost', 0))
             L.listen(1)
             cmd.extend(('--notify', str(L.getsockname()[1])))
-            with open(os.path.join(os.environ.get('HOME', os.environ['USERPROFILE']), '.reminder'), 'ab') as logf:
+            logname = os.path.join(
+                os.environ.get('HOME', os.environ['USERPROFILE']), '.reminder')
+            with open(logname, 'ab') as logf:
                 print('launching', cmd)
-                p = subprocess.Popen(cmd, stdout=logf.fileno(), stderr=logf.fileno())
+                import shutil
+                output = dict(stdout=logf.fileno(), stderr=logf.fileno())
+                if shutil.which('cygstart'):
+                    p = subprocess.Popen(['cygstart', '--hide'] + cmd, **output)
+                else:
+                    p = launch_powershell(cmd, window='Hidden', **output)
+                    # cmd would probably require some kind of quoting as well...
+                    # # start /B would not create a new window, BUT the program
+                    # # will be killed if the terminal is closed.
+                    # cargs.append('--hide')
+                    # cmd = ['cmd', '/C', 'start', '/MIN'] + cmd + cargs
             L.settimeout(5)
             s, a = L.accept()
             s.close()
