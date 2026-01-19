@@ -18,9 +18,4 @@ else
 		fi
 		py "${script}" "${@}"
 	}
-	if [[ "${0}" -ef "${BASH_SOURCE[0]}" ]]
-	then
-		# being run as a script instead of sourcing for the function def.
-		remind "${@}"
-	fi
 fi
