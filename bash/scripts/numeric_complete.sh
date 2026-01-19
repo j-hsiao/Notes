@@ -354,7 +354,9 @@ ncmp_mimic_prompt() # <command> <pos>
 	# @P operator requires bash 4.4+
 	local prompt rawprompt prompt_nonprinting='\\\[*(@([^\\]|\\[^\'$'\x5d'']))\\\]'
 	ncmp_expand_prompt "${PS1}" prompt
+	ss_push extglob globasciiranges
 	ncmp_expand_prompt "${PS1//@(${prompt_nonprinting}|${NCMP_ANSI_CODE_PATTERN})}" rawprompt
+	ss_pop
 	# Cursor position is saved as position in screen, not buffer.  If printing
 	# would cause scrolling, then the position will be wrong.
 	prompt="${prompt%"${prompt##*$'\n'}"}${pre}${prompt##*$'\n'}"
@@ -689,7 +691,9 @@ ncmp_tabcomplete() # <query>
 		&& "${choicenum}" -le $((NCMP_MATCHES)) ]]
 	then
 		local newvalue="${NCMP_CACHE[NCMP_CHOICE + NCMP_CACHE[NCMP_REFINE+choicenum-1]]}"
+		ss_push extglob globasciiranges
 		newvalue="${newvalue//${NCMP_ANSI_CODE_PATTERN}}"
+		ss_pop
 		# TODO: if being quoted, don't need escapes
 		# but also depends on the type of quote?
 		ncmp_escape2shell "${newvalue}" newvalue
@@ -779,7 +783,7 @@ ncmp_complete_filedir() # <query>
 			eval "prebname=${prebname}"
 			if ((NCMP_MATCHES == 1))
 			then
-				ss_push globasciiranges extglob
+				ss_push extglob globasciiranges
 				local candidate="${NCMP_CACHE[NCMP_CHOICE + NCMP_CACHE[NCMP_REFINE]]//${NCMP_ANSI_CODE_PATTERN}}"
 				ss_pop
 				if [[ "${bname}" = "${candidate%/}" ]]
@@ -799,7 +803,9 @@ ncmp_complete_filedir() # <query>
 		then
 			local trail
 			local newvalue="${NCMP_CACHE[NCMP_CACHE[NCMP_REFINE] + NCMP_CHOICE]}"
+			ss_push extglob globasciiranges
 			newvalue="${newvalue//${NCMP_ANSI_CODE_PATTERN}}"
+			ss_pop
 			# TODO: if being quoted, don't need escapes
 			# but also depends on the type of quote?
 			ncmp_escape2shell "${newvalue}" newvalue
