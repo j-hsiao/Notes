@@ -228,12 +228,11 @@ class Server(object):
             self.tk.event_generate('<<CheckNotifications>>', when='tail')
 
 
-def launch_powershell(
-    exe=os.path.realpath(sys.executable), *args, **kwargs):
+def launch_powershell(*args, **kwargs):
     """Launch a powershell process with Start-Process.
 
-    exe: the powershell command to run.
-    args: sequence of [str | seq of str] (will be flattened.)
+    args: sequence of [str | seq of str] (will be flattened.) of the
+          command line
 
     kwargs:
     window: window style for the process, Normal, Hidden, Minimized,
@@ -257,7 +256,7 @@ def launch_powershell(
         else:
             cmdargs.extend([dquote(sub) for sub in item])
     print(cmdargs)
-    psArgs = " ".join(cmdargs).replace("'", "''")
+    psArgs = " ".join(cmdargs[1:]).replace("'", "''")
     window = kwargs.pop('window', None)
     if window is None:
         winflag = '-NoNewWindow'
@@ -266,7 +265,7 @@ def launch_powershell(
     wait = '-Wait' if kwargs.pop('wait', False) else ''
     return subprocess.Popen([
         'powershell', '-Command',
-        f'Start-Process {dquote(exe)} {wait} {winflag} -Args \'{psArgs}\''], **kwargs
+        f'Start-Process {cmdargs[0]} {wait} {winflag} -Args \'{psArgs}\''], **kwargs
     )
 
 
