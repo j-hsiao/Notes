@@ -1002,10 +1002,10 @@ ______________________________
 			Return
 			Insert
 			Home
-			Prior
+			Prior     (page up)
 			Delete
 			End
-			Next
+			Next      (page down)
 			Tab
 			[Caps|Scroll|Num]_Lock
 			Pause

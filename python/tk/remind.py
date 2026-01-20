@@ -322,7 +322,13 @@ def launch(args):
     return p
 
 
-COMMANDS = ('exit', 'list', 'cancel', 'check')
+COMMANDS = {
+    'exit': '',
+    'list': '',
+    'cancel': '',
+    'check': 'list',
+    'ls': 'list',
+}
 def send_command(args, retrying=False):
     """Send client command to server. Start server if it is down."""
     if args.cmd.lower() == 'launch':
@@ -345,8 +351,7 @@ def send_command(args, retrying=False):
         else:
             with s.makefile('w') as wf:
                 if args.cmd in COMMANDS:
-                    if args.cmd == 'check':
-                        args.cmd = 'list'
+                    args.cmd = COMMANDS[args.cmd] or args.cmd
                     print(args.cmd, file=wf)
                 else:
                     print(parse_time(args.cmd, args.delay).strftime(DATE_FMT), file=wf)

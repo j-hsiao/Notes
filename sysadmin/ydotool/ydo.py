@@ -21,6 +21,7 @@ import time
 import tkinter as tk
 import traceback
 import uuid
+import platform
 
 threading.Thread()
 
@@ -98,34 +99,6 @@ def detect_deiconify_motion_type(r, nsamples=0, verbose=False):
         config_count = int(r.eval(f'expr ${vname}'))
         r.call('unset', vname)
         return (int(config_count) != 1 and int(config_count) != 4), config_count
-
-
-class OSRead(object):
-    """Provide a readinto for an fd."""
-    def __init__(self, fd, verbose=False):
-        self.fd = fd
-        self.verbose = verbose
-    def fileno(self):
-        return self.fd
-    if hasattr(os, 'readv'):
-        def readinto(self, buf):
-            try:
-                return os.readv(self.fd, [buf])
-            except Exception:
-                if self.verbose:
-                    traceback.print_exc()
-                return 0
-    else:
-        def readinto(self, buf):
-            try:
-                data = os.read(self.fd, len(buf))
-            except Exception:
-                if self.verbose:
-                    traceback.print_exc()
-                return 0
-            amt = len(data)
-            buf[:amt] = data
-            return amt
 
 def forward(src, dst):
     """Forward data from src to dst."""
