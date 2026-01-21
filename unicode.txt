@@ -1,0 +1,16 @@
+Helpful unicode
+------------------------------
+typing unicode:
+------------------------------
+vim: insert mode, <C-V>uXX..
+bash: $'\uXX...'
+
+
+------------------------------
+useful unicode
+------------------------------
+2022: • a bullet point
+2610: ☐ an empty checkbox
+2611: ☑ a checked checkbox
+2612: ☒ an Xed checkbox
+2713: ✓ a check mark
