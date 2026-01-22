@@ -3,6 +3,7 @@ import codecs
 import collections
 import datetime
 import heapq
+import io
 import re
 import select
 import socket
@@ -15,6 +16,110 @@ from tkinter import messagebox
 import time
 import traceback
 import os
+
+DATE_FMT = '%Y-%m-%d %H:%M:%S.%f'
+DATE_SHOW = '%Y-%m-%d %H:%M:%S'
+def growbuf(buf):
+    nbuf = bytearray(int(len(buf)*1.5))
+    view = memoryview(nbuf)
+    view[:len(buf)] = buf
+    return view, nbuf
+
+def readtil(sock, buf=None, total=0, target=None):
+    """Nonblocking read until a target.
+
+    Yield None until done.
+    Return (buf, target, remainder) via StopIteration.value
+        buf: the (possibly reallocated) buffer of data.
+        target: the view of buf up to and including target
+        remainder: the view of the remainder of the data.
+    """
+    if buf is None:
+        buf = bytearray(io.DEFAULT_BUFFER_SIZE)
+    view = memoryview(buf)
+    while 1:
+        try:
+            amt = sock.recv_into(view[total:])
+        except (BlockingIOError, socket.timeout):
+            yield None
+            continue
+        if amt == 0:
+            return buf, view[:total], view[total:total]
+        ntotal = total + amt
+        if target is not None:
+            idx = buf.find(target, total, ntotal)
+            if idx >= 0:
+                end = idx+len(target)
+                return buf, view[:end], view[end:ntotal]
+        if ntotal >= len(buf):
+            view, buf = growbuf(buf)
+        total = ntotal
+
+class Request(object):
+    def __init__(self, sock, server):
+        self.fileno = sock.fileno
+        self.iter = self.loop(sock, server)
+
+    @staticmethod
+    def loop(sock, server):
+        try:
+            server.eprint('Handling socket', sock.getsockname())
+            sock.settimeout(0)
+            buf, command, remainder = yield from readtil(sock, target=b'\n')
+            command = codecs.decode(command, 'utf-8').strip()
+            buf[:remainder.nbytes] = remainder
+            if command == 'exit':
+                sock.sendall(b'exiting\n')
+                return 'exit'
+            elif command == 'list':
+                server.reminders.sort()
+                with sock.makefile('w') as wf:
+                    print('Current time: ', datetime.datetime.now(), file=wf)
+                    print('Scheduled reminders:', file=wf)
+                    for i, (target, message) in enumerate(server.reminders):
+                        print(f'{i}: {target.strftime(DATE_SHOW)}: {message}', file=wf)
+            elif command == 'cancel':
+                buf, fds, _ = yield from readtil(sock, buf, remainder.nbytes)
+                out = 0
+                cancels = set(map(int, fds.tobytes().split()))
+                with sock.makefile('w') as wf:
+                    for i, item in enumerate(server.reminders):
+                        if i in cancels:
+                            print(f'Canceled {item[0].strftime(DATE_SHOW)}: {item[1]}', file=wf)
+                        else:
+                            server.reminders[out] = item
+                            out += 1
+                del server.reminders[out:]
+                heapq.heapify(server.reminders)
+            else:
+                try:
+                    target = datetime.datetime.strptime(command, DATE_FMT)
+                    buf, message, _ = yield from readtil(sock, buf, remainder.nbytes)
+                    message = codecs.decode(message, 'utf-8')
+                    heapq.heappush(server.reminders, (target, message))
+                except Exception:
+                    sock.sendall(traceback.format_exc().encode('utf-8'))
+                else:
+                    with sock.makefile('w') as wf:
+                        print(datetime.datetime.now().strftime(DATE_SHOW), 'Scheduled reminder:', file=wf)
+                        print('  time:', target.strftime(DATE_SHOW), file=wf)
+                        print('  mesg:', message, file=wf)
+        finally:
+            server.eprint('closing socket', sock.getsockname())
+            sock.close()
+        return 'done'
+
+class Listener(object):
+    def __init__(self, L, waiting, server):
+        self.fileno = L.fileno
+        self.iter = self.loop(L, waiting, server)
+
+    @staticmethod
+    def loop(L, waiting, server):
+        while 1:
+            s, a = L.accept()
+            waiting.add(Request(s, server))
+            yield True
 
 
 
@@ -55,8 +160,6 @@ def parse_time(timespec, delay=False):
             target += datetime.timedelta(hours=12)
         return target
 
-DATE_FMT = '%Y-%m-%d %H:%M:%S.%f'
-DATE_SHOW = '%Y-%m-%d %H:%M:%S'
 class Server(object):
     def __init__(self, args):
         if args.hide:
@@ -158,67 +261,43 @@ class Server(object):
                     s.close()
             else:
                 print(f'Server bound to {L.getsockname()}.')
-            sys.stdout.flush()
+                sys.stdout.flush()
             wait = None
-            while 1:
-                r, w, x = select.select([L], (), (), wait)
-                if r:
-                    s, a = L.accept()
-                    try:
-                        with s.makefile('r') as rf:
-                            command = rf.readline().rstrip('\r\n')
-                            if command == 'exit':
-                                s.sendall(b'exiting\n')
-                                return
-                            elif command == 'list':
-                                self.reminders.sort()
-                                with s.makefile('w') as wf:
-                                    print('Current time:', datetime.datetime.now(), file=wf)
-                                    print('Scheduled reminders:', file=wf)
-                                    for i, (target, message) in enumerate(self.reminders):
-                                        print(f'{i}: {target.strftime(DATE_SHOW)}: {message}', file=wf)
-                                    wf.flush()
-                            elif command == 'check':
-                                pass
-                            elif command == 'cancel':
-                                out = 0
-                                cancels = set(map(int, rf.read().split()))
-                                with s.makefile('w') as wf:
-                                    for i, item in enumerate(self.reminders):
-                                        if i in cancels:
-                                            print(f'Canceled {item[0].strftime(DATE_SHOW)}: {item[1]}', file=wf)
-                                        else:
-                                            self.reminders[out] = item
-                                            out += 1
-                                del self.reminders[out:]
-                                heapq.heapify(self.reminders)
-                            else:
-                                try:
-                                    target = datetime.datetime.strptime(command, DATE_FMT)
-                                except Exception:
-                                    s.sendall(traceback.format_exc().encode('utf-8'))
-                                else:
-                                    message = rf.read()
-                                    heapq.heappush(self.reminders, (target, message))
-                                    s.sendall(f'{datetime.datetime.now().strftime(DATE_SHOW)}: Scheduled reminder:\n\n{target.strftime(DATE_SHOW)}\n\n{message}\n'.encode('utf-8'))
-                    except Exception:
-                        traceback.print_exc()
-                    finally:
-                        s.close()
-                now = datetime.datetime.now()
-                nready = []
-                while self.reminders and self.reminders[0][0] < now:
-                    nready.append(heapq.heappop(self.reminders))
-                if nready:
-                    with self.lock:
-                        self.ready.extend(nready)
-                    self.tk.event_generate('<<CheckNotifications>>', when='tail')
-                if self.reminders:
-                    wait = min(60, max(0, (self.reminders[0][0] - now).total_seconds()))
-                elif self.persist:
-                    wait = None
-                else:
-                    return
+            waiting = set()
+            startup = True
+            try:
+                waiting.add(Listener(L, waiting, self))
+                running = True
+                while running:
+                    for item in select.select(waiting, (), (), wait)[0]:
+                        self.eprint('stepping', item)
+                        try:
+                            next(item.iter)
+                        except StopIteration as e:
+                            startup = False
+                            waiting.discard(item)
+                            if e.value == 'exit':
+                                running = False
+                        except Exception:
+                            waiting.discard(item)
+                            traceback.print_exc()
+                            continue
+                    now = datetime.datetime.now()
+                    nready = []
+                    while self.reminders and self.reminders[0][0] < now:
+                        nready.append(heapq.heappop(self.reminders))
+                    if nready:
+                        with self.lock:
+                            self.ready.extend(nready)
+                        self.tk.event_generate('<<CheckNotifications>>', when='tail')
+                    if self.reminders:
+                        wait = min(60, max(0, (self.reminders[0][0] - now).total_seconds()))
+                    elif self.persist or startup:
+                        wait = None
+                    else:
+                        return
+            finally:
+                waiting.clear()
         except Exception:
             traceback.print_exc()
         finally:
@@ -339,29 +418,30 @@ def send_command(args, retrying=False):
         try:
             s.connect(('localhost', args.port))
         except Exception:
-            if retrying:
-                traceback.print_exc()
-            elif args.cmd in COMMANDS:
+            if args.cmd in COMMANDS:
                 if args.verbose:
                     print('Server not active.')
                 return 1
             else:
-                p = launch(args)
-                send_command(args, True)
-        else:
-            with s.makefile('w') as wf:
-                if args.cmd in COMMANDS:
-                    args.cmd = COMMANDS[args.cmd] or args.cmd
-                    print(args.cmd, file=wf)
-                else:
-                    print(parse_time(args.cmd, args.delay).strftime(DATE_FMT), file=wf)
-                if args.extra:
-                    print(' '.join(args.extra), end='', file=wf)
-                wf.flush()
-            s.shutdown(socket.SHUT_WR)
-            with s.makefile('r') as rf:
-                for line in rf:
-                    print(line, end='')
+                try:
+                    p = launch(args)
+                except Exception:
+                    print('Reminder server startup failed:')
+                    traceback.print_exc()
+                s.connect(('localhost', args.port))
+        with s.makefile('w') as wf:
+            if args.cmd in COMMANDS:
+                args.cmd = COMMANDS[args.cmd] or args.cmd
+                print(args.cmd, file=wf)
+            else:
+                print(parse_time(args.cmd, args.delay).strftime(DATE_FMT), file=wf)
+            if args.extra:
+                print(' '.join(args.extra), end='', file=wf)
+            wf.flush()
+        s.shutdown(socket.SHUT_WR)
+        with s.makefile('r') as rf:
+            for line in rf:
+                print(line, end='')
         return 0
     finally:
         s.close()
