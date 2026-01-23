@@ -11,6 +11,8 @@
 -7- repositories
 -8- pip
 -9- extensions
+-10- miscellaneous
+	-10.1- auto-module detection
 
 ______________________________
 -0- general
@@ -369,3 +371,18 @@ ______________________________
 			package_data={'':['modulename.so']}
 		Then you will be able to
 			import modulename
+
+______________________________
+-10- miscellaneous
+	______________________________
+	-10.1- auto-module detection
+
+	Usually the recommendation is to use pkgutil.walk_packages.
+	However, this has some issues:
+	1. Excludes the given directory.
+	2. Requires __init__.py
+	3. sys.path must include corresponding dir, BUT during setup.py
+	   sys.path does not include that dir.
+
+	Given these issues, it might be easier to just use os.walk.
+	os.walk('toplevel_module')

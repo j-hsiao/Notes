@@ -11,23 +11,26 @@ contents
 ______________________________
 -0- general
 	logging module has 4 general classes:
-		logrecords  : the actual log obj.
+		logrecords  : the actual log obj/message.
 		loggers     : interface to log
-		handlers    : log to certain destinations
+		handlers    : log to certain destinations (do the writing)
 		filters     : filter log outputs
 		formatters  : layout
 
 	______________________________
 	flow
 		logmethod called
-		if methodlevel < loglevel -> stop
+		if methodlevel < logger's loglevel -> stop
 		create log record
 		filter log record
 		handle log record
-			if methodledvel < handlerlevel -> stop
+			if methodlevel < handlerlevel -> stop
 			handler filters on log record
 			emit+formatting
 		propagate log record if applicable
+
+		Loggers each have a . name, and pass logrecords to parent loggers
+		if applicable.
 
 	generic log levels:
 		logging.NOTSET      0

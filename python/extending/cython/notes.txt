@@ -1118,6 +1118,10 @@ __main__ would import the module and run functions.
 					...
 					compiler_directives:
 						use which python?
+
+				NOTE: __init__.py is required for every package for cythonize
+				      to return extensions under the correct package name.  Otherwise,
+				      they all just become top-level extension modules.
 	------------------------------
 	-3.2- writing cython
 
