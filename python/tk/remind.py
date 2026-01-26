@@ -96,14 +96,19 @@ class Request(object):
                     target = datetime.datetime.strptime(command, DATE_FMT)
                     buf, message, _ = yield from readtil(sock, buf, remainder.nbytes)
                     message = codecs.decode(message, 'utf-8')
-                    heapq.heappush(server.reminders, (target, message))
+                    entry = (target, message)
+                    with sock.makefile('w') as wf:
+                        if entry in server.reminders:
+                            print('Reminder already scheduled.', file=wf)
+                            print('  time:', target.strftime(DATE_SHOW), file=wf)
+                            print('  mesg:', message, file=wf)
+                        else:
+                            heapq.heappush(server.reminders, entry)
+                            print(datetime.datetime.now().strftime(DATE_SHOW), 'Scheduled reminder:', file=wf)
+                            print('  time:', target.strftime(DATE_SHOW), file=wf)
+                            print('  mesg:', message, file=wf)
                 except Exception:
                     sock.sendall(traceback.format_exc().encode('utf-8'))
-                else:
-                    with sock.makefile('w') as wf:
-                        print(datetime.datetime.now().strftime(DATE_SHOW), 'Scheduled reminder:', file=wf)
-                        print('  time:', target.strftime(DATE_SHOW), file=wf)
-                        print('  mesg:', message, file=wf)
         finally:
             server.eprint('closing socket', sock.getsockname())
             sock.close()
@@ -419,8 +424,7 @@ def send_command(args, retrying=False):
             s.connect(('localhost', args.port))
         except Exception:
             if args.cmd in COMMANDS:
-                if args.verbose:
-                    print('Server not active.')
+                print('No reminder server.')
                 return 1
             else:
                 try:
