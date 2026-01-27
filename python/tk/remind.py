@@ -182,6 +182,7 @@ class Server(object):
         self.running = True
 
         self.tk = tk.Tk()
+        self.tk.update_idletasks() # On windows, without this, every window loses focus.
         self.tk.withdraw()
         self.tk.createcommand('CheckNotifications', self._check_notifications)
         self.notifying = tk.BooleanVar(self.tk, False)
