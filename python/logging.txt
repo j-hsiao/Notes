@@ -59,21 +59,24 @@ ______________________________
 	______________________________
 	-0.1- configs
 		configure root if not already configured
-		
-		kwargs:
-			filename: creates FileHandler(filename) isntead of StreamHandler(sys.stderr)
-			filemode: mode for filename
-			encoding: encoding for filename
 
-			handlers: seq of handlers for root logger
+		BasicConfig:
+			kwargs:
+				filename: creates FileHandler(filename) instead of StreamHandler(sys.stderr)
+				filemode: mode for filename
+				encoding: encoding for filename (3.9+)
+				errors: used for FileHandler, how are encoding errors handled?
+				        default: 'backslashreplace', (3.9+)
 
-			stream: use StreamHandler
+				handlers: seq of handlers for root logger (3.3+)
 
-			format: default Formatter for handler
-			datefmt: datefmt for formatter
-			style: style for formatter
-			level: root log level
-			force: force reinitialization of root logger
+				stream: use StreamHandler
+
+				format: default Formatter for handler
+				datefmt: datefmt for formatter
+				style: style for formatter (3.2+)
+				level: root log level
+				force: force reinitialization of root logger (3.8+)
 
 		Set up logging with 3 choices:
 			1. create everything explicitly
@@ -215,10 +218,12 @@ ______________________________
 -2- handlers
 	Handlers handle the LogRecord (ex. write or send it somewhere)
 
-
 	common methods:
 		setLevel(level: int|str(3.2+))
-		setFormatter(fmt): a Formatter or None
+		setFormatter(fmt):
+			a Formatter or None
+			NOTE: handlers do not take formatters via __init__.
+			      You must call setFormatter separately.
 		[add|remove]Filter(filter):
 
 	subclasses should override and call:
@@ -245,27 +250,62 @@ ______________________________
 		(otherwise, clients can't really control log handling.)
 		can add a NullHandler though to not print if no configuration.
 
-	builtins:
+	______________________________
+	-2.1- builtin handlers
 		logging:
+			StreamHandler(stream=None)
+				Emit LogRecords to the given stream.
+				NOTE: close() does not close the given stream.
+				attributes:
+					terminator: (3.2+)
+
+			FileHandler(fname, mode='a', encoding=None, delay=False, errors=None)
+				like StreamHandler(open(fname, mode, encoding=encoding, errors=errors))
+				except also close the file when close() is called
+				delay: bool, delay opening the file until the first write.
+
 			NullHandler (3.1+)
-			StreamHandler
-			FileHandler
 
 		logging.handlers:
 			BaseRotatingHandler
-			RotatingFileHandler
-			TimedRotatingFileHandler
-			SocketHandler
+			RotatingFileHandler(fname, mode='a', maxBytes=0, backupCount=0, encoding=None, delay=False, errors=None)
+				Rotate based on size.
+				Both maxBytes and backupCount must be non-zero for rotation.
+				This renames backups accordingly and then creates a new file.
+			TimedRotatingFileHandler(fname, when='SMHD|W0-W6|midnight', interval, backupCount, encoding, delay, utc, atTime, errors)
+				Rotate based on time and size, whichever is first
+				when:
+					W0 = monday
+				Extensions will be a datetime string.
+			SocketHandler(host, port)
+				Sends pickled LogRecord to host:port. (TCP)
 			DatagramHandler
+				Sends pickled LogRecord to host:port. (UDP)
+			SysLogHandler(address=(host, port), facility=LOG_USER, socktype=dgram, timeout=None)
+				?send to a syslog?
 			SMTPHandler
-			SysLogHandler
+				email
 			NTEventLogHandler
-			MemoryHandler
-			HTTPHandler
+				Send to Windows NT event log
+			MemoryHandler(capacity, flushLevel=Error, target=None, flushOnClose=True)
+				Buffer in memory, flush to handler when accumulated or severe LogRecord.
+			HTTPHandler(host, url, method='GET', secure=False, credentials=None, context=None)
+				Send http to server with get or post
+				context: ssl.SSLContext
+				credentials: 2-tuple of userid, password
+				             placed into Authorization header with BasicAuth
+				             (should use secure=True to encrypt user/password etc)
+				Sends attrs as url-encoded dictionary
+				host:port?key=value&key=value...
 			WatchedFileHandler
+				Same as FiileHandler except watch for file changes between emit()s
+				ex. if the file was moved (log rotation etc), then reopen it.
 			QueueHandler (3.2+)
-
-
+				queue.push(logRecord)
+			QueueListener(queue, handlers, respect_handler_level=False)
+				Consume messages from the given queue
+				start(): starts listener in background
+				stop(): stop the listener
 
 ______________________________
 -3- Formatters
