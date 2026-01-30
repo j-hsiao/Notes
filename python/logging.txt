@@ -230,7 +230,7 @@ ______________________________
 		__init__ set level, initialize filters, creates a lock.
 		close() remove handler from internal handlers map.
 		flush() no-op
-		emit(): NotImplementedError
+		emit(record): NotImplementedError
 			NOTE: because emit() is called while locked, any use of locks
 			      may cause deadlock.  Try to avoid any logging api calls
 			      while inside emit().
