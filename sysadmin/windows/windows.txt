@@ -5,6 +5,7 @@ contents
 -4- file explorer
 -5- dialog boxes
 -6- personal setup
+	-6.1- shortcuts
 -7- daemon
 
 
@@ -73,9 +74,10 @@ alt+acess key       select that option
 ------------------------------
 
 ------------------------------
-shortcuts
+-6.1- shortcuts
 ------------------------------
-	C:\users\"username"\AppData\Roaming\Microsoft\Windows\Start Menu\Programs
+	per user:     C:\users\"username"\AppData\Roaming\Microsoft\Windows\Start Menu\Programs
+	per system:   C:\ProgramData\Microsoft\Windows\Start Menu\Programs
 	make dir: Terminals
 
 	Shortcut keys seem to only be read if the shortcut is lcoated inside
