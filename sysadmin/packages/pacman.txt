@@ -1,0 +1,23 @@
+-0- about
+-1- options
+
+------------------------------
+-0- about
+------------------------------
+pacman is the package manager for arch linux.  It generally handles the
+official arch linux repositories.  However, Arch also has the AUR which
+is for user-managed packages (check and verify install scripts to ensure
+no viruses etc if using AUR...)
+
+------------------------------
+-1- options
+------------------------------
+	-Q query database
+		checks
+
+	-R --remove
+
+	-S sync
+		synchronzies with remote repos
+		-s
+			search

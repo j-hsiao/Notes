@@ -1,0 +1,31 @@
+-0- about
+-1- tools
+
+------------------------------
+-0- about
+------------------------------
+dpkg is the low-level package manager.  In general, it interacts
+directly with .deb files.  (Apt just handles downloading etc.)
+
+Get dpkg dev tools:
+
+dpkg repositories are directories with .deb files
+and a 
+
+---------
+-1- tools
+---------
+	Get the dpkg tools by installing the dpkg-dev package:
+
+		sudo apt install dpkg-dev
+
+	-----------------------
+	-1.1- dpkg-scanpackages
+	-----------------------
+	This tool scans through a directory tree and creates a "Packages"
+	file to make the directory into a "repository" useable by
+	apt etc.
+
+	NOTE: apt ignores uncompressed Packages files except when
+	      "file://..." url so might want to compress it
+	      with xz, bzip2, gzip, etc

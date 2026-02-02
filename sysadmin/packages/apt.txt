@@ -1,0 +1,46 @@
+-0- about
+-1- sources
+-2- commands
+
+---------
+-0- about
+---------
+apt is short for aptitude and is the package manager for various debian
+based distributions.  In general, `apt` is the "old" interface.  The
+various `apt-*` are the new interface.  The `apt-*` are more specific
+and might offer extra functionality.
+
+
+-----------
+-1- sources
+-----------
+Apt generally connects to various repositories listed in:
+	/etc/apt/sources.list
+	/etc/apt/sources.list.d/*
+
+The syntax for these files:
+[deb|deb-src] [opt1=val1 opt2=val2 ...] uri suite component1 component2 ...
+
+examples:
+	deb http://archive.ubuntu.com/ubuntu/ jammy main restricted
+	deb http://archive.ubuntu.com/ubuntu/ jammy-updates multiverse
+	deb-src http://archive.ubuntu.com/ubuntu/ jammy-updates multiverse
+
+options:
+	arch: amd64, aarch64 ??
+	lang:
+	target:
+	pdiffs
+	by-hash
+
+------------
+-2- commands
+------------
+apt
+	search
+	install
+	list
+apt-get
+	install
+apt-cache
+	dependencies
