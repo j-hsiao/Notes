@@ -10,11 +10,6 @@
 "  ;l -> <Esc>
 "  <C-L>: <Del>
 "  <Leader><Leader>: original <Leader> key
-"  <Leader>r: prompt to repeat a char by N times
-"
-"Abbreviations:
-"  Inp:  Inputs header
-"  Outp: Outputs header
 
 if get(g:, 'loaded_misc', 0)
 	finish
@@ -60,73 +55,6 @@ endif
 if maparg('<Leader><Leader>', 'i') == ''
 	execute jhsiaomapfallback#CreateFallback('<Leader><Leader>', '<Leader>', 'i')
 endif
-
-"Sectioning
-function! s:IRepeatCharParse()
-	if getchar(1)
-		let newchar = getchar()
-		if type(newchar) == v:t_number
-			let newchar = nr2char(newchar)
-		endif
-		if newchar =~ '\m\d'
-			let b:MiscRepeatCharCount = get(b:, 'MiscRepeatCharCount', '') . newchar
-			call feedkeys("\<Plug>MiscRepeatChar;", 'mi')
-			return ''
-		else
-			let numchars = get(b:, 'MiscRepeatCharCount', '')
-			if !strlen(numchars)
-				let numchars = 30
-			endif
-			let b:MiscRepeatCharCount = ''
-			return repeat(newchar, numchars)
-		endif
-	else
-		call feedkeys("\<Plug>MiscRepeatChar;", 'mi')
-		return ''
-	endif
-endfunction
-function! s:ClearRepeat(...)
-	let b:MiscRepeatCharCount = ''
-	if a:0 && a:1
-		"Dunno why but by observation when disambiguating on
-		"cygwin C-[ results in 'C-[[91;5u' which means canceling
-		"via control-[ ends up adding the extra keys [91;5u so
-		"consume those extra keys
-		while getchar(1)
-			let thing = getchar()
-			if type(thing) == v:t_number
-				let thing = nr2char(thing)
-			endif
-		endwhile
-	endif
-	return ''
-endfunction
-inoremap <Plug>MiscRepeatChar;<Esc> <C-R>=<SID>ClearRepeat(1)<CR>
-inoremap <Plug>MiscRepeatChar; <C-R>=<SID>IRepeatCharParse()<CR>
-"function! s:IRepeatChar()
-"	call inputsave()
-"	let resp = input('repeat [count]char: ')
-"	call inputrestore()
-"	if strlen(resp)
-"		let repeat = strpart(resp, 0, strlen(resp)-1)
-"		if repeat == ''
-"			let repeat = 30
-"		endif
-"		return repeat(strpart(resp, strlen(resp)-1), repeat)
-"	endif
-"	return ''
-"endfunction
-
-if maparg('<Leader>r', 'i') == ''
-	"inoremap <expr> <Leader>r <SID>IRepeatChar()
-	imap <Leader>r <C-R>=<SID>ClearRepeat()<CR><Plug>MiscRepeatChar;
-endif
-
-for val in ['In', 'Out']
-	if maparg(val . 'p', 'i', v:true) == ''
-		execute 'inorea ' . val . 'p ' . val . 'puts<CR>' . repeat('=', strlen(val) + 4)
-	endif
-endfor
 
 "gq uses textwidth but textwidth also has the possibly undesired effect
 "of forcing newline when reaching the column.  This allows using a
@@ -434,11 +362,11 @@ vnoremap <Plug>MiscRmComment; :call <SID>RmCommentV()<CR>
 
 for mode in ['i', 'n', 'v']
 	let after = mode == 'v' ? 'n' : mode
-	if maparg('<C-K>/', mode) == ''
-		execute jhsiaocrepeat#CharRepeatedCmds(mode . 'map <C-K>/ <Plug>MiscAddComment;', '/', after)
+	if maparg('<Leader>/', mode) == ''
+		execute jhsiaocrepeat#CharRepeatedCmds(mode . 'map <Leader>/ <Plug>MiscAddComment;', '/', after)
 	endif
-	if maparg("<C-K><C-K>/", mode) == ''
-		execute jhsiaocrepeat#CharRepeatedCmds(mode . 'map <C-K><C-K>/ <Plug>MiscRmComment;', '/', after)
+	if maparg("<Leader>k/", mode) == ''
+		execute jhsiaocrepeat#CharRepeatedCmds(mode . 'map <Leader>k/ <Plug>MiscRmComment;', '/', after)
 	endif
 endfor
 
@@ -470,18 +398,83 @@ function! s:Surround(char1, ...)
 	return printf("\<Esc>%s|a%s\<Esc>%s|i%s\<Esc>", col2, ending, col1, a:char1)
 endfunction
 
-if maparg("<C-K>'", 'v') == ''
-	vnoremap <expr> <C-K>' <SID>Surround("'")
+if maparg("<Leader>'", 'v') == ''
+	vnoremap <expr> <Leader>' <SID>Surround("'")
 endif
-if maparg('<C-K>"', 'v') == ''
-	vnoremap <expr> <C-K>" <SID>Surround('"')
+if maparg('<Leader>"', 'v') == ''
+	vnoremap <expr> <Leader>" <SID>Surround('"')
 endif
-if maparg('<C-K>(', 'v') == ''
-	vnoremap <expr> <C-K>( <SID>Surround('(', ')')
+if maparg('<Leader>(', 'v') == ''
+	vnoremap <expr> <Leader>( <SID>Surround('(', ')')
 endif
-if maparg('<C-K>[', 'v') == ''
-	vnoremap <expr> <C-K>[ <SID>Surround('[', ']')
+if maparg('<Leader>[', 'v') == ''
+	vnoremap <expr> <Leader>[ <SID>Surround('[', ']')
 endif
+
+" Add header wrappers.
+" atend: move cursor to the end.
+" top: add above
+" bottom: add below
+function! s:FormatHeader(top, bottom, atend)
+	if a:atend
+		call s:FormatHeader(a:top, a:bottom, v:false)
+		if a:bottom
+			normal j$
+		endif
+		return
+	endif
+	let ch = nr2char(getchar())
+	let lineno = line('.')
+	let pattern = '\m^\([[:blank:]]*\)\(.*\)$'
+	let curline = matchlist(getline('.'), pattern)
+	let indentcols = strdisplaywidth(curline[1])
+	let textcols = strdisplaywidth(curline[2], indentcols)
+	let wrapper = curline[1] . repeat(ch, textcols)
+	if lineno > 1
+		let preline = matchlist(getline(lineno-1), pattern)
+		let nxtline = matchlist(getline(lineno+1), pattern)
+		if a:top && a:bottom
+			\ && preline[1] == nxtline[1]
+			\ && preline[2] == nxtline[2]
+			\ && preline[1] == curline[1]
+			\ && strlen(preline[2]) > 0
+			\ && match(preline[2], '\m^' . preline[2][0] . '*$') >= 0
+			\ || a:top && !a:bottom
+				\ && preline[1] == curline[1]
+				\ && strlen(preline[2]) > 0
+				\ && match(preline[2], '\m^' . preline[2][0] . '*$') >= 0
+			\ ||  !a:top && a:bottom
+				\ && nxtline[1] == curline[1]
+				\ && strlen(nxtline[2]) > 0
+				\ && match(nxtline[2], '\m^' . nxtline[2][0] . '*$') >= 0
+			if a:top
+				call setline(lineno-1, wrapper)
+			endif
+			if a:bottom
+				call setline(lineno+1, wrapper)
+			endif
+			return
+		endif
+	endif
+	if a:bottom
+		call append(lineno, wrapper)
+	endif
+	if a:top
+		call append(lineno-1, wrapper)
+	endif
+endfunction
+
+" Surround header (new delimiters)
+if maparg('<Leader>h', 'n') == ''
+	nnoremap <Leader>h :call <SID>FormatHeader(1, 1, v:false)<CR>
+	nnoremap <Leader><C-H> :call <SID>FormatHeader(0, 1, v:false)<CR>
+endif
+
+if maparg('<Leader>h', 'i') == ''
+	inoremap <Leader>h <C-O>:call <SID>FormatHeader(1, 1, v:true)<CR>
+	inoremap <Leader><C-H> <C-O>:call <SID>FormatHeader(0, 1, v:true)<CR>
+endif
+
 
 "------------------------------
 " Change :u<CR> to :up<CR>

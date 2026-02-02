@@ -37,9 +37,9 @@
 "
 "Alignment/indentation at start of line:
 "                   add align   rm alignment    indent  unindent
-"   normal mode:    <C-K><C-L>  <C-K><C-J>      >>      <<
-"   visual mode:    <C-K><C-L>  <C-K><C-J>      >       <
-"   insert mode:    <C-K><C-L>  <C-K><C-J>      <C-D>   <C-T>
+"   normal mode:    <Leader><C-L>  <Leader><C-J>      >>      <<
+"   visual mode:    <Leader><C-L>  <Leader><C-J>      >       <
+"   insert mode:    <Leader><C-L>  <Leader><C-J>      <C-D>   <C-T>
 
 "Observations:
 "	Insert mode <C-T>, <C-D> do NOT preserve the alignment level of the
@@ -233,9 +233,9 @@ endfunction
 inoremap <expr> <Plug>TabispaAlignCursor; <SID>AlignCursor(v:true)
 inoremap <expr> <Plug>TabispaDealignCursor; <SID>AlignCursor(v:false)
 execute jhsiaocrepeat#CharRepeatedCmds(
-	\ 'imap <C-K><C-F> <Plug>TabispaAlignCursor;', '<C-F>')
+	\ 'imap <Leader><C-F> <Plug>TabispaAlignCursor;', '<C-F>')
 execute jhsiaocrepeat#CharRepeatedCmds(
-	\ 'imap <C-K><C-B> <Plug>TabispaDealignCursor;', '<C-B>')
+	\ 'imap <Leader><C-B> <Plug>TabispaDealignCursor;', '<C-B>')
 
 
 "TODO
@@ -323,24 +323,24 @@ nnoremap <Plug>TabispaAddIndent; :call <SID>AddIndentSingle(v:false)<CR>
 nnoremap <Plug>TabispaAddIndentIgnore; :call <SID>AddIndentSingle(v:true)<CR>
 imap <C-T> <Plug>TabispaAddIndent;
 execute jhsiaocrepeat#CharRepeatedCmds(
-	\ 'imap <C-K><C-T> <Plug>TabispaAddIndentIgnore;', '<C-T>')
+	\ 'imap <Leader><C-T> <Plug>TabispaAddIndentIgnore;', '<C-T>')
 execute jhsiaocrepeat#CharRepeatedCmds(
 	\ 'nmap >> <Plug>TabispaAddIndentIgnore;', '.')
 execute jhsiaocrepeat#CharRepeatedCmds(
-	\ 'nmap <C-K>> <Plug>TabispaAddIndent;', '.')
+	\ 'nmap <Leader>> <Plug>TabispaAddIndent;', '.')
 
 inoremap <Plug>TabispaAddAlign; <C-R>=<SID>AddIndentSingle(v:false, v:true)<CR>
 inoremap <Plug>TabispaAddAlignIgnore; <C-R>=<SID>AddIndentSingle(v:true, v:true)<CR>
 nnoremap <Plug>TabispaAddAlign; :call <SID>AddIndentSingle(v:false, v:true)<CR>
 nnoremap <Plug>TabispaAddAlignIgnore; :call <SID>AddIndentSingle(v:true, v:true)<CR>
 execute jhsiaocrepeat#CharRepeatedCmds(
-	\ 'imap <C-K><C-L> <Plug>TabispaAddAlign;', '<C-L>')
+	\ 'imap <Leader>l <Plug>TabispaAddAlign;', 'l')
 execute jhsiaocrepeat#CharRepeatedCmds(
-	\ 'imap <C-K><C-K><C-L> <Plug>TabispaAddAlignIgnore;', '<C-L>')
+	\ 'imap <Leader>kl <Plug>TabispaAddAlignIgnore;', 'l')
 execute jhsiaocrepeat#CharRepeatedCmds(
-	\ 'nmap <C-K><C-L> <Plug>TabispaAddAlignIgnore;', '.')
+	\ 'nmap <Leader>l <Plug>TabispaAddAlignIgnore;', '.')
 execute jhsiaocrepeat#CharRepeatedCmds(
-	\ 'nmap <C-K><C-K><C-L> <Plug>TabispaAddAlign;', '.')
+	\ 'nmap <Leader>kl <Plug>TabispaAddAlign;', '.')
 
 
 function! s:RemoveIndentSingle(ignore_comments, ...)
@@ -400,24 +400,24 @@ nnoremap <Plug>TabispaRemoveIndent; :call <SID>RemoveIndentSingle(v:false)<CR>
 nnoremap <Plug>TabispaRemoveIndentIgnore; :call <SID>RemoveIndentSingle(v:true)<CR>
 imap <C-D> <Plug>TabispaRemoveIndent;
 execute jhsiaocrepeat#CharRepeatedCmds(
-	\ 'imap <C-K><C-D> <Plug>TabispaRemoveIndentIgnore;', '<C-D>')
+	\ 'imap <Leader><C-D> <Plug>TabispaRemoveIndentIgnore;', '<C-D>')
 execute jhsiaocrepeat#CharRepeatedCmds(
 	\ 'nmap <lt><lt> <Plug>TabispaRemoveIndentIgnore;', '.')
 execute jhsiaocrepeat#CharRepeatedCmds(
-	\ 'nmap <C-K><lt> <Plug>TabispaRemoveIndent;', '.')
+	\ 'nmap <Leader><lt> <Plug>TabispaRemoveIndent;', '.')
 
 inoremap <Plug>TabispaRemoveAlign; <C-R>=<SID>RemoveIndentSingle(v:false, v:true)<CR>
 inoremap <Plug>TabispaRemoveAlignIgnore; <C-R>=<SID>RemoveIndentSingle(v:true, v:true)<CR>
 nnoremap <Plug>TabispaRemoveAlign; :call <SID>RemoveIndentSingle(v:false, v:true)<CR>
 nnoremap <Plug>TabispaRemoveAlignIgnore; :call <SID>RemoveIndentSingle(v:true, v:true)<CR>
 execute jhsiaocrepeat#CharRepeatedCmds(
-	\ 'imap <C-K><C-J> <Plug>TabispaRemoveAlign;', '<C-J>')
+	\ 'imap <Leader>j <Plug>TabispaRemoveAlign;', 'j')
 execute jhsiaocrepeat#CharRepeatedCmds(
-	\ 'imap <C-K><C-K><C-J> <Plug>TabispaRemoveAlignIgnore;', '<C-J>')
+	\ 'imap <Leader>kj <Plug>TabispaRemoveAlignIgnore;', 'j')
 execute jhsiaocrepeat#CharRepeatedCmds(
-	\ 'nmap <C-K><C-J> <Plug>TabispaRemoveAlignIgnore;', '.')
+	\ 'nmap <Leader>j <Plug>TabispaRemoveAlignIgnore;', '.')
 execute jhsiaocrepeat#CharRepeatedCmds(
-	\ 'nmap <C-K><C-K><C-J> <Plug>TabispaRemoveAlign;', '.')
+	\ 'nmap <Leader>kj <Plug>TabispaRemoveAlign;', '.')
 
 "Return whether the range of lines are all commented
 "or blank
@@ -549,14 +549,14 @@ vnoremap <Plug>TabispaAddIndentIgnore; :call <SID>AddIndentVisual(v:true)<CR>
 execute jhsiaocrepeat#CharRepeatedCmds(
 	\ 'vmap > <Plug>TabispaAddIndentIgnore;', '.', 'n')
 execute jhsiaocrepeat#CharRepeatedCmds(
-	\ 'vmap <C-K>> <Plug>TabispaAddIndent;', '.', 'n')
+	\ 'vmap <Leader>> <Plug>TabispaAddIndent;', '.', 'n')
 
 vnoremap <Plug>TabispaAddAlign; :call <SID>AddIndentVisual(v:false, v:true)<CR>
 vnoremap <Plug>TabispaAddAlignIgnore; :call <SID>AddIndentVisual(v:true, v:true)<CR>
 execute jhsiaocrepeat#CharRepeatedCmds(
-	\ 'vmap <C-K><C-L> <Plug>TabispaAddAlignIgnore;', '.', 'n')
+	\ 'vmap <Leader>l <Plug>TabispaAddAlignIgnore;', '.', 'n')
 execute jhsiaocrepeat#CharRepeatedCmds(
-	\ 'vmap <C-K><C-K><C-L> <Plug>TabispaAddAlign;', '.', 'n')
+	\ 'vmap <Leader>kl <Plug>TabispaAddAlign;', '.', 'n')
 
 function! s:RemoveIndentVisual(ignore_comments, ...) range
 	let align = a:0 > 0 ? a:1 : v:false
@@ -616,14 +616,14 @@ vnoremap <Plug>TabispaRemoveIndentIgnore; :call <SID>RemoveIndentVisual(v:true)<
 execute jhsiaocrepeat#CharRepeatedCmds(
 	\ 'vmap <lt> <Plug>TabispaRemoveIndentIgnore;', '.', 'n')
 execute jhsiaocrepeat#CharRepeatedCmds(
-	\ 'vmap <C-K><lt> <Plug>TabispaRemoveIndent;', '.', 'n')
+	\ 'vmap <Leader><lt> <Plug>TabispaRemoveIndent;', '.', 'n')
 
 vnoremap <Plug>TabispaRemoveAlign; :call <SID>RemoveIndentVisual(v:false, v:true)<CR>
 vnoremap <Plug>TabispaRemoveAlignIgnore; :call <SID>RemoveIndentVisual(v:true, v:true)<CR>
 execute jhsiaocrepeat#CharRepeatedCmds(
-	\ 'vmap <C-K><C-J> <Plug>TabispaRemoveAlignIgnore;', '.', 'n')
+	\ 'vmap <Leader>j <Plug>TabispaRemoveAlignIgnore;', '.', 'n')
 execute jhsiaocrepeat#CharRepeatedCmds(
-	\ 'vmap <C-K><C-K><C-J> <Plug>TabispaRemoveAlign;', '.', 'n')
+	\ 'vmap <Leader>kj <Plug>TabispaRemoveAlign;', '.', 'n')
 
 function! s:Realign()
 	"Rearrange all leading spaces/tabs to be tabs first then spaces
@@ -710,7 +710,7 @@ endfunction
 "	return (firstline+1) . 'GV' . (lastline-1) . 'G'
 "endfunction
 "
-"nnoremap <expr> <C-K>s <SID>SelectBlock()
+"nnoremap <expr> <Leader>s <SID>SelectBlock()
 "
 "
 "" Convert space/tabs up to col into all tabs
@@ -768,8 +768,8 @@ endfunction
 "	endwhile
 "endfunction
 "
-"nnoremap <silent> <C-K><C-K><C-K><Tab> :<C-U>call <SID>Tabify()<CR>
-"vnoremap <C-K><Tab> :call <SID>Tabify()<CR>
+"nnoremap <silent> <Leader>kk<Tab> :<C-U>call <SID>Tabify()<CR>
+"vnoremap <Leader><Tab> :call <SID>Tabify()<CR>
 "
 ""Fixed indent to a level (number of tabs)
 ""Mostly useful if Tabify() can't distinguish between indent and align
@@ -793,6 +793,6 @@ endfunction
 "		let curline += 1
 "	endwhile
 "endfunction
-"nnoremap <silent> <C-K><Bslash> :<C-U>call <SID>FixedIndent(v:count)<CR>
-"vnoremap <C-K><Bslash> :call <SID>FixedIndent(v:count)<CR>
+"nnoremap <silent> <Leader><Bslash> :<C-U>call <SID>FixedIndent(v:count)<CR>
+"vnoremap <Leader><Bslash> :call <SID>FixedIndent(v:count)<CR>
 "
