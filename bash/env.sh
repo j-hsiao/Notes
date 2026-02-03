@@ -253,13 +253,6 @@ setup_bash() {
 		scriptdirs[idx]=$' \\\n\t'"\"${scriptdirs[idx]/#"${HOME}"/'${HOME}'}\""
 	done
 
-	if [[ -d "${HOME}/.pyenv/versions" ]]
-	then
-		local envsdir='${HOME}/.pyenv/versions'
-	else
-		local envsdir='${HOME}/envs'
-	fi
-
 	local data
 	printf -v data '%s' ". \"${ROOTDIR/#"${HOME}"/'${HOME}'}/scripts/load.sh\"" "${scriptdirs[@]}" $'\n'
 	echo "Updating ~/.bashrc"
@@ -295,7 +288,6 @@ setup_bash() {
 
 	${DRYRUN:+echo} replace_section "${HOME}/.bashrc" \
 		"${data}" "# ${ROOTDIR}: scripts" 0 \
-		"PYTHON_ENVS_DIR=\"\${PYTHON_ENVS_DIR:-${envsdir}}\"" "# ${ROOTDIR}: e.sh" 0 \
 		"${PS1script//$'\n\t'/$'\n'}" "# ${ROOTDIR}: PS1" 0 \
 		"${interactive_alias//$'\n\t\t'/$'\n'}" "# ${ROOTDIR}: interactive" 0
 }

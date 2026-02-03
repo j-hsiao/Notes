@@ -4,8 +4,6 @@
 
 PYTHON_ENVS_DIR="${PYTHON_ENVS_DIR:-${HOME}/.pyenv/versions}"
 
-. "${BASH_SOURCE[0]/%e.sh/util}/shoptstack.sh"
-
 e() {
 	if [[ -f "${1}/bin/activate" ]]
 	then
@@ -19,15 +17,84 @@ e() {
 
 _e_completer()
 {
-	local word="${2}"
-	[[ "${word}" =~ ^(.*[^/])//* ]] && word="${BASH_REMATCH[1]}"
-
-	if [[ "${word}" =~ ^.*'/'.*$ ]]
+	if [[ "${BASHOPTS}" != *nullglob* ]]
 	then
-		return
+		shopt -s nullglob
+		trap 'shopt -u nullglob; trap - RETURN' RETURN
 	fi
-	ss_push nullglob
-	COMPREPLY=("${PYTHON_ENVS_DIR}/${2%/}"*)
-	ss_pop
+	local word="${2}"
+	local choice=
+	if [[ "${word}" =~ ^(.*),([0-9]*)$ ]]
+	then
+		word="${BASH_REMATCH[1]}"
+		choice="${BASH_REMATCH[2]}"
+	fi
+	case "${word}" in
+		*/*) COMPREPLY=("${word}"*/);;
+		.) COMPREPLY=(./*/);;
+		*)
+			local envnames=(
+				"${PYTHON_ENVS_DIR[@]}"
+				"${HOME}/.pyenv/versions"
+				"${PYENV_ROOT}/versions"
+				"${HOME}/envs"
+				"${HOME}/.envs"
+			)
+			local end="${#envnames[@]}"
+			local start
+			local idx
+			for ((start=0; start<end; ++start))
+			do
+				for ((idx=start+1; idx<end; ++idx))
+				do
+					if [[ "${envnames[start]}" = "${envnames[idx]}" ]]
+					then
+						envnames[idx]="${envnames[end-1]}"
+						unset envnames[--end]
+					fi
+				done
+			done
+			COMPREPLY=()
+			for ((idx=0; idx<${#envnames[@]}; ++idx))
+			do
+				if [[ -d "${envnames[idx]}" ]]
+				then
+					COMPREPLY+=("${envnames[idx]}/${word}"*)
+				fi
+			done
+			;;
+	esac
+	COMPREPLY=("${COMPREPLY[@]%/}")
+	if [[ -n "${choice}" ]]
+	then
+		COMPREPLY=("${COMPREPLY[choice]}")
+	elif (("${#COMPREPLY[@]}" > 1))
+	then
+		local prefix="${#COMPREPLY[0]}"
+		local idx cand
+		for ((cand=1; cand<"${#COMPREPLY[@]}"; ++cand))
+		do
+			for ((idx=0; idx<prefix; ++idx))
+			do
+				if [[ "${COMPREPLY[0]:idx:1}" != "${COMPREPLY[cand]:idx:1}" ]]
+				then
+					prefix="${idx}"
+					break
+				fi
+			done
+		done
+		if [[ "${COMPREPLY[*]:prefix}" != */* ]]
+		then
+			# All from the same directory
+			COMPREPLY=("${COMPREPLY[@]##*/}")
+		fi
+		local fmt="${#COMPREPLY[@]}"
+		fmt="\\n%${#fmt}d: %s"
+		for ((idx=0; idx<${#COMPREPLY[@]}; ++idx))
+		do
+			printf "${fmt}" "${idx}" "${COMPREPLY[idx]%/}"
+		done
+		COMPREPLY=('' ' ')
+	fi
 }
-complete -o dirnames -F _e_completer e
+complete -o filenames -o dirnames -F _e_completer e
