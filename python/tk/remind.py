@@ -215,17 +215,23 @@ class Server(object):
                 # or the popup might be behind everything else, and not even have an icon.
                 self.tk.deiconify()
                 self.tk.attributes('-topmost', True)
+                self.tk.geometry('+{}+{}'.format(self.tk.winfo_screenwidth()-1, self.tk.winfo_screenheight()-1))
                 self.tk.update_idletasks()
-                self.tk.withdraw()
                 now = datetime.datetime.now()
                 if abs((now - target).total_seconds()) < 1:
                     messagebox.showinfo(title='Reminder', message=f'{target.strftime(DATE_SHOW)}\n\n{message}')
                 else:
                     messagebox.showinfo(title='Reminder', message=f'now: {now.strftime(DATE_SHOW)}\n\ntgt: {target.strftime(DATE_SHOW)}:\n\n{message}')
+                self.tk.update_idletasks()
+                self.tk.withdraw()
             with self.lock:
                 if self.running:
                     return
             if self.reminders:
+                self.tk.deiconify()
+                self.tk.attributes('-topmost', True)
+                self.tk.geometry('+{}+{}'.format(self.tk.winfo_screenwidth()-1, self.tk.winfo_screenheight()-1))
+                self.tk.update_idletasks()
                 tl = tk.Toplevel(self.tk)
                 txt = tk.Text(tl)
                 txt.grid(row=0, column=0, sticky='nsew')
