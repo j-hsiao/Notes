@@ -647,13 +647,11 @@ function main()
 		keydir="$(dirname "${BASH_SOURCE[0]}")/keys"
 	fi
 	keydir="$(realpath "${keydir}")"
-	if [[ "${1::1}" = '-' ]]
-	then
-		cmd=c
-	else
-		cmd="${1:-c}"
-		shift 1
-	fi
+	case "${1}" in
+		-h|--help) help_message; return;;
+		-*) cmd=c;;
+		*) cmd="${1:-c}"; shift 1;;
+	esac
 	case "${cmd}" in
 		i)
 			install_key_config "${keydir}" "${@}"
