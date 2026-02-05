@@ -599,14 +599,14 @@ function help_message()
 	cat << EOF
 usage: run.sh [-l] command
   options:
-    -l: Use "${HOME}/.ssh/keys" as the default key directory.
+    -l: Use "\${HOME}/.ssh/keys" as the default key directory.
         Otherwise, save to same directory as this script.
   commands:
     -------
     i: install a key to ssh config file
       i [-n] [configfile] [args]...
         -n: just print, do not actually run.
-        configfile: default to ${HOME}/.ssh/config
+        configfile: default to \${HOME}/.ssh/config
       You will be prompted for basic ssh config entry fields.
       Leave blank to keep the value that already exists.  Use a single
       '-' to delete the existing entry.  Otherwise enter a value.
