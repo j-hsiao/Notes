@@ -34,7 +34,7 @@ do_search() # prefix target
 	do
 		if [[ "${schema}" = "${1}"* ]]
 		then
-			local result="$(gsettings list-recursively "${schema}" | grep --color=always "${2}")"
+			local result="$(gsettings list-recursively "${schema}" | grep --color=always "${@:2}")"
 			if [[ -n "${result}" ]]
 			then
 				echo "${schema}"
@@ -100,7 +100,10 @@ run() {
 				    search query
 				        search for query anywhere in schemas
 				    keybinds [modifiers...] key
-				        search for specific keybinds
+				        Search for specific keybinds.  Modifiers are case sensitive.
+				        Common modifiers include Alt, Control, Shift, and Super.
+				        Example serach for <Control><Shift><Super>i keybinding:
+				            bash ${0} keybinds Control Shift Super i
 				" | sed 's/^\t*//'
 				return
 				;;
