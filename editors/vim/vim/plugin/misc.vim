@@ -429,32 +429,41 @@ function! s:FormatHeader(top, bottom, atend)
 	let curline = matchlist(getline('.'), pattern)
 	let indentcols = strdisplaywidth(curline[1])
 	let textcols = strdisplaywidth(curline[2], indentcols)
+
+	let comm = ''
 	let wrapper = curline[1] . repeat(ch, textcols)
-	if lineno > 1
-		let preline = matchlist(getline(lineno-1), pattern)
-		let nxtline = matchlist(getline(lineno+1), pattern)
-		if a:top && a:bottom
-			\ && preline[1] == nxtline[1]
-			\ && preline[2] == nxtline[2]
-			\ && preline[1] == curline[1]
-			\ && strlen(preline[2]) > 0
-			\ && match(preline[2], '\m^' . preline[2][0] . '*$') >= 0
-			\ || a:top && !a:bottom
-				\ && preline[1] == curline[1]
-				\ && strlen(preline[2]) > 0
-				\ && match(preline[2], '\m^' . preline[2][0] . '*$') >= 0
-			\ ||  !a:top && a:bottom
-				\ && nxtline[1] == curline[1]
-				\ && strlen(nxtline[2]) > 0
-				\ && match(nxtline[2], '\m^' . nxtline[2][0] . '*$') >= 0
-			if a:top
-				call setline(lineno-1, wrapper)
-			endif
-			if a:bottom
-				call setline(lineno+1, wrapper)
-			endif
-			return
+	for cmnt in split(&comments, ',')
+		let info = split(cmnt, ':', v:true)
+		let nmatch = matchlist(curline[1] . curline[2], '\m\([[:blank:]]*\)\V\(' . escape(info[1], '\') . '\m[[:blank:]]*\)\(.*\)')
+		if len(nmatch)
+			let comm = nmatch[2]
+			let wrapper = curline[1] . comm . repeat(ch, textcols - strdisplaywidth(comm, indentcols))
+			break
 		endif
+	endfor
+	if a:bottom
+		let nxtline = matchlist(getline(lineno+1), pattern)
+		let nxtsep = nxtline[1] == curline[1] && strlen(nxtline[2]) > 0
+			\ && match(nxtline[2], '\V\^' . escape(comm, '\') . escape(nxtline[2][-1:], '\') . '\*\$') >= 0
+	endif
+	if a:top
+		if lineno > 1
+			let preline = matchlist(getline(lineno-1), pattern)
+			if preline[1] == curline[1] && strlen(preline[2]) > 0
+				\ && match(preline[2], '\V\^' . escape(comm, '\') . escape(preline[2][-1:], '\') . '\*\$') >= 0
+				if ! a:bottom
+					call setline(lineno-1, wrapper)
+					return
+				elseif nxtsep
+					call setline(lineno+1, wrapper)
+					call setline(lineno-1, wrapper)
+					return
+				endif
+			endif
+		endif
+	elseif a:bottom && nxtsep
+		call setline(lineno+1, wrapper)
+		return
 	endif
 	if a:bottom
 		call append(lineno, wrapper)
@@ -467,11 +476,13 @@ endfunction
 " Surround header (new delimiters)
 if maparg('<Leader>h', 'n') == ''
 	nnoremap <Leader>h :call <SID>FormatHeader(1, 1, v:false)<CR>
+	nnoremap <Leader>kh :call <SID>FormatHeader(1, 0, v:false)<CR>
 	nnoremap <Leader><C-H> :call <SID>FormatHeader(0, 1, v:false)<CR>
 endif
 
 if maparg('<Leader>h', 'i') == ''
 	inoremap <Leader>h <C-O>:call <SID>FormatHeader(1, 1, v:true)<CR>
+	inoremap <Leader>kh <C-O>:call <SID>FormatHeader(1, 0, v:true)<CR>
 	inoremap <Leader><C-H> <C-O>:call <SID>FormatHeader(0, 1, v:true)<CR>
 endif
 
