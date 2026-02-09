@@ -1,6 +1,7 @@
-------------------------------
+--------
 contents
-------------------------------
+--------
+-0- workflow
 -1- spec
 -2- basics
 	-2.1- reference syntax
@@ -16,6 +17,7 @@ contents
 		-2.2.9- pull
 		-2.2.10- push
 		-2.2.11- tag
+	-2.3- extra usage
 -3- rebase
 -4- history
 	-4.1- reflog
@@ -34,12 +36,37 @@ contents
 -13- remote
 -14- submodule
 -15- server
+-16- blame
 
 
-------------------------------
+============
+-0- workflow
+============
+General workflow
+
+	git init
+	git add ...
+	git commit -m initial commit
+	git branch dev
+	git branch master
+	git checkout dev
+	... do stuff ... make commits ...
+	git checkout -d
+	git rebase -i master
+	...squash etc
+	git push . @:master
+	# master is now at the ?squashed? rebase
+	git checkout dev
+	git merge master
+
+result:
+1. master only has full completed, ready runnable commits in its direct history
+2. dev retains all the actual history
+
+
+=======
 -1-spec
-------------------------------
-______________________________
+=======
 pathspecs
 	rules
 		paths match itself
@@ -60,7 +87,6 @@ pathspecs
 			long:
 				:(magic,words,comma,delimited)pathmatcher
 
-			______________________________
 			terms:
 				top      (/), pathspec is from top of git tree
 				exclude  (^ or !), ignore paths
@@ -70,8 +96,10 @@ pathspecs
 
 		notes:
 			generally can add -- to delimit the start of pathspecs
-______________________________
+
+========
 refspecs
+========
 	format:
 		[+]<src>:<dst>
 
@@ -85,8 +113,10 @@ refspecs
 		git push origin :refs/heads/master
 			push nothing (delete) origin master
 
-______________________________
+
+=====
 other
+=====
 	tags:
 		refs/tags/<tagname>
 	heads:
@@ -99,47 +129,64 @@ other
 
 
 
-------------------------------
+==========
 -2- basics
-------------------------------
-	------------------------------
+==========
+	======================
 	-2.1- reference syntax
-	------------------------------
-		<sha1>    the sha1 (eg. from git log) or unique leading substring
-		<refname> [refs/][heads/|tags/|remotes/]<branch/tagname>
-		<refname>[@{date|index}|^]
-		          date:
-		            blank: pick HEAD
-		            yesterday
-		            N month N weeks N days N hour N second ago
-		            YYYY-mm-dd HH:MM:SS
-		          index:
-		            indexth prior reference
-		            if refname is empty, use current branch
-		            If negative, indicate prior checked-out commit
-		          ^n
-		            n defaults to 1 if absent.
-		            Take the nth parent (merges, have multiple parents)
-		          ~n
-		            n defaults to 1 if absent
-		            go back n generations, choosing the 1st parent
+	======================
+		https://git-scm.com/docs/gitrevisions
+		<sha1>
+			the sha1 (eg. from git log) or unique leading substring
+		<refname>
+			[refs/[tags/|heads/|remotes/]]<branch/tagname>[/HEAD]
+		heads
+			HEAD              current commit
+			FETCH_HEAD        branch from which last fetch
+			ORIG_HEAD         HEAD before git merge, rebase, reset, etc
+			MERGE_HEAD        commits merged into current HEAD
+			REBASE_HEAD       current HEAD during a stopped rebase due to conflicts
+			REVERT_HEAD       revert target during git revert
+			CHERRY_PICK_HEAD  cherry-picking target during git cherry-pick
+			BISECT_HEAD       current commit to be tested during git bisect --no-checkout
+			AUTO_MERGE
+		[refname]@[{thing}]
+			refname:
+				defaults to HEAD if omitted, or current branch
+			thing:
+				date:
+					yesterday
+					N month N weeks N days N hour N second ago
+					YYYY-mm-dd HH:MM:SS
+				index:
+					indexth prior reference
+					If negative, indicate prior checked-out commit
+					?? what's the difference ??
+				[^n]*
+					n defaults to 1 if absent.
+					Take the nth parent (merges, have multiple parents)
+					example:
+					A^^2 -> take A's 1st parent, and then that's 2nd parent
+				~n
+					n defaults to 1 if absent
+					go back n generations, choosing the 1st parent
 
-	------------------------------
+	=====================
 	-2.2- common commands
-	------------------------------
-		------------------------------
+	=====================
+		=============
 		-2.2.1- clone
-		------------------------------
+		=============
 			clone a repo
 				git clone uri
-		------------------------------
+		===========
 		-2.2.2- add
-		------------------------------
+		===========
 			add
 				git add <files>
-		------------------------------
+		==============
 		-2.2.3- commit
-		------------------------------
+		==============
 			commit
 				git commit -m 'message'
 
@@ -151,9 +198,9 @@ other
 				protip:
 					use HEAD for commit
 
-		------------------------------
+		================
 		-2.2.4- checkout
-		------------------------------
+		================
 			checkout
 				git checkout [branchname]
 					checkout branch from repo (use git branch -a to see repo branches too)
@@ -161,17 +208,19 @@ other
 					create/checkout branch
 				git checkout [branchname] -- [path-to-filename]
 					checkout file
-		------------------------------
+				git checkout --detach [target]
+					checkout the given commit, do not attack to any branches etc.
+		==============
 		-2.2.5- branch
-		------------------------------
+		==============
 			branch
 				git branch -a:
 					display all branches
 				git branch -d [name]
 					delete branch
-		------------------------------
+		============
 		-2.2.6- diff
-		------------------------------
+		============
 			diff
 				git diff -- [path-to-file]
 					difference between file current and since last stage
@@ -182,14 +231,14 @@ other
 					dif between cur state and commit (not staged necessarily)
 				git diff commit commit -- path
 					dif between path for the two commits
-		------------------------------
+		==============
 		-2.2.7- reflog
-		------------------------------
+		==============
 			reflog:
 				shows hashes for previous commits/checkouts etc
-		------------------------------
+		=============
 		-2.2.8- reset
-		------------------------------
+		=============
 			reset:
 				(reset current branch (if applicable) to the ref)
 				NOTE: reflog may still point to commits so will not be able to prune
@@ -197,21 +246,31 @@ other
 					reset all files to state from corresponding commit (delete files too)
 				git reset
 					unstage commits (keep files the same)
-		------------------------------
+		============
 		-2.2.9- pull
-		------------------------------
+		============
 			pull changes from repo (fetch & merge)
 				git pull [remote] [local]
-		------------------------------
+		=============
 		-2.2.10- push
-		------------------------------
+		=============
 			push changes to repo
 				git push <remote> <localbranch>[:remotebranch]
 
 				can leave localbranch blank to delete remotebranch.
-		------------------------------
+
+			NOTE1:
+				when pushing, the target branch must NOT be checked out
+
+			NOTE2:
+				It is possible to push to a branch on the current repo
+				by using . as the remote
+					ex: git push . somebranch:otherbranch
+				This is only allowed if otherbranch is not checked out in accordance
+				to NOTE1 AND if the push would be a fast-forward.
+		============
 		-2.2.11- tag
-		------------------------------
+		============
 			there are 2 types of tags:
 				lightweight
 					(no -a, -s, -m options)
@@ -238,9 +297,9 @@ other
 				git push origin --tags
 				git push origin <tagname>
 
-------------------------------
+==========
 -3- rebase
-------------------------------
+==========
 	"reapply commits on top of another base tip"
 
 	git rebase [--onto commit] <upstream> [branch]
@@ -273,9 +332,9 @@ other
 	interactive rebase
 		pick commits to rebase and fixup, squash, or pick
 
-------------------------------
+===========
 -4- history
-------------------------------
+===========
 	-4.1- git reflog: history of what actually happened
 	            (includes reset, rebase, etc)
 
@@ -302,9 +361,9 @@ other
 			--oneline                         same as --pretty=oneline --abbrev-commit
 			--graph                           draw graph
 
-------------------------------
+=========
 -5- alias
-------------------------------
+=========
 
 git config [--global | --local] alias.<aliascommand> "command and args"
 
@@ -312,9 +371,9 @@ example:
 	git config --local alias.graph "log --all --decorate --oneline --graph"
 	git config --local --unset alias.graph
 
-------------------------------
+=================
 -6- miscellaneous
-------------------------------
+=================
 	-6.1- line endings
 		global:
 			git config core.autocrlf
@@ -359,9 +418,9 @@ example:
 			**/: in all directories
 			/**: everything inside dir (infinite depth)
 			a/**/b: any b under some ancestor a
-	------------------------------
+	=========
 	-6.3- ssh
-	------------------------------
+	=========
 	See remotehost/ssh/notes.txt for key generation, git prefers ed25519 type?
 	put .pub file contents onto git account
 	edit ${HOME}/.ssh/config
@@ -374,9 +433,9 @@ example:
 	(uses ~/.ssh/config to choose private key)
 
 
-------------------------------
+===============
 -7- usage notes
-------------------------------
+===============
 usage method one:
 
 features:
@@ -431,9 +490,9 @@ saw a note that seems agreeable:
 	if release are always chronological, master branch is fine
 	if not, (ie 1.0.1 can come after 1.1.0), then tagging may be a better approach
 	or maybe separate release branches per version...
-------------------------------
+=================
 -8- authorization
-------------------------------
+=================
 git and bitbucket do not allow username/password anymore:
 	bitbucket:
 		OAuth2: see bboauth.py for bitbucket oauth method.
@@ -444,9 +503,9 @@ git and bitbucket do not allow username/password anymore:
 			username is under general->account settings
 	git: create a token and use that as password instead
 
-------------------------------
+==========
 -9- config
-------------------------------
+==========
 general usage:
 git config [--system | --global | --local] [-e | [--unset] <name> [value] | --list ]
 	system: all repos for all users
@@ -486,8 +545,9 @@ git config [--system | --global | --local] [-e | [--unset] <name> [value] | --li
 						git credential-cache exit: clear cache(close daemon)
 				store: store forever
 				manager-core: opensource builtin to git for windows
-------------------------------
+==========
 -10- stash
+==========
 	git stash [push]
 		temporary save changes but no commits
 		useful options (requires push to be present, otherwise no args allowed (except -p)):
@@ -508,8 +568,9 @@ git config [--system | --global | --local] [-e | [--unset] <name> [value] | --li
 		remove all stash entries
 	git stash create
 		create a stash entry
-------------------------------
+==========
 -11- clean
+==========
 	git clean
 		removes any untracked files (like build products etc)
 	-d: also check untracked directories
@@ -518,21 +579,24 @@ git config [--system | --global | --local] [-e | [--unset] <name> [value] | --li
 	-n|--dry-run: just list what would be removed
 	-x: include files that were .gitignored
 	-X: ONLY include files that were .gitignored
-------------------------------
+=========
 -12- show
+=========
 	shows objects
 	show:
 		tag: tag message and obj
 		trees: names
 		blobs(files): contents
 			branch/commit:filepath
-------------------------------
+===========
 -13- remote
+===========
 	show remotes
 	git remote set-url --push: add a separate push remote
 		(no command to separately set a pull url)
--------------------------------
+==============
 -14- submodule
+==============
 	sub git directories.
 	git submodule [cmd]
 		add <repo> [path]
@@ -558,8 +622,9 @@ git config [--system | --global | --local] [-e | [--unset] <name> [value] | --li
 			move submodule .git directories into root git dir's .git/modules
 			and replace submodule .git with a file pointing to corresponding
 			dir.
--------------------------------
+===========
 -15- server
+===========
 	simple serve git repos:
 		bare repo:
 			cd /root
@@ -581,3 +646,28 @@ git config [--system | --global | --local] [-e | [--unset] <name> [value] | --li
 				cp .git/hooks/post-update.sample .git/hooks/post-update
 				py -m http.server
 				git clone http://localhost:8000/.git project
+==========
+-16- blame
+==========
+git blame filename
+Like less, except add which commit/user last changed that line.
+
+===========
+-17- bisect
+===========
+Use binary search to find a target commit.  This is usually done
+to find a commit that introduced a bug.
+Example:
+	bad -> points to a bad commit (has bug)
+	good -> the commit of a good commit (no bug)
+	git bisect start
+	git bisect bad bad
+	git bisect good good
+	# git auto-checks out a commit between bad and good
+	git bisect good|bad
+	# as needed and git will auto-checkout
+	# the next binary pivot point until reached a single commit
+	git bisect reset
+
+NOTE:
+	old/new can be used in place of good/bad, meaning still the same
