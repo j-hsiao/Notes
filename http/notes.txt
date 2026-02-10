@@ -1,0 +1,43 @@
+http
+-0- intro
+
+
+
+
+=========
+-0- intro
+=========
+http is the format of messages sent, usually over TCP.
+NOTE, newlines in http are always crlf (\r\n)
+
+--------
+Requests
+--------
+{METHOD} {path} HTTP/{version}
+{header}: {value}
+...
+
+{body}
+------------------------------
+METHOD:
+	The http method. These are usually one of:
+	GET PUT POST
+
+path:
+	the path of the resource, usually a root path, possibly with parameters
+	ex: /some/path?param1=val1&param2=val2...
+
+{version}
+	usually 1.0 or 1.1
+	1.1 supports reusing the same connection (so content-length is needed)
+	1.0 does not (so just close connection to indicate the end.)
+
+
+{header}: {value}
+The headers and values are generally case insensitive.
+
+---------
+Responses
+---------
+HTTP{version} {code} {descr}
+
