@@ -1,8 +1,10 @@
 http
 -0- intro
-
-
-
+	-0.1- Request
+	-0.2- Responses
+-1- headers
+	-1.1- content-type
+		-1.1.1- multipart
 
 =========
 -0- intro
@@ -10,34 +12,148 @@ http
 http is the format of messages sent, usually over TCP.
 NOTE, newlines in http are always crlf (\r\n)
 
---------
-Requests
---------
-{METHOD} {path} HTTP/{version}
-{header}: {value}
-...
+	=============
+	-0.1- Request
+	=============
+	{METHOD} {path} HTTP/{version}
+	{header}
+	...
 
-{body}
-------------------------------
-METHOD:
-	The http method. These are usually one of:
-	GET PUT POST
+	{body}
+	------------------------------
+	METHOD:
+		The http method. These are usually one of:
+		GET PUT POST
 
-path:
-	the path of the resource, usually a root path, possibly with parameters
-	ex: /some/path?param1=val1&param2=val2...
+	path:
+		the path of the resource, usually a root path, possibly with parameters
+		ex: /some/path?param1=val1&param2=val2...
 
-{version}
-	usually 1.0 or 1.1
-	1.1 supports reusing the same connection (so content-length is needed)
-	1.0 does not (so just close connection to indicate the end.)
+	{version}
+		usually 1.0 or 1.1
+		1.1 supports reusing the same connection (so content-length is needed)
+		1.0 does not (so just close connection to indicate the end.)
 
 
-{header}: {value}
-The headers and values are generally case insensitive.
+	{header}
+	The headers and values are generally case insensitive and have a format
+	of "header: value"
 
----------
-Responses
----------
-HTTP{version} {code} {descr}
+	===============
+	-0.2- Responses
+	===============
+	HTTP{version} {code} {reason}
+	{header}
 
+	body
+	------------------------------
+	version:
+		Same meaning and values as for request, but determined
+		by what version(s) the server supports.
+
+	code:
+		Response codes are usually 3-digit numbers.
+			1XX: information
+			2XX: success of some kind
+				200 OK
+				201 Created
+				202 Accepted
+				204 No Content
+				205 Reset Content
+			3XX: redirection
+			4XX: user error
+				400 Bad Request
+				401 Unauthorized
+				402 Payment Required
+				403 Forbidden
+				404 Not Found
+				408 Request Timeout
+			5XX: server error
+				500 Internal Server Error
+				501 Not Implemented
+				503 Service Unavailable
+				505 HTTP Version Not Supported
+
+	reason:
+		This is a string, spaces allowed.
+
+	header: same format as request
+
+
+===========
+-1- headers
+===========
+	==================
+	-1.1- content-type
+	==================
+	The value usually has format:
+		<media-type>[;charset=<encoding>][;boundary=<string>][;...]
+	where <media-type> is usually type/subtype
+
+	Examples:
+		text/[html|plain|css|csv]; charset=utf-8
+		application/[json|xml|pdf|x-www-form-urlencoded]
+		image/[png|jpeg|svg+xml]
+		audio/[mpeg|wav]
+		video/[mp4|webm]
+		multipart/[mixed|form-data]; boundary=boundary
+
+		=================
+		-1.1.1- multipart
+		=================
+		Multipart data is requires boundary.
+		boundary requirements:
+			* 1-70 characters
+			* Not end in whitespace
+			* Does not appear in the data.
+
+		The start of every part must be --`boundary` where `boundary` is
+		whatever the boundary string that was given in the header.  To mark
+		the end of multipart data, `boundary` should be surrounded with
+		double-dashes: --`boundary`--
+		example:
+			content-type: multipart/mixed; boundary=helloworld
+
+			--helloworld
+			optional-header: value
+
+			data for part 1
+			--helloworld
+			optional-header: value
+
+			data for part 2
+			--helloworld--
+
+
+		NOTE:
+			the crlf before the boundary is considered as part of the boundary
+			Example
+				--boundary
+				header
+
+				helloworld
+				--boundary
+				header
+
+				helloworld
+
+				--boundary
+
+			The data in part1 is 'helloworld'
+			But the data in part2 is 'helloworld\n'
+
+		subtypes:
+			mixed:
+				the default, intended for display serially
+			alternative:
+				present alternatives for display
+				Usually choose the last viable option.
+			related:
+				each part is related, and all are required.
+				https://www.rfc-editor.org/rfc/rfc2387
+				? type is required to indicate the overall type ?
+			digest:
+				default content-type is message/rfc822 instead of text/plain
+				(as compared to mixed)
+			parallel:
+				Parts should be presented in parallel
