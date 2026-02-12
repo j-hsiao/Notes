@@ -1133,8 +1133,9 @@ ______________________________
 		______________________________
 		-0.10.10- ${} parameter expansion
 			see -0.2- variables
-	______________________________
+	============
 	-0.11- traps
+	============
 	Bash has the trap command which allows executing a given script
 	on some condition which is usually receiving a signal (SIG*).
 	There are special sigspecs which are DEBUG, EXIT, ERR, and RETURN.
@@ -1156,6 +1157,33 @@ ______________________________
 	the RETURN trap will be restored to its original value (before entering)
 	If the extra '; trap - RETURN' was not given inside myfun, then any trap
 	specification inside myfun will override the trap going into myfun
+
+	NOTE:
+	ERR trap does NOT trigger with:
+	* condition for while, until, if
+	* any EXCEPT the LAST of a sequence of && and || or |
+	* any command inverted with !
+
+	NOTE
+	trap seems to have some unexpected unintuitive interactions when used
+	in conjunction with sourcing.
+
+	Example:
+	traps:
+
+	trap return ERR
+
+
+
+	trap return ERR
+	trap 'trap - ERR RETURN' RETURN
+
+
+
+
+
+
+
 
 ______________________________
 -1-regexp
