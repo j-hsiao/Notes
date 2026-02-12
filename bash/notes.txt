@@ -5,24 +5,25 @@ use visual mode to select the script to run then @<key> to replace with the resu
 
 :!bash -c 'while read -r line; do if [[ "${line}" \!= "\#"* ]]; then echo "${line}"; eval "${line}"; fi; done'
 
-______________________________
+========
 contents
+========
 
 -0- general
 	-0.0- arithmetic expressions
 	-0.1- logic
 	-0.2- variables
 		-0.2.0- expansions
-			-0.2.0.1- normal expansion
-			-0.2.0.2- length expansion
-			-0.2.0.3- indirect expansion
-			-0.2.0.4- existence/empty expansion
-			-0.2.0.5- slicing expansion
-			-0.2.0.6- key/idx/prefix expansion
-			-0.2.0.7- deletion expansion
-			-0.2.0.8- substitution expansion
-			-0.2.0.9- case expansion
-			-0.2.0.10- operator expansions
+			-0.2.0.1- basic
+			-0.2.0.2- length
+			-0.2.0.3- indirect
+			-0.2.0.4- exist/empty
+			-0.2.0.5- slice
+			-0.2.0.6- key/prefix
+			-0.2.0.7- delete
+			-0.2.0.8- substitution
+			-0.2.0.9- case
+			-0.2.0.10- operators
 		-0.2.1- scopes/assignment
 		-0.2.2- strings
 		-0.2.3- numbers
@@ -39,16 +40,15 @@ contents
 	-0.9- redirection
 	-0.10- [$][[]|[[]]|()|(())]
 		-0.10.1- [] test
-		-0.10.2- $[] arithmetic expansion (old)
-		-0.10.3- [[]] test (extended)
+		-0.10.2- $[] arithmetic (old)
+		-0.10.3- [[]] test
 		-0.10.4- () subshell
 		-0.10.5- $() command substitution
-		-0.10.6- (()) nonzero arithmetic expansion test
-		-0.10.7- $(()) arithmetic expansion
+		-0.10.6- (()) arithmetic test
+		-0.10.7- $(()) arithmetic
 		-0.10.8- <() process substitution
 		-0.10.9- {} command grouping
 		-0.10.10- ${} parameter expansion
-	-0.11- traps
 -1- regexp
 -2- completion
 -3- ps1 (prompt)
@@ -70,11 +70,14 @@ contents
 	-5.1- reset
 -6- builtins
 	-6.1- printf
+	-6.2- trap
 
-______________________________
+===========
 -0- general
-	______________________________
+===========
+	============================
 	-0.0- arithmetic expressions
+	============================
 	Arithmetic expressions are expressions that will be evaluated in an arithmetic context.
 	These include:
 		$((here))
@@ -98,8 +101,9 @@ ______________________________
 		$((d * 2))  12      d * 2 = (c + a + b) * 2 = ((a + b) + (1) + (2)) * 2 = (((1) + (2)) + (1) + (2)) * 2 = ((1 + 2) + 1 + 2)*2 = 6*2 = 12
 		$(($d * 2)) 9       a + b + c * 2 = (1) + (2) + (a+b) * 2 = 1 + 2 + ((1) + (2)) * 2 = 3 + 3 * 2 = 3 + 6 = 9
 
-	______________________________
+	===========
 	-0.1- logic
+	===========
 		every command has an exit code.  The exit code determines truthiness.
 		0 = true, nonzero = false.  The exitcode for the last process can be
 		obtained with $?
@@ -121,8 +125,9 @@ ______________________________
 				etc
 		esac
 		(see -0.4- pattern matching)
-	______________________________
+	===============
 	-0.2- variables
+	===============
 		general note:
 			using * and @ result in all relevant items.
 			However, putting the thing into double quotes,
@@ -176,13 +181,15 @@ ______________________________
 		deletion:
 			unset varname
 
-		______________________________
+		==================
 		-0.2.0- expansions
+		==================
 			NOTE: *single quoting* only acts differently
 			on double-quoted existence expansions.  All other cases tested, they
 			seem to act as expected.
-			______________________________
-			-0.2.0.1- normal expansion
+			===============
+			-0.2.0.1- basic
+			===============
 				${varname}
 
 				quoting the variable will make it a single token
@@ -228,8 +235,9 @@ ______________________________
 					printf '# %s\n' "${a[*]}"
 					# a b c d 0
 
-			______________________________
-			-0.2.0.2- length expansion
+			================
+			-0.2.0.2- length
+			================
 				${#param}       number of characters
 				${#param[@]}    number of items in array
 
@@ -246,8 +254,9 @@ ______________________________
 				# 3
 				echo '#' "${#x[*]}"
 				# 3
-			______________________________
-			-0.2.0.3- indirect expansion
+			==================
+			-0.2.0.3- indirect
+			==================
 				${!varContainingVarName}
 					NOTE: only 1 level of indirection is allowed
 					save to tempvariable and reuse for more levels
@@ -285,8 +294,9 @@ ______________________________
 						printf '# %s\n' "${!z[1]}"
 						# 
 
-			______________________________
-			-0.2.0.4- existence/empty expansion
+			=====================
+			-0.2.0.4- exist/empty
+			=====================
 				replace WITH THE EXPANSION (quirks with quoting) if empty/unset or non-empty/set
 
 				${[expr1][:][op][expr2]}
@@ -369,8 +379,9 @@ ______________________________
 					"${x:-'a b c}" -> asks for more input
 					"${x:-"a b c}" -> asks for more input
 
-			______________________________
-			-0.2.0.5- slicing expansion
+			===============
+			-0.2.0.5- slice
+			===============
 				String slicing:
 					${param:offset[:length]}
 						offset/length are arithmetic expressions and expanded as such
@@ -396,8 +407,9 @@ ______________________________
 				have to do calculate the desired length.
 				? is this because indices don't need to be contiguous ?
 
-			______________________________
-			-0.2.0.6- key/idx/prefix expansion
+			====================
+			-0.2.0.6- key/prefix
+			====================
 				${!prefix*}
 				${!prefix@}
 					sequence of varnames that begin with prefix
@@ -409,8 +421,9 @@ ______________________________
 				quoting:
 					Same as normal array expansion.
 
-			______________________________
-			-0.2.0.7- deletion expansion
+			================
+			-0.2.0.7- delete
+			================
 				see also -0.4- pattern matching
 				${param#pattern}        delete from beginning (shortest)
 				${param##pattern}       delete from beginning (longest)
@@ -430,8 +443,9 @@ ______________________________
 						echo "# ${y##"${x}"}"   # -> ${y##"*a"}, removes literal *a
 						# whatever goodbye
 
-			______________________________
-			-0.2.0.8- substitution expansion
+			======================
+			-0.2.0.8- substitution
+			======================
 				like regex but pattern matching instead
 				${parameter/pattern/replacement}        single replacement
 				${parameter//pattern/replacement}       global replacement
@@ -454,8 +468,9 @@ ______________________________
 					echo "# ${y//['a-z']/9}"      # replace the 3 character a, -, z with 9
 					# 91b2[999]
 
-			______________________________
-			-0.2.0.9- case expansion
+			==============
+			-0.2.0.9- case
+			==============
 				${parameter^pattern}
 				${parameter^^pattern}
 				${parameter,pattern}
@@ -478,8 +493,9 @@ ______________________________
 					echo "# ${y,,}"
 					# asdf
 
-			______________________________
-			-0.2.0.10- operator expansions
+			====================
+			-0.2.0.10- operators
+			====================
 				${parameter@operator}
 
 				U      lowercase alphabetic characters converted to uppercase.
@@ -497,8 +513,9 @@ ______________________________
 				a      The expansion is a string consisting of flag values representing
 				       parameter's attributes.
 
-		______________________________
+		==============
 		-0.2.1- scopes
+		==============
 			Scope determines where variables are visible.
 			In general, there are 3 observed scopes.
 			1: local
@@ -582,8 +599,9 @@ ______________________________
 							3. within outer, (note that changes by inner will be visible
 							   after the inner call)
 
-		______________________________
+		===============
 		-0.2.2- strings
+		===============
 			operations
 				version 5.1+
 					${var@op}
@@ -598,11 +616,13 @@ ______________________________
 							K same as Q except arrays->quoted key value pairs
 							a "string consisting of flag values representing parameter's attributes"
 
-		______________________________
+		===============
 		-0.2.3- numbers
+		===============
 
-		______________________________
+		==============
 		-0.2.4- arrays
+		==============
 			Arrays act as their first item if no indexes.
 
 			index arrays (int keys)
@@ -649,8 +669,9 @@ ______________________________
 			deleting items
 				unset arr[idxOrKey]
 
-		______________________________
+		======================
 		-0.2.5- ANSI-C quoting
+		======================
 			Not really a variable, but putting it here because similar syntax
 			Ansi quoted strings:
 				escapes:
@@ -665,8 +686,9 @@ ______________________________
 				control sequence:
 					$'\cx'          control+x
 
-		______________________________
+		=========================
 		-0.2.6- special variables
+		=========================
 		Bash has some special variables defined/?updated? by bash:
 		SHLVL           The number of nested bash shells
 		FUNCNAME        Array of functions being run. This is like a stack trace, 0 = current, 1 = parent, etc
@@ -676,8 +698,9 @@ ______________________________
 		EPOCHSECONDS    seconds precision timestamp
 
 
-	______________________________
+	===============
 	-0.3- functions
+	===============
 		defining functions:
 			[function] funcname() {
 				body
@@ -688,8 +711,9 @@ ______________________________
 		to caller, unless declared as local)
 			arguments are same as scripts, ${1-9}, ${@}, shift, etc
 
-		______________________________
+		========================
 		-0.3.1- function outputs
+		========================
 			Functions do not have an explicit output method.
 			The `return` keyword for functions gives the function's exit code.
 			There are various methods to return a value:
@@ -775,8 +799,9 @@ ______________________________
 				programmable bash completion (COMPREPLY etc) so maybe this is
 				generally the best choice?
 
-	______________________________
+	======================
 	-0.4- pattern matching
+	======================
 		*: any length of any char
 		?: any single char
 		[...]: any enclosed char
@@ -800,8 +825,9 @@ ______________________________
 			@(patternlist)    exactly one of patterns
 			!(pattern-list)   none of patterns
 
-	______________________________
+	===========
 	-0.5- shopt
+	===========
 		(shell options) optional shell behavior
 		shopt [-pqsu] -o [optname...]
 			-s        set
@@ -860,8 +886,9 @@ ______________________________
 			shift_verbose
 			sourcepath
 			xpg_echo
-	______________________________
+	=====================
 	-0.6- brace expansion
+	=====================
 		brace expansion generates sequences and is performed FIRST
 		before anything else
 		{a,b,...}:    repeat expression replacing with each a,b,...
@@ -876,8 +903,9 @@ ______________________________
 
 		nesting is allowed:
 			{a{1..3},b{2..3}} -> a1 a2 a3 b2 b3
-	______________________________
+	=========================
 	-0.7- configuration files
+	=========================
 		LOGIN shell: login from somewhere else
 			/etc/profile
 			first of:
@@ -907,8 +935,9 @@ ______________________________
 			In .bash_profile you can just source .profile, add any
 				bash-unique settings or whatever.  Otherwise, you could also
 				just delete this since .profile will be used in that case.
-	______________________________
+	============
 	-0.8- inputs
+	============
 		read varname
 			useful options:
 				-u(fd)  read from filedescriptor instead (needs to end with
@@ -954,8 +983,9 @@ ______________________________
 				result:
 					hello echo goodbye
 
-	______________________________
+	=================
 	-0.9- redirection
+	=================
 		syntax:
 			[dst][direction] [src]
 				dst:
@@ -1013,19 +1043,22 @@ ______________________________
 				DEST:
 					FNAME : a file name
 					&FD   : to file descriptor
-		______________________________
+		=====
 		input
+		=====
 			DEST<SRC
 				DEST:
 					FD : a file descriptor (0-9) for the file
 				SRC:
 					FNAME: a file name
-		______________________________
+		====
 		pipe
+		====
 			CMD1 | CMD2   redirects cmd1 stdout to cmd2 stdin
 			CMD1 |& CMD2  redirects cmd1 stdout+stderr to cmd2 stdin
-		______________________________
+		==========================================
 		input/output redirection is NOT recursive.
+		==========================================
 			1>2 2>something
 				1 is stdout, 2 is stderr
 				1 redirects to 2 (which is currently stderr)
@@ -1036,8 +1069,9 @@ ______________________________
 				2 redirects to something
 				1 redirects to 2, (which is currently something)
 				processes' stdout and stderr both go to something
-		______________________________
+		====
 		exec
+		====
 			exec
 				dst
 					defaults to stdin if direction is <
@@ -1052,13 +1086,16 @@ ______________________________
 					&fd
 					&-    close the fd (to close read+write fd, just use > instead of <>)
 
-	______________________________
+	===========================
 	-0.10- [$][[]|[[]]|()|(())]
-		______________________________
+	===========================
+		================
 		-0.10.1- [] test
+		================
 			the same as the `test` command.
 			Note: [ is usually a program.  As a result, the space after
 			      [ is required. Also, the space before ] is required.
+			      This has the new-process overhead.
 			check type of path: [ <opt> path ]
 				-f: file
 				-d: directory
@@ -1081,11 +1118,14 @@ ______________________________
 					(x -o y ) -a b
 					must call separate times:
 					[ x -o y ] && [ b ]
-		______________________________
-		-0.10.2- $[] arithmetic expansion (old)
+		=============================
+		-0.10.2- $[] arithmetic (old)
+		=============================
 			arithmetic evaluation.
-		______________________________
-		-0.10.3- [[]] test (extended)
+		==================
+		-0.10.3- [[]] test
+		==================
+		Newer bash-only test.  This is a builtin, so no new process.
 			like [] but builtin and more features.
 			is a keyword, means parsing is a bit different from []
 			spaces are still necessary as with []
@@ -1107,76 +1147,39 @@ ______________________________
 						'*': a literal *
 				=~ Use regex matching, pattern still needs to be on right.
 					Like =, when placed in quotes, everything is literal
-		______________________________
+		====================
 		-0.10.4- () subshell
+		====================
 			run commands in a subshell (does not affect current shell)
-		______________________________
-		-0.10.5- $()
+		=================================
+		-0.10.5- $() command substitution
+		=================================
 			command substitution.  Uses the command's stdout as a string.
-		______________________________
-		-0.10.6- (()) nonzero arithmetic expansion test
+		=============================
+		-0.10.6- (()) arithmetic test
+		=============================
 			arithmetic evaluation (int only)
 			variables are auto-expanded, do not need $
 			does math, exit code is truthiness of result
-		______________________________
-		-0.10.7- $(()) arithmetic expansion
+		=========================
+		-0.10.7- $(()) arithmetic
+		=========================
 			Same as (()), except evalutes to a string equal to the
 			result of the expression.
-		______________________________
+		=================================
 		-0.10.8- <() process substitution
+		=================================
 			process substitution.  Substitute stdout of the command as
 			a file name.
-		______________________________
+		============================
 		-0.10.9- {} command grouping
+		============================
 			group commands (still runs in current shell)
 			COMMANDS MUST TERMINATE WITH A SEMICOLON inside the {}
-		______________________________
+		=================================
 		-0.10.10- ${} parameter expansion
+		=================================
 			see -0.2- variables
-	============
-	-0.11- traps
-	============
-	Bash has the trap command which allows executing a given script
-	on some condition which is usually receiving a signal (SIG*).
-	There are special sigspecs which are DEBUG, EXIT, ERR, and RETURN.
-
-	trap - sigspec will "reset to its original value".
-	From the man page:
-		"each specified signal is reset to its original disposition (the
-		value it had upon entrance to the shell)"
-
-	However, for RETURN, it seems like it returns upon entrance to
-	the function instead of entrance to the shell.
-
-	This means that trap can be used as a "finally" clause
-	ex:
-		myfun() {
-			trap 'my cleanup; trap - RETURN' RETURN
-		}
-	If RETURN already had a trap upon entering myfun, then after exiting myfun,
-	the RETURN trap will be restored to its original value (before entering)
-	If the extra '; trap - RETURN' was not given inside myfun, then any trap
-	specification inside myfun will override the trap going into myfun
-
-	NOTE:
-	ERR trap does NOT trigger with:
-	* condition for while, until, if
-	* any EXCEPT the LAST of a sequence of && and || or |
-	* any command inverted with !
-
-	NOTE
-	trap seems to have some unexpected unintuitive interactions when used
-	in conjunction with sourcing.
-
-	Example:
-	traps:
-
-	trap return ERR
-
-
-
-	trap return ERR
-	trap 'trap - ERR RETURN' RETURN
 
 
 
@@ -1184,9 +1187,9 @@ ______________________________
 
 
 
-
-______________________________
+=========
 -1-regexp
+=========
 	______________________________
 	basic
 		char: itself
@@ -1259,8 +1262,9 @@ ______________________________
 		\o: octal value (binary)
 		\b: backspace (but conflicts with above \b so excluded for sed)
 
-______________________________
+==============
 -2- completion
+==============
 https://www.gnu.org/software/bash/manual/html_node/Programmable-Completion-Builtins.html
 	code into ~/.bash_completion
 	use command name to determine completion for arguments
@@ -1552,8 +1556,9 @@ https://www.gnu.org/software/bash/manual/html_node/Programmable-Completion-Built
 		    do stuff
 		}
 		complete -o filenames -o nospace -o bashdefault -F compfunc cd
-______________________________
+================
 -3- ps1 (prompt)
+================
 	escapes:
 		\a          bell
 		\d          date (weekday, month, date)
@@ -1622,127 +1627,29 @@ ______________________________
 
 		38;5;X      88/256 color for foreground, X = 1-256 (no leading 0)
 		48;5;X      88/256 color for background, X = 1-256 (no leading 0)
-______________________________
+=====================
 -4- various utilities
-	______________________________
+=====================
+	=======================
 	-4.1- text manipulation
-		______________________________
+	=======================
+		===========
 		-4.1.1- cut
+		===========
 			cut columns
 			cut -d ''   use null as delimiter (can use $'\0' too if supported)
-		______________________________
+		=============
 		-4.1.2- paste
+		=============
 			join files as columns
 
-		______________________________
+		===========
 		-4.1.3- sed
-			______________________________
-			options:
-				-n, --quiet, --silent
-					suppress output
-
-				-e
-					script expression
-
-				-f
-					script file
-
-				-i
-					edit in-place
-
-				-l N
-					length for l command
-
-				-b, --binary
-					binary mode
-
-				-E, -r, --regexp-extended
-					extended regexps
-
-			______________________________
-			script:
-				[addr]X[options]
-				______________________________
-				addr:
-					optional
-					indicate range in file to operate on (inclusive)
-					format = START,STOP
-						possible values:
-						integer: line number n (start at 1)
-					/exp/f      : exp = regexp (all lines that match),
-					                NOTE:
-					                / can also be any \char ie
-					                \;regexp;
-					              f: GNU extension
-					                 I: case insensitive
-					                 M: multiline
-
-					!           : not in address space
-					              ie:
-					                1,5!p (don't print lines 1-5)
-					n~step      : start at n, then take steps
-				______________________________
-				commands:
-					q             : quit (only takes a single address)
-					s/a/b/f       : substitute a with b, flags = flags
-					                /: usually /, but can actually be any character
-					                   (will need \ if want to use it in expression or replacement)
-					                a: regexp expression
-					                b: can contain \N: N=1-9 reference to previous \(\) match
-					                               & : whole matched portion
-					                               GNU sed extension:
-					                               \L: lowercase until \U or \E
-					                               \l: next into lowercase
-					                               \U: upper until \L or \E
-					                               \u: next to uppercase
-					                               \E: stop case conversion
-					                f: flags
-					                   g      : globally
-					                   n      : a number, replace the nth match
-					                   P      : print new pattern space
-					                   w fname: write to filename
-					                   i/I    : case insensitive
-					                   m      : GNU extension, multiline
-
-					a text        : append text after line
-					c text        : replace region with text
-					i text        : insert text before line
-					F             : print filename of current file
-					w fname       : write patternspace to filename
-					z             : empty pattern space
-					{cmd1;cmd2...}: group of commands (use same address space)
-					y/a/b/        : like tr (ab = string of chars)
-					                if char == a[i], then replace with b[i]
-					l n           : print unambiguously (blankspace print with escaped values), n = wrap length
-					                n = GNU sed extension
-					r fname       : insert file contents
-
-					#pattern-space related
-					d             : delete pattern space
-					g             : replace patternspace with hold space
-					h             : reploace hold with patternspace
-					n             : replace patternspace with next line of input
-					p             : print pattern space
-
-					D             : delete patternspace up to first newline
-					G             : appends line from hold space to pattern space with newline before it
-					H             : appends line from patternspace to hold space with newline before it
-					N             : appends next line from file with \nbefore it
-					P             : prints line from patternspace til first newline
-
-			______________________________
-			execution
-				2 data buffers: "pattern space", "hold space"
-				steps:(in python)
-				f = file(fname, 'r')
-				pattern = ''
-				hold = ''
-				while more_lines():
-				    l = f.readline()
-				    pattern = l.strip()
-				    execute_commands(pattern_space)
-		______________________________
+		===========
+		see tools/sed.txt
+		============
 		-4.1.4- grep
+		============
 			--color=auto
 			see -4-regexp
 			-A[n] print n lines after matches
@@ -1762,28 +1669,35 @@ ______________________________
 			can also use with find to make it recursive and control depth:
 			find . -maxdepth blah -mindepth 1 -type f -exec 'grep pattern {}'
 			grep pattern $(find . -maxdepth blah -mindepth 1 -type f)
-	______________________________
+	========================
 	-4.2- drives and devices
-		______________________________
+	========================
+		=============
 		-4.1.1- lsblk
+		=============
 			lsblk: list block devices
-		______________________________
+		=============
 		-4.1.2- blkid
+		=============
 			blkid: list blkid (UUID, partition types etc
 			   can use for editing /etc/fstab
 
-		______________________________
+		==========
 		-4.1.3- df
+		==========
 			df: show disk info
 
-	______________________________
+	=============
 	-4.69- others
-		______________________________
+	=============
+		=============
 		-4.69.1- shuf
+		=============
 			shuf->shuffle lines in a file (ex training list)
 
-		______________________________
+		=============
 		-4.69.2- tput
+		=============
 			ncurses tool for interacting with terminal
 
 			tput <command>
@@ -1793,17 +1707,20 @@ ______________________________
 				cols        number of cols
 				lines       number of lines
 				colors      number of colors
-		______________________________
+		=============
 		-4.69.3- stty
+		=============
 			Tool for changing terminal settings
 				stty size   prints current size of terminal
 				stty sane   sets some terminal settings to default values.
 
 
-______________________________
+===============
 -5- tips/tricks
-	______________________________
+===============
+	===========
 	-5.1- reset
+	===========
 		sometimes if accidentally cat binary or something, terminal may become messed up.
 		try these to reset the terminal:
 
@@ -1811,10 +1728,12 @@ ______________________________
 			reset       (tset)reset the entire terminal (as if reopened from scratch)
 			tput reset  man says uses reset from tset
 
-------------------------------
+============
 -6- builtins
-	------------------------------
+============
+	============
 	-6.1- printf
+	============
 	printf using a format and arguments.
 	undocumented:
 		Convert a character into an int/unicode code point
@@ -1831,3 +1750,90 @@ ______________________________
 
 			printf '%i' "'你"
 			20320
+
+	==========
+	-6.2- trap
+	==========
+	Bash has the trap command which allows executing a given script
+	on some condition which is usually receiving a signal (SIG*).
+	There are special sigspecs which are DEBUG, EXIT, ERR, and RETURN.
+
+	trap - sigspec will "reset to its original value".
+		example: `trap - ERR` will reset the ERR trap.
+	From the man page:
+		"each specified signal is reset to its original disposition (the
+		value it had upon entrance to the shell)"
+
+	However, for RETURN, it seems like it returns upon entrance to
+	the function instead of entrance to the shell.
+
+	This means that trap can be used as a "finally" clause
+	ex:
+		myfun() {
+			trap 'my cleanup' RETURN
+		}
+
+	===========
+	inheritance
+	===========
+	Most traps seem to be global:
+		1. caller sets traps, they are seen in called functions.
+		2. function sets traps and returns, they are seen by the caller
+		3. function CLEARS traps and returns, they are cleared for the caller
+
+	EXCEPTIONS: ERR RETURN DEBUG
+		from the man:
+			... the DEBUG and RETURN traps ... are not inherited unless the
+			function has been given the trace attribute
+			ERR trap is not inherited unless the -o errtrace
+
+		These traps function slightly differently.
+
+		1. caller sets traps, they are (usually) not see in called functions.
+		2. function sets traps and returns, they ARE SEEN by the caller.
+		3. function clears traps and returns, caller's traps are UNTOUCHED.
+
+	============
+	Useful traps
+	============
+	ERR
+		Triggered on non-zero exit code.
+		ERR trap does NOT trigger with:
+		* condition for while, until, if
+		* any EXCEPT the LAST of a sequence of && and || or |
+		* any command inverted with !
+		observations:
+			return in the trap seems to retain the original exit code
+			even if other successful commands are completed.
+	RETURN
+		Whenever a function or sourced script returns.
+		observations:
+			Any successful commands do not override the return code.
+			(except explicit return ${newcode})
+	EXIT
+		whenever the current bash process exits.
+
+	===================
+	RETURN and sourcing
+	===================
+	Sourcing scripts is the same as replacing it with the script.
+	As a result, all the traps remain intact during the sourcing.
+
+	However, finishing sourcing is also a return, which triggers
+	RETURN traps.
+
+	Ex: return on error (similar to set -e, except return instead of exit)
+	1. On error, return   `trap 'return' ERR`
+	2. Do not overwrite any callers' traps    `trap 'trap - RETURN ERR' RETURN`
+
+	issue:
+		source had error: immediate return -> trap cleared
+		source had no error: continue to end -> trap cleared
+		Error code from $? is correct
+
+	Then what if?
+		. script || return
+	sourcing error code is 0
+		. script is not the last command in &&|| so err never fires.
+		the RETURN trap gets cleared.
+		HOWEVER, THE ERR TRAP REMAINS THE INTACT.

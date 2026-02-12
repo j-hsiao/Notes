@@ -61,8 +61,15 @@ ______________________________
 		0,/regexp/  Beginning until the first occurrence of regexp
 		            (1,/regexp/ would never stop on the first line, so if
 		            first line matches regexp, it will not stop).
+		/regexp/f   f: GNU extension
+		            I: case insensitive
+		            M: multiline
 		addr1,+N    include addr1 and then N lines after.
 		addr1,~N    every multple of N line starting from addr 1
+
+	address can be followed by:
+		!       negate the address range
+		n~step  take steps
 
 	______________________________
 	-2.1- commands
@@ -115,6 +122,16 @@ ______________________________
 				print first line in pattern space
 			s/regexp/replacement/flags
 				replace regexp with replacement. & means the matched text. \1-\9 are groups
+				replacement can contain:
+					\[1-9]    a backreference
+					&         whole matched portion
+					GNU sed extension:
+						\L: lowercase until \U or \E
+						\l: next into lowercase
+						\U: upper until \L or \E
+						\u: next to uppercase
+						\E: stop case conversion
+
 				flags:
 					g: substitute globally
 					N: only substitute the Nth match
