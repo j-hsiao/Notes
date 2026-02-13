@@ -1846,3 +1846,22 @@ https://www.gnu.org/software/bash/manual/html_node/Programmable-Completion-Built
 		local x
 		. somescript
 		((!(x = $?))) || return ${x}
+
+	ALTERNATIVE
+		After some experimentation, it seems using a unique environment variable might work
+
+		trap return ERR
+		trap '((MYUNIQUEENVVAR)) || trap - ERR RETURN' RETURN
+		local MYUNIQUEENVVAR=0
+		MYUNIQUEENVVAR=1 . sourcefile
+
+		For the return from sourcefile, MYUNIQUEENVVAR still exists, and in this case
+		evalutes to non-zero meaning the traps are NOT cleared.  If there was an
+		error in the sourcing, then this triggers the ERR trap, which then returns,
+		triggering the RETURN trap again.  However, now, MYUNIQUEENVVAR is no longer
+		an environment variable in the context of this function, so it evalutes to 0
+		meaning the trap is cleared.
+
+		This achieves untouched traps for caller while interrupting executing on error.
+		the only possible issue would be if the environment variable already
+		exists... but it could be explicitly cleared or something if this is a concern
