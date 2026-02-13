@@ -114,6 +114,10 @@ contents
 
 		for var in <sequence of items by ifs>; do <stuff; and more stuff...;> done
 
+		for var; do ... done
+			This is basically for var in "${@}"; do ... done
+
+
 		case <pat> in
 			pat)
 				stuffs
