@@ -1831,9 +1831,18 @@ https://www.gnu.org/software/bash/manual/html_node/Programmable-Completion-Built
 		source had no error: continue to end -> trap cleared
 		Error code from $? is correct
 
-	Then what if?
-		. script || return
-	sourcing error code is 0
-		. script is not the last command in &&|| so err never fires.
-		the RETURN trap gets cleared.
-		HOWEVER, THE ERR TRAP REMAINS THE INTACT.
+	If `. script` will give correct return code, then what if I try
+	`. script || return`?  This causes `. script` is not the last command
+	therefore ERR trap does not trigger (in fact, within the script,
+	trap -p ERR shows that there is no trap)
+
+	within the trap, ${BASH_SOURCE[@]} reflects the state OUTSIDE of the
+	sourced script rather than inside... (although it is the BASH_SOURCE
+	from inside the function when returning from a function.)
+
+	It really seems like the best option is:
+		trap return ERR
+		trap 'trap - RETURN ERR' RETURN
+		local x
+		. somescript
+		((!(x = $?))) || return ${x}
