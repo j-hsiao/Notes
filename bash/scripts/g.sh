@@ -4,11 +4,12 @@ g()
 {
 	# Set remote g to the original repo's origin remote
 	local orig="${PWD}"
-	local remote="$(git remote get-url origin)"
+	local remote
+	remote="$(git remote get-url origin)" || return
 	while [[ -d "${remote}" ]]
 	do
 		cd "${remote}"
-		remote="$(git remote get-url origin)"
+		remote="$(git remote get-url origin)" || return
 	done
 	local premote="$(git remote get-url origin --push)"
 	cd "${orig}"
