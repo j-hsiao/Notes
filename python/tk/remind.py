@@ -361,8 +361,11 @@ def launch_powershell(*args, **kwargs):
 
 
 def launch(args):
-    logname = os.path.join(
-        os.environ.get('HOME', os.environ.get('USERPROFILE', './')), '.reminder')
+    if args.log:
+        logname = os.path.join(
+            os.environ.get('HOME', os.environ.get('USERPROFILE', './')), '.reminder')
+    else:
+        logname = os.devnull
     cmd = [
         os.path.realpath(sys.executable),
         os.path.realpath(sys.argv[0]),
@@ -400,6 +403,9 @@ def launch(args):
             L.close()
     else:
         with open(logname, 'ab') as logf:
+            # It seems nohup is still required or closing terminal
+            # will hang.
+            cmd.insert(0, 'nohup')
             print('launching', cmd)
             p = subprocess.Popen(
                 cmd, bufsize=0,
@@ -465,6 +471,7 @@ if __name__ == '__main__':
     p.add_argument('-v', '--verbose', action='store_true')
     p.add_argument('--hide', action='store_true', help='hide terminal on windows.')
     p.add_argument('--notify', type=int, help='Connect to this port to notify server ready.')
+    p.add_argument('-l', '--log', help='use logfile', action='store_true')
 
     p.add_argument('cmd', nargs='?', help=f'the client command: a time specification (YYYY-mm-dd HH:MM:SS), floats allowed, omissions allowed. or one of {COMMANDS}.')
     p.add_argument('extra', nargs='*', help='remaining extra arguments for command.')
