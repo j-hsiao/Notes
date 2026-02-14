@@ -9,7 +9,7 @@ then
 	# probably always use absolute path if BASH_SOURCE will be used.
 	. "${PWD}/${BASH_SOURCE[0]}"
 else
-	remind() {
+	rem() {
 		local script="${BASH_SOURCE[0]/remind.sh/../../python/tk/remind.py}"
 		# require the py func to call the right python or clear TZ if cygwin.
 		if ! declare -f py &>/dev/null
