@@ -1,17 +1,16 @@
-Notes use tigervnc with xfce4 desktop
-
-contents
-______________________________
 -0- ssh tunneling
--1- tigervnc
-	-1.1- setup/startup
-		-1.1.1- blank screen/screensaver issue
-	-1.2- Usage
+-1- vnc
+	-1.1- vncsession
+	-1.2- tigervnc
+		-1.2.1- setup/startup
+			-1.2.1.1- blank screen/screensaver issue
+		-1.2.2- Usage
 -2- xrdp
 	-2.1- setup
 
-______________________________
+=================
 -0- ssh tunneling
+=================
 	The client can be ssh tunneled to the remote server to encrypt the
 	connection or bypass firewalls etc.
 	Command:
@@ -28,83 +27,102 @@ ______________________________
 
 	For more info, see notes at "/remotehost/ssh/notes.txt" section -1.3-
 
-______________________________
--1- tigervnc
-	______________________________
-	-1.1- setup/startup
-		HOST:
-			Run commands:
-				sudo apt install xfce4-session tigervnc-standalone-server xfce4-goodies
+=======
+-1- vnc
+=======
+	================
+	-1.1- vncsession
+	================
+	This is the basic command used to create a vnc session.
+	Sometimes, vncserver only leads to a black screen and nothing
+	seems to open inside it.  However, using vncsession directly
+	seems to allow opening windows (though desktop still fails...)
+	vncsession requires root.
 
-			Edit ~/.vnc/xstartup:
-				unset SESSION_MANAGER
-				unset DBUS_SESSION_BUS_ADDRESS
-				startxfce4
-		CLIENT:
-			sudo apt install tigervnc-viewer
-			vncviewer host:port [-passwd pathtofile]
-				(if -passwd omitted, then enter password)
+	sudo vncsession $USER :X
+	==============
+	-1.2- tigervnc
+	==============
+		===================
+		-1.2.1- setup/startup
+		===================
+			HOST:
+				Run commands:
+					sudo apt install xfce4-session tigervnc-standalone-server xfce4-goodies
 
-		______________________________
-		-1.1.1- blank screen/screensaver issue
-			After a period of inactivity, the virtual screen might be turned
-			off.  When this happens, connecting and moving the mouse does not
-			seem to turn it back on.  As a result, the screen is just left black
-			with no response.
-			Possible solutions:
-				1. Run commands (needs a DISPLAY value)
+				Edit ~/.vnc/xstartup:
+					unset SESSION_MANAGER
+					unset DBUS_SESSION_BUS_ADDRESS
+					startxfce4
+			CLIENT:
+				sudo apt install tigervnc-viewer
+				vncviewer host:port [-passwd pathtofile]
+					(if -passwd omitted, then enter password)
 
-				   xfconf-query -c xfce4-power-manager -p /xfce4-power-manager/blank-on-ac -s 0
-				   xfconf-query -c xfce4-power-manager -p /xfce4-power-manager/dpms-on-ac-off -s 0
-				   xfconf-query -c xfce4-power-manager -p /xfce4-power-manager/dpms-on-ac-sleep -s 0
+			======================================
+			-1.2.1.1- blank screen/screensaver issue
+			======================================
+				After a period of inactivity, the virtual screen might be turned
+				off.  When this happens, connecting and moving the mouse does not
+				seem to turn it back on.  As a result, the screen is just left black
+				with no response.
+				Possible solutions:
+					1. Run commands (needs a DISPLAY value)
 
-				   The settings seem to persist, so only need to set this once.
+					   xfconf-query -c xfce4-power-manager -p /xfce4-power-manager/blank-on-ac -s 0
+					   xfconf-query -c xfce4-power-manager -p /xfce4-power-manager/dpms-on-ac-off -s 0
+					   xfconf-query -c xfce4-power-manager -p /xfce4-power-manager/dpms-on-ac-sleep -s 0
 
-				2. topleft applications->settings->power manager -> display tab
-				   Turn all to never.
-			Failed solutions:
-				1. uninstall power management
-				   sudo apt remove xfce4-power-manager-*
-				2. ssh and try:
-				   xset dpms force on
+					   The settings seem to persist, so only need to set this once.
 
-	______________________________
-	-1.2- Usage
-		HOST:
-			creating:
-				vncserver:
-					-localhost
-						yes|no        explicitly specify yes/no to only localhost
-						              default is yes.  This is mainly for security.
-						              The port can be ssh-tunneled and then the server
-						              can be accessed via ssh.
-					-NeverShared    Do not share the screen, only 1 user at a time.
-					                You will be kicked off if someone else connects.
+					2. topleft applications->settings->power manager -> display tab
+					   Turn all to never.
+				Failed solutions:
+					1. uninstall power management
+					   sudo apt remove xfce4-power-manager-*
+					2. ssh and try:
+					   xset dpms force on
 
-				UPDATE:
-					arch linux, it seems like vncserver no longer manages servers.
-					Instead it just starts as a process, ctrl c to shut it down.
+		===========
+		-1.2.2- Usage
+		===========
+			HOST:
+				creating:
+					vncserver:
+						-localhost
+							yes|no        explicitly specify yes/no to only localhost
+							              default is yes.  This is mainly for security.
+							              The port can be ssh-tunneled and then the server
+							              can be accessed via ssh.
+						-NeverShared    Do not share the screen, only 1 user at a time.
+						                You will be kicked off if someone else connects.
 
-			managing:
-				vncserver:
-					-list:          list the current sessions.
-						:number|:*    list specified session
-					-kill
-						:number|:*    kill the vnc specified vnc session.
-						-dry-run      don't actually kill
-						-verbose      more verbose
-						-clean        also clean log files
-				vncpasswd:
-					Prompt you for a password and maybe a view-only password too.
+					UPDATE:
+						arch linux, it seems like vncserver no longer manages servers.
+						Instead it just starts as a process, ctrl c to shut it down.
 
-		CLIENT:
-			vncviewer:
-				[user@][host][:port]  Connect to specified vnc server.
+				managing:
+					vncserver:
+						-list:          list the current sessions.
+							:number|:*    list specified session
+						-kill
+							:number|:*    kill the vnc specified vnc session.
+							-dry-run      don't actually kill
+							-verbose      more verbose
+							-clean        also clean log files
+					vncpasswd:
+						Prompt you for a password and maybe a view-only password too.
 
-______________________________
+			CLIENT:
+				vncviewer:
+					[user@][host][:port]  Connect to specified vnc server.
+
+========
 -2- xrdp
-	______________________________
+========
+	=====
 	-2.1-
+	=====
 		sudo apt install xrdp
 
 		edit /etc/srdp/startwm.sh
