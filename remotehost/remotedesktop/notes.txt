@@ -5,6 +5,8 @@
 		-1.2.1- setup/startup
 			-1.2.1.1- blank screen/screensaver issue
 		-1.2.2- Usage
+	-1.3- wsl
+	-1.4- wayland
 -2- xrdp
 	-2.1- setup
 
@@ -116,6 +118,79 @@
 			CLIENT:
 				vncviewer:
 					[user@][host][:port]  Connect to specified vnc server.
+
+	=========
+	-1.3- wsl
+	=========
+	* WSL is generally wayland so see also: -1.4- wayland
+
+	WSL generally has /tmp/.X11-unix/ mounted as read-only
+	This results in vncserver being unable to create a new X display.
+
+	From some research, it seems that /tmp/.X11-unix/ is a read-only bind mount
+	of some kind to /mnt/wslg/.X11-unix/.
+
+		evidence:
+			>>> cd /mnt/wslg/.X11-unix/
+			>>> touch a
+			>>> ls /tmp/.X11-unix/
+			X0 a
+			>>> rm a
+			>>> ls /tmp/.X11-unix/
+			X0
+
+	This means that to allow vnc to work:
+		sudo umount /tmp/.X11-unix
+		mkdir /tmp/.X11-unix
+		chmod 1777 /tmp/.X11-unix
+		for item in /mnt/wslg/.X11-unix/*
+		do
+			ln -s "${item}" "/tmp/.X11-unix/${item##*/}"
+		done
+
+	Alternatively, Write a systemd service, something like:
+		[Unit]
+		Description=Fix /tmp/.X11-unix dir permissions
+		StartLimitIntervalSec=0
+
+		[Service]
+		Type=oneshot
+		ExecStart=-/usr/bin/umount /tmp/.X11-unix
+		ExecStart=/usr/bin/rm -rf /tmp/.X11-unix
+		ExecStart=/usr/bin/mkdir /tmp/.X11-unix
+		ExecStart=/usr/bin/chmod 1777 /tmp/.X11-unix
+		ExecStart=/usr/bin/ln -s /mnt/wslg/.X11-unix/X0 /tmp/.X11-unix/X0
+
+		[Install]
+		WantedBy=multi-user.target
+
+	=============
+	-1.4- wayland
+	=============
+	NOTE: in this case, it is very possible that VNC will have no hardware
+	acceleration at all and end up with very high CPU usage.
+
+	In general, VNC is X only.
+	On wayland systems, it is possible that applications will
+	end up in the wayland environment rather than the vnc environment
+	even if DISPLAY=:X and XDG_RUNTIME_DIR=x11 are set.
+
+	In this case, it might be better to temporarily remove remove
+	the corresponding wayland sockets to ensure that gui ends up
+	in VNC instead.
+
+	"${XDG_RUNTIME_DIR}/wayland*" are usually symlinks to /mnt/wslg/runtime-dir/wayland*
+
+	ensure GUI goes to VNC:
+		rm "${XDG_RUNTIME_DIR}/wayland"*
+
+	Allow wayland:
+		for item in "/mnt/wslg/runtime-dir/wayland"*
+		do
+			ln -s "${item}" "${XDG_RUNTIME_DIR}/${item##*/}"
+		done
+
+
 
 ========
 -2- xrdp
