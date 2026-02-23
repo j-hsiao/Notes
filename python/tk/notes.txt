@@ -154,16 +154,19 @@ ______________________________
 		substitution
 		command dispatch
 
-	______________________________
+	==================
 	-0.2- tcl commands
+	==================
 
-	______________________________
+	==================
 	set variable value
+	==================
 		Sets a variable to a value.
 		The variable can be dereferenced with $variable
 
-	______________________________
+	===============
 	expr expression
+	===============
 		Evaluate an expression.  This could be a mathematical expression.
 		It could be a str.
 
@@ -186,14 +189,16 @@ ______________________________
 			expr $a       # prints 32
 			expr $a + 5   # prints 37
 			expr "$a + 5" # prints the string "32 + 5"
-	______________________________
+	=========
 	puts args
+	=========
 		print arguments
 		THIS IS LITERAL, so there is no variable expansion etc.
 		use expr instead for variable expansion.
 
-	______________________________
+	=====
 	loops
+	=====
 		loops are just like any other command.
 
 		example:
@@ -205,6 +210,13 @@ ______________________________
 			2 arguments are given: an unevaluated str literal $i < 10
 			and the str literal {puts ... }
 
+	========
+	branches
+	========
+	if {} {
+	} elseif {} {
+	} else {
+	}
 
 	sidenote... this being the case, it would be possible to just write:
 		commands = {}
