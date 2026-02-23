@@ -1,5 +1,7 @@
 systemd service
--0- example
+-0- general
+	-0.0- installation
+	-0.1- example
 -1- options
 	-1.1- Service
 	-1.2- Unit
@@ -7,13 +9,23 @@ systemd service
 -2- systemctl
 
 
-man systemd.[unit|service]
-______________________________
--0- example
+===========
+-0- general
+===========
+	man systemd.[unit|service]
+	==================
+	-0.0- installation
+	==================
+	Install unit files at one of these locations:
+	system:
+		/etc/systemd/system/<servicename>.service     ("System units created by the administrator")
+	user:
+		${HOME}/.config/systemd/user      ("User configuration")
+		$XDG_CONFIG_HOME/systemd/user
 
-place file: /etc/systemd/system/<servicename>.service
-example:
-
+	===========
+	-0.1- example
+	===========
 	[Unit]
 	Description=some description
 	StartLimitIntervalSec=0
@@ -27,12 +39,14 @@ example:
 
 	[Install]
 	WantedBy=target (probably multi-user.target)
-______________________________
+============
 -1- options:
+============
 	Required sections: [Service]
 	Optional sections: [Unit] and [Install]
-	______________________________
+	=============
 	-1.1- Service
+	=============
 		Type                    Notify that service startup has finished.
 			simple                  immediately after fork
 			exec                    After binary is executed (after fork AND execve)
@@ -56,8 +70,9 @@ ______________________________
 		  /ExectStartPost       lines. Multiple are allowed regardless of type
 		ExecStop                Command lines for/after stopping.  Optional.  Afterwards,
 		  /ExecStopPost         any remaining processes will be killed.
-	______________________________
+	==========
 	-1.2- Unit
+	==========
 		Description             short description, human readable
 		Documentation           space-separated list of URIs
 		Wants                   space-separated weak dependencies
@@ -69,8 +84,9 @@ ______________________________
 		StartLimitIntervalSec   if StartLimitBurst restarts within
 		                        interval, then stop trying to restart
 		                        forever.
-	______________________________
+	=============
 	-1.3- Install
+	=============
 		WantedBy                list of unit names to add this as a dependency.
 		  /RequiredBy           Usually use the run level to start at:
 		  /UpheldBy               0: runlevel0.target, poweroff.target
@@ -82,8 +98,9 @@ ______________________________
 		                        or specify multiple times
 		
 
-______________________________
+=============
 -2- systemctl
+=============
 	enable service:
 		systemctl enable service
 	start service:
