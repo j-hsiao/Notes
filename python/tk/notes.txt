@@ -217,6 +217,19 @@ ______________________________
 	} elseif {} {
 	} else {
 	}
+	NOTE: the opening { MUST be grouped with the previous command/arg.
+	INVALID:
+		if {condition}
+		{
+			body
+		}
+
+	This is because Tcl would interpret the `if {}` as a single command
+	with only 1 argument.  It wouldn't know that if actually expects
+	2 arguments and that argument is on the next line.  Therefore, the
+	opening brace of the body MUST BE ON THE SAME LINE as the closing
+	brace of the condition.
+
 
 	sidenote... this being the case, it would be possible to just write:
 		commands = {}
