@@ -4,18 +4,20 @@ import collections
 import datetime
 import heapq
 import io
+import os
+import platform
 import re
 import select
 import socket
 import subprocess
 import sys
+import textwrap
 import threading
-import tkinter as tk
-import platform
-from tkinter import messagebox
 import time
+import tkinter as tk
+from tkinter import messagebox
 import traceback
-import os
+
 
 DATE_FMT = '%Y-%m-%d %H:%M:%S.%f'
 DATE_SHOW = '%Y-%m-%d %H:%M:%S'
@@ -188,6 +190,37 @@ class Server(object):
         self.notifying = tk.BooleanVar(self.tk, False)
         self.tk.bind('<<CheckNotifications>>', f'if {{!${self.notifying}}} {{CheckNotifications}}')
 
+        self._winready = tk.BooleanVar()
+        self._evnum = tk.IntVar()
+
+        # Sometimes, wsl window does not obey geometry() call and the
+        # window ends up elsewhere.  Use <Configure> to keep calling
+        # geometry() until the desired geometry.
+        # NOTE: Do not use after idle, because sometimes even after idle
+        # more <Configure> events will be fired so must use a delay.
+        # With a shorter delay, the messagebox is opened before the root
+        # window finally reaches target geom.  Does this mean that
+        # simply waiting a few seconds is good enough for the messagebox
+        # window to appear in the correct position?
+        W, H = self.tk.call('wm', 'minsize', self.tk)
+        delay = 100
+        self._target_geom = '{}x{}+{}+{}'.format(
+            W, H,
+            (self.tk.winfo_screenwidth()-W)//2,
+            (self.tk.winfo_screenheight()-H)//2)
+        self.tk.bind(
+            '<Configure>',
+            textwrap.dedent('''
+                if {{"[wm state {0}]" == "normal"}} {{
+                    if {{"[wm geometry {0}]" != "{1}"}} {{
+                        wm geometry {0} {1}
+                    }} else {{
+                        after cancel ${3}
+                        set {3} [after {4} set {2} true]
+                    }}
+                }}''').strip().format(
+                    self.tk, self._target_geom, self._winready, self._evnum, delay))
+
     def eprint(self, *args, **kwargs):
         if self.verbose:
             kwargs.setdefault('file', sys.stderr)
@@ -210,20 +243,22 @@ class Server(object):
                     if self.ready:
                         target, message = self.ready.popleft()
                     else:
+                        if self.tk.state() == 'normal':
+                            self.tk.update_idletasks() # ? tk root gets focus before withdraw to avoid window focusing weirdness
+                            self.tk.withdraw()
                         break
-                # It seems like at least deiconify is required
-                # or the popup might be behind everything else, and not even have an icon.
-                self.tk.deiconify()
-                self.tk.attributes('-topmost', True)
-                self.tk.geometry('+{}+{}'.format(self.tk.winfo_screenwidth()-1, self.tk.winfo_screenheight()-1))
-                self.tk.update_idletasks()
+                if self.tk.state() != 'normal':
+                    # It seems like at least deiconify is required
+                    # or the popup might be behind everything else, and not even have an icon.
+                    # topmost also seems necessary
+                    self.tk.attributes('-topmost', True)
+                    self.tk.call('after', 1, 'wm deiconify {}'.format(self.tk))
+                    self.tk.call('vwait', self._winready)
                 now = datetime.datetime.now()
                 if abs((now - target).total_seconds()) < 1:
                     messagebox.showinfo(title='Reminder', message=f'{target.strftime(DATE_SHOW)}\n\n{message}')
                 else:
                     messagebox.showinfo(title='Reminder', message=f'now: {now.strftime(DATE_SHOW)}\n\ntgt: {target.strftime(DATE_SHOW)}:\n\n{message}')
-                self.tk.update_idletasks()
-                self.tk.withdraw()
             with self.lock:
                 if self.running:
                     return
@@ -361,11 +396,13 @@ def launch_powershell(*args, **kwargs):
 
 
 def launch(args):
-    if args.log:
+    if args.log is None:
+        logname = os.devnull
+    elif args.log:
+        logname = args.log
+    else:
         logname = os.path.join(
             os.environ.get('HOME', os.environ.get('USERPROFILE', './')), '.reminder')
-    else:
-        logname = os.devnull
     cmd = [
         os.path.realpath(sys.executable),
         os.path.realpath(sys.argv[0]),
@@ -373,17 +410,17 @@ def launch(args):
     for opt in ('persist', 'reuse', 'verbose'):
         if getattr(args, opt):
             cmd.append('--'+opt)
-    if platform.system() == 'Windows':
         L = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        try:
+    try:
+        L.bind(('localhost', 0))
+        while L.getsockname()[1] == args.port:
+            L.close()
+            L = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
             L.bind(('localhost', 0))
-            while L.getsockname()[1] == args.port:
-                L.close()
-                L = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-                L.bind(('localhost', 0))
-            L.listen(1)
-            cmd.extend(('--notify', str(L.getsockname()[1])))
-            with open(logname, 'ab') as logf:
+        L.listen(1)
+        cmd.extend(('--notify', str(L.getsockname()[1])))
+        with open(logname, 'ab') as logf:
+            if platform.system() == 'Windows':
                 print('launching', cmd)
                 import shutil
                 output = dict(stdout=logf.fileno(), stderr=logf.fileno())
@@ -396,25 +433,17 @@ def launch(args):
                     # # will be killed if the terminal is closed.
                     # cargs.append('--hide')
                     # cmd = ['cmd', '/C', 'start', '/MIN'] + cmd + cargs
-            L.settimeout(5)
-            s, a = L.accept()
-            s.close()
-        finally:
-            L.close()
-    else:
-        with open(logname, 'ab') as logf:
-            # It seems nohup is still required or closing terminal
-            # will hang.
-            cmd.insert(0, 'nohup')
-            print('launching', cmd)
-            p = subprocess.Popen(
-                cmd, bufsize=0,
-                stdout=subprocess.PIPE,
-                stderr=logf.fileno())
-        result = p.stdout.readline().decode('utf-8')
-        if not result.startswith('Server bound to '):
-            raise ValueError('Server startup failed: ' + result)
-        print(result, end='')
+            else:
+                cmd.insert(0, 'nohup')
+                print('launching', cmd)
+                p = subprocess.Popen(
+                    cmd, bufsize=0, stdout=logf.fileno(),
+                    stderr=logf.fileno())
+        L.settimeout(5)
+        s, a = L.accept()
+        s.close()
+    finally:
+        L.close()
     print('Server pid:', p.pid)
     return p
 
@@ -443,8 +472,10 @@ def send_command(args, retrying=False):
                 try:
                     p = launch(args)
                 except Exception:
-                    print('Reminder server startup failed:')
-                    traceback.print_exc()
+                    print(
+                        'Reminder server startup failed:\n   ',
+                        traceback.format_exc().replace('\n', '\n    '),
+                        file=sys.stderr)
                 s.connect(('localhost', args.port))
         with s.makefile('w') as wf:
             if args.cmd in COMMANDS:
@@ -463,6 +494,30 @@ def send_command(args, retrying=False):
     finally:
         s.close()
 
+def win_check_excludedportrange(value):
+    """Ensure value is not in windows excluded port range.
+
+    Parse netsh interface ipv4 show excludedportrange protocol=tcp.
+    """
+    portrangepat = re.compile(r'\s*(\d+)\s*(\d+)')
+    result = subprocess.check_output(
+        ['netsh', 'int', 'ipv4', 'show', 'excludedportrange', 'protocol=tcp'])
+    ranges = []
+    for line in result.decode().splitlines():
+        result = portrangepat.match(line)
+        if result:
+            ranges.append((int(result.group(1)), int(result.group(2))))
+    ranges.sort()
+    hval = value
+    lval = value
+    for start, stop in ranges:
+        if start <= hval <= stop:
+            hval = stop+1
+    for start, stop in reversed(ranges):
+        if start <= lval <= stop:
+            lval = start-1
+    return lval if value-lval < hval-value else hval
+
 if __name__ == '__main__':
     p = argparse.ArgumentParser()
     p.add_argument('-s', '--server', action='store_true', help='act as the server, otherwise client.')
@@ -471,14 +526,17 @@ if __name__ == '__main__':
     p.add_argument('-v', '--verbose', action='store_true')
     p.add_argument('--hide', action='store_true', help='hide terminal on windows.')
     p.add_argument('--notify', type=int, help='Connect to this port to notify server ready.')
-    p.add_argument('-l', '--log', help='use logfile', action='store_true')
+    p.add_argument('-l', '--log', help='use logfile')
 
     p.add_argument('cmd', nargs='?', help=f'the client command: a time specification (YYYY-mm-dd HH:MM:SS), floats allowed, omissions allowed. or one of {COMMANDS}.')
     p.add_argument('extra', nargs='*', help='remaining extra arguments for command.')
     p.add_argument('-c', '--check', action='store_true', help='just check the time parsing.')
-    p.add_argument('-p', '--port', type=int, default=58008, help='reminder server port.')
+    p.add_argument('-p', '--port', type=int, default=65432, help='reminder server port.')
     p.add_argument('-d', '--delay', action='store_true', help='the given times are delays.')
     args = p.parse_args()
+
+    if platform.system() == 'Windows':
+        args.port = win_check_excludedportrange(args.port)
 
     if args.check:
         print('now:', datetime.datetime.now().strftime(DATE_FMT))
