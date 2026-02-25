@@ -13,6 +13,7 @@
 -9- extensions
 -10- miscellaneous
 	-10.1- auto-module detection
+-11- entrypoints
 
 ______________________________
 -0- general
@@ -386,3 +387,72 @@ ______________________________
 
 	Given these issues, it might be easier to just use os.walk.
 	os.walk('toplevel_module')
+
+
+================
+-11- entrypoints
+================
+When installing, setuptools can help create "entrypoints".
+
+Entrypoints are like explicit pointers to certain functions stored in
+importlib.metadata under an "entry point group".
+
+syntax of an entrypoint is:
+	<name> = <package_or_module>[:<object>[.<attr>[.<nested-attr>]*]]
+
+	==================
+	Using entry points
+	==================
+	`from importlib.metadata import entry_points`
+	entry_points is a callable
+	entry_points() -> dict-like of 'entry point group'
+	Each entry point group is a dict/list-like object of entry points.
+	Each entrypoint item is a subclass of tuple, kind of like a named
+	tuple, with a `load()` method.
+
+	attrs:
+		group: name of the entry point group
+		name: the lhs of the entrypoint spec
+		module: the module part of the rhs of entrypoint spec
+		value: the rhs of the entrypoint spec
+
+	method:
+		load(): get the corresponding item
+
+	=======================
+	installing entry points
+	=======================
+	pyproject.toml
+		```
+		[project.scripts]
+		commandname = "module.path:funcname"
+		[project.gui-scripts]
+		commandname = "module.path:funcname"
+		[project.entry-points."entrypoint-group-name"]
+		name="module.path:funcname"
+		```
+
+	setup.py
+		```
+		setup(
+			...
+			entry_points={
+				'console_scripts': ['name = module.path:funcname',...],
+				'gui_scripts': ['name = module.path:funcname', ...],
+				'entry-point-group-name': [ 'name = module.path:funcname', ... ],
+			}
+		)
+		```
+
+	=======
+	scripts
+	=======
+	Python has 2 default script entry point groups:
+		console_scripts: normal command-line commands
+		gui_scripts: (windows only), run command without stdin, stdout, stderr, etc
+
+	The entrypoints in these groups must take NO arguments and return the
+	exit code. (None = 0)
+
+	The entrypoints in these groups will have commands created that call the
+	corresponding item.
