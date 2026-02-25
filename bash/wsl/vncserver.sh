@@ -35,26 +35,26 @@ noway()
 				return 1
 			fi
 		done
-		rm "${targets[@]}"
+		command rm "${targets[@]}"
 	fi
 }
 
 wsl__ensure_symlink() # src dst
 {
-	if [[ ! -e "${dst}" ]]
+	if [[ ! -e "${2}" ]]
 	then
-		ln -s "${src}" "${dst}"
-	elif [[ -h "${dst}" ]]
+		ln -s "${1}" "${2}"
+	elif [[ -h "${2}" ]]
 	then
-		if [[ "$(readlink -f "${dst}")" != "${src}" ]]
+		if [[ "$(readlink -f "${2}")" != "${1}" ]]
 		then
 			printf '%s\n' \
-				"WARNING: symlink ${dst} exists but different source:" \
-				"  current : $(readlink -f "${dst}")" \
-				"  expected: ${item}" >&2
+				"WARNING: symlink ${2} exists but different source:" \
+				"  current : $(readlink -f "${2}")" \
+				"  expected: ${1}" >&2
 		fi
 	else
-		echo "WARNING: ${dst} exists but is not as expected." >&2
+		echo "WARNING: ${2} exists but is not as expected." >&2
 	fi
 }
 
@@ -75,15 +75,10 @@ way()
 
 vncprep()
 {
-	if mountpoint /tmp/.X11-unix
+	if [[ ! -h /tmp/.X11-unix/X0 ]]
 	then
-		if [[ "${USER}" != root ]]
-		then
-			local sudo=sudo
-		else
-			local sudo=
-		fi
-		${sudo} umount /tmp/.X11-unix
+		[[ "${USER}" != root ]] && local sudo=sudo || local sudo=
+		${sudo} mount tmpfs -t tmpfs /tmp/.X11-unix -o size=1M
 		${sudo} chmod 1777 /tmp/.X11-unix
 		local item
 		if [[ "${BASHOPTS}" != *'nullglob'* ]]
