@@ -1,0 +1,42 @@
+-1- symbolic
+-2- octal
+
+chmod is used to alter file permissions.
+
+============
+-1- symbolic
+============
+Multiple symbolic modes can be specified as comma-separated list.
+[ugoa...][[+-=][perms...]...]
+ugoa:
+	u: user
+	g: group
+	o: other
+	a: all
+
+perms:
+	r: read
+	w: write
+	x: execute
+	X: same as x except ?only if directory or already have x?
+	s: setuid/setgid (execute as owner/group of file instead of the current user)
+	t: sticky bit/restricted deletion (file owner or directory owner can delete files)
+	   NOTE: "sticky bit" on old systems, indicate that this should be
+	   cached in ram for faster loading
+	ugo: copy the corresponding permissions.
+
+=========
+-2- octal
+=========
+1-4 octal digits
+setuid/setgid/sticky u g o
+
+setuid/setgid/sticky:
+4: setuid
+2: setgid
+1: sticky
+
+ugo octal bitflags
+4: read
+2: write
+1: execute
