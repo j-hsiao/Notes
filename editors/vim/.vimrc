@@ -46,8 +46,7 @@ set nowrap number relativenumber ruler incsearch autoindent copyindent preservei
 	\ ls=2 stl=%<%n\ %f\ %h%m%r%=%l(%p%%),%c%V
 	\ listchars=eol:$,tab:.\ ,trail:_,extends:>
 	\ backspace=indent,eol,start
-let &showbreak='-> '
-
+	\ breakindent linebreak showbreak=├─
 "Don't search include files for completion, it can take a while.
 set complete=.,w,b,u,t
 
