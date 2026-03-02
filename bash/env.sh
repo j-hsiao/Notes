@@ -230,14 +230,6 @@ setup_readline() {
 
 setup_bash() {
 	local scriptdirs=('')
-	local d=
-	for d in "${HOME}/scripts" "${HOME}/.scripts"
-	do
-		if [[ -d "${d}" ]]
-		then
-			scriptdirs+=("${d}")
-		fi
-	done
 	if ((IS_WSL))
 	then
 		scriptdirs+=("${ROOTDIR}/wsl")
@@ -246,7 +238,14 @@ setup_bash() {
 	then
 		scriptdirs+=("${ROOTDIR}/cygwin")
 	fi
-
+	local d=
+	for d in "${HOME}/scripts" "${HOME}/.scripts"
+	do
+		if [[ -d "${d}" ]]
+		then
+			scriptdirs+=("${d}")
+		fi
+	done
 	local idx=-1
 	while ((++idx < ${#scriptdirs[@]}))
 	do
