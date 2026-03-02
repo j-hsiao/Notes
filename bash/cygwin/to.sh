@@ -2,9 +2,10 @@
 
 alias to=cd
 
+TO_SHORTCUTS=()
+
 function to_() {
 	local resets=() local opt
-
 	for opt in nullglob extglob
 	do
 		[[ "${BASHOPTS}" != *"${opt}"* ]] && resets+=("${opt}")
@@ -21,11 +22,24 @@ function to_() {
 		chosen="${query##*,}"
 		query="${query%,*}"
 	fi
-	COMPREPLY=(
-		/cygdrive/"${query}"*/
-		'//wsl$/ubuntu/home/'"${USER}"/"${query}"*/
-		"${query}"*/
-	)
+
+	COMPREPLY=()
+	for item in "${TO_SHORTCUTS[@]}"
+	do
+		if [[ "${item}" = "${query}"* ]]
+		then
+			COMPREPLY+=("${item#*:}")
+		fi
+	done
+	if [[ -d /cygdrive/ ]]
+	then
+		COMPREPLY+=(
+			/cygdrive/"${query}"*/
+			'//wsl$/ubuntu/home/'"${USER}"/"${query}"*/
+		)
+	fi
+	COMPREPLY+=("${query}"*/)
+
 	[[ -n "${chosen}" ]] && COMPREPLY=("${COMPREPLY[chosen]}")
 }
-complete -F to_ -o nospace to
+complete -F to_ -o nospace -o nosort to
