@@ -11,8 +11,10 @@ then
 	return
 fi
 
-norm_time()
+norm_time() # tmvar [msec]
 {
+	# Normalize a time string.
+	# if msec, then return number of milliseconds.
 	local -n __num="${1}"
 	[[ -z "${__num}" ]] && return
 	if ! [[ "${__num}" =~ ^(0*([0-9]*):)?(0*([0-9]*):)?(0*([0-9]*))(\.([0-9]*))?$ ]]
@@ -44,7 +46,7 @@ norm_time()
 			$((__seconds%60)) \
 			${__msecs}
 	else
-		__num="${__seconds}.${__msecs}"
+		__num="$((__seconds*1000 + 1${__msecs} - 1000))"
 	fi
 }
 
@@ -84,6 +86,7 @@ aclip() # input [output]
 						r[eplace]: clip and replace the original.
 						y[es]: clip, do not replace.  Use 2nd argument if given.'
 					printf "${msg//$'\t'}" >&2
+					ok=0
 					;;
 				[ry]*)
 					ffmpeg ${beg:+-ss "${beg}"} -i "${fname}" -c:a copy ${dur:+-t "${dur}"} "${oname}"
@@ -100,22 +103,24 @@ aclip() # input [output]
 			esac
 		done
 		((ok)) && norm_time beg x && norm_time end x || continue
-		if [[ -z "${end}" || "${end/.}" -lt "${beg/.}" ]]
+		if [[ -z "${end}" || "${end}" -lt "${beg}" ]]
 		then
 			dur=
 		else
 			if [[ -z "${beg}" ]]
 			then
-				dur="${end}"
+				dur="$((end/1000)).$((end%1000))"
 			else
-				dur="000$(("${end/.}" - "${beg/.}"))"
-				dur="${dur::-3}.${dur: -3}"
+				dur=$((end - beg))
+				dur="$((dur/1000)).$((dur%1000))"
 				norm_time dur
 			fi
 		fi
-		ffplay -autoexit ${beg:+-ss "${beg}"} ${dur:+-t "${dur}"} -i "${fname}"
+		end="$((end/1000)).$((end%1000))"
+		beg="$((beg/1000)).$((beg%1000))"
 		norm_time beg
 		norm_time end
+		ffplay -autoexit ${beg:+-ss "${beg}"} ${dur:+-t "${dur}"} -i "${fname}"
 	done
 }
 aclip "${@}"
