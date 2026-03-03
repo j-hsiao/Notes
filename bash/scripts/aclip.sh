@@ -92,7 +92,7 @@ aclip() # input [output]
 					ffmpeg ${beg:+-ss "${beg}"} -i "${fname}" -c:a copy ${dur:+-t "${dur}"} "${oname}"
 					if [[ "${item}" = r ]]
 					then
-						echo mv "${oname}" "${fname}"
+						mv "${oname}" "${fname}"
 					fi
 					return
 					;;
