@@ -35,7 +35,7 @@ function to_() {
 	then
 		COMPREPLY+=(
 			/cygdrive/"${query}"*/
-			'//wsl$/ubuntu/home/'"${USER}"/"${query}"*/
+			'//wsl$/ubuntu/home/'*/"${query}"*/
 		)
 	fi
 	COMPREPLY+=("${query}"*/)
