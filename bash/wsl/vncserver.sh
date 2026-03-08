@@ -78,6 +78,11 @@ vncprep()
 	if [[ ! -h /tmp/.X11-unix/X0 ]]
 	then
 		[[ "${USER}" != root ]] && local sudo=sudo || local sudo=
+		# It seems unmounting this is required.
+		# Without this initial unmounting,
+		# /mnt/wslg/.X11-unix/ will also see the mounted result
+		# and X0 will no longer be available...
+		sudo umount /tmp/.X11-unix
 		${sudo} mount tmpfs -t tmpfs /tmp/.X11-unix -o size=1M
 		${sudo} chmod 1777 /tmp/.X11-unix
 		local item
