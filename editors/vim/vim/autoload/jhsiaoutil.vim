@@ -172,6 +172,10 @@ function! jhsiaoutil#ParseComments()
 	else
 		let comlist = &l:comments
 	endif
+	if !len(comlist)
+		let b:jhsiaoutilParseCommentsResult = [[], []]
+		return b:jhsiaoutilParseCommentsResult
+	endif
 	for part in split(comlist, ',', v:true)
 		let [flags, chars] = matchlist(part, '\m^\([^:]*\):\(.*\)$')[1:2]
 		let info = {
