@@ -1302,12 +1302,14 @@ https://www.gnu.org/software/bash/manual/html_node/Programmable-Completion-Built
 
 	options:
 		-o <comp-option>
-			bashdefault: use default when no matches
-			default: use readline's filename when no matches
+			bashdefault: use default when no matches (ex, expanding variable names)
+			default: use readline's filename defaults when no matches
 			dirnames: use dirname when no matches
-			filenames: specify completions are filenames (so process like filenames), used with -F
-			           adds / to directories after completion (doesn't affect compgen...)
-			noquote: don't quote if filenames
+			filenames: specify completions are filenames (so process like filenames),
+			           used with -F adds / to directories after completion (doesn't
+			           affect compgen...)
+			noquote: don't quote if filenames (If -o filenames is not specified,
+			         completion will not quote anyways)
 			nosort: don't sort
 			nospace: don't append space to end of the completion
 			         ie: | is the cursor
