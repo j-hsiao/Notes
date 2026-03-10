@@ -1,19 +1,19 @@
 -0- general
--1- setup.py
-	-1.1- writing setup.py
-	-1.2- using setup.py
-	-1.3- dependencies
+-1- setuptools
+	-1.1- pyproject.toml
+	-1.2- setup.py
+	-1.3- using setup.py
+	-1.4- dependencies
 -2- config
 -3- manifest
 -4- extending distutils
--5- setuptools (enhanced distutils)
--6- namespace packages
--7- repositories
--8- pip
--9- extensions
--10- miscellaneous
-	-10.1- auto-module detection
--11- entrypoints
+-5- namespace packages
+-6- repositories
+-7- pip
+-8- extensions
+-9- miscellaneous
+	-9.1- auto-module detection
+-10- entrypoints
 
 ______________________________
 -0- general
@@ -32,25 +32,79 @@ ______________________________
 
 			This creates a wheel(built) and a tar.gz/zip (source) dist files.
 
-______________________________
--1- setup.py
+==============
+-1- setuptools
+==============
+	Setuptools is the main tool for packaging python.
+	The main options for configuring packaging are setup.py and pyproject.toml
+	If setup.py exists, pyproject.toml will still run the setup.py.
+
+	Generally, you want everything to be within the same dir.  In general, the dir should be
+	copyable to another directory for building, meaning use only relative paths.
+
+	========
+	setup.py
+	========
+	This is just a normal python file which imports setup from setuptools and calls
+	it with corresponding arguments.
+	setup.py is required to use extensions and cython.
 	______________________________
-	-1.1- writing setup.py
-		NOTE: windows python2.7 testing, seems everything MUST be below
-			the setup.py directory.  It seems to copy everything into a
-			temp dir and then do the install.  As a result, using a ..
-			path causes the dir to not be found.  os.getcwd() is also the
-			temp dir so no way to get the original dir.
-			__init__.py is always added if it exists and any py file is
-			added within the same dir.  (MANIFEST.in exclude command
-			does not exclude the __init__.py from being added)
+	from setuptools import setup
+	from setuptools.config import read_configuration
 
+	====================
+	-1.1- pyproject.toml
+	====================
+	[project]
+	name: str, "package-name", cannot be dynamic, from reading, it seems - is best choice for multi-word name
+		https://packaging.python.org/en/latest/specifications/name-normalization/#name-normalization
+	version: str, the package version
+	dependencies = [ ... ] list of str dependencies.
+		more info:https://peps.python.org/pep-0508/
+	optional-dependencies = {
+		extrafeature1 = [...],
+		extrafeature2 = [...],
+		...
+	}
+	requires-python = "<=> version"
+	scripts = {
+		command = "module.path:func",...
+	}
+	gui-scripts = {
+		command = "module.path:func",...
+	}
+	entry-points = {
+		"entrypointname" = {
+			name="module.path:func"
+		}
+	}
 
-		import distutil
-		from distutils.core import setup
-			or
-		from setuptools import setup
+	authors = [
+		{name = "name", email = "email"},
+		...
+	]
+	maintainers = [
+		{name = "name", email = "email"},
+		...
+	]
+	description = "single-line descr"
+	readme = "local readme file path."
 
+	dynamic = ["attrs"]
+		Attrs in this list should be detected from the project.
+		For example, "version" would then be import the module and look for __version__ attr.
+
+	[tool.setuptools] (These are just kwargs equivalent to setup() kwargs:)
+	py-modules
+	ext-modules (experimental)
+	packages
+	package-dir
+	package-data
+	include-package-data
+	exclude-package-data
+
+	______________________________
+	-1.2- setup.py
 		setup(...)
 			kwargs:
 				py_modules=[...]
@@ -93,6 +147,12 @@ ______________________________
 				depends=['',...]
 					list of filename dependencies.
 					recompile if any of these change.
+				extras_require={
+					optional_feature1: ['req1', 'req2',...],
+					optional_feature2: ['req1', 'req2',...],
+				}
+					extras_require can be specified when installing:
+					pip install package[optional_feature1,optional_feature2]
 				requires=[''...]
 					'name[<!=>version,...]
 					NOTE:
@@ -135,7 +195,7 @@ ______________________________
 		set DISTUTILS_DEBUG to non-empty for debug info.
 
 	______________________________
-	-1.2- using setup.py
+	-1.3- using setup.py
 		python setup.py args...
 		python setup.py -h
 
@@ -166,13 +226,16 @@ ______________________________
 			check             perform some checks on the package
 
 	______________________________
-	-1.3- dependencies
+	-1.4- dependencies
 		see also -1.1- install_requires
+			NOTE: if any of these fail, try updating setuptools or something.
+
 			install_requires format is a list of strings:
 				'project-name' (you would pip install <project-name>)
 				'project-name @ uri[@tag][#fragment[&more&fragments...]]' (specify uri)
 					This is called a "direct reference" (pep 440).  The url plays
 					the role of the version specifier.
+					file:./relative_path
 					file://c:/some/path/on/windows
 					file://[machine share ip]/some/path/on/
 					file://[host]/some/path/on/unix
@@ -242,11 +305,7 @@ ______________________________
 	setup(cmdclass={'command': cls...},...)
 
 ______________________________
--5- setuptools (enhanced distutils)
-	from setuptools import setup
-	from setuptools.config import read_configuration
-______________________________
--6- namespace packages
+-5- namespace packages
 	see also pep420 (for python3.3+)
 
 	For packages inside a namespace, when packaging, it is recommended to
@@ -305,7 +364,7 @@ ______________________________
 		for python>=3.3, using pip is fine thanks to implicit namespace packages
 
 ______________________________
--7- repositories
+-6- repositories
 	simplest repo:
 		/reporoot
 			/normalized-name-of-package
@@ -342,7 +401,7 @@ ______________________________
 			uninstall/delete any alternative names/build products
 
 ______________________________
--8- pip
+-7- pip
 	pip install -e <identifier> installs in editable mode.
 	for vcs (git, etc), it will download and install it
 	into cwd/src/project or venvpath/src/project
@@ -350,7 +409,7 @@ ______________________________
 	a temp dir and install it normally
 
 ______________________________
--9- extensions
+-8- extensions
 	setuptools.Extension(name, sources, ...)
 		name: "extension module name"
 		sources: [filenames]
@@ -374,9 +433,9 @@ ______________________________
 			import modulename
 
 ______________________________
--10- miscellaneous
+-9- miscellaneous
 	______________________________
-	-10.1- auto-module detection
+	-9.1- auto-module detection
 
 	Usually the recommendation is to use pkgutil.walk_packages.
 	However, this has some issues:
@@ -390,7 +449,7 @@ ______________________________
 
 
 ================
--11- entrypoints
+-10- entrypoints
 ================
 When installing, setuptools can help create "entrypoints".
 
