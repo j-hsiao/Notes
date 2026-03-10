@@ -4,7 +4,10 @@ Contents
 		-0.0.1- call
 		-0.0.2- eval
 	-0.1- syntax
-	-0.2- tcl commands
+	-0.2- procs
+	-0.3- namespaces
+	-0.4- variables
+	-0.5- tcl commands
 -1- general
 	-1.0- Terms
 	-1.1- Widgets
@@ -75,8 +78,9 @@ miscellaneous observations
 
 
 
-______________________________
+=======
 -0- tcl
+=======
 	Tcl is the interpreter (handles parsing and running commands).
 	Tk is the gui (handles displaying gui, events, etc).
 	Tkinter is a wrapper over Tcl/Tk.
@@ -89,8 +93,11 @@ ______________________________
 		r.tk.call('bind', r, '<Escape>', 'destroy {}'.format(r))
 		r.wait_window()
 
-	______________________________
+	Tcl version is held in variable 'tcl_version'
+
+	==================
 	-0.0- call vs eval
+	==================
 
 	Tkinter has 2 methods for interacting directly with the tcl interpreter.
 	The first is call() (tkinter.Tk.tk.call).
@@ -98,8 +105,9 @@ ______________________________
 
 	tkinter.Tk seems to forward call and eval to tkinter.Tk.tk
 
-		______________________________
+		============
 		-0.0.1- call
+		============
 			Each argument to call() will be converted to str and properly escaped.
 			This means that call is unsuitable for any more complex expression than
 			single literal strings.
@@ -109,8 +117,9 @@ ______________________________
 				r.call('expr', '3 + 2') -> int(5)
 
 
-		______________________________
+		============
 		-0.0.2- eval
+		============
 			eval() takes a single string argument that is an expression/script for tcl to
 			interpret.  This means that the full tcl syntax is allowed.  However, it does
 			not attempt to interpret the output, so it always returns a str.
@@ -123,8 +132,9 @@ ______________________________
 				NOTE: this is not possible with call() because the [] expr would
 				be changed to a literal string.
 
-	______________________________
+	============
 	-0.1- syntax
+	============
 	cmd arg arg arg
 		words separated by whitespace.
 		The first word is the command.
@@ -154,19 +164,171 @@ ______________________________
 		substitution
 		command dispatch
 
-	==================
-	-0.2- tcl commands
-	==================
+	===========
+	-0.2- procs
+	===========
+	procs are basically functions for tcl
+	proc name {arg1 arg2, ...} {body...}
 
-	==================
-	set variable value
-	==================
-		Sets a variable to a value.
-		The variable can be dereferenced with $variable
+	Each argi is either a name, or a pair of name and default value
+
+	Special argument name 'args' means all remaining arguments
+
+	Unspecified return value will use the last command's return value.
+
+	================
+	-0.3- namespaces
+	================
+	Namespaces follow syntax ::ns1::ns2::ns3
+
+	Namespaces are relative to the current namespace (unless absolute ie, starting with ::)
+
+	namespace eval n1 {
+
+		namespace eval n2 {
+			variable i 2
+		}
+
+		puts "::n1::n2::i is $::n1::n2::i"
+		puts "n1::n2::i is $n1::n2::i"
+		puts "n2::i is $n2::i"
+
+
+		namespace eval n1 {
+			namespace eval n2 {
+				variable i 1
+			}
+		}
+
+		puts "::n1::n2::i is $::n1::n2::i"
+		puts "n1::n2::i is $n1::n2::i"
+		puts "n2::i is $n2::i"
+	}
+
+	Variables: current namespace, then global
+	commands: current namespace, then all namespaces in current namespace's command path, then global.
+	namespace: current namespace only
+
+	NOTE: tk.Tk.createcommand(...) can take a namespace-qualified  name.
 
 	===============
-	expr expression
+	-0.4- variables
 	===============
+	Variables are created with set or variable commands.
+
+	set vname             Same as $vname. Error if vname does not exist.
+	set vname value       Set variable value. Create if not exist.
+	variable vname        Create empty variable if not exists.
+	variable vname value  Create a variable of vname with value
+
+	One more major difference between set and variable is that variable
+	MUST be a variable.  It WILL error if the vname matches an argument of
+	the current proc.  set, on the other hand, will just overwrite it anyways.
+
+	=============
+	-0.4.1- lists
+	=============
+	A list is just a string.  The items are determined by how the string
+	would be parsed if it was in a command.  The list command just ensures
+	that any quoting/escaping etc is done as needed.
+
+	==============
+	-0.4.2- arrays
+	==============
+	The array command manipulates array variables.  In Tcl, arrays are akin to python dicts.
+	Array sub commands:
+	tcl                                           python
+	array set arrname { k1 v1... }   {k1:v1, k2:v2, k3:v3...}
+	array get arrname                itertools.chain(*d.items())
+	array get arrname pattern        k, d[k]  (except its all keys that matches pattern)
+	array names arrname              d.keys()
+	array size arrname               len(d)
+
+	===============
+	-0.4.3- strings
+	===============
+	string command works with strings:
+	subcommands:
+	string match [-nocase] pattern string   Like bash globbing.
+		*: any sequence
+		?: any single char
+		[chars]: same as bash [abca-z,etc] group, ranges allowed etc.
+		\: escape
+
+
+	Strings can also be created with format command (aka sprintf)
+	format pattern args...
+		%[-+ 0#]w.pc
+		c is the code, w = width, p = precision
+		-: left justify
+		+: always add a sign
+		<space>: use a space for positive instead of +
+		0: 0-pad
+		#: Prefix ints with the type (0: octal, 0X: hex, 0b: binary)
+		   Always add decimal for floats
+		   for g, G also, do not eliminate trailing 0s
+
+
+	=============
+	-0.5- looping
+	=============
+	Loops are just commands so all arguments must be on the same line.
+	(although between {}, new lines are allowed)
+
+	foreach {arglist} {sourcelist}... {body}
+		The foreach can can take multiple argname/source pairs.  On each iteration,
+		each argname is assigned to corresponding values at the beginning of each source.
+		Foreach always loops for the longest list.  Values will be empty for shorter sources.
+
+		example:
+			foreach a "a b c d e f g" "b c" "0 1 2 3 4 5 6 7 8 9 10 11 12 13 14" {
+				puts "a=$a b=$b c=$c"
+			}
+			a=a b=0 c=1
+			a=b b=2 c=3
+			a=c b=4 c=5
+			a=d b=6 c=7
+			a=e b=8 c=9
+			a=f b=10 c=11
+			a=g b=12 c=13
+			a= b=14 c=
+
+	for {init} {cond} {incr} {body}
+		NOTE: useful command: incr, add value(default 1) to variable
+
+	while {cond} {body}
+
+	===============
+	-0.6- branching
+	===============
+	if {} {
+	} elseif {} {
+	} else {
+	}
+	NOTE: the opening { MUST be grouped with the previous command/arg.
+	INVALID:
+		if {condition}
+		{
+			body
+		}
+
+	This is because Tcl would interpret the `if {}` as a single command
+	with only 1 argument.  It wouldn't know that if actually expects
+	2 arguments and that argument is on the next line.  Therefore, the
+	opening brace of the body MUST BE ON THE SAME LINE as the closing
+	brace of the condition.
+
+
+
+
+
+
+	====================
+	-0.7- Other commands
+	====================
+	====
+	expr
+	====
 		Evaluate an expression.  This could be a mathematical expression.
 		It could be a str.
 
@@ -189,48 +351,17 @@ ______________________________
 			expr $a       # prints 32
 			expr $a + 5   # prints 37
 			expr "$a + 5" # prints the string "32 + 5"
-	=========
-	puts args
-	=========
+	====
+	puts
+	====
 		print arguments
 		THIS IS LITERAL, so there is no variable expansion etc.
 		use expr instead for variable expansion.
 
-	=====
-	loops
-	=====
-		loops are just like any other command.
-
-		example:
-			while {$i < 10} {
-				puts "$i squared = [expr {$i*$i}]"
-				incr i
-			}
-
-			2 arguments are given: an unevaluated str literal $i < 10
-			and the str literal {puts ... }
-
-	========
-	branches
-	========
-	if {} {
-	} elseif {} {
-	} else {
-	}
-	NOTE: the opening { MUST be grouped with the previous command/arg.
-	INVALID:
-		if {condition}
-		{
-			body
-		}
-
-	This is because Tcl would interpret the `if {}` as a single command
-	with only 1 argument.  It wouldn't know that if actually expects
-	2 arguments and that argument is on the next line.  Therefore, the
-	opening brace of the body MUST BE ON THE SAME LINE as the closing
-	brace of the condition.
 
 
+
+???
 	sidenote... this being the case, it would be possible to just write:
 		commands = {}
 		def callpy(command, *args):
