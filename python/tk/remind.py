@@ -243,37 +243,6 @@ class Server(object):
         self.notifying = tk.BooleanVar(self.tk, False)
         self.tk.bind('<<CheckNotifications>>', f'if {{!${self.notifying}}} {{CheckNotifications}}')
 
-        self._winready = tk.BooleanVar()
-        self._evnum = tk.IntVar()
-
-        # Sometimes, wsl window does not obey geometry() call and the
-        # window ends up elsewhere.  Use <Configure> to keep calling
-        # geometry() until the desired geometry.
-        # NOTE: Do not use after idle, because sometimes even after idle
-        # more <Configure> events will be fired so must use a delay.
-        # With a shorter delay, the messagebox is opened before the root
-        # window finally reaches target geom.  Does this mean that
-        # simply waiting a few seconds is good enough for the messagebox
-        # window to appear in the correct position?
-        W, H = self.tk.call('wm', 'minsize', self.tk)
-        delay = 100
-        self._target_geom = '{}x{}+{}+{}'.format(
-            W, H,
-            (self.tk.winfo_screenwidth()-W)//2,
-            (self.tk.winfo_screenheight()-H)//2)
-        self.tk.bind(
-            '<Configure>',
-            textwrap.dedent('''
-                if {{"[wm state {0}]" == "normal"}} {{
-                    if {{"[wm geometry {0}]" != "{1}"}} {{
-                        wm geometry {0} {1}
-                    }} else {{
-                        after cancel ${3}
-                        set {3} [after {4} set {2} true]
-                    }}
-                }}''').strip().format(
-                    self.tk, self._target_geom, self._winready, self._evnum, delay))
-
     def eprint(self, *args, **kwargs):
         if self.verbose:
             kwargs.setdefault('file', sys.stderr)
@@ -296,17 +265,7 @@ class Server(object):
                     if self.ready:
                         target, message = self.ready.popleft()
                     else:
-                        if self.tk.state() == 'normal':
-                            self.tk.update_idletasks() # ? tk root gets focus before withdraw to avoid window focusing weirdness
-                            self.tk.withdraw()
                         break
-                if self.tk.state() != 'normal':
-                    # It seems like at least deiconify is required
-                    # or the popup might be behind everything else, and not even have an icon.
-                    # topmost also seems necessary
-                    self.tk.attributes('-topmost', True)
-                    self.tk.call('after', 1, 'wm deiconify {}'.format(self.tk))
-                    self.tk.call('vwait', self._winready)
                 now = datetime.datetime.now()
                 if abs((now - target).total_seconds()) < 1:
                     showinfo(parent=self.tk, title='Reminder', message=f'{target.strftime(DATE_SHOW)}:\n\n{message}')
