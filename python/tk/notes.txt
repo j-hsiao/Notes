@@ -17,7 +17,8 @@ Contents
 		-0.7.2- puts
 		-0.7.3- bind
 	-0.8- widgets
-		-0.8.1- indexing
+		-0.8.1- generic options
+		-0.8.2- Text
 -1- general
 	-1.0- Terms
 	-1.1- Widgets
@@ -409,16 +410,163 @@ miscellaneous observations
 	=============
 	-0.8- widgets
 	=============
-		================
-		-0.8.1- indexing
-		================
-		Various widgets, (mostly text, entry, etc) can use indexing to refer
-		to a position.  Generally, indexing is 0 to length-1, but there are
-		other special indices that can be used:
-		'end': at the end
-		mark: for widgets that support marks
-		tag.first: first instance of tag
-		tag.last:  last instance of tag
+		==============
+		-0.8.0- values
+		==============
+			================
+			-0.8.0.1- colors
+			================
+			===============
+			-0.8.0.1- fonts
+			===============
+			==========================
+			-0.8.0.1- screen distances
+			==========================
+
+		=======================
+		-0.8.1- generic options
+		=======================
+		activebackground
+		activeborderwidth
+		activeforeground
+			Change the base options when "active".  This is usually when the
+			mouse is hovering over the widget.
+
+		anchor
+		background
+		bitmap
+		borderwidth
+		cursor
+		compound
+		disabledforeground
+		exportselection
+		font
+		foreground
+		highlightbackground
+		highlightcolor
+		highlightthickness
+		image
+		insertbackground
+		insertborderwidth
+		insertofftime
+		insertontime
+		insertwidth
+		jump
+		justify
+		orient
+		padx
+		pady
+		relief
+		repeatdelay
+		repeatinterval
+		selectbackground
+		selectborderwidth
+		selectforeground
+		setgrid
+		takefocus
+		text
+		textvariable
+		troughcolor
+		underline
+		wraplength
+		xscrollcommand
+		yscrollcommand
+
+		============
+		-0.8.2- Text
+		============
+		Text widgets allow editing text.
+
+			========
+			indexing
+			========
+			Text widgets are indexed by 'base [modifiers...]'
+
+			base indices:
+				l.c: line and char
+				@x.y: pixel coordinates
+				'end': at the end
+				mark: for widgets that support marks (useful marks: insert=cursor position)
+				tag.first: first instance of tag
+				tag.last:  last instance of tag
+				pathname: embedded widget
+				imagename: embedded image
+
+			modifiers:
+				+/- N [display|*any] [chars|lines|indices]
+					Adjust the base index by +/- N chars/lines/indices.
+					If display, only count displayed characters, otherwise all characters.
+
+				[display] [word|line][start|end]
+					move the index to the corresponding position
+
+				The keywords can be abbreviated if unambiguous (chars->c, lines->l).
+				Multiple modifiers are allowed
+
+			====
+			tags
+			====
+			Text can be associated with a tag allowing different regions in the text
+			to have different fonts, colors, etc
+
+			Adding tags
+			===========
+			Tags are added with: `pathname tag add tag i11 i12 i21 i22 i31 i32...`
+				where i is pairs of start and stop indices.  If the 2nd index is omitted,
+				then just tag a single char.
+
+				NOTE: For the 'end' base index, modifiers behave as if there is an implicit
+				\n appended to the text.
+
+				EXAMPLES:
+					text: 'text'
+						end-1c: Tag the implicit appended \n
+						end-2c: Tag the last t in text
+						end-1l: Tag the first t in text
+
+					text: 'text\n'
+						end-1c: Tag the implicit appended \n
+						end-2c: Tag the last \n
+						end-3c: Tag the last t in text
+						end-1l: Tag the line containing the implicit newline
+						end-2l: Tag the start of text
+
+			Tags all have a priority order
+			`pathname tag raise|lower tag [dst]` to change order
+			`pathname tag configure tag opts` to change options of that tag
+
+			every single line is now tagged with mytag
+			even though the extra lines were only added afterwards.
+
+			Tags can be configured with different properties:
+			Tags properties take precedence over widget properties.
+				background        color
+				bgstipple         bitmap
+				borderwidth       px
+				elide             bool
+				fgstipple         bitmap
+				font              font
+				foreground        color
+				justify           [left|right|center]
+				lmargin1          px      (for the first line of the byte line)
+				lmargin2          px      (for wrapped lines of the byte line)
+				lmargincolor      color
+				offset            px  (vertical offset)
+				overstrike        bool
+				overstrikefg      color
+				relief            relief
+				rmargin           px
+				rmargincolor      color
+				selectbackground  color
+				selectforground   color
+				spacing1          px  (extra space above first wrapped line)
+				spacing2          px  (extra space above not-first wrapped lines)
+				spacing3          px  (extra space below last wrapped line)
+				tabs              tablist list for tabstops
+				tabstyle          [tabular|wordprocessor]
+				underline         bool
+				underlinefg       color
+				wrap              [none|char|word]
 
 ______________________________
 -1- general
