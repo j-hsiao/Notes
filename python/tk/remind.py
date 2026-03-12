@@ -27,6 +27,59 @@ def growbuf(buf):
     view[:len(buf)] = buf
     return view, nbuf
 
+def showinfo(close='<Control-Shift-Alt-space>', **kwargs):
+    """Show info and close with `close` keyseq
+
+    There is no button to close the window.  With messagebox.showinfo,
+    it has a button to close the window that can be activated with space.
+    However, space is a very common button to press while typing.  If the
+    popup happens while the user is typing, then it will be closed before
+    the user can even read the reminder.
+    """
+    r = kwargs.get('parent', None)
+    destroy = False
+    if r is None:
+        try:
+            r = tk._default_root
+        except AttributeError:
+            r = None
+        if r is None:
+            r = tk.Tk()
+            showinfo(close=close, parent=r, **kwargs)
+            r.destroy()
+            return
+    tl = tk.Toplevel(r)
+    tl.attributes('-topmost', True)
+    if kwargs.get('title') is not None:
+        tl.title(kwargs['title'])
+    r.eval('''
+        if {"[info procs ::remind::showinfo::keep_window_at_center]" == ""} {
+            namespace eval remind::showinfo {
+                proc keep_window_at_center {win} {
+                    variable targetx [expr ([winfo screenwidth $win]-[winfo width $win])/2]
+                    variable targety [expr ([winfo screenheight $win]-[winfo height $win])/2]
+                    if {[winfo x $win] != $targetx || [winfo y $win] != $targety} {
+                        wm geometry $win +$targetx+$targety
+                    }
+                }
+            }
+        }''')
+    txt = tk.Text(tl, width=kwargs.get('width', 40), height=kwargs.get('height', 10))
+    txt.insert('end', kwargs.get('message', ''))
+    txt.grid(row=0, column=0, sticky='nsew')
+    txt.configure(state='disabled')
+
+    scroll = tk.Scrollbar(tl, orient='vertical', command=txt.yview)
+    scroll.grid(row=0, column=1, sticky='nsew')
+    txt.configure(yscrollcommand=scroll.set)
+
+    tl.bind('<Configure>', f'remind::showinfo::keep_window_at_center {tl}')
+    tl.bind(close, f'grab release {tl}\ndestroy {tl}')
+    r.call('wm', 'resizable', tl, 0, 0)
+    tl.focus()
+    tl.grab_set()
+    tl.wait_window()
+
 def readtil(sock, buf=None, total=0, target=None):
     """Nonblocking read until a target.
 
@@ -256,9 +309,9 @@ class Server(object):
                     self.tk.call('vwait', self._winready)
                 now = datetime.datetime.now()
                 if abs((now - target).total_seconds()) < 1:
-                    messagebox.showinfo(title='Reminder', message=f'{target.strftime(DATE_SHOW)}\n\n{message}')
+                    showinfo(parent=self.tk, title='Reminder', message=f'{target.strftime(DATE_SHOW)}:\n\n{message}')
                 else:
-                    messagebox.showinfo(title='Reminder', message=f'now: {now.strftime(DATE_SHOW)}\n\ntgt: {target.strftime(DATE_SHOW)}:\n\n{message}')
+                    showinfo(parent=self.tk, title='Reminder', message=f'now: {now.strftime(DATE_SHOW)}:\ntgt: {target.strftime(DATE_SHOW)}:\n\n{message}')
             with self.lock:
                 if self.running:
                     return
