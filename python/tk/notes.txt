@@ -1,71 +1,88 @@
 Contents
--0- tcl
-	-0.0- call vs eval
-		-0.0.1- call
-		-0.0.2- eval
-	-0.1- syntax
-	-0.2- procs
-	-0.3- namespaces
-	-0.4- variables
-		-0.4.1- lists
-		-0.4.2- arrays
-		-0.4.3- strings
-	-0.5- looping
-	-0.6- branching
-	-0.7- Other commands
-		-0.7.1- expr
-		-0.7.2- puts
-		-0.7.3- bind
-	-0.8- widgets
-		-0.8.1- generic options
-		-0.8.2- Text
--1- general
-	-1.0- Terms
-	-1.1- Widgets
-		-1.1.1- Callbacks
-		-1.1.2- Validation
-		-1.1.3- focus
-		-1.1.4- scrolling
-		-1.1.5- winfo
-	-1.2- Grid
-	-1.3- Variables
-	-1.4- Colors
-	-1.5- fonts
-	-1.6- helpers
-		-1.6.1- filedialog
-		-1.6.2- messagebox
-		-1.6.3- colorchooser
-		-1.6.4- simpledialog
-	-1.7- clipboard
-	-1.8- window manager
-	-1.9- images
-	-1.10- threads
--2- Bindings
-	-2.1- Event Sequences
-		-2.1.1- Modifiers
-		-2.1.2- Event type
-		-2.1.3- Keypress names
-	-2.2- Event Objects
-	-2.3- Generation
-	-2.4- Other Notes
--3- Widgets
-	-3.1- Button
-	-3.2- Canvas
-	-3.3- Checkbutton
-	-3.4- Entry
-	-3.5- Frame
-	-3.6- Label
-	-3.7- Listbox
-	-3.8- Menu
-	-3.9- Menubutton
-	-3.10- Radiobutton
-	-3.11- Scale
-	-3.12- Scrollbar
-	-3.13- Spinbox
-	-3.14- Text
+-0- general
+-1- Tcl
+	-1.0- call vs eval
+		-1.0.1- call
+		-1.0.2- eval
+	-1.1- syntax
+	-1.2- procs
+	-1.3- namespaces
+	-1.4- variables
+		-1.4.1- lists
+		-1.4.2- arrays
+		-1.4.3- strings
+	-1.5- looping
+	-1.6- branching
+	-1.7- Other commands
+		-1.7.1- expr
+		-1.7.2- puts
+		-1.7.3- bind
+-2- tk
+	-2.1- widgets
+		-2.1.0- values
+			-2.1.0.1- colors
+			-2.1.0.2- fonts
+			-2.1.0.3- screen distances
+		-2.1.1- generic options
+		-2.1.2- Text
+	-2.2- window manager
+-3- tkinter
 
-------------------------------
+# -1- general
+# 	-1.0- Terms
+# 	-1.1- Widgets
+# 		-1.1.1- Callbacks
+# 		-1.1.2- Validation
+# 		-1.1.3- focus
+# 		-1.1.4- scrolling
+# 		-1.1.5- winfo
+# 	-1.2- Grid
+# 	-1.3- Variables
+# 	-1.4- Colors
+# 	-1.5- fonts
+# 	-1.6- helpers
+# 		-1.6.1- filedialog
+# 		-1.6.2- messagebox
+# 		-1.6.3- colorchooser
+# 		-1.6.4- simpledialog
+# 	-1.7- clipboard
+# 	-1.8- window manager
+# 	-1.9- images
+# 	-1.10- threads
+# -2- Bindings
+# 	-2.1- Event Sequences
+# 		-2.1.1- Modifiers
+# 		-2.1.2- Event type
+# 		-2.1.3- Keypress names
+# 	-2.2- Event Objects
+# 	-2.3- Generation
+# 	-2.4- Other Notes
+# -3- Widgets
+# 	-3.1- Button
+# 	-3.2- Canvas
+# 	-3.3- Checkbutton
+# 	-3.4- Entry
+# 	-3.5- Frame
+# 	-3.6- Label
+# 	-3.7- Listbox
+# 	-3.8- Menu
+# 	-3.9- Menubutton
+# 	-3.10- Radiobutton
+# 	-3.11- Scale
+# 	-3.12- Scrollbar
+# 	-3.13- Spinbox
+# 	-3.14- Text
+
+===========
+-0- general
+===========
+Tcl is the interpreter (handles parsing and running commands).
+Tk is the gui (handles displaying gui, events, etc).
+Tkinter is a wrapper over Tcl/Tk.
+The tcl interpreter can be accessed from the Tk.tk.call() method.
+
 miscellaneous observations
+--------------------------
 1. different platforms (windows, wsl, x-wayland)
    (?tk seems to not support wayland? so only x-wayland)
    seem to have slightly different behaviors:
@@ -87,27 +104,16 @@ miscellaneous observations
       must just wait some time after deiconify+fullscreen, and then see if it
       was fired or not, assuming the wait time is long enough and user did not move mouse
 
-
-
 =======
--0- tcl
+-1- Tcl
 =======
-	Tcl is the interpreter (handles parsing and running commands).
-	Tk is the gui (handles displaying gui, events, etc).
-	Tkinter is a wrapper over Tcl/Tk.
+	Tcl is the language.  Everything is text.  From python tkinter, it can be
+	accessed with tk.Tk.call() or tk.Tk.eval().
 
-	The tcl interpreter can be accessed from the Tk.tk.call() method.
-
-	ex:
-		import tkinter as tk
-		r = tk.Tk()
-		r.tk.call('bind', r, '<Escape>', 'destroy {}'.format(r))
-		r.wait_window()
-
-	Tcl version is held in variable 'tcl_version'
+	The Tcl version is held in variable 'tcl_version'
 
 	==================
-	-0.0- call vs eval
+	-1.0- call vs eval
 	==================
 
 	Tkinter has 2 methods for interacting directly with the tcl interpreter.
@@ -117,7 +123,7 @@ miscellaneous observations
 	tkinter.Tk seems to forward call and eval to tkinter.Tk.tk
 
 		============
-		-0.0.1- call
+		-1.0.1- call
 		============
 			Each argument to call() will be converted to str and properly escaped.
 			This means that call is unsuitable for any more complex expression than
@@ -129,7 +135,7 @@ miscellaneous observations
 
 
 		============
-		-0.0.2- eval
+		-1.0.2- eval
 		============
 			eval() takes a single string argument that is an expression/script for tcl to
 			interpret.  This means that the full tcl syntax is allowed.  However, it does
@@ -144,7 +150,7 @@ miscellaneous observations
 				be changed to a literal string.
 
 	============
-	-0.1- syntax
+	-1.1- syntax
 	============
 	cmd arg arg arg
 		words separated by whitespace.
@@ -179,7 +185,7 @@ miscellaneous observations
 		command dispatch
 
 	===========
-	-0.2- procs
+	-1.2- procs
 	===========
 	procs are basically functions for tcl
 	proc name {arg1 arg2, ...} {body...}
@@ -191,7 +197,7 @@ miscellaneous observations
 	Unspecified return value will use the last command's return value.
 
 	================
-	-0.3- namespaces
+	-1.3- namespaces
 	================
 	Namespaces follow syntax ::ns1::ns2::ns3
 
@@ -226,7 +232,7 @@ miscellaneous observations
 	NOTE: tk.Tk.createcommand(...) can take a namespace-qualified  name.
 
 	===============
-	-0.4- variables
+	-1.4- variables
 	===============
 	Variables are created with set or variable commands.
 
@@ -240,14 +246,14 @@ miscellaneous observations
 	the current proc.  set, on the other hand, will just overwrite it anyways.
 
 	=============
-	-0.4.1- lists
+	-1.4.1- lists
 	=============
 	A list is just a string.  The items are determined by how the string
 	would be parsed if it was in a command.  The list command just ensures
 	that any quoting/escaping etc is done as needed.
 
 	==============
-	-0.4.2- arrays
+	-1.4.2- arrays
 	==============
 	The array command manipulates array variables.  In Tcl, arrays are akin to python dicts.
 	Array sub commands:
@@ -259,7 +265,7 @@ miscellaneous observations
 	array size arrname               len(d)
 
 	===============
-	-0.4.3- strings
+	-1.4.3- strings
 	===============
 	string command works with strings:
 	subcommands:
@@ -284,7 +290,7 @@ miscellaneous observations
 
 
 	=============
-	-0.5- looping
+	-1.5- looping
 	=============
 	Loops are just commands so all arguments must be on the same line.
 	(although between {}, new lines are allowed)
@@ -313,7 +319,7 @@ miscellaneous observations
 	while {cond} {body}
 
 	===============
-	-0.6- branching
+	-1.6- branching
 	===============
 	if {} {
 	} elseif {} {
@@ -338,10 +344,10 @@ miscellaneous observations
 
 
 	====================
-	-0.7- Other commands
+	-1.7- Other commands
 	====================
 	============
-	-0.7.1- expr
+	-1.7.1- expr
 	============
 		Evaluate an expression.  This could be a mathematical expression.
 		It could be a str.
@@ -366,65 +372,33 @@ miscellaneous observations
 			expr $a + 5   # prints 37
 			expr "$a + 5" # prints the string "32 + 5"
 	============
-	-0.7.2- puts
+	-1.7.2- puts
 	============
 		print arguments
 		THIS IS LITERAL, so there is no variable expansion etc.
 		use expr instead for variable expansion.
 
-	============
-	-0.7.3- bind
-	============
-	bind tag <seq> [+]{script}
-	bind only takes tag. To apply a binding to a widget, use
-	bindtags to add the corresponding tag to the widget's bindtags.
-
-
-
-
-???
-	sidenote... this being the case, it would be possible to just write:
-		commands = {}
-		def callpy(command, *args):
-			return commands[command](*args)
-		r = tk.Tk()
-		r.createcommand('callpy', callpy)
-
-	Then any scripts/binding
-	can just call the 'callpy' command and it will
-	call any function stored by the commands dict.
-	In tk, instead, it calls createcommand for every new binding/after, etc
-	idk if that would affect performance in any way.
-
-	example 2:
-		whenever tk bind is called, it creates script like:
-		'if {"[2235275164928callback %# %b %f %h %k %s %t %w %x %y %A %E %K %N %W %T %X %Y %D]" == "break"} break\n\n
-		 if {"[2235301124864callback %# %b %f %h %k %s %t %w %x %y %A %E %K %N %W %T %X %Y %D]" == "break"} break\n'
-
-		the script is 1 command per line
-		if, the expression, and then break.
-
-	Directly using tcl scripts and Tk.call() give much more flexibility and control
-	over just using the Tkinter defaults.
-
+======
+-2- tk
+======
 	=============
-	-0.8- widgets
+	-2.1- widgets
 	=============
 		==============
-		-0.8.0- values
+		-2.1.0- values
 		==============
 			================
-			-0.8.0.1- colors
+			-2.1.0.1- colors
 			================
 			===============
-			-0.8.0.1- fonts
+			-2.1.0.2- fonts
 			===============
 			==========================
-			-0.8.0.1- screen distances
+			-2.1.0.3- screen distances
 			==========================
 
 		=======================
-		-0.8.1- generic options
+		-2.1.1- generic options
 		=======================
 		activebackground
 		activeborderwidth
@@ -473,7 +447,7 @@ miscellaneous observations
 		yscrollcommand
 
 		============
-		-0.8.2- Text
+		-2.1.2- Text
 		============
 		Text widgets allow editing text.
 
@@ -540,33 +514,77 @@ miscellaneous observations
 
 			Tags can be configured with different properties:
 			Tags properties take precedence over widget properties.
-				background        color
-				bgstipple         bitmap
-				borderwidth       px
-				elide             bool
-				fgstipple         bitmap
-				font              font
-				foreground        color
-				justify           [left|right|center]
-				lmargin1          px      (for the first line of the byte line)
-				lmargin2          px      (for wrapped lines of the byte line)
-				lmargincolor      color
-				offset            px  (vertical offset)
-				overstrike        bool
-				overstrikefg      color
-				relief            relief
-				rmargin           px
-				rmargincolor      color
-				selectbackground  color
-				selectforground   color
-				spacing1          px  (extra space above first wrapped line)
-				spacing2          px  (extra space above not-first wrapped lines)
-				spacing3          px  (extra space below last wrapped line)
-				tabs              tablist list for tabstops
-				tabstyle          [tabular|wordprocessor]
-				underline         bool
-				underlinefg       color
-				wrap              [none|char|word]
+				background      lmargin2            selectforground
+				bgstipple       lmargincolor        spacing1
+				borderwidth     offset              spacing2
+				elide           overstrike          spacing3
+				fgstipple       overstrikefg        tabs
+				font            relief              tabstyle
+				foreground      rmargin             underline
+				justify         rmargincolor        underlinefg
+				lmargin1        selectbackground    wrap
+
+			The 1/2/3 suffixed options indicate
+				1: the first display line of a wrapped line
+				2: any non-first display line of a wrapped line
+				3: the last line of a wrapped line
+
+	====================
+	-2.2- window manager
+	====================
+	wm cmd args...
+
+
+
+#	============
+#	-1.7.3- bind
+#	============
+#	bind tag <seq> [+]{script}
+#	bind only takes tag. To apply a binding to a widget, use
+#	bindtags to add the corresponding tag to the widget's bindtags.
+
+===========
+-3- tkinter
+===========
+tkinter provides wrappers around the tcl/tk commands.
+To bridge tcl/tk with python, the `createcommand(name, func)` method is used.
+This will map a tcl command `name` to the python func `func`.
+When func is called, any arguments given from tcl will be provided as str *args.
+
+ex:
+	def myfunc(*args):
+		print(args)
+	r = tk.Tk()
+	r.createcommand('myfunc', myfunc)
+	r.call('myfunc', 'a', 'b', 'c')
+
+	will print:
+		('a', 'b', 'c')
+
+sidenote, maybe this kind of setup could be useful?
+```
+	commands = {}
+	def callpy(command, *args):
+		return commands[command](*args)
+	r = tk.Tk()
+	r.createcommand('callpy', callpy)
+
+	def someotherfunc():
+		pass
+	comands['someotherfunc'] = someotherfunc
+
+	r.call('callpy', 'someotherfunc', arg...)
+```
+would call someotherfunc with corresponding args
+
+
+
+Tkinter by default, forces all bindings to use this as the tcl script:
+	'if {"[2235275164928callback %# %b %f %h %k %s %t %w %x %y %A %E %K %N %W %T %X %Y %D]" == "break"} break\n\n
+	 if {"[2235301124864callback %# %b %f %h %k %s %t %w %x %y %A %E %K %N %W %T %X %Y %D]" == "break"} break\n'
+
+This can be convenient, but leaves out some bindings and makes many unnecessary arg swaps.
+Can just make callbacks more directly.
 
 ______________________________
 -1- general
