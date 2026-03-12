@@ -30,11 +30,12 @@ def growbuf(buf):
 def showinfo(close='<Control-Shift-Alt-space>', **kwargs):
     """Show info and close with `close` keyseq
 
-    There is no button to close the window.  With messagebox.showinfo,
-    it has a button to close the window that can be activated with space.
-    However, space is a very common button to press while typing.  If the
-    popup happens while the user is typing, then it will be closed before
-    the user can even read the reminder.
+    kwargs:
+        parent
+        title
+        message
+        width
+        height
     """
     r = kwargs.get('parent', None)
     destroy = False
@@ -275,31 +276,13 @@ class Server(object):
                 if self.running:
                     return
             if self.reminders:
-                self.tk.deiconify()
-                self.tk.attributes('-topmost', True)
-                self.tk.geometry('+{}+{}'.format(self.tk.winfo_screenwidth()-1, self.tk.winfo_screenheight()-1))
-                self.tk.update_idletasks()
-                tl = tk.Toplevel(self.tk)
-                txt = tk.Text(tl)
-                txt.grid(row=0, column=0, sticky='nsew')
-                tl.grid_columnconfigure(0, weight=1)
-                tl.grid_rowconfigure(0, weight=1)
-                tl.attributes('-topmost', True)
-                yscroll = tk.Scrollbar(tl, command=txt.yview, orient='vertical')
-                xscroll = tk.Scrollbar(tl, command=txt.xview, orient='horizontal')
-                xscroll.grid(row=1, column=0, sticky='nsew')
-                yscroll.grid(row=0, column=1, rowspan=2, sticky='nsew')
-                txt.configure(xscrollcommand=xscroll.set, yscrollcommand=yscroll.set)
-                tl.title('Unhandled messages')
-                self.reminders.sort()
-                txt.insert('end', f'now: {datetime.datetime.now().strftime(DATE_SHOW)}\n\n')
-                for target, message in self.reminders:
-                    txt.insert('end', f'{target.strftime(DATE_SHOW)}: {message}\n\n')
-                txt.configure(state='disabled')
-                b = tk.Button(tl, text='ok', command=f'destroy {tl}')
-                b.grid(row=2, column=0, columnspan=2, sticky='nsew')
-                b.focus_set()
-                tl.wait_window()
+                with io.StringIO() as messagebuf:
+                    self.reminders.sort()
+                    print(f'now: {datetime.datetime.now().strftime(DATE_SHOW)}', file=messagebuf)
+                    for target, message in self.reminders:
+                        dtstr = target.strftime(DATE_SHOW)
+                        print(f'\n{dtstr}\n{"="*len(dtstr)}\n{message}', file=messagebuf)
+                    showinfo(title='Unprocessed reminders', message=messagebuf.getvalue())
             self.tk.call('after', 'idle', f'destroy {self.tk}')
         finally:
             self.notifying.set(False)
@@ -540,7 +523,9 @@ if __name__ == '__main__':
     p.add_argument('--notify', type=int, help='Connect to this port to notify server ready.')
     p.add_argument('-l', '--log', help='use logfile')
 
-    p.add_argument('cmd', nargs='?', help=f'the client command: a time specification (YYYY-mm-dd HH:MM:SS), floats allowed, omissions allowed. or one of {COMMANDS}.')
+    p.add_argument(
+        'cmd', nargs='?',
+        help=f'the client command: a time specification (YYYY-mm-dd HH:MM:SS), floats allowed, omissions allowed. or one of {[f"{k}->{v}" if v else k for k, v in COMMANDS.items()]}.')
     p.add_argument('extra', nargs='*', help='remaining extra arguments for command.')
     p.add_argument('-c', '--check', action='store_true', help='just check the time parsing.')
     p.add_argument('-p', '--port', type=int, default=65432, help='reminder server port.')
