@@ -7,7 +7,17 @@ Contents
 	-0.2- procs
 	-0.3- namespaces
 	-0.4- variables
-	-0.5- tcl commands
+		-0.4.1- lists
+		-0.4.2- arrays
+		-0.4.3- strings
+	-0.5- looping
+	-0.6- branching
+	-0.7- Other commands
+		-0.7.1- expr
+		-0.7.2- puts
+		-0.7.3- bind
+	-0.8- widgets
+		-0.8.1- indexing
 -1- general
 	-1.0- Terms
 	-1.1- Widgets
@@ -155,6 +165,9 @@ miscellaneous observations
 	{some stuff}
 		Like single quotes in bash.
 		Group words into a single word, but 0 interpretation.
+		NOTE: comments ARE NOT ALLOWED WITHIN THIS CONSTRUCT.
+		They will be treated as normal string-like arguments.
+		This matters for branching and looping etc.
 
 	\
 		escape the next character.
@@ -326,9 +339,9 @@ miscellaneous observations
 	====================
 	-0.7- Other commands
 	====================
-	====
-	expr
-	====
+	============
+	-0.7.1- expr
+	============
 		Evaluate an expression.  This could be a mathematical expression.
 		It could be a str.
 
@@ -351,12 +364,19 @@ miscellaneous observations
 			expr $a       # prints 32
 			expr $a + 5   # prints 37
 			expr "$a + 5" # prints the string "32 + 5"
-	====
-	puts
-	====
+	============
+	-0.7.2- puts
+	============
 		print arguments
 		THIS IS LITERAL, so there is no variable expansion etc.
 		use expr instead for variable expansion.
+
+	============
+	-0.7.3- bind
+	============
+	bind tag <seq> [+]{script}
+	bind only takes tag. To apply a binding to a widget, use
+	bindtags to add the corresponding tag to the widget's bindtags.
 
 
 
@@ -385,6 +405,20 @@ miscellaneous observations
 
 	Directly using tcl scripts and Tk.call() give much more flexibility and control
 	over just using the Tkinter defaults.
+
+	=============
+	-0.8- widgets
+	=============
+		================
+		-0.8.1- indexing
+		================
+		Various widgets, (mostly text, entry, etc) can use indexing to refer
+		to a position.  Generally, indexing is 0 to length-1, but there are
+		other special indices that can be used:
+		'end': at the end
+		mark: for widgets that support marks
+		tag.first: first instance of tag
+		tag.last:  last instance of tag
 
 ______________________________
 -1- general
