@@ -1,0 +1,316 @@
+Basic python http support
+-0- general
+-1- HTTPServer
+-2- BaseHTTPRequestHandler
+
+===========
+-0- general
+===========
+Import http with `from python import http`
+
+==============
+-1- HTTPServer
+==============
+Inheritance structure:
+	BaseServer -> TCPServer -> HTTPServer
+
+==========
+BaseServer
+==========
+___________
+class attrs
+	timeout=None
+______________
+instance attrs
+	server_address        from __init__
+	RequestHandlerClass   from __init__
+	__is_shut_down        threading.Event()
+	__shutdown_request    bool
+_______
+methods
+	def __init__(self, server_address, RequestHandlerClass):
+		set instance attrs
+
+	def server_activate():
+		# place holder
+
+	def serve_forever(poll_intetrval=0.5):
+		# poll_interval: poll for shutdown
+		self.__is_shut_down.clear()
+		try:
+			while not self.__shutdown_request:
+				ready = selector.select(poll_interval)
+				if not self.__shutdown_request and ready:
+					self._handle_request_noblock()
+				self.service_actions()
+		finally:
+			self.__shutdown_request = False
+			self.__is_shut_down.set()
+
+		SIDENOTES
+		=========
+		If the periodic actions not required, could probably rewrite
+		this to add another fd which becomes readable when a shutdown
+		request is given. no need for the polling with a timeout...
+
+	def shutdown():
+		self.__shutdown_request = True
+		self.__is_shut_down.wait()
+
+	def service_actions(self):
+		place holder for periodic tasks.
+
+	def handle_request():
+		poll self for self.timeout seconds.
+		if timed out:
+			self.handle_timeout()
+		else:
+			self._handle_request_noblock()
+
+	def _handle_request_noblock(self):
+		req, addr = self.get_request()
+		if self.verify_request(req, addr):
+			try:
+				self.process_request(req, addr)
+			except Exception:
+				self.handle_error(req, addr)
+				self.shutdown_request(req)
+			except:
+				self.shutdown_request(req)
+				raise
+		else:
+			self.shutdown_request(req)
+
+	def handle_timeout(self):
+		place-holder
+	def verify_request(self, req, addr):
+		placeholder
+	def process_request(self, req, addr):
+		self.finish_request(req, addr)
+		self.shutdown_request(req, addr)
+	def server_close():
+		placeholder
+	def finish_request(req, addr):
+		self.RequestHandlerClass(req, addr, self)
+	def shutdown_request(self, request):
+		self.close_request(req)
+	def close_request(self, request):
+		placeholder
+	def handle_error(self, request, client_address):
+		log exception
+
+=========
+TCPServer
+=========
+___________
+class attrs
+	address_family = socket.AF_INET
+	socket_type = socket.SOCK_STREAM
+	request_queue_size = 5
+	allow_reuse_address = False
+	allow_reuse_port = False
+
+______________
+instance attrs
+	socket: the socket.socket
+
+_______
+methods
+	__init__(addr, handlercls, bind_and_activate=True):
+		super(...).__init__(...)
+		self.socket = socket.socket(...)
+		try:
+			self.server_bind()
+			self.sever_activate()
+		except:
+			self.server_close()
+			raise
+	def server_bind():
+		set sockopts SO_REUSEADDR and SO_REUSEPORT according to cls.allow_reuse_*
+		self.socket.bind(self.server_address)
+		self.server_address = self.socket.getsockname()
+	def server_activate(self):
+		self.socket.listen(cls.request_queue_size)
+	def server_close(self):
+		self.socket.close()
+	def fileno(self):
+		return self.socket.fileno()
+	def get_request():
+		return self.socket.accept()
+	def shutdown_request(reqsock):
+		req.shutdown(socket.SHUT_WR)
+		self.close_request(reqsock)
+	def close_request(reqsock):
+		reqsock.close()
+
+==========
+HTTPServer
+==========
+___________
+class attrs
+	allow_reuse_address = True
+______________
+instance attrs
+	self.server_name
+	self.server_port
+_______
+methods
+	def server_bind():
+		self.server_name = socket.getfqdn(self.server_address[0])
+		self.server_port = self.server_address[1]
+
+
+==============
+ThreadingMixIn
+==============
+daemon_threads = False
+block_on_close = True
+_threads = _NoThreads()
+
+def process_request_thread(req, addr):
+	try:
+		self.finish_request(req, addr)
+	except Exception:
+		self.handle_error(req, addr)
+	finally:
+		self.shutdown_request(req)
+
+def process_request(self, req, addr):
+	if self.block_on_close:
+		modify _threads to a list of threads-to-be-joined
+	t = threading.Thread(target=self.process_request_thread, args=(req, addr))
+	t.daemon = self.daemon_threads
+	self._threads.append(t)
+	t.start()
+
+	NOTES
+	=====
+	Maybe should pass __is_shut_down to the thread so it can
+	know whether the server is shutting down or not...?
+
+==========================
+-2- BaseHTTPRequestHandler
+==========================
+BaseRequestHandler->StreamRequestHandler->BaseHTTPRequestHandler
+
+==================
+BaseRequestHandler
+==================
+______________
+instance attrs
+	request            from __init__
+	client_address     from __init__
+	server             from __init__
+_______
+methods
+	def __init__(req, addr, server):
+		set attrs
+		self.setup()
+		try:
+			self.handle()
+		finally:
+			self.finish()
+	def setup():
+		placeholder
+	def handle():
+		placeholder
+	def finish():
+		placeholder
+
+====================
+StreamRequestHandler
+====================
+___________
+class attrs
+	rbufsize = -1
+	wbufsize = 0      if 0, then will use sendall(), else use makefile('wb', wbufsize)
+	timeout = None
+	disable_nagle_algorithm = False
+______________
+instance attrs
+	rfile
+	wfile
+	connection = self.request (same as from __init__)
+_______
+methods
+	def setup():
+		set timeout
+		disable nagle if classattr
+		set rfile, wfile
+
+	def finish():
+		if not self.wfile.closed:
+			self.wfile.flush()
+		self.wfile.close()
+		self.rfile.close()
+
+======================
+BaseHTTPRequestHandler
+======================
+___________
+class attrs
+	sys_version
+	server_version
+	error_message_format
+	error_content_type
+	default_request_version
+
+	MessageClass      class to holdheaders
+	protocol_version = 'HTTP/1.0' # set to 'HTTP/1.1' for keepalive
+______________
+instance attrs
+	command
+	path
+	request_version
+
+	close_connection: bool
+	raw_requestline
+	requestline
+	headers: instance of self.MessageClass
+_______
+methods
+	def parse_request()
+		# Return successful or not
+		# On Error, will self.send_error()
+		parse the first line of http the
+			CMD path HTTP/version
+		set close_connection based on the parsed http version, requests, settings, etc
+		self.headers = http.client.parse_headers(self.rfile, self.MessageClass)
+
+	def handle_one_request():
+		try:
+			read the raw request line
+			parse_request()
+			call do_command, where command is from the parsed request line.
+			self.wfile.fush()
+		except TimeoutError:
+			log
+			self.close_connection = True
+
+	def handle():
+		self.close_connection = True
+		self.handle_one_request()
+		while not self.close_connection:
+			self.handle_one_request()
+
+	def send_error(code, message, explain):
+		Map code to default messages.
+
+	def send_response(code, message):
+		send status code and message and some default headers
+
+	def send_response_only(code, message):
+		log a request code
+		just the status code, no headers
+
+	send_header(k, v):
+		send a header
+		on a connection: [close|keep-alive], header set close_connection accordingly
+
+	def end_headers()
+	def log_message(fmt, *args):
+		writes to sys.stderr
+
+		NOTES
+		=====
+		may way to override this and use logging module instead.
