@@ -106,11 +106,15 @@ NOTE, newlines in http are always crlf (\r\n)
 			* 1-70 characters
 			* Not end in whitespace
 			* Does not appear in the data.
+		boundary may be quoted?
+		https://www.w3.org/Protocols/rfc1341/7_2_Multipart.html
+		header:
+			content-type: multipart/mixed; boundary="the boundary"
 
-		The start of every part must be --`boundary` where `boundary` is
+		The start of every part must be \r\n--`boundary`\r\n where `boundary` is
 		whatever the boundary string that was given in the header.  To mark
 		the end of multipart data, `boundary` should be surrounded with
-		double-dashes: --`boundary`--
+		double-dashes: \r\n--`boundary`--
 		example:
 			content-type: multipart/mixed; boundary=helloworld
 
@@ -157,3 +161,16 @@ NOTE, newlines in http are always crlf (\r\n)
 				(as compared to mixed)
 			parallel:
 				Parts should be presented in parallel
+			x-mixed-replace:
+				use this for mjpg as the src in a <img>
+				(NOTE: directly using the link in url bar on firefox
+				cuases errors, but putting it in a <img> in a simple html
+				worked fine.)
+
+	=========================
+	-1.2- content-disposition
+	=========================
+	Content-Disposition: inline
+	Content-Disposition: attachment
+	Content-Disposition: attachment; filename="file name.jpg"
+	Content-Disposition: attachment; filename*=UTF-8''file%20name.jpg

@@ -2,6 +2,7 @@ Basic python http support
 -0- general
 -1- HTTPServer
 -2- BaseHTTPRequestHandler
+-3- observations
 
 ===========
 -0- general
@@ -308,9 +309,19 @@ methods
 		on a connection: [close|keep-alive], header set close_connection accordingly
 
 	def end_headers()
+	def log_request(code, size)
+	def log_error(format, *args)
 	def log_message(fmt, *args):
 		writes to sys.stderr
 
 		NOTES
 		=====
 		may way to override this and use logging module instead.
+
+================
+-3- observations
+================
+The server timeout attr is timeout waiting for an incoming request.
+	timeout on the listening socket
+The handler timeout is timeout for reading/writing on the requets..
+	timeout on the client socket.
