@@ -118,6 +118,7 @@ NOTE, newlines in http are always crlf (\r\n)
 		example:
 			content-type: multipart/mixed; boundary=helloworld
 
+			preamble (must be ignored)
 			--helloworld
 			optional-header: value
 
@@ -126,10 +127,14 @@ NOTE, newlines in http are always crlf (\r\n)
 			optional-header: value
 
 			data for part 2
-			--helloworld--
+			--helloworld--epilogue (must be ignored)
 
+		NOTE1:
+			If preamble is not used, "the entity headers must be followed by TWO CRLF"
+			But... they already are? the wording here is a bit weird. But it seems like
+			no extra \r\n is required if there is no preamble.
 
-		NOTE:
+		NOTE2:
 			the crlf before the boundary is considered as part of the boundary
 			Example
 				--boundary
