@@ -9,6 +9,7 @@ fi
 
 settings=(
 	'python ts=4 sts=0 sw=0 expandtab'
+	'toml ts=4 sts=0 sw=0 expandtab'
 
 	'cmake ts=4 sts=0 sw=0 noexpandtab'
 
