@@ -154,8 +154,26 @@ asyncio repl:
 		-1.2.1- tasks
 		=============
 		asyncio.Task(coro, loop=None, name=None, context=None, eager_start=False)
+			methods:
+				cancel(msg (3.9+)) -> wasRunning, cause CancelledError to be thrown in the task coroutine.
+				uncancel() (3.11+) Call this when catching CancelledError, cancells a single cancel() and return remaining count.
+				cancelled() -> bool
+				cancelling() -> number of pending cancellation calls.
+				done() -> bool
 
-
+				result() -> return value or (re)raise exception.
+				exception() -> the raised exception (or None)
+					for the above:
+					if cancelled: raise CancelledError
+					if running: raise InvalidStateError
+				add_done_callback(callback, context=None)
+				remove_done_callback(callback)
+				get_stack(limit=None)
+				print_stack(limit=None, file=None)
+				gt_coro() (3.8+)
+				get_context (3.12+)
+				get_name (3.8+)
+				set_name(name) (3.8+)
 
 		asyncio.create_task(coroutine, *, name=None(3.8), context=None(3.11), eager_start=None(3.14), **kwargs):
 			Create a task AND schedule to run.
