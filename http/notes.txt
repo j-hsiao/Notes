@@ -83,6 +83,11 @@ NOTE, newlines in http are always crlf (\r\n)
 ===========
 -1- headers
 ===========
+	Headers generally have the form:
+		HeaderName: headervalue[; parameter=value...]
+
+	And should end with a crlf.  The last header should end with TWO crlfs.
+
 	==================
 	-1.1- content-type
 	==================
@@ -151,22 +156,55 @@ NOTE, newlines in http are always crlf (\r\n)
 			The data in part1 is 'helloworld'
 			But the data in part2 is 'helloworld\n'
 
-		subtypes:
-			mixed:
+		--------
+		subtypes
+		--------
+			mixed
+			=====
 				the default, intended for display serially
-			alternative:
+
+			alternative
+			===========
 				present alternatives for display
 				Usually choose the last viable option.
-			related:
-				each part is related, and all are required.
+
+			form-data
+			=========
+				https://www.rfc-editor.org/rfc/rfc7578#page-3
+				part headers:
+					content-disposition: required
+						parameters:
+							name: required, Indicate the part of the form this part is for.
+							      Multiple parts for the same form field should have the same name.
+							filename: required if applicable
+
+			related
+			=======
 				https://www.rfc-editor.org/rfc/rfc2387
-				? type is required to indicate the overall type ?
-			digest:
+				parameters:
+					type: required, the content-type of the main part: media/type
+					start: content-id of the root object, if absent, default to the first part.
+					start-info: a (quoted) string
+						or (list of) <content-id[@something]>, where the <@> should be as is, and
+						everything else should be %encoded
+
+				part headers:
+					Content-ID: required, should match: <some id[@something?]>
+						In the rfc, every single content-id seems to match this <*@*> format
+					Content-Disposition: Ignored for related processing (processor decides what it should be)
+						BUT, can be useful for servers that do not know how to process it...
+
+			digest
+			======
 				default content-type is message/rfc822 instead of text/plain
 				(as compared to mixed)
-			parallel:
+
+			parallel
+			========
 				Parts should be presented in parallel
-			x-mixed-replace:
+
+			x-mixed-replace
+			===============
 				use this for mjpg as the src in a <img>
 				(NOTE: directly using the link in url bar on firefox
 				cuases errors, but putting it in a <img> in a simple html
@@ -179,3 +217,4 @@ NOTE, newlines in http are always crlf (\r\n)
 	Content-Disposition: attachment
 	Content-Disposition: attachment; filename="file name.jpg"
 	Content-Disposition: attachment; filename*=UTF-8''file%20name.jpg
+	Content-Disposition: form-data; name="name"
