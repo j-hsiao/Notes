@@ -31,29 +31,31 @@ def showinfo(close='<Control-Shift-Alt-space>', **kwargs):
     """Show info and close with `close` keyseq
 
     kwargs:
+        toplevel
         parent
         title
         message
         width
         height
     """
-    r = kwargs.get('parent', None)
-    destroy = False
-    if r is None:
-        try:
-            r = tk._default_root
-        except AttributeError:
-            r = None
+    tl = kwargs.get('toplevel', None)
+    if tl is None:
+        r = kwargs.get('parent', None)
+        destroy = False
         if r is None:
-            r = tk.Tk()
-            showinfo(close=close, parent=r, **kwargs)
-            r.destroy()
-            return
-    tl = tk.Toplevel(r)
+            try:
+                r = tk._default_root
+            except AttributeError:
+                r = None
+            if r is None:
+                r = tk.Tk()
+                showinfo(close=close, toplevel=r, **kwargs)
+                return
+        tl = tk.Toplevel(r)
     tl.attributes('-topmost', True)
     if kwargs.get('title') is not None:
         tl.title(kwargs['title'])
-    r.eval('''
+    tl.tk.eval('''
         if {"[info procs ::remind::showinfo::keep_window_at_center]" == ""} {
             namespace eval remind::showinfo {
                 proc keep_window_at_center {win} {
@@ -76,7 +78,7 @@ def showinfo(close='<Control-Shift-Alt-space>', **kwargs):
 
     tl.bind('<Configure>', f'remind::showinfo::keep_window_at_center {tl}')
     tl.bind(close, f'grab release {tl}\ndestroy {tl}')
-    r.call('wm', 'resizable', tl, 0, 0)
+    tl.tk.call('wm', 'resizable', tl, 0, 0)
     tl.focus()
     tl.grab_set()
     tl.wait_window()
@@ -227,6 +229,7 @@ class Server(object):
             import ctypes
             ctypes.windll.user32.ShowWindow(
                 ctypes.windll.kernel32.GetConsoleWindow(), 0)
+        self.args = args
         self.persist = args.persist
         self.verbose = args.verbose
         self.notify = args.notify
@@ -236,13 +239,67 @@ class Server(object):
         self.reminders = []
         self.ready = collections.deque()
         self.running = True
+        self.destroyed = False
 
         self.tk = tk.Tk()
+        self.widgets = [
+            tk.Text(self.tk, width=args.shape[0], height=args.shape[1]),
+            tk.Scrollbar(self.tk, orient='vertical')
+        ]
+        self.widgets[0].configure(
+            yscrollcommand=self.widgets[1].set,
+            selectforeground=self.widgets[0].cget('foreground'),
+            selectbackground=self.widgets[0].cget('background'),
+            )
+        self.widgets[1].configure(command=self.widgets[0].yview)
+        self.widgets[0].grid(row=0, column=0, sticky='nsew')
+        self.widgets[1].grid(row=0, column=1, sticky='nsew')
+        self.tk.grid_columnconfigure(0, weight=1)
+        self.tk.grid_rowconfigure(0, weight=1)
+        self.tk.eval('namespace eval remind { variable finish }')
+        self.tk.bind(args.sequence, 'set remind::showinfo::done 1')
+        self.tk.call('wm', 'resizable', self.tk, 0, 0)
+        self.tk.eval('''
+            namespace eval remind::showinfo {
+                variable done 1
+                proc keep_window_at_center {win} {
+                    variable targetx [expr ([winfo screenwidth $win]-[winfo width $win])/2]
+                    variable targety [expr ([winfo screenheight $win]-[winfo height $win])/2]
+                    if {[winfo x $win] != $targetx || [winfo y $win] != $targety} {
+                        wm geometry $win +$targetx+$targety
+                    }
+                }
+            }''')
+        self.tk.bind('<Configure>', f'remind::showinfo::keep_window_at_center {self.tk}')
+        self.tk.createcommand('remind::showinfo::endit', self.stop)
+        self.tk.bind('<Destroy>', 'remind::showinfo::endit')
+
+
         self.tk.update_idletasks() # On windows, without this, every window loses focus.
         self.tk.withdraw()
+        self.tk.attributes('-topmost', True)
         self.tk.createcommand('CheckNotifications', self._check_notifications)
         self.notifying = tk.BooleanVar(self.tk, False)
         self.tk.bind('<<CheckNotifications>>', f'if {{!${self.notifying}}} {{CheckNotifications}}')
+
+    def stop(self):
+        with self.lock:
+            self.destroyed = True
+            if not self.running:
+                return
+            self.running = False
+        self.tk.call('set', 'remind::showinfo::done', 1)
+        s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        try:
+            s.connect(('localhost', self.port))
+            with s.makefile('w') as wf:
+                print('exit', file=wf)
+                wf.flush()
+            s.shutdown(socket.SHUT_WR)
+            while s.recv(4096):
+                pass
+        finally:
+            s.close()
 
     def eprint(self, *args, **kwargs):
         if self.verbose:
@@ -257,21 +314,46 @@ class Server(object):
         self.tk.mainloop()
         t.join()
 
+    def showmessage(self, **kwargs):
+        """Show text in a popup
+
+        kwargs:
+            title
+            message
+            width
+            height
+        """
+        self.tk.focus()
+        self.tk.grab_set()
+        try:
+            self.tk.title(kwargs.get('title', 'reminder'))
+            self.widgets[0].configure(state='normal')
+            self.widgets[0].delete('1.0', 'end')
+            self.widgets[0].insert('end', kwargs.get('message', ''))
+            self.widgets[0].configure(state='disabled')
+            self.tk.call('vwait', 'remind::showinfo::done')
+        finally:
+            if not self.destroyed:
+                self.tk.grab_release()
+
     def _check_notifications(self):
         """Display popups sequentially."""
         self.notifying.set(True)
         try:
+            self.tk.deiconify()
             while 1:
                 with self.lock:
+                    if not self.running:
+                        break
                     if self.ready:
                         target, message = self.ready.popleft()
                     else:
                         break
                 now = datetime.datetime.now()
                 if abs((now - target).total_seconds()) < 1:
-                    showinfo(parent=self.tk, title='Reminder', message=f'{target.strftime(DATE_SHOW)}:\n\n{message}')
+                    self.showmessage(parent=self.tk, title='Reminder', message=f'{target.strftime(DATE_SHOW)}:\n\n{message}')
                 else:
-                    showinfo(parent=self.tk, title='Reminder', message=f'now: {now.strftime(DATE_SHOW)}:\ntgt: {target.strftime(DATE_SHOW)}:\n\n{message}')
+                    self.showmessage(parent=self.tk, title='Reminder', message=f'now: {now.strftime(DATE_SHOW)}:\ntgt: {target.strftime(DATE_SHOW)}:\n\n{message}')
             with self.lock:
                 if self.running:
                     return
@@ -282,9 +364,19 @@ class Server(object):
                     for target, message in self.reminders:
                         dtstr = target.strftime(DATE_SHOW)
                         print(f'\n{dtstr}\n{"="*len(dtstr)}\n{message}', file=messagebuf)
-                    showinfo(title='Unprocessed reminders', message=messagebuf.getvalue())
+                    if self.destroyed:
+                        showinfo(
+                            close=self.args.sequence,
+                            title='Unprocessed reminders',
+                            message=messagebuf.getvalue(),
+                            toplevel=tk.Tk())
+                        return
+                    else:
+                        self.showmessage(title='Unprocessed reminders', message=messagebuf.getvalue())
             self.tk.call('after', 'idle', f'destroy {self.tk}')
         finally:
+            if not self.destroyed:
+                self.tk.withdraw()
             self.notifying.set(False)
 
     def run_server(self):
@@ -345,8 +437,10 @@ class Server(object):
         finally:
             L.close()
             with self.lock:
+                finalize = self.running
                 self.running = False
-            self.tk.event_generate('<<CheckNotifications>>', when='tail')
+            if finalize:
+                self.tk.event_generate('<<CheckNotifications>>', when='tail')
 
 
 def launch_powershell(*args, **kwargs):
@@ -405,7 +499,10 @@ def launch(args):
     for opt in ('persist', 'reuse', 'verbose'):
         if getattr(args, opt):
             cmd.append('--'+opt)
-        L = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    cmd.extend(('--sequence', args.sequence))
+    cmd.append('--shape')
+    cmd.extend(map(str, args.shape))
+    L = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     try:
         L.bind(('localhost', 0))
         while L.getsockname()[1] == args.port:
@@ -522,6 +619,8 @@ if __name__ == '__main__':
     p.add_argument('--hide', action='store_true', help='hide terminal on windows.')
     p.add_argument('--notify', type=int, help='Connect to this port to notify server ready.')
     p.add_argument('-l', '--log', help='use logfile')
+    p.add_argument('--shape', type=int, help='Width Height', nargs=2, default=(40,10))
+    p.add_argument('--sequence', default='<Control-Shift-Alt-space>', help='bind sequence to close reminder popup.')
 
     p.add_argument(
         'cmd', nargs='?',
