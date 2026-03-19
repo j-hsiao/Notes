@@ -1,24 +1,72 @@
 contents:
 -1- ssh
 	-1.1- config
-	-1.2- encryption/keys
+	-1.2- keys
 	-1.3- forwarding
-	-1.4- keys
 -2- scp
 
-______________________________
+=======
 -1- ssh
-	ssh user@domain
-	ssh -l user domain
+=======
+	ssh target command arg arg arg...
 
-	ssh configuration/setting files are generally in ~/.ssh
-	~/.ssh should have permissions 700
-	public keys: 644
-	private keys: 600
-	authorized_keys: 600
+	target:
+		[user@]host
+		ssh://[user@]host:port
 
-	______________________________
+	Commands
+	========
+	NOTE: args will be appended to command separated by a space. This means that
+	the remote server RECEIVES A SINGLE STRING.  The string itself (or args)
+	must contain any necessary quoting.
+	Example1:
+		command: ssh target printf '"%s"\n' a b 'hello world'
+		result: anbnhellonworldn
+		explanation:
+			After joining the strings, what the remote would see is:
+			printf "%s"\n a b hello world
+			Because \n would just become n, and hello world does not contain
+			any quoting, the net result would be:
+			printf %sn a b hello world
+
+		Proper quoting (single str): ssh target 'printf "\"%s\"\\n" a b "hello world"'
+		Proper quoting (multi str): ssh target printf \''"%s"\n'\' a b \''hello world'\'
+
+	Alternatively, just have a script and then
+		ssh target <script
+
+	Permissions
+	===========
+	Permissions for relevant configuration files should be AT LEAST:
+	chmod 700 ~/.ssh/
+	chmod 644 public_key
+	chmod 644 ~/.ssh/config
+	chmod 600 private_key
+	chmod 600 authorized_keys
+
+	=============
+	-1.0- options
+	=============
+
+	-L (LOCALFORWARD)
+		Forward a connection from local machine to remote
+	-R (REMOTEFORWARD)
+		Forward a connection from remote machine to local
+	-i identityfile
+		Specify the identityfile to use.
+	-f
+		Go to background just before command.  This allows running
+		ssh in the background while also allowing password prompting etc.
+	-l loginname
+		Specify the login name. (alternative to user@host)
+	-p port
+		Specify the target port to ssh to. (alternative to ssh://[user@]host:port)
+
+
+	============
 	-1.1- config
+	============
+
 		config file paths
 			/etc/ssh/ssh_config
 			~/.ssh/config
@@ -28,15 +76,19 @@ ______________________________
 			" a single argument with spaces"
 			Indentation is ignored.
 			Key value pairs apply to the most recent HOST patterns line.
-			For each option, the first match applies.
+			For each option, the first match applies.  More specific options
+			should be at the top and general defaults at the bottom.
 			keys are case INSENSTIVE
 
-			keys:
+			useful keys:
 				Host: patterns separated by whitespace (ORed together)
+
 				HostName: the actual host name to use (ip,
 					www.somewhere.com, etc)
+
 				IdentitiesOnly: [yes|no] only use the IdentityFile even if
 					ssh agent gives other identities
+
 				IdentityFile: specify the private key file
 					The file name may use the tilde syntax to refer to a
 					user's home directory or one of the following escape
@@ -47,21 +99,28 @@ ______________________________
 						'%h' remote host name
 						'%r' remote user name
 					Multiple files are allowed (tried in order)
-					LocalForward: port forwarding from local machine to remote machine.
-						2 arguments: [<bindaddr>:]port <hostname at remote>:port
-						put ipv6 addresses in [] or use <ipv6addr>/port
-						<bindaddr>: which interface to bind to. localhost = only local can use
-							empty or * = all interfaces
-					PasswordAuthentication [yes|no]
-					Port: port to connect to at remote
-					RemoteForward: forward remote port to local same format as
-						LocalForward, except order is <remote addr> <local addr>
-						empty means loopback only
-					ServerAliveInterval: secs, send a keepalive message to
-						server asking for a response.
-					TCPKeepAlive: [yes|no] send TCP keepalive messages, will dc if
-						network is down temporarily
-					User: specify the user to ssh as
+
+				LocalForward: port forwarding from local machine to remote machine.
+					2 arguments: [<bindaddr>:]port <hostname at remote>:port
+					put ipv6 addresses in [] or use <ipv6addr>/port
+					<bindaddr>: which interface to bind to. localhost = only local can use
+						empty or * = all interfaces
+
+				PasswordAuthentication [yes|no]
+
+				Port: port to connect to at remote
+
+				RemoteForward: forward remote port to local same format as
+					LocalForward, except order is <remote addr> <local addr>
+					empty means loopback only
+
+				ServerAliveInterval: secs, send a keepalive message to
+					server asking for a response.
+
+				TCPKeepAlive: [yes|no] send TCP keepalive messages, will dc if
+					network is down temporarily
+
+				User: specify the user to ssh as
 
 			patterns:
 				*: 0 or more chars
@@ -70,77 +129,75 @@ ______________________________
 				can have commma delimited for a "pattern-list"
 				(an AND)
 
-			For each option, the earliest match is used.
-			eg.
+			For each option, the EARLIEST MATCH is used.
+			These configs would be equivalent for
+			hostnames `name`, `tame`, and `aim`
+			config1:
 				HOST name
-				    USER myuser
+					USER myuser
 				HOST *e
-				    USER bad
-				    SERVERALIVEINTERVAL 69
+					USER bad
+					SERVERALIVEINTERVAL 69
 				HOST *
-				    IDENTITIESONLY yes
+					IDENTITIESONLY yes
 
-				host:       options:
-				name        USER myuser
-				            SERVERALIVEINTERVAL 69
-				            IDENTITIESONLY yes
-				tame        USER bad
-				            SERVERALIVEINTERVAL 69
-				            IDENTITIESONLY yes
+			config2:
+				HOST name
+					USER myuser
+					SERVERALIVEINTERVAL 69
+					IDENTITIESONLY yes
+				HOST tame
+					USER bad
+					SERVERALIVEINTERVAL 69
+					IDENTITIESONLY yes
+				HOST aim
+					IDENTITIESONLY yes
 
-				For name, the USER under HOST name matches first so that
-				value is used.
-
-	_______________________________
-	-1.2- encryption/keys
+	==========
+	-1.2- keys
+	==========
 		ssh-keygen -t type -b bits -f file -C comment -n ""
 		ed25519 is more secure on the private key
-		rsa:
-			generates an rsa and rsa.pub file
-			put the rsa.pub file in the target host
-			~/.ssh/authorized_keys
-			when sshing use the rsa file to the -i argument
 
-		The public key should be appended to remote server's authorized_keys.
-	______________________________
+		Keys come in pairs, a public and private key.
+		Cat/append the public key into the target host's ~/.ssh/authorized_keys
+
+		When sshing to the remote host, specify the private key with the
+		-i option on the commandline.
+
+		_______________
+		change password
+			ssh-keygen -p -f privatekey
+
+	================
 	-1.3- forwarding
-		ssh can perform port forwarding via ssh tunneling
-		adds ssh security to the connection... (at least for
-		the segment between the 2 machines)
+	================
+	ssh can perform port forwarding via ssh tunneling
+	adds ssh security to the connection... (at least for
+	the segment between the 2 machines)
 
-		Forward from client to ssh host
-			ssh -L [<localhost>]:<localport>:<remotehost>:<remoteport>
-				bind a socket to <localhost>:<localport> which forwards data
-				to <remotehost>:<remoteport>
+	Forward from client to ssh host
+		ssh -L [<localhost>]:<localport>:<remotehost>:<remoteport>
+			bind a socket to <localhost>:<localport> which forwards data
+			to <remotehost>:<remoteport>
 
-		Forward from ssh host to client
-			ssh -R [remotehost]:<remoteport>:<localhost>:<localport>
-				ssh to the remote machine, and create a socket bound to
-					<remotehost>:<remoteport> which forward traffic to
-					<localhost>:<localport>
+	Forward from ssh host to client
+		ssh -R [remotehost]:<remoteport>:<localhost>:<localport>
+			ssh to the remote machine, and create a socket bound to
+				<remotehost>:<remoteport> which forward traffic to
+				<localhost>:<localport>
 
-		These would force you to create an ssh session and leave it open.
-		This is fine if you will be using the ssh session as well.
-		Alternatively, add the -f option and the command sleep 10 or
-		something similar.  This will cause the tunnel to open for the
-		specified sleep duration.  During this time, connect over the tunnel.
-		When the sleep finishes, the ssh will exit and the tunnel will last
-		as long as the connection lasts.
+	These would force you to create an ssh session and leave it open.
+	This is fine if you will be using the ssh session as well.
+	Alternatively, add the -f option and the command sleep 10 or
+	something similar.  This will cause the tunnel to open for the
+	specified sleep duration.  During this time, connect over the tunnel.
+	When the sleep finishes, the ssh will exit and the tunnel will last
+	as long as the connection lasts.
 
-	_______________________________
-	-1.4- keys
-		create a key:
-			ssh-keygen -t [rsa|ed25519] -C "comment"
-
-		this creates a private and .pub file
-		put .pub on the remote[s] that you want to ssh to.
-		private should be kept on your personally-used machines
-
-		change password:
-			ssh-keygen -p -f path2existingfile
-
-_______________________________
+=======
 -2- scp
+=======
 	scp source files ... destination
 		format:
 			filepath (localhost)
