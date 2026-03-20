@@ -414,9 +414,12 @@ class Server(object):
             L.listen(5)
             if self.notify:
                 s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+                s.settimeout(1)
                 try:
                     s.connect(('localhost', self.notify))
                     s.recv(1)
+                except Exception:
+                    pass
                 finally:
                     s.close()
             else:
@@ -558,13 +561,35 @@ def launch(args):
                 p = subprocess.Popen(
                     cmd, bufsize=0, stdout=logf.fileno(),
                     stderr=logf.fileno())
-        L.settimeout(5)
-        s, a = L.accept()
-        s.close()
+        L.settimeout(args.timeout[0])
+        nchecks = int(args.timeout[1])
+        show = '...   '
+        count = 3
+        while p.poll() is None or nchecks != 0:
+            try:
+                s, a = L.accept()
+            except Exception:
+                nchecks -= 1
+                print(
+                    ''.join([
+                        '\rWaiting for reminder startup',
+                        show[count:count+3],
+                        (nchecks if nchecks >= 0 else '')]),
+                    file=sys.stderr, end='', flush=True)
+                count -= 1
+                count %= 4
+                if p.poll() is not None:
+                    # Continue checking for about 2 seconds after the
+                    # launching process exits.
+                    nchecks = min(nchecks, max(1, int(2.0 / max(.1, args.timeout[0]))))
+            else:
+                s.close()
+                print('\r\x1b[0KLaunched pid:', p.pid, file=sys.stderr)
+                return p
+        print(file=sys.stderr)
+        raise RuntimeError('Launcher exited without reminder startup notification.')
     finally:
         L.close()
-    print('Server pid:', p.pid)
-    return p
 
 
 COMMANDS = {
@@ -649,6 +674,9 @@ if __name__ == '__main__':
     p.add_argument('--shape', type=int, help='Width Height', nargs=2, default=(40,10))
     p.add_argument('--sequence', default='<Control-Shift-Alt-space>', help='bind sequence to close reminder popup.')
     p.add_argument('-f', '--font', default='TkDefaultFont')
+    p.add_argument(
+        '-t', '--timeout', type=float, nargs=2, default=[1, -1],
+        help='(Timeout, maxtries) waiting for background reminder server to start.')
 
     p.add_argument(
         'cmd', nargs='?',
