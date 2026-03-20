@@ -685,6 +685,8 @@ if __name__ == '__main__':
     p.add_argument('-c', '--check', action='store_true', help='just check the time parsing.')
     p.add_argument('-p', '--port', type=int, default=65432, help='reminder server port.')
     p.add_argument('-d', '--delay', action='store_true', help='the given times are delays.')
+
+    p.add_argument('-m', '--message', help='extra command messages.', nargs='+', action='append')
     args = p.parse_args()
 
     if platform.system() == 'Windows':
@@ -696,4 +698,12 @@ if __name__ == '__main__':
     elif args.server:
         Server(args).run()
     else:
-        sys.exit(send_command(args))
+        retcode = send_command(args)
+        if retcode == 0 and args.message:
+            for message in args.message:
+                args.cmd = message[0]
+                args.extra = message[1:]
+                retcode = send_command(args)
+                if retcode != 0:
+                    break
+        sys.exit(retcode)
