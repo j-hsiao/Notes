@@ -3,6 +3,7 @@ import codecs
 import collections
 import datetime
 import heapq
+import itertools
 import io
 import os
 import platform
@@ -37,6 +38,7 @@ def showinfo(close='<Control-Shift-Alt-space>', **kwargs):
         message
         width
         height
+        font
     """
     tl = kwargs.get('toplevel', None)
     if tl is None:
@@ -67,7 +69,10 @@ def showinfo(close='<Control-Shift-Alt-space>', **kwargs):
                 }
             }
         }''')
-    txt = tk.Text(tl, width=kwargs.get('width', 40), height=kwargs.get('height', 10))
+    txt = tk.Text(
+        tl, font=kwargs.get('font', 'TkDefaultFont'),
+        width=kwargs.get('width', 40), height=kwargs.get('height', 10),
+    )
     txt.insert('end', kwargs.get('message', ''))
     txt.grid(row=0, column=0, sticky='nsew')
     txt.configure(state='disabled')
@@ -243,7 +248,10 @@ class Server(object):
 
         self.tk = tk.Tk()
         self.widgets = [
-            tk.Text(self.tk, width=args.shape[0], height=args.shape[1]),
+            tk.Text(
+                self.tk, font=args.font,
+                width=args.shape[0], height=args.shape[1],
+            ),
             tk.Scrollbar(self.tk, orient='vertical')
         ]
         self.widgets[0].configure(
@@ -272,7 +280,7 @@ class Server(object):
             }''')
         self.tk.bind('<Configure>', f'remind::showinfo::keep_window_at_center {self.tk}')
         self.tk.createcommand('remind::showinfo::endit', self.stop)
-        self.tk.bind('<Destroy>', 'remind::showinfo::endit')
+        self.tk.bind('<Destroy>', 'remind::showinfo::endit %W')
 
 
         self.tk.update_idletasks() # On windows, without this, every window loses focus.
@@ -282,13 +290,15 @@ class Server(object):
         self.notifying = tk.BooleanVar(self.tk, False)
         self.tk.bind('<<CheckNotifications>>', f'if {{!${self.notifying}}} {{CheckNotifications}}')
 
-    def stop(self):
+    def stop(self, name):
+        if name != str(self.tk):
+            return
+        self.tk.call('set', 'remind::showinfo::done', 1)
         with self.lock:
             self.destroyed = True
             if not self.running:
                 return
             self.running = False
-        self.tk.call('set', 'remind::showinfo::done', 1)
         s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         try:
             s.connect(('localhost', self.port))
@@ -350,29 +360,45 @@ class Server(object):
                     else:
                         break
                 now = datetime.datetime.now()
+                parts = []
+                dtstr = target.strftime(DATE_SHOW)
                 if abs((now - target).total_seconds()) < 1:
-                    self.showmessage(parent=self.tk, title='Reminder', message=f'{target.strftime(DATE_SHOW)}:\n\n{message}')
+                    formatted = ''.join([dtstr, '\n', '='*len(dtstr), '\n', message])
                 else:
-                    self.showmessage(parent=self.tk, title='Reminder', message=f'now: {now.strftime(DATE_SHOW)}:\ntgt: {target.strftime(DATE_SHOW)}:\n\n{message}')
+                    formatted = ''.join(['now: ', now.strftime(DATE_SHOW), ':\ntgt: ', dtstr, '\n', '='*len(dtstr+5), '\n', message])
+                self.showmessage(parent=self.tk, title='Reminder', message=formatted)
             with self.lock:
                 if self.running:
                     return
-            if self.reminders:
+            if self.reminders or self.ready:
                 with io.StringIO() as messagebuf:
                     self.reminders.sort()
-                    print(f'now: {datetime.datetime.now().strftime(DATE_SHOW)}', file=messagebuf)
-                    for target, message in self.reminders:
-                        dtstr = target.strftime(DATE_SHOW)
-                        print(f'\n{dtstr}\n{"="*len(dtstr)}\n{message}', file=messagebuf)
+                    now = datetime.datetime.now()
+                    orig = sys.stdout
+                    sys.stdout = messagebuf
+                    try:
+                        for target, message in itertools.chain(self.ready, self.reminders):
+                            if now is not None and target > now:
+                                fmt = '{{:^{}}}'.format(self.args.shape[0])
+                                print('_'*self.args.shape[0])
+                                print(fmt.format('Unprocessed reminders'))
+                                print()
+                                now = None
+                            dtstr = target.strftime(DATE_SHOW)
+                            print(f'{dtstr}\n{"="*len(dtstr)}\n{message}\n')
+                    finally:
+                        sys.stdout = orig
                     if self.destroyed:
                         showinfo(
                             close=self.args.sequence,
-                            title='Unprocessed reminders',
+                            title='Reminder',
                             message=messagebuf.getvalue(),
-                            toplevel=tk.Tk())
+                            toplevel=tk.Tk(),
+                            font=self.args.font,
+                        )
                         return
                     else:
-                        self.showmessage(title='Unprocessed reminders', message=messagebuf.getvalue())
+                        self.showmessage(title='Reminder', message=messagebuf.getvalue())
             self.tk.call('after', 'idle', f'destroy {self.tk}')
         finally:
             if not self.destroyed:
@@ -499,7 +525,8 @@ def launch(args):
     for opt in ('persist', 'reuse', 'verbose'):
         if getattr(args, opt):
             cmd.append('--'+opt)
-    cmd.extend(('--sequence', args.sequence))
+    for opt in ('sequence', 'font'):
+        cmd.extend(('--'+opt, getattr(args, opt)))
     cmd.append('--shape')
     cmd.extend(map(str, args.shape))
     L = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -621,6 +648,7 @@ if __name__ == '__main__':
     p.add_argument('-l', '--log', help='use logfile')
     p.add_argument('--shape', type=int, help='Width Height', nargs=2, default=(40,10))
     p.add_argument('--sequence', default='<Control-Shift-Alt-space>', help='bind sequence to close reminder popup.')
+    p.add_argument('-f', '--font', default='TkDefaultFont')
 
     p.add_argument(
         'cmd', nargs='?',
