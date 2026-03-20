@@ -37,6 +37,7 @@ contents
 -14- submodule
 -15- server
 -16- blame
+-17- symbolic-ref
 
 
 ============
@@ -671,3 +672,10 @@ Example:
 
 NOTE:
 	old/new can be used in place of good/bad, meaning still the same
+
+=================
+-17- symbolic-ref
+=================
+git symoblic-ref REFNAME refs/heads/COMMIT
+
+REFNAME is usually HEAD to change the main branch of a repo
