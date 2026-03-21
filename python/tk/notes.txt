@@ -17,6 +17,8 @@ Contents
 		-1.7.1- expr
 		-1.7.2- puts
 		-1.7.3- bind
+		-1.7.4- try
+		-1.7.5- incr
 -2- tk
 	-2.1- widgets
 		-2.1.0- values
@@ -110,6 +112,8 @@ miscellaneous observations
 	Tcl is the language.  Everything is text.  From python tkinter, it can be
 	accessed with tk.Tk.call() or tk.Tk.eval().
 
+	For quick testing use tclsh to open a tcl shell.
+
 	The Tcl version is held in variable 'tcl_version'
 
 	==================
@@ -152,32 +156,63 @@ miscellaneous observations
 	============
 	-1.1- syntax
 	============
+	https://www.tcl-lang.org/about/language.html
 	cmd arg arg arg
-		words separated by whitespace.
-		The first word is the command.
-		The remaining words are arguments.
+
+	word: sequence of non-space characters
+	command: words separated by spaces.  The first word is the
+	         name of the command, the remaining are arguments.
+	script: commands separated by newline or semicolon
+
+	# comment
+	Comments are also allowed after a command if the command
+	is ended with a semicolon.
 
 	$foo
-		Dereference a variable
+		Dereference a variable "variable substitution"
+	${vname}
+		This works too, and allows using different strings
+		(not just alpha-num} as the variable name.)
 
 	[clock seconds]
-		like bash command substitution.
+		"command substitution."
 		Run the command with given args.
 		Evaluate to the output
 
 	"some stuff"
-		Group words into a single argument.
+		Quoting allows words containing spaces.
+		the double quotes must appear around the word.
+		Unlike bash, quotes in the middle of the word
+		just become quotes.
+
+		puts hello"world" -> hello"world"
+		puts "helloworld" -> helloworld
+
 		[] and $ are available inside string.
 
 	{some stuff}
 		Like single quotes in bash.
 		Group words into a single word, but 0 interpretation.
-		NOTE: comments ARE NOT ALLOWED WITHIN THIS CONSTRUCT.
-		They will be treated as normal string-like arguments.
-		This matters for branching and looping etc.
+		?comments might have some odd interactions? not sure,
+		from some testing, comments seem to work, but I remember
+		some command was failing, and removing comments finally
+		made it succeed.
 
 	\
-		escape the next character.
+		escape the next character. Generally, this disables substitution
+		or evaluates to a special char
+		\a  bell
+		\b  backspace
+		\f  form feed
+		\n  new line
+		\r  carriage return
+		\t  tab
+		\v  vertical tab
+		\\  backslash
+		\\n line continuation (ending a line with a backslash)
+		\0dd    octal
+		\uHHHH  unicode
+		\xHH    hex
 
 	Steps in parsing are:
 		grouping
@@ -295,10 +330,9 @@ miscellaneous observations
 	Loops are just commands so all arguments must be on the same line.
 	(although between {}, new lines are allowed)
 
-	foreach {arglist} {sourcelist}... {body}
-		The foreach can can take multiple argname/source pairs.  On each iteration,
-		each argname is assigned to corresponding values at the beginning of each source.
-		Foreach always loops for the longest list.  Values will be empty for shorter sources.
+	foreach ({arglist} {sourcelist})* {body}
+		Each arglist-sourcelist pair will be processed repeatedly until
+		the longest len(sourcelist) / len(arglist) is reached.
 
 		example:
 			foreach a "a b c d e f g" "b c" "0 1 2 3 4 5 6 7 8 9 10 11 12 13 14" {
@@ -332,16 +366,18 @@ miscellaneous observations
 			body
 		}
 
+	0, no, false are falsey (case insensitive), anything else is truthy
+
+	switch str pat1 body1 pat2 body2 ...
+	no falthrough
+
+
+
 	This is because Tcl would interpret the `if {}` as a single command
 	with only 1 argument.  It wouldn't know that if actually expects
 	2 arguments and that argument is on the next line.  Therefore, the
 	opening brace of the body MUST BE ON THE SAME LINE as the closing
 	brace of the condition.
-
-
-
-
-
 
 	====================
 	-1.7- Other commands
@@ -350,20 +386,34 @@ miscellaneous observations
 	-1.7.1- expr
 	============
 		Evaluate an expression.  This could be a mathematical expression.
-		It could be a str.
+		It could be a str.  Note, although expr allows multiple args
+		(concatenated, then evaluated), using a single argument is faster
+		(skips concatenation step) so using {} is recommended.
 
-			-+~!        (unary) negative, positive, bit-wise not, logical not
-			**          exponent
-			*/%         multiply/divide/remainder(pos)
-			+-          add/subtract
-			<<>>        left/right (signed)bitshift
-			<> <= >=    comparison, strings or nums ok
-			== !=       equality, all types ok
-			eq ne       str comparison
-			in ni       contained, negated contains (ni = not in)
-			&^|         bitwise operators
-			&&||        logical [and|or], numeric only
-			x?y:z       ternary, x must be bool or numeric
+			-+~!      (unary) negative, positive, bit-wise not, logical not
+			**        exponent
+			*/%       multiply/divide/remainder(pos)
+			+-        add/subtract
+			<<>>      left/right (signed)bitshift
+			<> <= >=  comparison, strings or nums ok
+			== !=     equality, all types ok
+			eq ne     str comparison
+			in ni     contained, negated contains (ni = not in)
+			&^|       bitwise operators
+			&&||      logical [and|or], numeric only
+			x?y:z     ternary, x must be bool or numeric
+			$$vname   variable indirection
+
+		math functions
+			abs   acos    asin    atan
+			atan2 bool    ceil    cos
+			cosh  double  entier  exp
+			floor fmod    hypot   int
+			isqrt log     log10   max
+			min   pow     rand    round
+			sin   sinh    sqrt    srand
+			tan   tanh    wide
+
 
 		examples:
 			set a 32
@@ -377,6 +427,46 @@ miscellaneous observations
 		print arguments
 		THIS IS LITERAL, so there is no variable expansion etc.
 		use expr instead for variable expansion.
+	============
+	-1.7.3- bind
+	============
+	bind tag <seq> [+]{script}
+	bind only takes tag. To apply a binding to a widget, use
+	bindtags to add the corresponding tag to the widget's bindtags.
+
+	===========
+	-1.7.4- try
+	===========
+	try {body} {handler}? ?finally {script}?
+
+	handlers
+	--------
+	on code varlist script
+		code:
+			[int|ok|error|return|break|continue]
+			(ok-continue are 0-4)
+		varlist
+
+	trap pattern varlist script
+		If error and prefix of -errorcode matches pattern.
+
+	examples:
+		try {
+			...
+		} trap {POSIX EISDIR} {} {
+			...
+		} trap {POSIX ENOENT} {} {
+			...
+		} on error {} {
+			...
+		} finally {
+			...
+		}
+
+	============
+	-1.7.5- incr
+	============
+	Incr is useful for incrementing values in for loops.
 
 ======
 -2- tk
@@ -535,13 +625,6 @@ miscellaneous observations
 	wm cmd args...
 
 
-
-#	============
-#	-1.7.3- bind
-#	============
-#	bind tag <seq> [+]{script}
-#	bind only takes tag. To apply a binding to a widget, use
-#	bindtags to add the corresponding tag to the widget's bindtags.
 
 ===========
 -3- tkinter
