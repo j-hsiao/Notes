@@ -1130,6 +1130,7 @@ contents
 		-0.10.3- [[]] test
 		==================
 		Newer bash-only test.  This is a builtin, so no new process.
+			NOTE: This behaves as if extglob shopt is set.
 			like [] but builtin and more features.
 			is a keyword, means parsing is a bit different from []
 			spaces are still necessary as with []
