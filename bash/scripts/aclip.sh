@@ -11,6 +11,31 @@ then
 	return
 fi
 
+calc_dur() # beg end [*dur]
+{
+	# Calculate the duration between beg and end as HH:MM:SS.mmm
+	# If end is empty or end < beg, then dur is empty.
+	# Fails if beg or end are not valid timestamps.
+	local calcdur__beg="${1:-0}"
+	local calcdur__end="${2}"
+	local -n calcdur__dur="${3:-dur}"
+	if ! { norm_time calcdur__beg x && norm_time calcdur__end x; }
+	then
+		local IFS=-
+		echo "Invalid timestamps ${-:1:2}" >&2
+		return 1
+	fi
+	if [[ -z "${calcdur__end}" || "${calcdur__end}" -lt "${calcdur__beg}" ]]
+	then
+		calcdur__dur=
+	else
+		calcdur__dur=$((calcdur__end - calcdur__beg))
+		calcdur__dur="$((calcdur__dur/1000)).$((calcdur__dur%1000))"
+		norm_time calcdur__dur
+	fi
+}
+
+
 norm_time() # tmvar [msec]
 {
 	# Normalize a time string.
@@ -52,8 +77,29 @@ norm_time() # tmvar [msec]
 
 aclip() # input [output]
 {
+	local rangepat='*([0-9.:])-*([0-9.:])'
+	shopt -s extglob nullglob
+
+	local fname oname beg= end= dur item ok
+	while (($#))
+	do
+		case "${1}" in
+			e=*) end="${1:2}" ;;
+			b=*) beg="${1:2}" ;;
+			${rangepat}) end="${1##*-}"; beg="${1%%-*}";;
+			-h|--help)
+				msg="usage: ${0##*/} <input> [output=clip_\${input}] [b=t1] [e=t2] [t1-t2]
+				b=t1, e=t2: set the beginning and ending timestamps
+				t1-t2     : merged setting timestamp."
+				echo "${msg//$'\t'//}" >&2
+				return
+				;;
+			*) [[ -z "${fname}" ]] && fname="${1}" || oname="${1}";;
+		esac
+		shift 1
+	done
+
 	# Take input, determine start/duration
-	local fname="${1}"
 	if [[ -z "${fname}" ]]
 	then
 		echo 'Need input file.' >&2
@@ -63,25 +109,38 @@ aclip() # input [output]
 	then
 		fname="${PWD}/${fname}"
 	fi
-	local oname="${2}"
-	[[ -z "${oname}" || "${oname}" = "${fname}" ]] \
-		&& oname="${fname%/*}/clip_${fname##*/}"
+	if [[ -z "${oname}" || "${oname}" = "${fname}" ]]
+	then
+		local pre=${fname%.*}
+		local ext="${fname##*.}"
+		multinum='+([0-9])'
+		local clips=("${pre}"clip${multinum}*."${ext}")
+		oname="${pre}clip${#clips[@]}.${fname##*.}"
+		printf '%s\n' "${clips[@]}"
+	fi
 
 	echo "${fname} -> ${oname}"
 	# ffplay "${fname}" -autoexit
-	local beg= end= dur num
-	while read -r -p "${beg} => ${end} (${dur}) >>> " line
+	while :
 	do
-		local item ok=1
+		norm_time beg
+		norm_time end
+		calc_dur "${beg}" "${end}" dur \
+			&& ffplay -autoexit ${beg:+-ss "${beg}"} ${dur:+-t "${dur}"} -i "${fname}"
+		printf '\n%8s => %8s (%8s) >>> ' "${beg}" "${end}" "${dur}"
+		read -r line || return
+		ok=1
 		for item in ${line}
 		do
 			case "${item}" in
-				b*=*) beg="${item#*=}";;
-				e*=*) end="${item#*=}";;
+				b=*) beg="${item#*=}";;
+				e=*) end="${item#*=}";;
+				${rangepat}) beg="${item%%-*}"; end="${item##*-}";;
 				[eq]*) return;;
 				h*)
 					msg='b[eg]=val: set the beginning of the clip.
 						e[nd]=val: set the end of the clip.
+						t1-t2: set beginning and end simultaneously
 						e[xit]|q[uit]: exit clipping.
 						r[eplace]: clip and replace the original.
 						y[es]: clip, do not replace.  Use 2nd argument if given.'
@@ -102,25 +161,6 @@ aclip() # input [output]
 					;;
 			esac
 		done
-		((ok)) && norm_time beg x && norm_time end x || continue
-		if [[ -z "${end}" || "${end}" -lt "${beg}" ]]
-		then
-			dur=
-		else
-			if [[ -z "${beg}" ]]
-			then
-				dur="$((end/1000)).$((end%1000))"
-			else
-				dur=$((end - beg))
-				dur="$((dur/1000)).$((dur%1000))"
-				norm_time dur
-			fi
-		fi
-		end="$((end/1000)).$((end%1000))"
-		beg="$((beg/1000)).$((beg%1000))"
-		norm_time beg
-		norm_time end
-		ffplay -autoexit ${beg:+-ss "${beg}"} ${dur:+-t "${dur}"} -i "${fname}"
 	done
 }
 aclip "${@}"
