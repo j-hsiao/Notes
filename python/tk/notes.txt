@@ -11,7 +11,7 @@ Contents
 		-1.3.1- lists
 		-1.3.2- arrays
 		-1.3.3- strings
-	-1.5-- looping
+	-1.5- looping
 	-1.6- branching
 	-1.7- Other commands
 		-1.7.1- expr
@@ -447,9 +447,34 @@ miscellaneous observations
 	-1.3.3- strings
 	===============
 	string command works with strings:
-	subcommands:
+	String commands are all sub-commands of the string command
+	_________________
+	string length str
+	__________________
+	string index str i
+	___________________________
+	string range str first last
+		both indices are inclusive
+	____________________
+	string compare s1 s2
+		Returns -1, 0, 1
+	__________________
+	string first s1 s2
+		Index of first occurrence of s1 in s2
+	__________________
+	string last s1 s2
+		Index of last occurrence of s1 in s2
+	____________________
+	string wordend str i
+		index of first character not in the word at index i.
+		if no word at i, then return i+1
+	______________________
+	string wordstart str i
+		index of first character not in the word at index i.
+		if no word at i, then return i
 	___________________________________________________________
-	string match [-nocase] pattern string   Like bash globbing.
+	string match [-nocase] pattern string
+		"globbing"
 		*: any sequence
 		?: any single char
 		[chars]: same as bash [abca-z,etc] group, ranges allowed etc.
@@ -494,6 +519,8 @@ miscellaneous observations
 			a= b=14 c=
 
 	for {init} {cond} {incr} {body}
+		init: a command to initialize variables
+		(variable is in the same scope as the for, exists after the for)
 		NOTE: useful command: incr, add value(default 1) to variable
 
 	while {cond} {body}
