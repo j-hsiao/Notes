@@ -990,6 +990,10 @@ contents
 	=================
 	-0.9- redirection
 	=================
+	NOTE1: "redirection operators may precede or appear anywhere within a simple command or may follow a command"
+	NOTE2: "redirections are processed in the order they appear, from left to right."
+	NOTE3: the exec command is NOT special.  redirections of all forms can be used with any command.
+
 		syntax:
 			[dst][direction] [src]
 				dst:
@@ -1812,6 +1816,31 @@ https://www.gnu.org/software/bash/manual/html_node/Programmable-Completion-Built
 		observations:
 			return in the trap seems to retain the original exit code
 			even if other successful commands are completed.
+			Even if commands are part of a function, and trap is set inside the function,
+			if the function is called as part of &&||, then err trap WILL NOT TRIGGER.
+
+			example:
+				badfun() {
+					trap return ERR
+					trap 'trap - RETURN ERR' RETURN
+					false
+					echo "ERR trap was not triggered inside badfun"
+					false
+				}
+
+			>>> badfun && echo ok
+			"ERR trap was not triggered inside badfun"
+			>>> if badfun
+			> then
+			> 	echo "badfun succeeded"
+			> else
+			> 	echo "badfun failed"
+			> fi
+			"ERR trap was not triggered inside badfun"
+			>>> badfun
+			>>> echo $?
+			1
+
 	RETURN
 		Whenever a function or sourced script returns.
 		observations:
