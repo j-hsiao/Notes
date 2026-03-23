@@ -479,20 +479,51 @@ miscellaneous observations
 		?: any single char
 		[chars]: same as bash [abca-z,etc] group, ranges allowed etc.
 		\: escape
-
-
 	______________________
 	format pattern args...
 		This is sprintf for tcl.
 			%[-+ 0#]w.pc
 			c is the code, w = width, p = precision
 			-: left justify
-			+: always add a sign
+			+: right justify (according to tutorial) or print with a + (according to docs)
 			<space>: use a space for positive instead of +
 			0: 0-pad
 			#: Prefix ints with the type (0: octal, 0X: hex, 0b: binary)
 			   Always add decimal for floats
 			   for g, G also, do not eliminate trailing 0s
+			c: the type
+				s: string
+				d: decimal int
+				x: hex int
+				o: octal int
+				f: float
+	__________________________________________________
+	regexp ?switches? exp str ?matchvar? ?submatch...?
+		matchvar: store matched string into this variable
+		submatch are variable names for groups
+	____________________________________________
+	regsub ?switches? exp string replacement outvar
+		replace matches of exp in string with replacement
+		store result in outvar
+
+		^$.*+[^](), no need for escapes for regexp meaning.
+	__________________
+	string tolower str
+	__________________
+	string toupper str
+	___________________________
+	string trim str ?trimChars?
+	_______________________________
+	string trimleft str ?trimChars?
+	_______________________________
+	string trimright str ?trimChars?
+
+	==========================
+	-1.3.4- Associative Arrays
+	==========================
+	TODO
+
+
 
 
 	=============
