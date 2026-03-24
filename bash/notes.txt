@@ -881,6 +881,7 @@ contents
 
 		extended pattern matching
 			requires shopt extglob
+			pattern-list is pat1|pat2|pat3...
 			?(pattern-list)   zero or one of patterns
 			*(pattern-list)   zero+ of patterns
 			+(pattern-list)   one+ of patterns
