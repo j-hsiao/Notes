@@ -97,6 +97,7 @@ panes
 	M-1 to M-5    Arrange panes in one of the five preset layouts: even-horizontal, even-verti‐
 	              cal, main-horizontal, main-vertical, or tiled.
 	Space         Arrange the current window in the next preset layout.
+	E             equalize windows
 	C-Left|Right  Resize the current pane in steps of one cell.
 	  |Up|Down
 	M-Left|Right  Resize the current pane in steps of five cells.

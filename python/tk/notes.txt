@@ -521,7 +521,54 @@ miscellaneous observations
 	==========================
 	-1.3.4- Associative Arrays
 	==========================
-	TODO
+	Associative arrays are hash-tables/python dicts
+	Arrays can be created simply by setting a value
+	Indexed arrays use () instead of [].
+
+	set arr(key) value
+	$arr(key)
+	__________________
+	array exists vname
+	_______________________
+	array names vname ?pat?
+		list keys matching pat
+	________________
+	array size vname
+	_______________
+	array get vname
+		Return an alternating list of key value pairs
+	_________________________
+	array set vname altkvlist
+		Create an array from a list of alternating key value pairs
+	_______________________
+	array unset vname ?pat?
+		Unset the matched keys or entire array if no pat.
+
+	=============
+	-1.3.5- dicts
+	=============
+	Dicts are just lists where even items are keys and odd are values
+	always must be even-length.  These should generally be passed by value
+	________________________________
+	dict set vname k1 k2 k3... value
+		set vname[k1][k2][k3] = value
+	_____________________
+	dict for {k v} dictval {body}
+		This is the same as foreach {k v} $dict {body}
+	__________________________
+	dict with dictNAME k1 k2... {body}
+		Enters a scope where the given dict is the "environment".
+		The keys are seen as variables
+	______________________
+	dict create k v k v...
+		create a dict, similar to the `list` command
+		Must assign via substitution
+		set a [dict create k v k v...]
+	_______________________
+	dict get dictVAL key...
+
+
+
 
 
 
