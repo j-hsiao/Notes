@@ -154,21 +154,31 @@ ______________________________
 					digit     space   escape
 
 			Extra
+				:h E59
+				\@>
+					Match previous pattern as if by itself
+					Example:
+						text: aaab
+						pattern: a*ab           matches
+						pattern: \(a*\)\@>ab    NO MATCH (a* by itself, greedily eats all the a)
 				\@=
+					zero-width, "lookahead"
 					Matches with zero width if previous ATOM matches.
 					ex: foo\(bar\)\@=
-					matches foobar, then goes back to the b to continue
-					matching the remainder.
+					Matches 'foo' only if followed by 'bar'
 				\@!
+					zero-width "negative lookahead"
 					Matches with zero width if previous ATOM does NOT match.
-					ex: foo\(bar\)\@!: any foo not followed by bar
-				\@>
-					Match previous pattern separately.
-					Example:
-						a*ab WILL match aaab (a* -> aa, a->a, b->b)
-						\(a*\)\@>ab will NOT match aaab
-						a* -> aaa, it was matched separately so takes all the a's
-						a has no more a to match so the match will fail.
+					ex: foo\(bar\)\@!: 'foo' not followed by 'bar'
+				\@<=
+					zero-width, "lookbehind"
+					Matches with zero width if previous ATOM matches.
+					ex: foo\(bar\)\@=
+					Matches 'foo' only if followed by 'bar'
+				\@<!
+					zero-width "negative lookbehind"
+					Matches with zero width if previous ATOM does NOT match.
+					ex: foo\(bar\)\@!: 'foo' not followed by 'bar'
 
 	______________________________
 	-0.4- undo history
