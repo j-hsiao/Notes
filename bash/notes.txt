@@ -694,12 +694,70 @@ contents
 		-0.2.6- special variables
 		=========================
 		Bash has some special variables defined/?updated? by bash:
+		(These are not environment variables)
+
 		SHLVL           The number of nested bash shells
 		FUNCNAME        Array of functions being run. This is like a stack trace, 0 = current, 1 = parent, etc
 		BASH_SOURCE     Array of source files per function in FUNCNAME
 		BASH_REMATCH    Array of (fullregexmatch, group1, group2, ...)
 		EPOCHREALTIME   floating point timestamp
 		EPOCHSECONDS    seconds precision timestamp
+
+		IFS
+			Internal Field Separator.  This has various uses.
+			The default value is $' \t\n'
+			1. array-like expansion INSIDE DOUBLE QUOTES.
+				Outside of double quotes, IFS IS NOT USED.
+				The first character of IFS is used as a separator between each
+				item of the expanded value (array or params).  If IFS is empty,
+				then no separator.  If IFS is unset, then space.
+				Example:
+					bash -c 'IFS=-; echo $*; echo "$*"' prog a b c
+						first echo : a b c
+						second echo: a-b-c
+			2. UNQUOTED expansion word splitting.
+				This applies to parameter expansion, command substitution, and
+				arithmetic expansion. (No expansion = no word splitting).  When
+				expanding variables, IFS determines how the result of the
+				expansion is split into separate words.
+
+				A delimiter is a non-default character + any run of adjacent default chars.
+				OR any run of default characters.
+				examples:
+					IFS='-', only - gets counted as a delimiter
+					IFS='- ':
+						'      - ' would count as a single delimiter
+
+				For non-default delimiters, trailing delimiter is ignored but leading delimiter IS NOT
+
+				examples:
+				'-hello--world-'
+				  IFS: '-'
+				  count: 4
+				  values: '' 'hello' '' 'world'
+				'--hello--world--'
+				  IFS: '-'
+				  count: 6
+				  values: '' '' 'hello' '' 'world' ''
+				'    --hello--world--    '
+				  IFS: '-'
+				  count: 7
+				  values: '    ' '' 'hello' '' 'world' '' '    '
+				$'    -  -  hello  - \t - world - -    '
+				  IFS: '-'
+				  count: 7
+				  values: '    ' '  ' '  hello  ' $' \t ' ' world ' ' ' '    '
+				'    --hello--world--    '
+				  IFS: '- '
+				  count: 6
+				  values: '' '' 'hello' '' 'world' ''
+				$'    -  -  hello  - \t - world - -    '
+				  IFS: '- '
+				  count: 6
+				  values: '' '' 'hello' $'\t' 'world' ''
+
+			3. Split words when `read`ing a line
+				The splitting logic is the same as unquoted expansion word splitting.
 
 
 	===============
