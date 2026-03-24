@@ -95,6 +95,15 @@ shparse_parse_expr() # <text> [out=RESULT] [begin=BEG] [end=END] [initial=0]
 		$'\x28')
 			local subparse=shparse_parse_paren
 			;;
+		\\)
+			if [[ "${1}" = *'\' && "${5:-0}" = $(("${#1}"-1)) ]]
+			then
+				eval "${3:-BEG}="'"${5:-0}"'
+				eval "${4:-END}=-1"
+				return
+			fi
+			local subparse=shparse_parse_word
+			;;
 		*)
 			local subparse=shparse_parse_word
 			;;
@@ -391,7 +400,8 @@ shparse_parse_word() # <text> [out=RESULT] [begin=BEG] [end=END] [initial=0]
 {
 	# Parse <text> As a bash word.  From assumed [^$IFS], to [$IFS]*
 	local sub=$'$"\'\x28`'
-	shparse_parse_generic '(\\.|[^'"${sub}"$'\x29''\\'"${IFS}"'])*(['"${sub}"']?)(['"${IFS}"']*|$)' 0 "${@}"
+	shparse_parse_generic '(\\.|[^'"${sub}"$'\x29''\\'"${IFS}"'])*(['"${sub}"']?|\\$)(['"${IFS}"']*|$)' 0 "${@}"
+
 }
 
 if [[ "${0}" = "${BASH_SOURCE[0]}" ]]
@@ -517,5 +527,6 @@ then
 	run_test ' "${HOME}/someword/not/completed' '' 1 -1 '' 1
 	run_test ' "${HOME}/someword/not/completed' '' 0 1 '' 0
 	run_test ' $(some command substitution sub)' '' 29 32 '' 29
+	run_test ' \' '' 1 -1 '' 1
 
 fi

@@ -633,6 +633,7 @@ ncmp_last_word() # <text> [out=RESULT] [begin=BEG] [end=END]
 	local -n ncmplw__beg="${3:-BEG}"
 	local -n ncmplw__end="${4:-END}"
 	ncmplw__end=0
+	ncmplw__beg=0
 	while ((0 <= ncmplw__end && ncmplw__end < ncmplw__textlen))
 	do
 		shparse_parse_word "${ncmplw__text}" 0 "${3}" "${4}" "${ncmplw__end}"
