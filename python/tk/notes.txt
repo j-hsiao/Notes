@@ -11,14 +11,18 @@ Contents
 		-1.3.1- lists
 		-1.3.2- arrays
 		-1.3.3- strings
-	-1.5- looping
-	-1.6- branching
-	-1.7- Other commands
-		-1.7.1- expr
-		-1.7.2- puts
-		-1.7.3- bind
-		-1.7.4- try
-		-1.7.5- incr
+		-1.3.4- Associative Arrays
+		-1.3.5- dicts
+	-1.4- looping
+	-1.5- branching
+	-1.6- Other commands
+		-1.6.1- expr
+		-1.6.2- puts
+		-1.6.3- bind
+		-1.6.4- try
+		-1.6.5- incr
+		-1.6.6- io
+		-1.6.7- filesystems
 -2- tk
 	-2.1- widgets
 		-2.1.0- values
@@ -258,323 +262,317 @@ miscellaneous observations
 	you should use ${varname}.  Generally, variable dereferences
 	are treated as a single argument.
 
-	=======================
-	-1.3.0- scopes/namespaces
-	=======================
-	---------
-	Namespace
-	---------
-	Namespaces follow syntax ::ns1::ns2::ns3
-		Namespaces are relative to the current namespace (unless absolute ie, starting with ::)
-
-		namespace eval n1 {
-			namespace eval n2 {
-				variable i 2
-			}
-
-			puts "::n1::n2::i is $::n1::n2::i"
-			puts "n1::n2::i is $n1::n2::i"
-			puts "n2::i is $n2::i"
+		=======================
+		-1.3.0- scopes/namespaces
+		=======================
+		---------
+		Namespace
+		---------
+		Namespaces follow syntax ::ns1::ns2::ns3
+			Namespaces are relative to the current namespace (unless absolute ie, starting with ::)
 
 			namespace eval n1 {
 				namespace eval n2 {
-					variable i 1
+					variable i 2
 				}
+
+				puts "::n1::n2::i is $::n1::n2::i"
+				puts "n1::n2::i is $n1::n2::i"
+				puts "n2::i is $n2::i"
+
+				namespace eval n1 {
+					namespace eval n2 {
+						variable i 1
+					}
+				}
+
+				puts "::n1::n2::i is $::n1::n2::i"
+				puts "n1::n2::i is $n1::n2::i"
+				puts "n2::i is $n2::i"
 			}
 
-			puts "::n1::n2::i is $::n1::n2::i"
-			puts "n1::n2::i is $n1::n2::i"
-			puts "n2::i is $n2::i"
-		}
+			Variables: current namespace, then global
+			commands: current namespace, then all namespaces in current namespace's command path, then global.
+			namespace: current namespace only
 
-		Variables: current namespace, then global
-		commands: current namespace, then all namespaces in current namespace's command path, then global.
-		namespace: current namespace only
+			NOTE1: tk.Tk.createcommand(...) can take a namespace-qualified  name.
+			NOTE2: namespace must exists for set to create variables in it.
 
-		NOTE1: tk.Tk.createcommand(...) can take a namespace-qualified  name.
-		NOTE2: namespace must exists for set to create variables in it.
+		------
+		global
+		------
+		global vname ...
+			make a variable refer to global variable
 
-	------
-	global
-	------
-	global vname ...
-		make a variable refer to global variable
+		-----
+		upvar
+		-----
+		upvar ?level? othervar myvar ?othervar myvar?...
+			Like global, except only go up ?level? levels
+			This way, a proc can refer to variables in the
+			caller's scope.  ?level? defaults to 1. (parent scope)
+			This has the same restrictions as `variable`, the
+			`myvar` must not exist in the current scope.
 
-	-----
-	upvar
-	-----
-	upvar ?level? othervar myvar ?othervar myvar?...
-		Like global, except only go up ?level? levels
-		This way, a proc can refer to variables in the
-		caller's scope.  ?level? defaults to 1. (parent scope)
-		This has the same restrictions as `variable`, the
-		`myvar` must not exist in the current scope.
+		-------
+		uplevel
+		-------
+		uplevel ?level? arg ?arg...?
+			Execute a command in a different stack frame.
+			The args are concatenated into a command, prefer to use {}
 
-	-------
-	uplevel
-	-------
-	uplevel ?level? arg ?arg...?
-		Execute a command in a different stack frame.
-		The args are concatenated into a command, prefer to use {}
+			level:
+				int     N levels above current
+				#int    Nth level (absolute) (#0 = global)
 
-		level:
-			int     N levels above current
-			#int    Nth level (absolute) (#0 = global)
+		=============
+		-1.3.1- lists
+		=============
+		A list is just a string.  The items are determined by how the string
+		would be parsed if it was in a command.  The list command just ensures
+		that any quoting/escaping etc is done as needed.
 
-	=============
-	-1.3.1- lists
-	=============
-	A list is just a string.  The items are determined by how the string
-	would be parsed if it was in a command.  The list command just ensures
-	that any quoting/escaping etc is done as needed.
+		-------------
+		list creation
+		-------------
+		list i1 i2 i3...
 
-	-------------
-	list creation
-	-------------
-	list i1 i2 i3...
+		-------------
+		list commands
+		-------------
+		Most List commands start with an "l" for list.  The "list"
+		they take is usually a dereferenced list variable or a list
+		string/return value.
 
-	-------------
-	list commands
-	-------------
-	Most List commands start with an "l" for list.  The "list"
-	they take is usually a dereferenced list variable or a list
-	string/return value.
+		_______
+		Indices
+		Indices for lists are usually an int.  Special index 'end' refers to
+		the last item in the list.  Indices can take modifiers +/-N where N is
+		an int.  end-1 -> the item just before the last Out of range indices
+		will just be empty.  Indices will generally be clipped to range 0-length
+		To get indexing from the end, use end, end-1, end-2, ...
 
-	_______
-	Indices
-	Indices for lists are usually an int.  Special index 'end' refers to
-	the last item in the list.  Indices can take modifiers +/-N where N is
-	an int.  end-1 -> the item just before the last Out of range indices
-	will just be empty.  Indices will generally be clipped to range 0-length
-	To get indexing from the end, use end, end-1, end-2, ...
+			______________
+			lindex lst idx1 idx2, ...
+				get lst[idx1][idx2]...
+			___________
+			llength lst
+				Get the length of lst
+			__________________
+			concat i1 i2 i3...
+				Similar to the `list` command, except list are flattened into the
+				result.  (The `list` would make a list argument into a nested list.)
+			___________________
+			lappend varname i1 i2 i3...
+				NOTE1: varname, not lst as argument
+				NOTE2: lappend is list append, NOT left append
+			___________________________
+			linsert lst idx i1 i2 i3...
+				Insert items in to the idxth index.
+				if idx <=0, then put at beginning
+				if >= length, or 'end', then put at end
+			_________________________________
+			lreplace lst first last arg1...
+				like python slice assignment, except `last` index is inclusive.
+			__________________________
+			split strlist ?splitchars?
+				like python str.split(splitchars), EXCEPT splitchar is a set
+				of characters to split on rather than a str to split on.
+			______________________
+			lsearch ?opts? lst pat
+				Search for the index of item that matches pat.
+				-1 if no match
+				pat matches string matching
+				_______
+				general
+					-all        return list of all matching indices (or values if -inline), same order as in the list
+					-inline     return values instead of index, empty if no match
+					-not        Search for non-matches
+					-start idx  start from idx
+				______________
+				matching type:
+					-exact
+					-glob
+					-regexp
+					-sorted (already sorted, can use binary search, use -exact)
+				________
+				contents
+					These specify the sort order to allow -sorted
+						-ascii
+						-dictionary
+						-integer
+						-nocase
+						-real
+				______________
+				sorted options
+					-decreasing     Indicate list is sorted in decreasing order
+					-increasing     Indicate list is sorted in increasing order
+					-bisect         split the list in 2... last item <= or >= pattern depending on order
+					                -1 if the first list is empty.
+				______________
+				nested options
+					-index idx      Each list entry is a sublist, use the idxth item as the key.
+					-subindices     Return full index subpath instead of just the outer index.
+					                requires -index option.
+			________________
+			lsort ?opts? lst
+				return a sorted list
+				options:
+					-ascii      typical sorting
+					-dictionary case insensitive tiebreaker(same string dif case) and numeric sort
+					-integer    sort as integers
+					-real       sort as floats
+					-command    cmd, use cmd as the <=> function, -1, 0, 1 if <, ==, or >
+					-increasing normal increasing order
+					-decreasing reverse order
+					-indices    Return a list of indices instead of values (argsort)
+					-index idxs Like numpy fancy indexing [lst[idx] for idx in idxs]
+					-stride N   Group list into groups of size N and sort Use the 0th item per group
+					            or whatever idx is given by -index
+					-nocase     case insensitive search
+					-unique     remove dups
+			________________
+			lrange lst i1 i2
+				Like list slicing, both indices are included.
 
-		______________
-		lindex lst idx1 idx2, ...
-			get lst[idx1][idx2]...
-		___________
-		llength lst
-			Get the length of lst
+		==============
+		-1.3.2- arrays
+		==============
+		The array command manipulates array variables.  In Tcl, arrays are akin to python dicts.
+		Array sub commands:
+		tcl                                           python
+		array set arrname { k1 v1... }   {k1:v1, k2:v2, k3:v3...}
+		array get arrname                itertools.chain(*d.items())
+		array get arrname pattern        k, d[k]  (except its all keys that matches pattern)
+		array names arrname              d.keys()
+		array size arrname               len(d)
+
+		===============
+		-1.3.3- strings
+		===============
+		string command works with strings:
+		String commands are all sub-commands of the string command
+		_________________
+		string length str
 		__________________
-		concat i1 i2 i3...
-			Similar to the `list` command, except list are flattened into the
-			result.  (The `list` would make a list argument into a nested list.)
-		___________________
-		lappend varname i1 i2 i3...
-			NOTE1: varname, not lst as argument
-			NOTE2: lappend is list append, NOT left append
+		string index str i
 		___________________________
-		linsert lst idx i1 i2 i3...
-			Insert items in to the idxth index.
-			if idx <=0, then put at beginning
-			if >= length, or 'end', then put at end
-		_________________________________
-		lreplace lst first last arg1...
-			like python slice assignment, except `last` index is inclusive.
-		__________________________
-		split strlist ?splitchars?
-			like python str.split(splitchars), EXCEPT splitchar is a set
-			of characters to split on rather than a str to split on.
+		string range str first last
+			both indices are inclusive
+		____________________
+		string compare s1 s2
+			Returns -1, 0, 1
+		__________________
+		string first s1 s2
+			Index of first occurrence of s1 in s2
+		__________________
+		string last s1 s2
+			Index of last occurrence of s1 in s2
+		____________________
+		string wordend str i
+			index of first character not in the word at index i.
+			if no word at i, then return i+1
 		______________________
-		lsearch ?opts? lst pat
-			Search for the index of item that matches pat.
-			-1 if no match
-			pat matches string matching
-			_______
-			general
-				-all        return list of all matching indices (or values if -inline), same order as in the list
-				-inline     return values instead of index, empty if no match
-				-not        Search for non-matches
-				-start idx  start from idx
-			______________
-			matching type:
-				-exact
-				-glob
-				-regexp
-				-sorted (already sorted, can use binary search, use -exact)
-			________
-			contents
-				These specify the sort order to allow -sorted
-					-ascii
-					-dictionary
-					-integer
-					-nocase
-					-real
-			______________
-			sorted options
-				-decreasing     Indicate list is sorted in decreasing order
-				-increasing     Indicate list is sorted in increasing order
-				-bisect         split the list in 2... last item <= or >= pattern depending on order
-				                -1 if the first list is empty.
-			______________
-			nested options
-				-index idx      Each list entry is a sublist, use the idxth item as the key.
-				-subindices     Return full index subpath instead of just the outer index.
-				                requires -index option.
+		string wordstart str i
+			index of first character not in the word at index i.
+			if no word at i, then return i
+		___________________________________________________________
+		string match [-nocase] pattern string
+			"globbing"
+			*: any sequence
+			?: any single char
+			[chars]: same as bash [abca-z,etc] group, ranges allowed etc.
+			\: escape
+		______________________
+		format pattern args...
+			This is sprintf for tcl.
+				%[-+ 0#]w.pc
+				c is the code, w = width, p = precision
+				-: left justify
+				+: right justify (according to tutorial) or print with a + (according to docs)
+				<space>: use a space for positive instead of +
+				0: 0-pad
+				#: Prefix ints with the type (0: octal, 0X: hex, 0b: binary)
+				   Always add decimal for floats
+				   for g, G also, do not eliminate trailing 0s
+				c: the type
+					s: string
+					d: decimal int
+					x: hex int
+					o: octal int
+					f: float
+		__________________________________________________
+		regexp ?switches? exp str ?matchvar? ?submatch...?
+			matchvar: store matched string into this variable
+			submatch are variable names for groups
+		____________________________________________
+		regsub ?switches? exp string replacement outvar
+			replace matches of exp in string with replacement
+			store result in outvar
+
+			^$.*+[^](), no need for escapes for regexp meaning.
+		__________________
+		string tolower str
+		__________________
+		string toupper str
+		___________________________
+		string trim str ?trimChars?
+		_______________________________
+		string trimleft str ?trimChars?
+		_______________________________
+		string trimright str ?trimChars?
+
+		==========================
+		-1.3.4- Associative Arrays
+		==========================
+		Associative arrays are hash-tables/python dicts
+		Arrays can be created simply by setting a value
+		Indexed arrays use () instead of [].
+
+		set arr(key) value
+		$arr(key)
+		__________________
+		array exists vname
+		_______________________
+		array names vname ?pat?
+			list keys matching pat
 		________________
-		lsort ?opts? lst
-			return a sorted list
-			options:
-				-ascii      typical sorting
-				-dictionary case insensitive tiebreaker(same string dif case) and numeric sort
-				-integer    sort as integers
-				-real       sort as floats
-				-command    cmd, use cmd as the <=> function, -1, 0, 1 if <, ==, or >
-				-increasing normal increasing order
-				-decreasing reverse order
-				-indices    Return a list of indices instead of values (argsort)
-				-index idxs Like numpy fancy indexing [lst[idx] for idx in idxs]
-				-stride N   Group list into groups of size N and sort Use the 0th item per group
-				            or whatever idx is given by -index
-				-nocase     case insensitive search
-				-unique     remove dups
-		________________
-		lrange lst i1 i2
-			Like list slicing, both indices are included.
+		array size vname
+		_______________
+		array get vname
+			Return an alternating list of key value pairs
+		_________________________
+		array set vname altkvlist
+			Create an array from a list of alternating key value pairs
+		_______________________
+		array unset vname ?pat?
+			Unset the matched keys or entire array if no pat.
 
-	==============
-	-1.3.2- arrays
-	==============
-	The array command manipulates array variables.  In Tcl, arrays are akin to python dicts.
-	Array sub commands:
-	tcl                                           python
-	array set arrname { k1 v1... }   {k1:v1, k2:v2, k3:v3...}
-	array get arrname                itertools.chain(*d.items())
-	array get arrname pattern        k, d[k]  (except its all keys that matches pattern)
-	array names arrname              d.keys()
-	array size arrname               len(d)
-
-	===============
-	-1.3.3- strings
-	===============
-	string command works with strings:
-	String commands are all sub-commands of the string command
-	_________________
-	string length str
-	__________________
-	string index str i
-	___________________________
-	string range str first last
-		both indices are inclusive
-	____________________
-	string compare s1 s2
-		Returns -1, 0, 1
-	__________________
-	string first s1 s2
-		Index of first occurrence of s1 in s2
-	__________________
-	string last s1 s2
-		Index of last occurrence of s1 in s2
-	____________________
-	string wordend str i
-		index of first character not in the word at index i.
-		if no word at i, then return i+1
-	______________________
-	string wordstart str i
-		index of first character not in the word at index i.
-		if no word at i, then return i
-	___________________________________________________________
-	string match [-nocase] pattern string
-		"globbing"
-		*: any sequence
-		?: any single char
-		[chars]: same as bash [abca-z,etc] group, ranges allowed etc.
-		\: escape
-	______________________
-	format pattern args...
-		This is sprintf for tcl.
-			%[-+ 0#]w.pc
-			c is the code, w = width, p = precision
-			-: left justify
-			+: right justify (according to tutorial) or print with a + (according to docs)
-			<space>: use a space for positive instead of +
-			0: 0-pad
-			#: Prefix ints with the type (0: octal, 0X: hex, 0b: binary)
-			   Always add decimal for floats
-			   for g, G also, do not eliminate trailing 0s
-			c: the type
-				s: string
-				d: decimal int
-				x: hex int
-				o: octal int
-				f: float
-	__________________________________________________
-	regexp ?switches? exp str ?matchvar? ?submatch...?
-		matchvar: store matched string into this variable
-		submatch are variable names for groups
-	____________________________________________
-	regsub ?switches? exp string replacement outvar
-		replace matches of exp in string with replacement
-		store result in outvar
-
-		^$.*+[^](), no need for escapes for regexp meaning.
-	__________________
-	string tolower str
-	__________________
-	string toupper str
-	___________________________
-	string trim str ?trimChars?
-	_______________________________
-	string trimleft str ?trimChars?
-	_______________________________
-	string trimright str ?trimChars?
-
-	==========================
-	-1.3.4- Associative Arrays
-	==========================
-	Associative arrays are hash-tables/python dicts
-	Arrays can be created simply by setting a value
-	Indexed arrays use () instead of [].
-
-	set arr(key) value
-	$arr(key)
-	__________________
-	array exists vname
-	_______________________
-	array names vname ?pat?
-		list keys matching pat
-	________________
-	array size vname
-	_______________
-	array get vname
-		Return an alternating list of key value pairs
-	_________________________
-	array set vname altkvlist
-		Create an array from a list of alternating key value pairs
-	_______________________
-	array unset vname ?pat?
-		Unset the matched keys or entire array if no pat.
+		=============
+		-1.3.5- dicts
+		=============
+		Dicts are just lists where even items are keys and odd are values
+		always must be even-length.  These should generally be passed by value
+		________________________________
+		dict set vname k1 k2 k3... value
+			set vname[k1][k2][k3] = value
+		_____________________
+		dict for {k v} dictval {body}
+			This is the same as foreach {k v} $dict {body}
+		__________________________
+		dict with dictNAME k1 k2... {body}
+			Enters a scope where the given dict is the "environment".
+			The keys are seen as variables
+		______________________
+		dict create k v k v...
+			create a dict, similar to the `list` command
+			Must assign via substitution
+			set a [dict create k v k v...]
+		_______________________
+		dict get dictVAL key...
 
 	=============
-	-1.3.5- dicts
-	=============
-	Dicts are just lists where even items are keys and odd are values
-	always must be even-length.  These should generally be passed by value
-	________________________________
-	dict set vname k1 k2 k3... value
-		set vname[k1][k2][k3] = value
-	_____________________
-	dict for {k v} dictval {body}
-		This is the same as foreach {k v} $dict {body}
-	__________________________
-	dict with dictNAME k1 k2... {body}
-		Enters a scope where the given dict is the "environment".
-		The keys are seen as variables
-	______________________
-	dict create k v k v...
-		create a dict, similar to the `list` command
-		Must assign via substitution
-		set a [dict create k v k v...]
-	_______________________
-	dict get dictVAL key...
-
-
-
-
-
-
-
-	=============
-	-1.5- looping
+	-1.4- looping
 	=============
 	Loops are just commands so all arguments must be on the same line.
 	(although between {}, new lines are allowed)
@@ -604,7 +602,7 @@ miscellaneous observations
 	while {cond} {body}
 
 	===============
-	-1.6- branching
+	-1.5- branching
 	===============
 	if {} {
 	} elseif {} {
@@ -631,97 +629,182 @@ miscellaneous observations
 	brace of the condition.
 
 	====================
-	-1.7- Other commands
+	-1.6- Other commands
 	====================
-	============
-	-1.7.1- expr
-	============
-		Evaluate an expression.  This could be a mathematical expression.
-		It could be a str.  Note, although expr allows multiple args
-		(concatenated, then evaluated), using a single argument is faster
-		(skips concatenation step) so using {} is recommended.
+		cd [dname]
+			same as bash, ~->$HOME, etc
+		pwd
+		============
+		-1.6.1- expr
+		============
+			Evaluate an expression.  This could be a mathematical expression.
+			It could be a str.  Note, although expr allows multiple args
+			(concatenated, then evaluated), using a single argument is faster
+			(skips concatenation step) so using {} is recommended.
 
-			-+~!      (unary) negative, positive, bit-wise not, logical not
-			**        exponent
-			*/%       multiply/divide/remainder(pos)
-			+-        add/subtract
-			<<>>      left/right (signed)bitshift
-			<> <= >=  comparison, strings or nums ok
-			== !=     equality, all types ok
-			eq ne     str comparison
-			in ni     contained, negated contains (ni = not in)
-			&^|       bitwise operators
-			&&||      logical [and|or], numeric only
-			x?y:z     ternary, x must be bool or numeric
-			$$vname   variable indirection
+				-+~!      (unary) negative, positive, bit-wise not, logical not
+				**        exponent
+				*/%       multiply/divide/remainder(pos)
+				+-        add/subtract
+				<<>>      left/right (signed)bitshift
+				<> <= >=  comparison, strings or nums ok
+				== !=     equality, all types ok
+				eq ne     str comparison
+				in ni     contained, negated contains (ni = not in)
+				&^|       bitwise operators
+				&&||      logical [and|or], numeric only
+				x?y:z     ternary, x must be bool or numeric
+				$$vname   variable indirection
 
-		math functions
-			abs   acos    asin    atan
-			atan2 bool    ceil    cos
-			cosh  double  entier  exp
-			floor fmod    hypot   int
-			isqrt log     log10   max
-			min   pow     rand    round
-			sin   sinh    sqrt    srand
-			tan   tanh    wide
+			math functions
+				abs   acos    asin    atan
+				atan2 bool    ceil    cos
+				cosh  double  entier  exp
+				floor fmod    hypot   int
+				isqrt log     log10   max
+				min   pow     rand    round
+				sin   sinh    sqrt    srand
+				tan   tanh    wide
 
+
+			examples:
+				set a 32
+				puts $a       # prints '$a'
+				expr $a       # prints 32
+				expr $a + 5   # prints 37
+				expr "$a + 5" # prints the string "32 + 5"
+		============
+		-1.6.2- puts
+		============
+			print arguments
+			THIS IS LITERAL, so there is no variable expansion etc.
+			use expr instead for variable expansion.
+		============
+		-1.6.3- bind
+		============
+		bind tag <seq> [+]{script}
+		bind only takes tag. To apply a binding to a widget, use
+		bindtags to add the corresponding tag to the widget's bindtags.
+
+		===========
+		-1.6.4- try
+		===========
+		try {body} {handler}? ?finally {script}?
+
+		handlers
+		--------
+		on code varlist script
+			code:
+				[int|ok|error|return|break|continue]
+				(ok-continue are 0-4)
+			varlist
+
+		trap pattern varlist script
+			If error and prefix of -errorcode matches pattern.
 
 		examples:
-			set a 32
-			puts $a       # prints '$a'
-			expr $a       # prints 32
-			expr $a + 5   # prints 37
-			expr "$a + 5" # prints the string "32 + 5"
-	============
-	-1.7.2- puts
-	============
-		print arguments
-		THIS IS LITERAL, so there is no variable expansion etc.
-		use expr instead for variable expansion.
-	============
-	-1.7.3- bind
-	============
-	bind tag <seq> [+]{script}
-	bind only takes tag. To apply a binding to a widget, use
-	bindtags to add the corresponding tag to the widget's bindtags.
+			try {
+				...
+			} trap {POSIX EISDIR} {} {
+				...
+			} trap {POSIX ENOENT} {} {
+				...
+			} on error {} {
+				...
+			} finally {
+				...
+			}
 
-	===========
-	-1.7.4- try
-	===========
-	try {body} {handler}? ?finally {script}?
+		============
+		-1.6.5- incr
+		============
+		Incr is useful for incrementing values in for loops.
 
-	handlers
-	--------
-	on code varlist script
-		code:
-			[int|ok|error|return|break|continue]
-			(ok-continue are 0-4)
-		varlist
+		==========
+		-1.6.6- io
+		==========
+		stdout stdin stderr or return from `open`
+		_____________________________
+		open filename ?access? ?mode?
+			access: rwa+
+			mode: chmod perms default 0664
 
-	trap pattern varlist script
-		If error and prefix of -errorcode matches pattern.
-
-	examples:
-		try {
-			...
-		} trap {POSIX EISDIR} {} {
-			...
-		} trap {POSIX ENOENT} {} {
-			...
-		} on error {} {
-			...
-		} finally {
-			...
-		}
-
-	============
-	-1.7.5- incr
-	============
-	Incr is useful for incrementing values in for loops.
-
-
-
-
+			returns a fileid
+		____________
+		close fileid
+			cloes the file
+		_________________
+		gets fileid [linevname]
+			return a stripped line.
+			If linevname, store line in the vname and return bytelength
+			instead.
+		_________________________________
+		puts [-nonewline] [fileid] string
+		_____________________
+		read [-nonewline] fid
+			read all remaining data
+		_______________
+		read fid nbytes
+		________________________
+		seek fid offset [origin]
+			origin: start|current|end
+		___________
+		tell fid
+		_________
+		flush fid
+		_______
+		eof fid
+		____________
+		source fname
+			source a file
+		===================
+		-1.6.7- filesystems
+		===================
+		file
+			_________________
+			path manipulation
+				dirname
+				extension
+				join
+				nativename
+				rootname (rm extension)
+				split
+				tail  (basename)
+			_________
+			file info
+				atime
+				executable
+				exists
+				isdirectory
+				isfile
+				lstat
+				mtime
+				owned
+				readable
+				readlink
+				size
+				stat
+				type
+				writable
+			__________
+			filesystem
+				copy
+				delete
+				mkdir
+				rename
+		______________________________________
+		glob [switches] pattern [pattern2 ...]
+			switches
+				-nocomplain (empty return if no match)
+				-types
+					d: dir
+					f: file
+					r: readable
+					w: writable
+				--  same as in most bash commands, end of flags
+			{a,b,...}     match one of the strings
+			.             wildcard or . if at beginning
+			~[loginid]    loginid's home dir, defaulting to current user
 
 ======
 -2- tk
