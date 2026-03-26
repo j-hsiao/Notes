@@ -1,7 +1,8 @@
 contents:
--0- terminology
+-0- general
+	-0.1- terminology
 -1- commandline
--2- default keybindings
+-2- keybindings
 	-2.1- copy mode
 
 
@@ -9,23 +10,37 @@ contents:
 -2- controls
 -3- config
 
-------------------------------
--0- terminology
-------------------------------
-Session: A collection of windows.
+===========
+-0- general
+===========
+	=================
+	-0.1- terminology
+	=================
+	Session
+		A collection of windows.
 
-Window: a "space" that takes the entire "screen"
-        The terminal can only display a single window at a time.
+	Window
+		a "space" that takes the entire "screen"
+		The terminal can only display a single window at a time.
 
-Pane: A splitting of a "Window"
+	Pane
+		A splitting of a "Window"
 
-Key sequence: A sequence of keys that generally activate a command
-              binding.  Key sequences will be separated by a space.
-              A dash will indicate combination with a modifier key.
-              Example: "C-b [" means press control+b and then [.
+	Key sequence
+		A sequence of keys that generally activate a command
+		binding.  Key sequences will be separated by a space.
+		A dash will indicate combination with a modifier key.
+		Example: "C-b [" means press control+b and then [.
 
-Prefix key: Tmux uses a prefix key to activate all bindings.
-            The prefix key will be omitted unless otherwise stated.
+	Prefix key
+		Tmux uses a prefix key to activate all bindings.
+		The prefix key will be omitted unless otherwise stated.
+		In notes, this is refered to as <p>
+
+
+	Tmux implements its own scripting language, which is very similar to bash.
+	To call tmux commands from the commandline, just add the command after tmux.
+	(In this case, the shell parses the arguments).  Otherwise, use the `<p>:`.
 
 ------------------------------
 -1- commandline
@@ -36,12 +51,13 @@ tmux attach -t <N>                    attach to session N
 tmux new -s <name>                    create session with name
 tmux rename-session -t <N> <name>     rename session N to name
 
-------------------------------
--2- default keybindings
-------------------------------
-C-b is the default <prefix_key>. All key bindings have an implicit
-<prefix_key> before them
+===============
+-2- keybindings
+===============
+C-b is the default prefix key. The prefix key is omitted below for
+convenience.
 
+_______
 general
 	C-b         Send the prefix key (C-b) through to the application.
 	?           List all key bindings.
@@ -54,6 +70,7 @@ general
 	~           Show previous messages from tmux, if any.
 	C-z         Suspend the tmux client.
 
+__________
 copy/paste
 	[           Enter copy mode to copy text or view the history.
 	]           Paste the most recently copied buffer of text.
@@ -62,6 +79,43 @@ copy/paste
 	=           Choose which buffer to paste interactively from a list.
 	Page Up     Enter copy mode and scroll one page up.
 
+	copy/paste mode is how you would scroll up the buffer.
+	Note that copy/paste mode copies to clipboard so you can paste to other
+	applications etc.
+	While in copy-paste mode, depending on "${EDITOR}" environment variable,
+	the controls might be in emacs mode or vim mode.  Otherwise, it
+	defaults to emacs.
+
+	_____
+	emacs
+		C-space   set mark
+		C-w       copy, (emacs is yank but doesn't actually yank)
+		M-w       copy
+		C-f, C-b  move forward/backward 1 char
+		M-f, M-b  move forward/backward 1 word
+		C-a, C-e  move to front/back
+		C-n, C-p  move to next/previous line
+		C-g       clear selection
+		escape    cancel
+		q         cancel
+		g         go to line (0 is bottom, matches the n/N at topright)
+		C-v       scroll down a page
+		M-v       scroll up a page
+
+	___
+	vim
+		space     set mark
+		return    copy
+		q         cancel
+		escape    clear selection
+		hjkl      move 1 char left down up right
+		bw        move back/forward 1 word
+		C-[u|d]   up/down half-page
+		C-[b|f]   up/down a full page (note that C-b is by default <p>, need to double press)
+		0$        move to front/back
+		g|G       top/bottom
+
+______________
 windows (tabs)
 	c             Create a new window.
 	&             Kill the current window.
@@ -77,6 +131,7 @@ windows (tabs)
 	M-n           Move to the next window with a bell or activity marker.
 	M-p           Move to the previous window with a bell or activity marker.
 
+_____
 panes
 	!             Break the current pane out of the window.
 	"             Split the current pane into two, top and bottom.
@@ -109,36 +164,6 @@ sessions
 	)           Switch the attached client to the next session.
 	L           Switch the attached client back to the last session.
 	s           Select a new session for the attached client interactively.
-
-	------------------------------
-	-2.1- copy mode
-	------------------------------
-	Copy mode looks for "${EDITOR}" environment variable.
-	The default is to use emacs.
-
-	emacs:
-		C-space   set mark
-		C-w       copy, (emacs is yank but doesn't actually yank)
-		M-w       copy
-		C-f, C-b  move forward/backward 1 char
-		M-f, M-b  move forward/backward 1 word
-		C-a, C-e  move to front/back
-		C-n, C-p  move to next/previous line
-		C-g       clear selection
-		escape    cancel
-		q         cancel
-		g         go to line (0 is bottom, matches the n/N at topright)
-		C-v       scroll down a page
-		M-v       scroll up a page
-
-	vi:
-		space     set mark
-		return    copy
-		q         cancel
-		escape    clear selection
-		hjkl      move 1 char left down up right
-		bw        move back/forward 1 word
-		0$        move to front/back
 
 
 ------------------------------

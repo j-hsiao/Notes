@@ -1,0 +1,75 @@
+-0- general
+-1- controls
+
+===========
+-0- general
+===========
+Pagers are programs that display text page by page, some allow scrolling backwards
+
+The main pager would be `less`. `more` is an older pager.
+Most man pages use `less`.  Verbose python help(...) can use the pager as well.
+
+
+============
+-1- controls
+============
+Controls can generally be prefixed with a count to modify a keybinding's behavior.
+This will be referred to as 'N'.
+
+h   display help.
+
+______________
+scroll forward
+	space|C-v|f|C-f           forward 1 page
+	d|C-d                     forward half page
+	return|C-n|e|C-e|j|C-j    forward 1 line
+	z                         forward 1 page, redefine pagesize if N is given
+___________
+scroll back
+	b|C-b|M-v|Esc-v           back 1 page
+	u|C-u                     back half page
+	y|C-y|C-p|k|C-k           back 1 line
+	w                         back 1 page, redefine pagesize if N is given
+________________
+scroll leftright
+[left|right]    scroll half-screen left/right
+C-[left|right]  scroll left/right to beginning/end
+____
+jump
+g|<|Esc-<   go to line N (default 1)
+G|>|Esc->   got o line N (default end)
+Esc-G       same as G, except don't read new data
+p|%         jump to a percent, 0-100 can have decimal
+P           go to byte N
+[m|M][a-z]  Store first|last line position as a mark
+'[a-z]      jump to mark
+[](){}      move set matching other brace to top/bottom of screen
+Esc-C-[F|B] same as [](){}, except type 2 chars to use as the beginning/end respectively
+
+[/|?]patt   jump to next/previous match of pattern (regex)
+            prefix modifiers:
+            C-N|!   negate the search
+            C-E|*   search multiple files
+            C-F|@   search from beginning of first file
+            C-K     highlight matches but don't jump
+            C-R     raw, no regex
+            C-w     wrap search
+nN          jump to next/previous match (reverse direction of the last search)
+tT          go to  next/previous tag
+
+
+_____
+other
+Esc-u       un-highlight search matches
+r|C-r|C-l   refresh screen
+R           reload/reopen
+F           tail -f til eof (if file changed)
+&pattern    filter for lines matching pattern
+            prefix modifiers:
+            C-N|!   negate matches
+            C-R     raw, no regex
+:e fname    add a file
+:n          next file or Nth
+:p          prev file or Nth
+:d          remove current file
+
