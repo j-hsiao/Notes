@@ -91,7 +91,7 @@ aclip() # input [output]
 				msg="usage: ${0##*/} <input> [output=clip_\${input}] [b=t1] [e=t2] [t1-t2]
 				b=t1, e=t2: set the beginning and ending timestamps
 				t1-t2     : merged setting timestamp."
-				echo "${msg//$'\t'//}" >&2
+				echo "${msg//$'\t'}" >&2
 				return
 				;;
 			*) [[ -z "${fname}" ]] && fname="${1}" || oname="${1}";;
