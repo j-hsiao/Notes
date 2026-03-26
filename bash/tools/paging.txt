@@ -1,5 +1,6 @@
 -0- general
 -1- controls
+-2- options
 
 ===========
 -0- general
@@ -56,7 +57,16 @@ Esc-C-[F|B] same as [](){}, except type 2 chars to use as the beginning/end resp
             C-w     wrap search
 nN          jump to next/previous match (reverse direction of the last search)
 tT          go to  next/previous tag
-
+_______
+options
+-           set short commandline options
+--          set long commandline options
+-+          Set short option to default
+--+         set long option to default
+-!          set short option to opposite of default
+--!         set long option to opposite of default
+_           Print current value of short option
+__          Print current value of long option
 
 _____
 other
@@ -64,7 +74,7 @@ Esc-u       un-highlight search matches
 r|C-r|C-l   refresh screen
 R           reload/reopen
 F           tail -f til eof (if file changed)
-&pattern    filter for lines matching pattern
+&pattern    filter for lines matching pattern (empty pattern to turn off)
             prefix modifiers:
             C-N|!   negate matches
             C-R     raw, no regex
@@ -73,3 +83,28 @@ F           tail -f til eof (if file changed)
 :p          prev file or Nth
 :d          remove current file
 
+===========
+-2- options
+===========
+-?|--help
+	same as `h` keybinding
+-a|--search-skip-screen
+	Skip current displayed screen when searching
+-A|--SEARCH-SKIP-SCREEN
+	partial skip current screen? from start from "targetline"
+-bn|--buffers=n
+	Set buffer to n KiB, default 64, -1 for unlimited
+-B|--auto-buffers
+	disable automatic buffer allocation
+-c|--clear-screen|-C|--CLEAR-SCREEN
+	repaint from top instead of bottom
+-d|--dumb
+	silence dumb warning if terminal lacks some capability
+-F|--quit-if-one-screen
+	exit if only 1 screen
+
+-i|--ignore-case
+	smartcase
+-I|--IGNORE-CASE
+	always ignore case
+--incsearch
