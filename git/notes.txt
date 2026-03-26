@@ -140,9 +140,13 @@ other
 		<sha1>
 			the sha1 (eg. from git log) or unique leading substring
 		<refname>
-			[refs/[tags/|heads/|remotes/]]<branch/tagname>[/HEAD]
+			These are under .git/refs
+			refs/tags/tag
+			refs/heads/branch
+			refs/remotes/remote/[branch|HEAD]
 		heads
 			HEAD              current commit
+			@                 ?Same as HEAD?
 			FETCH_HEAD        branch from which last fetch
 			ORIG_HEAD         HEAD before git merge, rebase, reset, etc
 			MERGE_HEAD        commits merged into current HEAD
