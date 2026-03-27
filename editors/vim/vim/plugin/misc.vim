@@ -479,35 +479,35 @@ endfunction
 
 " Surround header (new delimiters)
 if maparg('<Leader>h', 'n') == ''
-	nnoremap <Leader>h :call <SID>FormatHeader(1, 1, v:false, v:false, v:true)<CR>
-	nnoremap <Leader>H :call <SID>FormatHeader(1, 1, v:false, v:true, v:true)<CR>
-	nnoremap <Leader>y :call <SID>FormatHeader(1, 0, v:false, v:false, v:true)<CR>
-	nnoremap <Leader>Y :call <SID>FormatHeader(1, 0, v:false, v:true, v:true)<CR>
-	nnoremap <Leader>n :call <SID>FormatHeader(0, 1, v:false, v:false, v:true)<CR>
-	nnoremap <Leader>N :call <SID>FormatHeader(0, 1, v:false, v:true, v:true)<CR>
+	nnoremap <Leader>hh :call <SID>FormatHeader(1, 1, v:false, v:false, v:true)<CR>
+	nnoremap <Leader>HH :call <SID>FormatHeader(1, 1, v:false, v:true, v:true)<CR>
+	nnoremap <Leader>yy :call <SID>FormatHeader(1, 0, v:false, v:false, v:true)<CR>
+	nnoremap <Leader>YY :call <SID>FormatHeader(1, 0, v:false, v:true, v:true)<CR>
+	nnoremap <Leader>nn :call <SID>FormatHeader(0, 1, v:false, v:false, v:true)<CR>
+	nnoremap <Leader>NN :call <SID>FormatHeader(0, 1, v:false, v:true, v:true)<CR>
 
-	nnoremap <Leader>hh :call <SID>FormatHeader(1, 1, v:false, v:false, v:false)<CR>
-	nnoremap <Leader>HH :call <SID>FormatHeader(1, 1, v:false, v:true, v:false)<CR>
-	nnoremap <Leader>yy :call <SID>FormatHeader(1, 0, v:false, v:false, v:false)<CR>
-	nnoremap <Leader>YY :call <SID>FormatHeader(1, 0, v:false, v:true, v:false)<CR>
-	nnoremap <Leader>nn :call <SID>FormatHeader(0, 1, v:false, v:false, v:false)<CR>
-	nnoremap <Leader>NN :call <SID>FormatHeader(0, 1, v:false, v:true, v:false)<CR>
+	nnoremap <Leader>h :call <SID>FormatHeader(1, 1, v:false, v:false, v:false)<CR>
+	nnoremap <Leader>H :call <SID>FormatHeader(1, 1, v:false, v:true, v:false)<CR>
+	nnoremap <Leader>y :call <SID>FormatHeader(1, 0, v:false, v:false, v:false)<CR>
+	nnoremap <Leader>Y :call <SID>FormatHeader(1, 0, v:false, v:true, v:false)<CR>
+	nnoremap <Leader>n :call <SID>FormatHeader(0, 1, v:false, v:false, v:false)<CR>
+	nnoremap <Leader>N :call <SID>FormatHeader(0, 1, v:false, v:true, v:false)<CR>
 endif
 
 if maparg('<Leader>h', 'i') == ''
-	inoremap <Leader>h <C-O>:call <SID>FormatHeader(1, 1, v:true, v:false, v:true)<CR>
-	inoremap <Leader>H <C-O>:call <SID>FormatHeader(1, 1, v:true, v:true, v:true)<CR>
-	inoremap <Leader>y <C-O>:call <SID>FormatHeader(1, 0, v:true, v:false, v:true)<CR>
-	inoremap <Leader>Y <C-O>:call <SID>FormatHeader(1, 0, v:true, v:true, v:true)<CR>
-	inoremap <Leader>n <C-O>:call <SID>FormatHeader(0, 1, v:true, v:false, v:true)<CR>
-	inoremap <Leader>N <C-O>:call <SID>FormatHeader(0, 1, v:true, v:true, v:true)<CR>
+	inoremap <Leader>hh <C-O>:call <SID>FormatHeader(1, 1, v:true, v:false, v:true)<CR>
+	inoremap <Leader>HH <C-O>:call <SID>FormatHeader(1, 1, v:true, v:true, v:true)<CR>
+	inoremap <Leader>yy <C-O>:call <SID>FormatHeader(1, 0, v:true, v:false, v:true)<CR>
+	inoremap <Leader>YY <C-O>:call <SID>FormatHeader(1, 0, v:true, v:true, v:true)<CR>
+	inoremap <Leader>nn <C-O>:call <SID>FormatHeader(0, 1, v:true, v:false, v:true)<CR>
+	inoremap <Leader>NN <C-O>:call <SID>FormatHeader(0, 1, v:true, v:true, v:true)<CR>
 
-	inoremap <Leader>hh <C-O>:call <SID>FormatHeader(1, 1, v:true, v:false, v:false)<CR>
-	inoremap <Leader>HH <C-O>:call <SID>FormatHeader(1, 1, v:true, v:true, v:false)<CR>
-	inoremap <Leader>yy <C-O>:call <SID>FormatHeader(1, 0, v:true, v:false, v:false)<CR>
-	inoremap <Leader>YY <C-O>:call <SID>FormatHeader(1, 0, v:true, v:true, v:false)<CR>
-	inoremap <Leader>nn <C-O>:call <SID>FormatHeader(0, 1, v:true, v:false, v:false)<CR>
-	inoremap <Leader>NN <C-O>:call <SID>FormatHeader(0, 1, v:true, v:true, v:false)<CR>
+	inoremap <Leader>h <C-O>:call <SID>FormatHeader(1, 1, v:true, v:false, v:false)<CR>
+	inoremap <Leader>H <C-O>:call <SID>FormatHeader(1, 1, v:true, v:true, v:false)<CR>
+	inoremap <Leader>y <C-O>:call <SID>FormatHeader(1, 0, v:true, v:false, v:false)<CR>
+	inoremap <Leader>Y <C-O>:call <SID>FormatHeader(1, 0, v:true, v:true, v:false)<CR>
+	inoremap <Leader>n <C-O>:call <SID>FormatHeader(0, 1, v:true, v:false, v:false)<CR>
+	inoremap <Leader>N <C-O>:call <SID>FormatHeader(0, 1, v:true, v:true, v:false)<CR>
 endif
 
 
