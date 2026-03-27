@@ -1,7 +1,8 @@
 contents:
 -0- general
 	-0.1- terminology
--1- commandline
+-1- commands
+	-1.1- Common flags/args
 -2- keybindings
 	-2.1- copy mode
 
@@ -33,29 +34,208 @@ contents:
 		Example: "C-b [" means press control+b and then [.
 
 	Prefix key
-		Tmux uses a prefix key to activate all bindings.
-		The prefix key will be omitted unless otherwise stated.
-		In notes, this is refered to as <p>
+		All tmux keybindings are prefixed with the "prefix key".
+		In these notes, the prefix key will be omitted unless otherwise
+		stated referred to as <pre>
+
+	C-x/M-x
+		C-x means press Control + the x character.
+		M-x means either pressing alt + x, or pressing Esc followed by x.
+		Both seem to activate the M-x bindings.
+
+	=============
+	-0.2- options
+	=============
+	-2
+		support 256 colors
+	-C
+		start in control mode
+	-c cmd
+		start with a shell running the cmd
+	-D
+		do not start as a daemon
+	-N
+		no server
+	-f altconfigfile
+	-T comma-delim-client_features
+	-u
+		always use utf-8, ignore LC_*
+	-v
+		verbose logging
+	-V
+		version info
+	-L sockname
+	-S sockpath
+============
+-1- commands
+============
+Tmux implements its own scripting language which is very similar to bash.
+Note that when calling tmux commands from the shell, the shell first parses
+arguments, and then tmux.  This means that to chain tmux commands, the semicolon
+must be escaped.
+
+____________
+same as bash
+	Words are split by whitespace.
+	The first word is a command, the rest are arguments.
+	semicolon/new-line terminates a command.
+	Quoting is done with '', ""
+	"" allows substitutions, '' does not.
+	# starts a comment
+	Line continuation with trailing \
+
+______________
+diff from bash
+	{} is parsed as config file and then converted to string and can be nested.
+	commands separated by a ; is more like bash &&
+	Line continuation is allowed everywhere except in {}
+
+	?substitutions are only inside double quotes? double quotes are like merging fo bash "" and $'' syntax?
+		Get environment variable with $env_var
+		~user is replaced with their home dir, defaulting to current user
+		\uXXXX \uXXXXXXXX for hex unicode
+		\e \r \n \t  for esc, carriage return, newline, tab
+		\ooo for octal
+		\C literal C character for any beside above mentioned ones.
+
+=======================
+-1.1- Common flags/args
+=======================
+	====================================
+	[-t|-s] [client|session|window|pane]
+		These specify target client/session/window/pane for a command
+		______
+		client
+			The pty (/dev/...) of any currently attached client.
+			In the shell, `tmux list-clients` or `tty`. NOTE list-clients only shows
+			currently attached client sessions.
+		_______
+		session
+			Checked in order:
+				=exactmatch
+				$ID
+				session-name
+				start of session-name
+				glob pattern
+			Error if ambiguous
+		______
+		window
+			session:window where session is as above, and window is (in order):
+				=exactmatch
+				special token
+				window index
+				window id @id
+				exact window name
+				window name prefix
+				glob pattern
+			empty indicates next unused index or current window depending on the command.
+			______________
+			special tokens
+				long            meaning
+				{start} (^)     lowest window index
+				{end} ($)       highest window index
+		____
+		pane
+			window[.id] where window is as above.  Empty id means the active pane.
+			______________
+			special tokens
+				{top}             The top pane
+				{bottom}          The bottom pane
+				{left}            The leftmost pane
+				{right}           The rightmost pane
+				{top-left}        The top-left pane
+				{top-right}       The top-right pane
+				{bottom-left}     The bottom-left pane
+				{bottom-right}    The bottom-right pane
+				{up-of}           The pane above the active pane
+				{down-of}         The pane below the active pane
+				{left-of}         The pane to the left of the active pane
+				{right-of}        The pane to the right of the active pane
+		_____________________
+		common special tokens
+			{last} (!)        the previously selected item by time
+			{next} (+)        the next item by index
+			{previous} (-)    the previous window by index
+				+- can be followed by a count
+			{mouse} (=)       item with the most recent mouse activity
+			{marked} (~)      marked item
+		________
+		item IDs
+			$session
+			@window
+			%pane
+	============
+	shell-commad
+		This is just a single string as would be passed to `sh -c shell-command`
+		or separate arguments of a command if supported
 
 
-	Tmux implements its own scripting language, which is very similar to bash.
-	To call tmux commands from the commandline, just add the command after tmux.
-	(In this case, the shell parses the arguments).  Otherwise, use the `<p>:`.
+==============
+-1.X- commands
+==============
+If there is no command, then new-session is used by default.
+____
+info
+	lsc | list-clients
+	lscm | list-commands
+	ls | list-sessions
+	list-window
+	list-panes
 
-------------------------------
--1- commandline
-------------------------------
-tmux                                  start new session
-tmux ls                               list sessions
-tmux attach -t <N>                    attach to session N
-tmux new -s <name>                    create session with name
-tmux rename-session -t <N> <name>     rename session N to name
+
+________
+sessions
+	attach
+	attach-session [-dErx] [-c working-directory] [-f flags] [-t target-session]
+		creates a new client if outside tmux.  Otherwise modifies current client.
+		-d: detach other clients from this session
+		-x: send SIGHUP too
+		-f: comma-delimited client flags
+			active-pane   client's active pane does not affect other clients
+			ignore-size   don't affect other clients' size
+			no-output
+			pause-after=seconds
+			read-only
+			wait-exit
+		-r: alias for `-f read-only,ignore-size`
+		-c: set cwd for new windows
+		-E: do not use update-environment option
+
+	detach
+	detach-client [-aP] [-E shell-command] [-s target-session] [-t target-client]
+		detach the current client.
+		-t target-client
+		-s target-session
+		-a all clients except -t
+		-P send SIGHUP
+		-E run shell-command to replace client
+
+	has
+	has-session -t session
+
+	kill-server
+	kill-session [-aC] [-t target-session]
+
+
+
+
+
+
+	new -s <name>                    create session with name
+	rename-session -t <N> <name>     rename session N to name
+
+________
+bindings
+	bind-key
+	unbind-key
+
+
 
 ===============
 -2- keybindings
 ===============
-C-b is the default prefix key. The prefix key is omitted below for
-convenience.
+C-b is the DEFAULT prefix key.
+The prefix key is omitted below for convenience.
 
 _______
 general
@@ -64,7 +244,7 @@ general
 	d           Detach the current client.
 	D           Choose a client to detach.
 	:           Enter the tmux command prompt.
-	f           Prompt to search for text in open windows.
+	f           Prompt to search for text in open windows. (doesn't seem to search, just does same as w)
 	r           Force redraw of the attached client.
 	t           Show the time.
 	~           Show previous messages from tmux, if any.
@@ -73,8 +253,8 @@ general
 __________
 copy/paste
 	[           Enter copy mode to copy text or view the history.
-	]           Paste the most recently copied buffer of text.
-	#           List all paste buffers.
+	]           Paste the most recent tmux-copied buffer.
+	#           List all paste buffers. (All items that have been copied in copy mode.)
 	-           Delete the most recently copied buffer of text.
 	=           Choose which buffer to paste interactively from a list.
 	Page Up     Enter copy mode and scroll one page up.
@@ -111,64 +291,84 @@ copy/paste
 		hjkl      move 1 char left down up right
 		bw        move back/forward 1 word
 		C-[u|d]   up/down half-page
-		C-[b|f]   up/down a full page (note that C-b is by default <p>, need to double press)
 		0$        move to front/back
 		g|G       top/bottom
 
 ______________
 windows (tabs)
-	c             Create a new window.
-	&             Kill the current window.
-	w             Choose the current window interactively.
-	'             Prompt for a window index to select.
-	n             Change to the next window.
-	p             Change to the previous window.
-	.             Prompt for an index to move the current window.
-	,             Rename the current window.
-	0 to 9        Select windows 0 to 9.
-	i             Display some information about the current window.
-	l             Move to the previously selected window.
-	M-n           Move to the next window with a bell or activity marker.
-	M-p           Move to the previous window with a bell or activity marker.
+	c     Create a new window.
+	&     Kill the current window.
+
+	0-9   Move to window N
+	l     Move to the previously selected window.
+	n     Move to the next window.
+	p     Move to the previous window.
+	w     Choose the current window interactively.
+	'     Prompt for a window index to select.
+	.     Prompt for an index to move the current window.
+	M-n   Move to the next window with a bell or activity marker.
+	M-p   Move to the previous window with a bell or activity marker.
+
+	i     Display some information about the current window.
 
 _____
 panes
-	!             Break the current pane out of the window.
 	"             Split the current pane into two, top and bottom.
 	%             Split the current pane into two, left and right.
+
 	;             Move to the previously active pane.
+	o             Move to next pane.
+	arrowkeys     Change to the adjacent pane in the chosen direction.
+
+	E             equalize windows
+	C-arrowkeys   Resize the current pane in steps of 1 cell.
+	M-arrowkeys   Resize the current pane in steps of 5 cells.
+	z             Toggle zoom state of the current pane. (moving panes toggles off zoom.)
+
 	C-o           Rotate the panes in the current window forwards.
 	M-o           Rotate the panes in the current window backwards.
-	M             Clear the marked pane.
-	m             Mark the current pane (see select-pane -m).
-	o             Select the next pane in the current window.
-	q             Briefly display pane indexes.
-	x             Kill the current pane.
-	z             Toggle zoom state of the current pane.
 	{             Swap the current pane with the previous pane.
 	}             Swap the current pane with the next pane.
-	Up, Down      Change to the pane above, below, to the left, or to the right of the current
-	Left, Right   pane.
-	M-1 to M-5    Arrange panes in one of the five preset layouts: even-horizontal, even-verti‐
-	              cal, main-horizontal, main-vertical, or tiled.
-	Space         Arrange the current window in the next preset layout.
-	E             equalize windows
-	C-Left|Right  Resize the current pane in steps of one cell.
-	  |Up|Down
-	M-Left|Right  Resize the current pane in steps of five cells.
-	  |Up|Down
+	M-1 to M-5    Arrange panes in one of the five preset layouts:
+	              even-horizontal: all panes in a horizontal line.
+	              even-vertical: all panes in a vertical line.
+	              main-horizontal: pane 0: tophalf and remaining bottom half horizontal line
+	              main-vertical: pane0: left half and remaining right half vertical line
+	              tiled: Try to make an even NxN grid
+	Space         Arrange panes in the next preset layout.
 
+	M             Clear the marked pane.
+	m             Mark the current pane (see select-pane -m).
+
+	!             Move current pane to a new window.
+	q             Briefly display pane indexes. (but no binding to select by index?)
+	x             Kill the current pane.
+
+________
 sessions
-	$           Rename the current session.
 	(           Switch the attached client to the previous session.
 	)           Switch the attached client to the next session.
 	L           Switch the attached client back to the last session.
 	s           Select a new session for the attached client interactively.
 
+________
+renaming
+	$     Rename the current session.
+	,     Rename the current window.
 
-------------------------------
+
+==========
 -3- config
-------------------------------
+==========
+
+name=value          set env var
+%hidden name=value  local tmux var
+%if format
+%elif format
+%else
+%endif
+
+
 The config file is ".tmux.conf" in the user's home directory.
 
 unbind keycombo         unbinds a binding.
