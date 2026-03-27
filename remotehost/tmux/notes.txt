@@ -1,16 +1,36 @@
 contents:
 -0- general
 	-0.1- terminology
+	-0.2- options
+	-0.3- format
+		-0.3.1- variables
+		-0.3.2- command substitution
+		-0.3.3- style
 -1- commands
 	-1.1- Common flags/args
 	-1.2- info
+	-1.3- sessions
+	-1.4- windows/panes
+	-1.5- bindings
+	-1.6- settings
+	-1.7- hooks
+	-1.8- env
+	-1.9- other
 -2- keybindings
-	-2.1- copy mode
-
-
-	-0.2- configuration
--2- controls
+	-2.1- general
+	-2.2- copy/paste
+	-2.3- windows
+	-2.4- panes
+	-2.5- sessions
+	-2.6- renaming
+	-2.7- mouse
 -3- config
+	-3.1- settings
+		-3.1.1- server
+		-3.1.2- session
+		-3.1.3- window
+		-3.1.4- pane
+	-3.2- statusline
 
 ===========
 -0- general
@@ -71,6 +91,301 @@ contents:
 		version info
 	-L sockname
 	-S sockpath
+	============
+	-0.3- format
+	============
+	Format arguments are for commands that take -F flag.
+	The string can contain these values:
+		=================
+		-0.3.1- variables
+		=================
+		#{varname}
+		#{optname}
+		#S where S is short alias
+		#{?variable,yes,no}
+		#{cmd/opts/...:v1[,v2...]}
+			binary command
+				< <= > >= == != 
+				|| &&
+				m/opts
+					r: regex
+					i: ignorecase
+				e|op|opts:v1,v2
+					NOTE: use | instead of / (?because / is division?)
+					op: +-*/% (need to %% if also strftimed)
+					opts:
+						f: use float
+						D: evaluate to D digits
+
+			unary commands
+				C/opts:
+					search for regexp, evaluate to lineno if found else empty
+				a
+					Convert number to ascii
+				=
+					Truncate a string
+					N: size limit of N chars.  If negative, then take chars from the end
+					presuff: use this as prefix/suffix if trimmed.
+				p
+					Pad a string
+					N: Pad to this size, >0 pads left, <0 pads right
+				n
+					length (bytes)
+				w
+					length (display)
+				t/opts
+					convert time to string
+					opts:
+						f/strformat: format with strftime, need to escape %%
+						p: shorter
+				b
+					basename
+				d
+					dirname
+				q/opts
+					quoted
+					opts:
+						h escape hash characters
+				E
+					expand twice
+				T
+					same as E ?but also expand strftime specifiers?
+				S
+				W
+				P
+					loop over each session/window/pane, insert the format once for each.
+					If multiple args, 2nd is used for current window or active pane.
+				N/opts
+					check if name exists
+					w: window (default)
+					s: session
+				s/pat/repl/: 
+					regex substitution
+					opt: i: ignorecase
+				l
+					literal, do not expand
+		##  escape the #,}
+		#,  escape the #,}
+		#}  escape the #,}
+
+	variables:
+		Variable name          Alias    Replaced with
+		active_window_index             Index of active window in session
+		alternate_on                    1 if pane is in alternate screen
+		alternate_saved_x               Saved cursor X in alternate screen
+		alternate_saved_y               Saved cursor Y in alternate screen
+		buffer_created                  Time buffer created
+		buffer_name                     Name of buffer
+		buffer_sample                   Sample of start of buffer
+		buffer_size                     Size of the specified buffer in bytes
+		client_activity                 Time client last had activity
+		client_cell_height              Height of each client cell in pixels
+		client_cell_width               Width of each client cell in pixels
+		client_control_mode             1 if client is in control mode
+		client_created                  Time client created
+		client_discarded                Bytes discarded when client behind
+		client_flags                    List of client flags
+		client_height                   Height of client
+		client_key_table                Current key table
+		client_last_session             Name of the client's last session
+		client_name                     Name of client
+		client_pid                      PID of client process
+		client_prefix                   1 if prefix key has been pressed
+		client_readonly                 1 if client is readonly
+		client_session                  Name of the client's session
+		client_termfeatures             Terminal features of client, if any
+		client_termname                 Terminal name of client
+		client_termtype                 Terminal type of client, if available
+		client_tty                      Pseudo terminal of client
+		client_utf8                     1 if client supports UTF-8
+		client_width                    Width of client
+		client_written                  Bytes written to client
+		command                         Name of command in use, if any
+		command_list_alias              Command alias if listing commands
+		command_list_name               Command name if listing commands
+		command_list_usage              Command usage if listing commands
+		config_files                    List of configuration files loaded
+		copy_cursor_line                Line the cursor is on in copy mode
+		copy_cursor_word                Word under cursor in copy mode
+		copy_cursor_x                   Cursor X position in copy mode
+		copy_cursor_y                   Cursor Y position in copy mode
+		current_file                    Current configuration file
+		cursor_character                Character at cursor in pane
+		cursor_flag                     Pane cursor flag
+		cursor_x                        Cursor X position in pane
+		cursor_y                        Cursor Y position in pane
+		history_bytes                   Number of bytes in window history
+		history_limit                   Maximum window history lines
+		history_size                    Size of history in lines
+		hook                            Name of running hook, if any
+		hook_pane                       ID of pane where hook was run, if any
+		hook_session                    ID of session where hook was run, if any
+		hook_session_name               Name of session where hook was run, if any
+		hook_window                     ID of window where hook was run, if any
+		hook_window_name                Name of window where hook was run, if any
+		host                   #H       Hostname of local host
+		host_short             #h       Hostname of local host (no domain name)
+		insert_flag                     Pane insert flag
+		keypad_cursor_flag              Pane keypad cursor flag
+		keypad_flag                     Pane keypad flag
+		last_window_index               Index of last window in session
+		line                            Line number in the list
+		mouse_all_flag                  Pane mouse all flag
+		mouse_any_flag                  Pane mouse any flag
+		mouse_button_flag               Pane mouse button flag
+		mouse_line                      Line under mouse, if any
+		mouse_sgr_flag                  Pane mouse SGR flag
+		mouse_standard_flag             Pane mouse standard flag
+		mouse_utf8_flag                 Pane mouse UTF-8 flag
+		mouse_word                      Word under mouse, if any
+		mouse_x                         Mouse X position, if any
+		mouse_y                         Mouse Y position, if any
+		origin_flag                     Pane origin flag
+		pane_active                     1 if active pane
+		pane_at_bottom                  1 if pane is at the bottom of window
+		pane_at_left                    1 if pane is at the left of window
+		pane_at_right                   1 if pane is at the right of window
+		pane_at_top                     1 if pane is at the top of window
+		pane_bg                         Pane background colour
+		pane_bottom                     Bottom of pane
+		pane_current_command            Current command if available
+		pane_current_path               Current path if available
+		pane_dead                       1 if pane is dead
+		pane_dead_status                Exit status of process in dead pane
+		pane_fg                         Pane foreground colour
+		pane_format                     1 if format is for a pane
+		pane_height                     Height of pane
+		pane_id                #D       Unique pane ID
+		pane_in_mode                    1 if pane is in a mode
+		pane_index             #P       Index of pane
+		pane_input_off                  1 if input to pane is disabled
+		pane_last                       1 if last pane
+		pane_left                       Left of pane
+		pane_marked                     1 if this is the marked pane
+		pane_marked_set                 1 if a marked pane is set
+		pane_mode                       Name of pane mode, if any
+		pane_path                       Path of pane (can be set by application)
+		pane_pid                        PID of first process in pane
+		pane_pipe                       1 if pane is being piped
+		pane_right                      Right of pane
+		pane_search_string              Last search string in copy mode
+		pane_start_command              Command pane started with
+		pane_synchronized               1 if pane is synchronized
+		pane_tabs                       Pane tab positions
+		pane_title             #T       Title of pane (can be set by application)
+		pane_top                        Top of pane
+		pane_tty                        Pseudo terminal of pane
+		pane_width                      Width of pane
+		pid                             Server PID
+		rectangle_toggle                1 if rectangle selection is activated
+		scroll_position                 Scroll position in copy mode
+		scroll_region_lower             Bottom of scroll region in pane
+		scroll_region_upper             Top of scroll region in pane
+		search_match                    Search match if any
+		search_present                  1 if search started in copy mode
+		selection_active                1 if selection started and changes with the cursor in copy mode
+		selection_end_x                 X position of the end of the selection
+		selection_end_y                 Y position of the end of the selection
+		selection_present               1 if selection started in copy mode
+		selection_start_x               X position of the start of the selection
+		selection_start_y               Y position of the start of the selection
+		session_activity                Time of session last activity
+		session_alerts                  List of window indexes with alerts
+		session_attached                Number of clients session is attached to
+		session_attached_list           List of clients session is attached to
+		session_created                 Time session created
+		session_format                  1 if format is for a session
+		session_group                   Name of session group
+		session_group_attached          Number of clients sessions in group are attached to
+		session_group_attached_list     List of clients sessions in group are attached to
+		session_group_list              List of sessions in group
+		session_group_many_attached     1 if multiple clients attached to sessions in group
+		session_group_size              Size of session group
+		session_grouped                 1 if session in a group
+		session_id                      Unique session ID
+		session_last_attached           Time session last attached
+		session_many_attached           1 if multiple clients attached
+		session_marked                  1 if this session contains the marked pane
+		session_name           #S       Name of session
+		session_path                    Working directory of session
+		session_stack                   Window indexes in most recent order
+		session_windows                 Number of windows in session
+		socket_path                     Server socket path
+		start_time                      Server start time
+		version                         Server version
+		window_active                   1 if window active
+		window_active_clients           Number of clients viewing this window
+		window_active_clients_list      List of clients viewing this window
+		window_active_sessions          Number of sessions on which this window is active
+		window_active_sessions_list     List of sessions on which this window is active
+		window_activity                 Time of window last activity
+		window_activity_flag            1 if window has activity
+		window_bell_flag                1 if window has bell
+		window_bigger                   1 if window is larger than client
+		window_cell_height              Height of each cell in pixels
+		window_cell_width               Width of each cell in pixels
+		window_end_flag                 1 if window has the highest index
+		window_flags           #F       Window flags with # escaped as ##
+		window_raw_flags                Window flags with nothing escaped
+		window_format                   1 if format is for a window
+		window_height                   Height of window
+		window_id                       Unique window ID
+		window_index           #I       Index of window
+		window_last_flag                1 if window is the last used
+		window_layout                   Window layout description, ignoring zoomed window panes
+		window_linked                   1 if window is linked across sessions
+		window_linked_sessions          Number of sessions this window is linked to
+		window_linked_sessions_list     List of sessions this window is linked to
+		window_marked_flag              1 if window contains the marked pane
+		window_name            #W       Name of window
+		window_offset_x                 X offset into window if larger than client
+		window_offset_y                 Y offset into window if larger than client
+		window_panes                    Number of panes in window
+		window_silence_flag             1 if window has silence alert
+		window_stack_index              Index in session most recent stack
+		window_start_flag               1 if window has the lowest index
+		window_visible_layout           Window layout description, respecting zoomed window panes
+		window_width                    Width of window
+		window_zoomed_flag              1 if window is zoomed
+		wrap_flag                       Pane wrap flag
+		============================
+		-0.3.2- command substitution
+		============================
+		#() (only the most recent line)
+		==============
+		-0.3.3- styles
+		==============
+		#[stylename]
+		#[opt1 opt2 opt3]
+		#[opt1,opt2,opt3]
+
+			stylenames:
+				default
+
+			options:
+				fg=color
+					name      black|red|green|yellow|blue|magenta|cyan|white
+					bright*   * is one of the above
+					colourN   N = 0-255 for 256 colors
+					default   for the default colour
+					terminal  for the terminal default colour
+					#ffffff   rgb
+				bg=color
+				none
+				acs bright/bold dim underscore blink reverse hidden italics
+				overline strikethrough double-underscore, curly-underscore,
+				dotted-underscore, dashed-underscore
+				align=left|centre|right
+				filll=color
+				list=on|focus|left-marker|right-marker
+				nolist
+				push-default|pop-default
+				range=left|right|window|X
+				norange
+
+
+
+
 ============
 -1- commands
 ============
@@ -109,258 +424,349 @@ diff from bash
 =======================
 -1.1- Common flags/args
 =======================
-	====================================
-	[-t|-s] [client|session|window|pane]
-		These specify target client/session/window/pane for a command
-		______
-		client
-			The pty (/dev/...) of any currently attached client.
-			In the shell, `tmux list-clients` or `tty`. NOTE list-clients only shows
-			currently attached client sessions.
-		_______
-		session
-			Checked in order:
-				=exactmatch
-				$ID
-				session-name
-				start of session-name
-				glob pattern
-			Error if ambiguous
-		______
-		window
-			session:window where session is as above, and window is (in order):
-				=exactmatch
-				special token
-				window index
-				window id @id
-				exact window name
-				window name prefix
-				glob pattern
-			empty indicates next unused index or current window depending on the command.
-			______________
-			special tokens
-				long            meaning
-				{start} (^)     lowest window index
-				{end} ($)       highest window index
-		____
-		pane
-			window[.id] where window is as above.  Empty id means the active pane.
-			______________
-			special tokens
-				{top}             The top pane
-				{bottom}          The bottom pane
-				{left}            The leftmost pane
-				{right}           The rightmost pane
-				{top-left}        The top-left pane
-				{top-right}       The top-right pane
-				{bottom-left}     The bottom-left pane
-				{bottom-right}    The bottom-right pane
-				{up-of}           The pane above the active pane
-				{down-of}         The pane below the active pane
-				{left-of}         The pane to the left of the active pane
-				{right-of}        The pane to the right of the active pane
-		_____________________
-		common special tokens
-			{last} (!)        the previously selected item by time
-			{next} (+)        the next item by index
-			{previous} (-)    the previous window by index
-				+- can be followed by a count
-			{mouse} (=)       item with the most recent mouse activity
-			{marked} (~)      marked item
-		________
-		item IDs
-			$session
-			@window
-			%pane
-	============
-	shell-commad
-		This is just a single string as would be passed to `sh -c shell-command`
-		or separate arguments of a command if supported
+====================================
+[-t|-s] [client|session|window|pane]
+	These specify target client/session/window/pane for a command
+	______
+	client
+		The pty (/dev/...) of any currently attached client.
+		In the shell, `tmux list-clients` or `tty`. NOTE list-clients only shows
+		currently attached client sessions.
+	_______
+	session
+		Checked in order:
+			=exactmatch
+			$ID
+			session-name
+			start of session-name
+			glob pattern
+		Error if ambiguous
+	______
+	window
+		session:window where session is as above, and window is (in order):
+			=exactmatch
+			special token
+			window index
+			window id @id
+			exact window name
+			window name prefix
+			glob pattern
+		empty indicates next unused index or current window depending on the command.
+		______________
+		special tokens
+			long            meaning
+			{start} (^)     lowest window index
+			{end} ($)       highest window index
+	____
+	pane
+		window[.id] where window is as above.  Empty id means the active pane.
+		______________
+		special tokens
+			{top}             The top pane
+			{bottom}          The bottom pane
+			{left}            The leftmost pane
+			{right}           The rightmost pane
+			{top-left}        The top-left pane
+			{top-right}       The top-right pane
+			{bottom-left}     The bottom-left pane
+			{bottom-right}    The bottom-right pane
+			{up-of}           The pane above the active pane
+			{down-of}         The pane below the active pane
+			{left-of}         The pane to the left of the active pane
+			{right-of}        The pane to the right of the active pane
+	_____________________
+	common special tokens
+		{last} (!)        the previously selected item by time
+		{next} (+)        the next item by index
+		{previous} (-)    the previous window by index
+			+- can be followed by a count
+		{mouse} (=)       item with the most recent mouse activity
+		{marked} (~)      marked item
+	________
+	item IDs
+		$session
+		@window
+		%pane
+============
+shell-commad
+	This is just a single string as would be passed to `sh -c shell-command`
+	or separate arguments of a command if supported
 
 ==========
 -1.2- info
 ==========
-	lsc | list-clients
-	lscm | list-commands
-	ls | list-sessions
-	lsk | list-keys [-1aN] [-P prefix-string -T key-table] [key]
-		-T indicates the table
-			copy-mode = emacs copy mode
-			copy-mode-vi = vim copy mode
-			prefix = normal tmux WITH <pre>
-			root = bindings WITHOUT <pre>
-		-N exclude copy-mode
-		-P prefix before each key
-		-1 only first matching key
-		-a list keys without notes
-	lsp | list-panes
-	lsw | list-windows
+lsc | list-clients
+lscm | list-commands
+ls | list-sessions
+lsk | list-keys [-1aN] [-P prefix-string -T key-table] [key]
+	-T indicates the table
+		copy-mode = emacs copy mode
+		copy-mode-vi = vim copy mode
+		prefix = normal tmux WITH <pre>
+		root = bindings WITHOUT <pre>
+	-N exclude copy-mode
+	-P prefix before each key
+	-1 only first matching key
+	-a list keys without notes
+lsp | list-panes
+lsw | list-windows
 
-	rename | rename-session [-t session] name
-	renamew | rename-window
+rename | rename-session [-t session] name
+renamew | rename-window
 
-________
-sessions
-	attach | attach-session [-dErx] [-c working-directory] [-f flags] [-t target-session]
-		creates a new client if outside tmux.  Otherwise modifies current client.
-		-d: detach other clients from this session
-		-x: send SIGHUP too
-		-f: comma-delimited client flags
-			active-pane   client's active pane does not affect other clients
-			ignore-size   don't affect other clients' size
-			no-output
-			pause-after=seconds
-			read-only
-			wait-exit
-		-r: alias for `-f read-only,ignore-size`
-		-c: set cwd for new windows
-		-E: do not use update-environment option
-	new | new-session [-AdDEPX] [-c start-directory] [-e environment]
-		[-f flags] [-F format] [-n window-name] [-s session-name]
-		[-t group-name] [-x width] [-y height] [shell-command]
-	source | source-file [-Fnqv] path ...
-		Source a file.
-		-F: path is a FORMAT
-		-q: quiet, no errors if not exist
-		-n: dry-run
-		-v: verbose show commands and line no
+==============
+-1.3- sessions
+==============
+attach | attach-session [-dErx] [-c working-directory] [-f flags] [-t target-session]
+	creates a new client if outside tmux.  Otherwise modifies current client.
+	-d: detach other clients from this session
+	-x: send SIGHUP too
+	-f: comma-delimited client flags
+		active-pane   client's active pane does not affect other clients
+		ignore-size   don't affect other clients' size
+		no-output
+		pause-after=seconds
+		read-only
+		wait-exit
+	-r: alias for `-f read-only,ignore-size`
+	-c: set cwd for new windows
+	-E: do not use update-environment option
+new | new-session [-AdDEPX] [-c start-directory] [-e environment]
+	[-f flags] [-F format] [-n window-name] [-s session-name]
+	[-t group-name] [-x width] [-y height] [shell-command]
+source | source-file [-Fnqv] path ...
+	Source a file.
+	-F: path is a FORMAT
+	-q: quiet, no errors if not exist
+	-n: dry-run
+	-v: verbose show commands and line no
 
-	detach | detach-client [-aP] [-E shell-command] [-s target-session] [-t target-client]
-		detach the current client.
-		-t target-client
-		-s target-session
-		-a all clients except -t
-		-P send SIGHUP
-		-E run shell-command to replace client
-	has | has-session -t session
-	kill-server
-	kill-session [-aC] [-t target-session]
-	lockc | lock-client
-	locks | lock-session
-	refresh | refresh-client
-	showmsgs | show-messages [-JT] [-t target]
-	start | start-server
-		server will be auto-started when creating a new session if no server.
-	suspendc | suspend-client
-	switchc | switch-client
+detach | detach-client [-aP] [-E shell-command] [-s target-session] [-t target-client]
+	detach the current client.
+	-t target-client
+	-s target-session
+	-a all clients except -t
+	-P send SIGHUP
+	-E run shell-command to replace client
+has | has-session -t session
+kill-server
+kill-session [-aC] [-t target-session]
+lockc | lock-client
+locks | lock-session
+refresh | refresh-client
+showmsgs | show-messages [-JT] [-t target]
+start | start-server
+	server will be auto-started when creating a new session if no server.
+suspendc | suspend-client
+switchc | switch-client
 
-_____________
-windows/panes
-
-	copy-mode
-	selectl | select-layout
-		even-horizontal: all panes in a horizontal line.
-		even-vertical: all panes in a vertical line.
-		main-horizontal: pane 0: tophalf and remaining bottom half horizontal line
-		main-vertical: pane0: left half and remaining right half vertical line
-		tiled: Try to make an even NxN grid
-	resizep | resize-pane [-DLMRTUZ] [-t target-pane] [-x width] [-y height] [adjustment]
-		-UDLR resize direction
-			-x, -y: absolute x/y size
-			adjustment: relative change
-		-Z: zoomed
-		-M: mouse resizing
-		-T: trim lines
-	selectp | select-pane [-DdeLlMmRUZ] [-T title] [-t target-pane]
-		-DLRU: move down/left/right/up
-		-l: the last pane
-		-ed: enable/disable pane input
-		-T: change the title
-		-Z keeps it zoomed if it was
-	splitw | split-window [-bdfhIvPZ] [-c start-directory] [-e environment]
-			[-l size] [-t target-pane]
-			[shell-command] [-F format]
-		-hv: horizontal/vertical, -v by default
-		-l: new pane size (lines|cols)
-		-b: to left or above instead of default (right or below)
-		-f: full width/height
-		-Z: keep zoom
-		cmd: run the command in the new pane, otherwise start a shell.
-	swapp | swap-pane [-dDUZ] [-s src-pane] [-t dst-pane]
-		-UD: numerical neighbor up/down
-		-d: don't change active pane
-		-Z: keep zoom
-
-
-	breakp | break-pane
-	capturep | capture-pane [-aepPqCJN] [-b buffer-name] [-E end-line] [-S start-line] [-t target-pane]
-		write a pane to a buffer(-b) or stdout(-p)
-	choose-client
-	choose-tree [-GNrswZ] [-F format] [-f filter] [-K key-format] [-O sort-order] [-t target-pane]
-	customize-mode [-NZ] [-F format] [-f filter] [-t target-pane] [template]
-		Allow interactive customization of window options, keybindings, etc.
-			enter     select pane/window/session etc
-			up/down   select item
-			+/-       expand/collapse item
-			M-+/M--   expand/collapse all items
-			s         set option
-			S         set global option
-			w         set window option
-			d         set default
-			D         default tagged options/keys
-			u         unset option or unbind key
-			U         unset/unbind tagged options/keys
-			C-s       search by name
-			n         repeat last search
-			t         toggle tag
-			T         untag all
-			C-t       tag all
-			f         FORMAT filter
-			v         toggle option info
-			q         quit
-	displayp | display-panes
-	findw | find-window
-	joinp | join-pane
-	killp | kill-pane
-	killw | kill-window
-	lastp | last-pane
-	lastw | last-window
-	linkw | link-window
-	movep | move-pane
-	movew | move-window
-	neww | new-window
-	nextl | next-layout
-	next | next-window
-	pipep | pipe-pane
-	prevl | previous-layout
-	prev | previous-window
-	resizew | resize-window
-	respawnp | respawn-pane
-	respawnw | respawn-window
-	rotatew | rotate-window
-	selectw | select-window
-	swapw | swap-window
-	unlinkw | unlink-window
+==================
+-1.4- windows/panes
+==================
+copy-mode
+selectl | select-layout
+	even-horizontal: all panes in a horizontal line.
+	even-vertical: all panes in a vertical line.
+	main-horizontal: pane 0: tophalf and remaining bottom half horizontal line
+	main-vertical: pane0: left half and remaining right half vertical line
+	tiled: Try to make an even NxN grid
+resizep | resize-pane [-DLMRTUZ] [-t target-pane] [-x width] [-y height] [adjustment]
+	-UDLR resize direction
+		-x, -y: absolute x/y size
+		adjustment: relative change
+	-Z: zoomed
+	-M: mouse resizing
+	-T: trim lines
+selectp | select-pane [-DdeLlMmRUZ] [-T title] [-t target-pane]
+	-DLRU: move down/left/right/up
+	-l: the last pane
+	-ed: enable/disable pane input
+	-T: change the title
+	-Z keeps it zoomed if it was
+splitw | split-window [-bdfhIvPZ] [-c start-directory] [-e environment]
+		[-l size] [-t target-pane]
+		[shell-command] [-F format]
+	-hv: horizontal/vertical, -v by default
+	-l: new pane size (lines|cols)
+	-b: to left or above instead of default (right or below)
+	-f: full width/height
+	-Z: keep zoom
+	cmd: run the command in the new pane, otherwise start a shell.
+swapp | swap-pane [-dDUZ] [-s src-pane] [-t dst-pane]
+	-UD: numerical neighbor up/down
+	-d: don't change active pane
+	-Z: keep zoom
 
 
+breakp | break-pane
+capturep | capture-pane [-aepPqCJN] [-b buffer-name] [-E end-line] [-S start-line] [-t target-pane]
+	write a pane to a buffer(-b) or stdout(-p)
+choose-client
+choose-tree [-GNrswZ] [-F format] [-f filter] [-K key-format] [-O sort-order] [-t target-pane]
+customize-mode [-NZ] [-F format] [-f filter] [-t target-pane] [template]
+	Allow interactive customization of window options, keybindings, etc.
+		enter     select pane/window/session etc
+		up/down   select item
+		+/-       expand/collapse item
+		M-+/M--   expand/collapse all items
+		s         set option
+		S         set global option
+		w         set window option
+		d         set default
+		D         default tagged options/keys
+		u         unset option or unbind key
+		U         unset/unbind tagged options/keys
+		C-s       search by name
+		n         repeat last search
+		t         toggle tag
+		T         untag all
+		C-t       tag all
+		f         FORMAT filter
+		v         toggle option info
+		q         quit
+displayp | display-panes
+findw | find-window
+joinp | join-pane
+killp | kill-pane
+killw | kill-window
+lastp | last-pane
+lastw | last-window
+linkw | link-window
+movep | move-pane
+movew | move-window
+neww | new-window
+nextl | next-layout
+next | next-window
+pipep | pipe-pane
+prevl | previous-layout
+prev | previous-window
+resizew | resize-window
+respawnp | respawn-pane
+respawnw | respawn-window
+rotatew | rotate-window
+selectw | select-window
+swapw | swap-window
+unlinkw | unlink-window
+
+==============
+-1.5- bindings
+==============
+bind | bind-key [-nr] [-N note] [-T key-table] key command [arguments]
+	-T: bind to the given table
+		prefix: the default, keys following the <pre>
+		root: bindings that don't require <pre>
+	-n: alias for -T root
+	-r: may repeat
+	-N: add a note
+unbind | unbind-key [-anq] [-T key-table] key
+	-nT: same as bind
+	-a: all keybindings are removed
+	-q: ignore errors
+send-prefix [-2] [-t target-pane]
+	Send prefix key or secondary prefix key
+send | send-keys [-FHlMRX] [-N repeat-count] [-t target-pane] key ...
+	send keys, like a macro
+	Uncrecognized keys are sent as a string of characters
+	-l disable name lookup
+	-H hex
+	-R ?reset terminal state?
+	-M pass through a mouse event
+	-X send command into copy mode
+	-N repeat count
+	-F expand formats
+
+==============
+-1.6- settings
+==============
+show | show-options [-AgHpqsvw] [-t target-pane] [option]
+	-spw  server, pane, window, otherwise session
+	-g    show global values
+	-v    value only
+	-q    ignore errors
+	-H    include hooks
+	-A    include inherited options
+	NOTE: this seems to only show IF it has been set (so cannot see default)
+
+set | set-option [-aFgopqsuUw] [-t target-pane] option value
+	-spw  set options server, pane, window, otherwise session.
+	-g    global option
+	-F    expand formats in value
+	-u    unset
+	-U    same as -u, except pane options get unset for all panes in window
+	-o    set if not already set
+	-q    ignore errors
+	-a    append (only works for strings or styles)
 
 
+===========
+-1.7- hooks
+===========
+set-hook [-agpRuw] [-t target-pane] hook-name command
+	-u: unset
+	-g: global
+	-a: append
+	-R: also run the hook
 
-________
-bindings
-	bind | bind-key [-nr] [-N note] [-T key-table] key command [arguments]
-		-T: bind to the given table
-			prefix: the default, keys following the <pre>
-			root: bindings that don't require <pre>
-		-n: alias for -T root
-		-r: may repeat
-		-N: add a note
-	unbind | unbind-key [-anq] [-T key-table] key
-		-nT: same as bind
-		-a: all keybindings are removed
-		-q: ignore errors
-	send-prefix [-2] [-t target-pane]
-		Send prefix key or secondary prefix key
-	send | send-keys [-FHlMRX] [-N repeat-count] [-t target-pane] key ...
-		send keys, like a macro
-		Uncrecognized keys are sent as a string of characters
-		-l disable name lookup
-		-H hex
-		-R ?reset terminal state?
-		-M pass through a mouse event
-		-X send command into copy mode
-		-N repeat count
-		-F expand formats
+show-hooks [-gpw] [-t target-pane]
+
+
+hooks are stored as aray options.  Each item is executed in order when a hook
+is triggered.  Hooks are generally after some tmux command.
+
+hooks:
+alert-activity          Run when a window has activity.  See monitor-activity.
+alert-bell              Run when a window has received a bell.  See monitor-bell.
+alert-silence           Run when a window has been silent.  See monitor-silence.
+client-attached         Run when a client is attached.
+client-detached         Run when a client is detached
+client-resized          Run when a client is resized.
+client-session-changed  Run when a client's attached session is changed.
+pane-died               Run when the program running in a pane exits, but remain-on-exit is on so the pane has not closed.
+pane-exited             Run when the program running in a pane exits.
+pane-focus-in           Run when the focus enters a pane, if the focus-events option is on.
+pane-focus-out          Run when the focus exits a pane, if the focus-events option is on.
+pane-set-clipboard      Run when the terminal clipboard is set using the xterm(1) escape sequence.
+session-created         Run when a new session created.
+session-closed          Run when a session closed.
+session-renamed         Run when a session is renamed.
+window-linked           Run when a window is linked into a session.
+window-renamed          Run when a window is renamed.
+window-unlinked         Run when a window is unlinked from a session.
+
+
+=========
+-1.8- env
+=========
+set-environment [-Fhgru] [-t target-session] name [value]
+show-environment [-hgs] [-t target-session] [variable]
+
+===========
+-1.9- other
+===========
+confirm-before [-p prompt] [-t target-client] command
+	confirm before executing command
+display-menu [-O] [-c target-client] [-t target-pane] [-T title] [-x position] [-y position] name key command ...
+display | display-message [-aINpv] [-c target-client] [-d delay] [-t target-pane] [message]
+popup | display-popup [-CE] [-c target-client] [-d start-directory] [-h height] [-t target-pane] [-w width] [-x position] [-y position] [shell-command]
+
+choose-buffer [-NZr] [-F format] [-f filter] [-K key-format] [-O sort-order] [-t target-pane] [template]
+clear-history [-t target-pane]
+delete-buffer [-b buffer-name]
+list-buffers [-F format] [-f filter]
+load-buffer [-w] [-b buffer-name] [-t target-client] path
+paste-buffer [-dpr] [-b buffer-name] [-s separator] [-t target-pane]
+save-buffer [-a] [-b buffer-name] path
+set-buffer [-aw] [-b buffer-name] [-t target-client] [-n new-buffer-name] data
+show-buffer [-b buffer-name]
+
+clock-mode [-t target-pane]
+if | if-shell [-bF] [-t target-pane] shell-command truecommand [falsecommand]
+	-b: background
+	-F: if shell-cmd is truthy (non-empty and nonzero)
+lock | lock-server
+run-shell [-bC] [-d delay] [-t target-pane] [shell-command]
+	run without a window
+wait-for [-L | -S | -U] channel
 
 ===============
 -2- keybindings
@@ -394,8 +800,9 @@ Key syntax:
 
 Use tmux list-keys to list all key bindings.
 
-_______
-general
+=============
+-2.1- general
+=============
 	C-b         Send the prefix key (C-b) through to the application.
 	?           List all key bindings.
 	d           Detach the current client.
@@ -407,8 +814,9 @@ general
 	~           Show previous messages from tmux, if any.
 	C-z         Suspend the tmux client.
 
-__________
-copy/paste
+================
+-2.2- copy/paste
+================
 	[           Enter copy mode to copy text or view the history.
 	]           Paste the most recent tmux-copied buffer.
 	#           List all paste buffers. (All items that have been copied in copy mode.)
@@ -459,8 +867,9 @@ copy/paste
 		HML     top/mid/bottom of screen
 		g|G     top/bottom of buffer
 
-______________
-windows (tabs)
+=============
+-2.3- windows
+=============
 	c     Create a new window.
 	&     Kill the current window.
 
@@ -476,8 +885,9 @@ windows (tabs)
 
 	i     Display some information about the current window.
 
-_____
-panes
+===========
+-2.4- panes
+===========
 	"             Split the current pane into two, top and bottom.
 	%             Split the current pane into two, left and right.
 
@@ -504,23 +914,49 @@ panes
 	q             Briefly display pane indexes. (but no binding to select by index?)
 	x             Kill the current pane.
 
-________
-sessions
+==============
+-2.5- sessions
+==============
 	(           Switch the attached client to the previous session.
 	)           Switch the attached client to the next session.
 	L           Switch the attached client back to the last session.
 	s           Select a new session for the attached client interactively.
 
-________
-renaming
+==============
+-2.6- renaming
+==============
 	$     Rename the current session.
 	,     Rename the current window.
 
+===========
+-2.7- mouse
+===========
+mouse bindings are off by default. Set the session option to On to use them.
+Mouse events consist of an event and a location
+events:
+	WheelUp       WheelDown
+	MouseDown1    MouseUp1      MouseDrag1   MouseDragEnd1
+	MouseDown2    MouseUp2      MouseDrag2   MouseDragEnd2
+	MouseDown3    MouseUp3      MouseDrag3   MouseDragEnd3
+	SecondClick1  SecondClick2  SecondClick3
+	DoubleClick1  DoubleClick2  DoubleClick3
+	TripleClick1  TripleClick2  TripleClick3
+locations:
+	Pane
+	Border
+	Status
+	StatusLeft
+	StatusRight
+	StatusDefault
+
+example:
+	MouseUp1Pane: left clicked on a pane.
+
+default bindings let mouse select/resize panes and copy text.
 
 ==========
 -3- config
 ==========
-
 name=value          set env var
 %hidden name=value  local tmux var
 %if format
@@ -543,3 +979,169 @@ useful commands:
 	unbind C-b              remove C-b binding so terminal can go back
 	set -g prefix C-q       rebind to C-q because unused
 	setw -g mode-keys vi    use vi copy mode
+
+==============
+-3.1- settings
+==============
+Settings are set with `set-option` and displayed with `show-options`.
+They are usually referred to as "options", but these are separate from the
+command-line options in -0.2-.
+
+Generally, there are global and local sets of settings. Panes and windows
+?have the same options?, but pane values take priority and are otherwise
+inherited from the window.
+
+User options are prefixed with '@'
+==============
+-3.1.1- server
+==============
+backspace key
+	The key used for backspace
+buffer-limit number
+	Number of buffers.  Seems to be copy buffer.  Discard the oldest buffers
+	once limit is reached.
+command-alias[] name=value
+	custom aliases for commands
+default-terminal terminal
+	Otherwise use $TERM
+copy-command shell-command
+escape-time time
+	msec after <Esc> to determine whether it is part of a function or meta key seq.
+	default 500
+editor shell-command
+exit-empty on|off
+	close server if no sessions
+exit-unattached on|off
+	close server if no attached clients
+extended-keys on|off|always
+focus-events on|off
+history-file path
+message-limit number
+set-clipboard on|external|off
+terminal-features[] string
+	features: 256 clipboard ccolor cstyle extkeys focus margins
+		mouse overline rectfill RGB strikethrough sync title usstyle
+terminal-overrides[] string
+user-keys[] key
+	user-defined key escape sequences (?just adds a name for the sequence?)
+	ex:
+		set -s user-keys[0] "\e[5;30012~"
+		bind User0 resize-pane -L 3
+===============
+-3.1.2- session
+===============
+activity-action any | none | current | other
+assume-paste-time msec
+	Disable keybindings if keys are faster than msec. 0 to disable
+base-index index
+bell-action any | none | current | other
+default-command shell-command
+	the default command for new windows, default: default-shell
+default-shell path
+default-size XxY
+destroy-unattached on | off
+detach on destroy [off | on | no-detached]
+display-panes-active-colour color
+display-panes-colour color
+display-panes-time time
+	duration of display-panes
+history-limit lines
+key-table key-table
+	set the default key table instead of root
+lock-after-time n
+	lock-session after inactivity
+lock-command shell-command
+message-command-style style
+message-style style
+mouse [on | off]
+prefix key
+prefix2 key
+	secondary key to ?also? use as prefix (but why?...)
+	can be set to 'None'
+renumber-windows [on | off]
+	renumbers windows when one is closed
+repeat-time time
+	multiple prefix-key commands without having to
+	re-press the prefix key over and over again.
+	NOTE: the binding MUST have the -r flag.
+set-titles [on | off]
+set-titles-string string
+silence-action [any | none | current | other]
+status [off | on | 2 | 3 | 4 | 5]
+status-format[] format
+status-interval interval
+status-justify [left | center | right | absolute-centre]
+status-keys [vi | emacs]
+	defaults to VISUAL or EDITOR env var.
+	The controls for command mode
+status-left string
+	a strftime string to the left of the status line
+status-left-length
+status-left-style
+status-position [top | bottom]
+status-right string
+status-right-length length
+status-right-style style
+status-style style
+update-environment[] variable
+	add new session environments
+visual-activity [on | off | both]
+visual-bell [on | off | both]
+visual-silence [on | off | both]
+word-separators string
+
+==============
+-3.1.3- window
+==============
+aggressive-resize [on|off]
+automatic-rename [on|off]
+automatic-rename-format format
+clock-mode-colour colour
+clock-mode-style [12 | 24]
+main-pane-height height
+main-pane-width width
+copy-mode-match-style style
+copy-mode-mark-style style
+copy-mode-current-match-style style
+mode-keys [vi | emacs]
+mode-style style
+monitor-activity [on | off]
+monitor-bell [on | off]
+monitor-silence [interval]
+other-pane-height height
+other-pane-width width
+pane-active-border-style style
+pane-base-index index
+pane-border-format format
+pane-border-lines type
+pane-border-status [off | top | bottom]
+pane-border-style style
+window-status-activity-style style
+window-status-bell-style style
+window-status-current-format string
+window-status-current-style style
+window-status-format string
+window-status-last-style style
+window-status-separator string
+window-status-style style
+window-size largest | smallest | manual | latest
+wrap-search [on | off]
+Available pane options are:
+allow-rename [on | off]
+alternate-screen [on | off]
+remain-on-exit [on | off | failed]
+synchronize-panes [on | off]
+window-active-style style
+window-style style
+
+================
+-3.2- statusline
+================
+windows may be flagged with a symbol:
+	* current
+	- last window
+	# monitored and detected
+	! bells are monitored and belled
+	~ monitored and quiet
+	M contains marked pane
+	Z contains zoomed pane
