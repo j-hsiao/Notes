@@ -19,7 +19,7 @@ function! s:VisualSearch(chr, useic)
 		let col1 -= 1
 		call add(ret, escape(strpart(getline('.'), col1, col2-col1), '\/'))
 	elseif curmode ==# 'V'
-		call add(ret, escape(getline('.'), '\/'))
+		call add(ret, trim(escape(getline('.'), '\/')))
 	else
 		return "\<Esc>"
 	endif
