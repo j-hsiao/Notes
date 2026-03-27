@@ -24,6 +24,7 @@ contents:
 	-2.5- sessions
 	-2.6- renaming
 	-2.7- mouse
+	-2.8- multi-key bindings
 -3- config
 	-3.1- settings
 		-3.1.1- server
@@ -111,6 +112,7 @@ contents:
 					r: regex
 					i: ignorecase
 				e|op|opts:v1,v2
+					math expr
 					NOTE: use | instead of / (?because / is division?)
 					op: +-*/% (need to %% if also strftimed)
 					opts:
@@ -540,6 +542,13 @@ source | source-file [-Fnqv] path ...
 	-q: quiet, no errors if not exist
 	-n: dry-run
 	-v: verbose show commands and line no
+switch-client [-ElnprZ] [-c target-client] [-t target-session] [-T key-table]
+	Switch the current client to a different session (maybe) if specified.
+	-T changes the current client to a different key-table (see -2.8-)
+	-E: ignore update-environment
+	-r: toggle read-only
+	-Z: keep zoomed
+	-lnp: last, next, previous session
 
 detach | detach-client [-aP] [-E shell-command] [-s target-session] [-t target-client]
 	detach the current client.
@@ -558,7 +567,6 @@ showmsgs | show-messages [-JT] [-t target]
 start | start-server
 	server will be auto-started when creating a new session if no server.
 suspendc | suspend-client
-switchc | switch-client
 
 ==================
 -1.4- windows/panes
@@ -953,6 +961,23 @@ example:
 	MouseUp1Pane: left clicked on a pane.
 
 default bindings let mouse select/resize panes and copy text.
+
+========================
+-2.8- multi-key bindings
+========================
+tmux key-tables only support a single key for bindings.
+However, you can have multiple key tables.
+To achieve the effect of multi-key bindings, set a key-table
+that activates another keytable with the bindings you want.
+
+example:
+	bind-key -Tthirdkeys c dosomething
+	bind-key -Tsecondkeys b switch-client -Tthirdkeys
+	bind-key -Troot a switch-client -Tsecondkeys
+
+	a -> activates secondkeys (for 1 key)
+	b -> activates thirdkeys (for 1 key)
+	c -> does the action
 
 ==========
 -3- config
