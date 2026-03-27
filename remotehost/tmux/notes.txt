@@ -3,6 +3,7 @@ contents:
 	-0.1- terminology
 -1- commands
 	-1.1- Common flags/args
+	-1.2- info
 -2- keybindings
 	-2.1- copy mode
 
@@ -14,6 +15,10 @@ contents:
 ===========
 -0- general
 ===========
+	observations:
+		typing in vim, esc to exit insert mode, then <pre> ends up in a raw <pre> being
+		sent. It is not interpreted as the tmux <pre> key...
+
 	=================
 	-0.1- terminology
 	=================
@@ -73,6 +78,9 @@ Tmux implements its own scripting language which is very similar to bash.
 Note that when calling tmux commands from the shell, the shell first parses
 arguments, and then tmux.  This means that to chain tmux commands, the semicolon
 must be escaped.
+
+If there is no command, then new-session is used by default.
+Some commands have aliases.
 
 ____________
 same as bash
@@ -169,24 +177,31 @@ diff from bash
 		This is just a single string as would be passed to `sh -c shell-command`
 		or separate arguments of a command if supported
 
-
-==============
--1.X- commands
-==============
-If there is no command, then new-session is used by default.
-____
-info
+==========
+-1.2- info
+==========
 	lsc | list-clients
 	lscm | list-commands
 	ls | list-sessions
-	list-window
-	list-panes
+	lsk | list-keys [-1aN] [-P prefix-string -T key-table] [key]
+		-T indicates the table
+			copy-mode = emacs copy mode
+			copy-mode-vi = vim copy mode
+			prefix = normal tmux WITH <pre>
+			root = bindings WITHOUT <pre>
+		-N exclude copy-mode
+		-P prefix before each key
+		-1 only first matching key
+		-a list keys without notes
+	lsp | list-panes
+	lsw | list-windows
 
+	rename | rename-session [-t session] name
+	renamew | rename-window
 
 ________
 sessions
-	attach
-	attach-session [-dErx] [-c working-directory] [-f flags] [-t target-session]
+	attach | attach-session [-dErx] [-c working-directory] [-f flags] [-t target-session]
 		creates a new client if outside tmux.  Otherwise modifies current client.
 		-d: detach other clients from this session
 		-x: send SIGHUP too
@@ -200,42 +215,184 @@ sessions
 		-r: alias for `-f read-only,ignore-size`
 		-c: set cwd for new windows
 		-E: do not use update-environment option
+	new | new-session [-AdDEPX] [-c start-directory] [-e environment]
+		[-f flags] [-F format] [-n window-name] [-s session-name]
+		[-t group-name] [-x width] [-y height] [shell-command]
+	source | source-file [-Fnqv] path ...
+		Source a file.
+		-F: path is a FORMAT
+		-q: quiet, no errors if not exist
+		-n: dry-run
+		-v: verbose show commands and line no
 
-	detach
-	detach-client [-aP] [-E shell-command] [-s target-session] [-t target-client]
+	detach | detach-client [-aP] [-E shell-command] [-s target-session] [-t target-client]
 		detach the current client.
 		-t target-client
 		-s target-session
 		-a all clients except -t
 		-P send SIGHUP
 		-E run shell-command to replace client
-
-	has
-	has-session -t session
-
+	has | has-session -t session
 	kill-server
 	kill-session [-aC] [-t target-session]
+	lockc | lock-client
+	locks | lock-session
+	refresh | refresh-client
+	showmsgs | show-messages [-JT] [-t target]
+	start | start-server
+		server will be auto-started when creating a new session if no server.
+	suspendc | suspend-client
+	switchc | switch-client
+
+_____________
+windows/panes
+
+	copy-mode
+	selectl | select-layout
+		even-horizontal: all panes in a horizontal line.
+		even-vertical: all panes in a vertical line.
+		main-horizontal: pane 0: tophalf and remaining bottom half horizontal line
+		main-vertical: pane0: left half and remaining right half vertical line
+		tiled: Try to make an even NxN grid
+	resizep | resize-pane [-DLMRTUZ] [-t target-pane] [-x width] [-y height] [adjustment]
+		-UDLR resize direction
+			-x, -y: absolute x/y size
+			adjustment: relative change
+		-Z: zoomed
+		-M: mouse resizing
+		-T: trim lines
+	selectp | select-pane [-DdeLlMmRUZ] [-T title] [-t target-pane]
+		-DLRU: move down/left/right/up
+		-l: the last pane
+		-ed: enable/disable pane input
+		-T: change the title
+		-Z keeps it zoomed if it was
+	splitw | split-window [-bdfhIvPZ] [-c start-directory] [-e environment]
+			[-l size] [-t target-pane]
+			[shell-command] [-F format]
+		-hv: horizontal/vertical, -v by default
+		-l: new pane size (lines|cols)
+		-b: to left or above instead of default (right or below)
+		-f: full width/height
+		-Z: keep zoom
+		cmd: run the command in the new pane, otherwise start a shell.
+	swapp | swap-pane [-dDUZ] [-s src-pane] [-t dst-pane]
+		-UD: numerical neighbor up/down
+		-d: don't change active pane
+		-Z: keep zoom
+
+
+	breakp | break-pane
+	capturep | capture-pane [-aepPqCJN] [-b buffer-name] [-E end-line] [-S start-line] [-t target-pane]
+		write a pane to a buffer(-b) or stdout(-p)
+	choose-client
+	choose-tree [-GNrswZ] [-F format] [-f filter] [-K key-format] [-O sort-order] [-t target-pane]
+	customize-mode [-NZ] [-F format] [-f filter] [-t target-pane] [template]
+		Allow interactive customization of window options, keybindings, etc.
+			enter     select pane/window/session etc
+			up/down   select item
+			+/-       expand/collapse item
+			M-+/M--   expand/collapse all items
+			s         set option
+			S         set global option
+			w         set window option
+			d         set default
+			D         default tagged options/keys
+			u         unset option or unbind key
+			U         unset/unbind tagged options/keys
+			C-s       search by name
+			n         repeat last search
+			t         toggle tag
+			T         untag all
+			C-t       tag all
+			f         FORMAT filter
+			v         toggle option info
+			q         quit
+	displayp | display-panes
+	findw | find-window
+	joinp | join-pane
+	killp | kill-pane
+	killw | kill-window
+	lastp | last-pane
+	lastw | last-window
+	linkw | link-window
+	movep | move-pane
+	movew | move-window
+	neww | new-window
+	nextl | next-layout
+	next | next-window
+	pipep | pipe-pane
+	prevl | previous-layout
+	prev | previous-window
+	resizew | resize-window
+	respawnp | respawn-pane
+	respawnw | respawn-window
+	rotatew | rotate-window
+	selectw | select-window
+	swapw | swap-window
+	unlinkw | unlink-window
 
 
 
 
-
-
-	new -s <name>                    create session with name
-	rename-session -t <N> <name>     rename session N to name
 
 ________
 bindings
-	bind-key
-	unbind-key
-
-
+	bind | bind-key [-nr] [-N note] [-T key-table] key command [arguments]
+		-T: bind to the given table
+			prefix: the default, keys following the <pre>
+			root: bindings that don't require <pre>
+		-n: alias for -T root
+		-r: may repeat
+		-N: add a note
+	unbind | unbind-key [-anq] [-T key-table] key
+		-nT: same as bind
+		-a: all keybindings are removed
+		-q: ignore errors
+	send-prefix [-2] [-t target-pane]
+		Send prefix key or secondary prefix key
+	send | send-keys [-FHlMRX] [-N repeat-count] [-t target-pane] key ...
+		send keys, like a macro
+		Uncrecognized keys are sent as a string of characters
+		-l disable name lookup
+		-H hex
+		-R ?reset terminal state?
+		-M pass through a mouse event
+		-X send command into copy mode
+		-N repeat count
+		-F expand formats
 
 ===============
 -2- keybindings
 ===============
 C-b is the DEFAULT prefix key.
 The prefix key is omitted below for convenience.
+
+Key syntax:
+	a-zA-Z0-9 itself
+	C-k | ^k  control+k
+	S-k       shift+k
+	M-k       alt+k (though esc then k seems to work as well)
+	Up
+	Down
+	Left
+	Right
+	BSpace
+	BTab
+	DC        delete
+	End
+	Enter
+	Escape
+	F[1-12]
+	Home
+	IC        insert
+	NPage|PageDown|PgDn
+	PPage|PageUp|PgUp
+	Space
+	Tab
+	Any
+
+Use tmux list-keys to list all key bindings.
 
 _______
 general
@@ -268,31 +425,39 @@ copy/paste
 
 	_____
 	emacs
-		C-space   set mark
+		C-space   start selection
+		C-g       clear selection
 		C-w       copy, (emacs is yank but doesn't actually yank)
 		M-w       copy
+
 		C-f, C-b  move forward/backward 1 char
 		M-f, M-b  move forward/backward 1 word
 		C-a, C-e  move to front/back
 		C-n, C-p  move to next/previous line
-		C-g       clear selection
+
 		escape    cancel
 		q         cancel
+
 		g         go to line (0 is bottom, matches the n/N at topright)
 		C-v       scroll down a page
 		M-v       scroll up a page
 
 	___
 	vim
-		space     set mark
-		return    copy
-		q         cancel
-		escape    clear selection
-		hjkl      move 1 char left down up right
-		bw        move back/forward 1 word
-		C-[u|d]   up/down half-page
-		0$        move to front/back
-		g|G       top/bottom
+		space   set mark
+		v       rectangle toggle
+		escape  clear selection
+		return  copy
+
+		q       cancel
+
+		hjkl    move 1 char left down up right
+		bw      move back/forward 1 word
+		C-[u|d] up/down half-page
+		0$      move to front/back
+		^       first non-blank
+		HML     top/mid/bottom of screen
+		g|G     top/bottom of buffer
 
 ______________
 windows (tabs)
@@ -329,12 +494,7 @@ panes
 	M-o           Rotate the panes in the current window backwards.
 	{             Swap the current pane with the previous pane.
 	}             Swap the current pane with the next pane.
-	M-1 to M-5    Arrange panes in one of the five preset layouts:
-	              even-horizontal: all panes in a horizontal line.
-	              even-vertical: all panes in a vertical line.
-	              main-horizontal: pane 0: tophalf and remaining bottom half horizontal line
-	              main-vertical: pane0: left half and remaining right half vertical line
-	              tiled: Try to make an even NxN grid
+	M-1 to M-5    Select the preset layout (see select-layout above)
 	Space         Arrange panes in the next preset layout.
 
 	M             Clear the marked pane.
