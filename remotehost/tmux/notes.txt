@@ -572,12 +572,17 @@ suspendc | suspend-client
 -1.4- windows/panes
 ==================
 copy-mode
-selectl | select-layout
-	even-horizontal: all panes in a horizontal line.
-	even-vertical: all panes in a vertical line.
-	main-horizontal: pane 0: tophalf and remaining bottom half horizontal line
-	main-vertical: pane0: left half and remaining right half vertical line
-	tiled: Try to make an even NxN grid
+selectl | select-layout [-Enop] [-t target-pane] [layout-name]
+	-E: equalize panes + adjacent panes
+	-np: next/previous layout, same as next-layout and previous-layout
+	-o: try to undo layout change
+	1 even-horizontal: all panes in a horizontal line.
+	2 even-vertical: all panes in a vertical line.
+	3 main-horizontal: pane 0: top half 1-pane-fullwidth, bottom half even-horizontal
+	4 main-vertical: pane0: left half 1-pane fullheight, right half even-vertical
+	5 tiled: Try to make an even NxN grid
+	6 main-horizontal-mirrored: main-horizontal but swap top/bottom halves
+	7 main-vertical-mirrored: main-vertical but swap left/right halves
 resizep | resize-pane [-DLMRTUZ] [-t target-pane] [-x width] [-y height] [adjustment]
 	-UDLR resize direction
 		-x, -y: absolute x/y size
@@ -632,7 +637,11 @@ customize-mode [-NZ] [-F format] [-f filter] [-t target-pane] [template]
 		f         FORMAT filter
 		v         toggle option info
 		q         quit
-displayp | display-panes
+displayp | display-panes [-bN] [-d duration] [-t target-client] [template]
+	Press the number of the pane to switch to it.
+	-d: duration (msec), or 0 (wait until keypress)
+	-b: do not block other commands while displaying
+	-N: display until keypress (?but do not change pane? man doesn't mention this, but trying it out, it seems to work like this)
 findw | find-window
 joinp | join-pane
 killp | kill-pane
