@@ -1,9 +1,6 @@
 Contents
 -0- general
 -1- Tcl
-	-1.0- call vs eval
-		-1.0.1- call
-		-1.0.2- eval
 	-1.1- syntax
 	-1.2- procs
 	-1.3- variables
@@ -16,6 +13,7 @@ Contents
 	-1.4- looping
 	-1.5- branching
 	-1.6- Other commands
+		-1.6.0- eval
 		-1.6.1- expr
 		-1.6.2- puts
 		-1.6.3- bind
@@ -26,6 +24,9 @@ Contents
 		-1.6.7- filesystems
 	-1.7- packages
 -2- tk
+	-2.0- call vs eval
+		-2.0.1- call
+		-2.0.2- eval
 	-2.1- widgets
 		-2.1.0- values
 			-2.1.0.1- colors
@@ -123,42 +124,6 @@ miscellaneous observations
 
 	The Tcl version is held in variable 'tcl_version'
 
-	==================
-	-1.0- call vs eval
-	==================
-
-	Tkinter has 2 methods for interacting directly with the tcl interpreter.
-	The first is call() (tkinter.Tk.tk.call).
-	The second is eval() (tkinter.Tk.tk.eval).
-
-	tkinter.Tk seems to forward call and eval to tkinter.Tk.tk
-
-		============
-		-1.0.1- call
-		============
-			Each argument to call() will be converted to str and properly escaped.
-			This means that call is unsuitable for any more complex expression than
-			single literal strings.
-			Call will however, attempt to interpret the return results of the expression.
-			ex:
-				r = tk.Tk()
-				r.call('expr', '3 + 2') -> int(5)
-
-
-		============
-		-1.0.2- eval
-		============
-			eval() takes a single string argument that is an expression/script for tcl to
-			interpret.  This means that the full tcl syntax is allowed.  However, it does
-			not attempt to interpret the output, so it always returns a str.
-
-			ex increment a variable:
-				r = tk.Tk()
-				x = tk.IntVar(r, 2)
-				r.eval(f'set {x} [expr ${x} + 1]') -> str(3)
-
-				NOTE: this is not possible with call() because the [] expr would
-				be changed to a literal string.
 
 	============
 	-1.1- syntax
@@ -645,6 +610,12 @@ miscellaneous observations
 	-1.6- Other commands
 	====================
 		============
+		-1.6.0- eval
+		============
+		eval [args...]
+			Concatenate args to a line and pass it to the interpreter
+			Use [list args...] to quote args as desired.
+		============
 		-1.6.1- expr
 		============
 			Evaluate an expression.  This could be a mathematical expression.
@@ -997,6 +968,41 @@ miscellaneous observations
 ======
 -2- tk
 ======
+	==================
+	-2.0- call vs eval
+	==================
+	Tkinter has 2 methods for interacting directly with the tcl interpreter.
+	The first is call() (tkinter.Tk.tk.call).
+	The second is eval() (tkinter.Tk.tk.eval).
+
+	tkinter.Tk seems to forward call and eval to tkinter.Tk.tk
+
+		============
+		-2.0.1- call
+		============
+			Each argument to call() will be converted to str and properly escaped.
+			This means that call is unsuitable for any more complex expression than
+			single literal strings.
+			Call will however, attempt to interpret the return results of the expression.
+			ex:
+				r = tk.Tk()
+				r.call('expr', '3 + 2') -> int(5)
+
+
+		============
+		-2.0.2- eval
+		============
+			eval() takes a single string argument that is an expression/script for tcl to
+			interpret.  This means that the full tcl syntax is allowed.  However, it does
+			not attempt to interpret the output, so it always returns a str.
+
+			ex increment a variable:
+				r = tk.Tk()
+				x = tk.IntVar(r, 2)
+				r.eval(f'set {x} [expr ${x} + 1]') -> str(3)
+
+				NOTE: this is not possible with call() because the [] expr would
+				be changed to a literal string.
 	=============
 	-2.1- widgets
 	=============
