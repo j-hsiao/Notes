@@ -22,7 +22,9 @@ Contents
 		-1.6.4- try
 		-1.6.5- incr
 		-1.6.6- io
+			-1.6.7- channels
 		-1.6.7- filesystems
+	-1.7- packages
 -2- tk
 	-2.1- widgets
 		-2.1.0- values
@@ -270,33 +272,42 @@ miscellaneous observations
 		---------
 		Namespaces follow syntax ::ns1::ns2::ns3
 			Namespaces are relative to the current namespace (unless absolute ie, starting with ::)
-
-			namespace eval n1 {
-				namespace eval n2 {
-					variable i 2
-				}
-
-				puts "::n1::n2::i is $::n1::n2::i"
-				puts "n1::n2::i is $n1::n2::i"
-				puts "n2::i is $n2::i"
-
+		subcommands:
+			eval name script
 				namespace eval n1 {
 					namespace eval n2 {
-						variable i 1
+						variable i 2
 					}
+
+					puts "::n1::n2::i is $::n1::n2::i"
+					puts "n1::n2::i is $n1::n2::i"
+					puts "n2::i is $n2::i"
+
+					namespace eval n1 {
+						namespace eval n2 {
+							variable i 1
+						}
+					}
+
+					puts "::n1::n2::i is $::n1::n2::i"
+					puts "n1::n2::i is $n1::n2::i"
+					puts "n2::i is $n2::i"
 				}
 
-				puts "::n1::n2::i is $::n1::n2::i"
-				puts "n1::n2::i is $n1::n2::i"
-				puts "n2::i is $n2::i"
-			}
+				Variables: current namespace, then global
+				commands: current namespace, then all namespaces in current namespace's command path, then global.
+				namespace: current namespace only
 
-			Variables: current namespace, then global
-			commands: current namespace, then all namespaces in current namespace's command path, then global.
-			namespace: current namespace only
-
-			NOTE1: tk.Tk.createcommand(...) can take a namespace-qualified  name.
-			NOTE2: namespace must exists for set to create variables in it.
+				NOTE1: tk.Tk.createcommand(...) can take a namespace-qualified  name.
+				NOTE2: namespace must exists for set to create variables in it.
+			delete name ...
+				delete namespaces
+			current
+				full name of current namespace
+			export [-clear] [pat ...]
+				export the pattern-matched procs, vars, etc
+			import [-force] [pat ...]
+				import names, pat should be namespace path-qualified
 
 		------
 		global
@@ -631,9 +642,6 @@ miscellaneous observations
 	====================
 	-1.6- Other commands
 	====================
-		cd [dname]
-			same as bash, ~->$HOME, etc
-		pwd
 		============
 		-1.6.1- expr
 		============
@@ -718,7 +726,7 @@ miscellaneous observations
 		============
 		-1.6.5- incr
 		============
-		Incr is useful for incrementing values in for loops.
+			Incr is useful for incrementing values in for loops.
 
 		==========
 		-1.6.6- io
@@ -757,9 +765,81 @@ miscellaneous observations
 		____________
 		source fname
 			source a file
+
+			==================
+			-1.6.6.1- channels
+			==================
+			Channels have callbacks for onreadable and onwritable.
+			If waiting is required, then set a variable in the handler
+			script and `vwait` on that variable.
+
+			_____________________________________
+			socket -server command [options] port
+				Create a socket server.
+				command: callback on incoming connection with arguments:
+					channel address port
+			__________________________
+			socket [options] host port
+				Create a socket client.
+			__________________________________
+			fileevent channelid eventname script
+				channelid: the id from `open` or `socket`
+				eventname: readable|writeable
+					NOTE: "EOF must be explicitly checked."
+
+			____
+			chan
+				chan has subcommands, similar to the `file` command:
+
+					blocked chanid
+						check if the channel is blocked (only useful if non-blocking)
+					close chanid [read|write]
+						close the channel. ouput buffers are flushed. Input buffers
+						are dropped.  Non-blocking channel outputs will still be
+						flushed, just in the background.
+					configure chanid [option [val]] ...
+						query or set options
+						options:
+							-blocking bool
+							-buffering [full|line|none]
+							-buffersize numBytes(max 1,000,000)
+							-encoding [name|binary]
+								from the list of encoding names.
+								NOTE: if binary, should probably set -translation too
+							-eofchar [inout]
+								inout: a single char (apply to read and write)
+									or a tcl list of 2 chars for read and write.
+							-translation [inout]
+								inout: setting for both, or a tcl list for read and write
+									separately.
+									values: [auto|binary|cr|crlf|lf]
+					copy
+					create
+					eof
+					event
+					flush
+					gets
+					names
+					pending
+					pipe
+					pop
+					postevent
+					push
+					puts
+					read
+					seek
+					tell
+					truncate
+
 		===================
 		-1.6.7- filesystems
 		===================
+		__________
+		cd [dname]
+			same as bash, ~->$HOME, etc
+		___
+		pwd
+		____
 		file
 			_________________
 			path manipulation
@@ -805,6 +885,81 @@ miscellaneous observations
 			{a,b,...}     match one of the strings
 			.             wildcard or . if at beginning
 			~[loginid]    loginid's home dir, defaulting to current user
+
+		====================
+		-1.6.8- subprocesses
+		====================
+		_________________________________
+		open |{cmd arg1 arg2...} [access]
+			Open a BUFFERED pipe to a subprocess
+		______________________________
+		exec [switches] arg1 [arg2...]
+			Run subprocesses similar to a shell command line.
+			Words are split as per tcl rules.
+
+			switches:
+				-keepnewline    otherwise, newline is stripped
+				--              end switches
+			args:
+				program name
+				|
+					pipe program to next
+				< fname
+					redirect input from filename
+				<@ fid
+					fid from `open ... 'r'`
+				<< value
+					like a herestring
+				> fname
+					redirect output to file
+				>> fname
+					append output to file
+				2> fname
+					redirect stderr to file
+				2>>
+					redirect stderr append to file
+				>@ fid
+					redirect stdout to fid from `open ... "w"`
+				& (only at end)
+					run the program in the background
+
+			Notes:
+				If any command fails, `exec` returns error.
+				Any stderr output from subprocesses is considered an error.
+				Normally, globbing is handled by the shell. To glob, use [glob ...]
+	==============
+	-1.7- packages
+	==============
+	____________
+	source fname
+		load files, similar to shell source or python import
+		on success, return last return value
+		return will cause the source to return immediate, like bash
+		fname will be ~expanded
+	_______
+	package
+		A package is a directory containing:
+			pkgIndex.tcl (Should ONLY tell how to load)
+				should contain `package ifneeded`
+			script with `package provide` command
+			Place package on a search path: `tcl_pkgPath` or `auto_path`
+		subcommands:
+			require [-exact] name [version]
+				import a package with optional version.
+				Look for same major version number or exact if `-exact`
+			provide name [version]
+				declare a package.  If already loaded, then return the version
+				otherwise empty string.
+			ifneeded pkg version script
+				register a script to load the package if it is ever required.
+				This should go in the pkgIndex.tcl
+	___________
+	pkg_mkIndex [-direct] [-lazy] [-load pkgPat] [-verbose] dir [pat1 pat2 ....]
+		Helper to create a package index file.
+		Load files matching pat and search for `package provide` commands
+
+
+
 
 ======
 -2- tk
