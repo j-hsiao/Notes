@@ -186,6 +186,8 @@ miscellaneous observations
 		"command substitution."
 		Run the command with given args.
 		Evaluate to the output
+		NOTE: command substitution output is considered a single string.
+		It will not be wordsplit like unquoted command substitution in bash.
 
 	"some stuff"
 		Quoting allows words containing spaces.
@@ -957,6 +959,37 @@ miscellaneous observations
 	pkg_mkIndex [-direct] [-lazy] [-load pkgPat] [-verbose] dir [pat1 pat2 ....]
 		Helper to create a package index file.
 		Load files matching pat and search for `package provide` commands
+
+	_____________________________
+	namespace ensemble subcommand
+		___________________
+		create [opt val...]
+			Create an ensemble. The main namespace becomes the command.
+		______________________________
+		configure command [opt val...]
+			Change or query options
+		______________
+		exists command
+			return bool
+
+		options:
+			shared:
+				-command name
+					Change the ensemble name
+				-map
+					a dict for subcommand to a list of prefix words to full name
+				-parameters
+					list of named arguments between ensemble and subcommand
+				-subcommands
+					list of subcommands
+				-unknown
+					fallback command
+			create:
+				-command
+					Change the name of the created ensemble, defaults to full namespace where it is called
+			configure:
+				-namespace
+					gets value of -command from create
 
 
 
