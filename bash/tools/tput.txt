@@ -1,0 +1,39 @@
+-1.0- general
+-2.0- caps
+
+=============
+-1.0- general
+=============
+man tput
+
+tput is a tool for interacting with "terminfo".
+?terminfo is a database? of various terminal capabilities.
+
+tput [-Ttype] capname [parameters]
+       tput [-Ttype] [-x] clear
+       tput [-Ttype] init
+       tput [-Ttype] reset
+       tput [-Ttype] longname
+       tput -S  <<
+       tput -V
+
+
+==========
+-2.0- caps
+==========
+man terminfo
+
+setaf: set the forground to color by number
+setab: set background color by number
+setf: set the forground to color by number
+setb: set background color by number
+	The difference in these caps is the color order
+	seta*:
+		black red green yellow blue magenta cyan white
+		?The a stands for ANSI?
+	set*:
+		black blue green cyan red magenta yellow white
+
+cols: the number of columns
+colors: teh number of colors
+
