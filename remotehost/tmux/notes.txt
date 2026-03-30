@@ -760,6 +760,18 @@ show-environment [-hgs] [-t target-session] [variable]
 ===========
 -1.9- other
 ===========
+run-shell [-bC] [-d delay] [-t target-pane] [shell-command]
+	-C: Run a tmux command. Omit the `tmux`.
+		from shell: tmux ls
+		with -C   : ls
+	-b: background
+	-d: delay (msec) before running the command
+	Expand shell-command according to -0.3- formats, and then run the command.
+	This means that commands can be run with formatting.  For example, normally,
+	bind-key does not use any format expansion.  However, by using run-shell,
+	expansions can be used.
+
+
 confirm-before [-p prompt] [-t target-client] command
 	confirm before executing command
 display-menu [-O] [-c target-client] [-t target-pane] [-T title] [-x position] [-y position] name key command ...
@@ -781,8 +793,6 @@ if | if-shell [-bF] [-t target-pane] shell-command truecommand [falsecommand]
 	-b: background
 	-F: if shell-cmd is truthy (non-empty and nonzero)
 lock | lock-server
-run-shell [-bC] [-d delay] [-t target-pane] [shell-command]
-	run without a window
 wait-for [-L | -S | -U] channel
 
 ===============
