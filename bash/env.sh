@@ -266,7 +266,7 @@ setup_bash() {
 			hascolor=1
 			;;
 		*)
-			if [[ "${COLORTERM}" = *color* ]]
+			if [[ "${COLORTERM}" = *color* ]] || { hash tput &>/dev/null && tput setaf 1 &>/dev/null; }
 			then
 				hascolor=1
 			else
