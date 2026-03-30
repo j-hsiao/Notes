@@ -561,33 +561,46 @@ def launch(args):
                 p = subprocess.Popen(
                     cmd, bufsize=0, stdout=logf.fileno(),
                     stderr=logf.fileno())
-        L.settimeout(args.timeout[0])
-        nchecks = int(args.timeout[1])
+        timeout = args.timeout[0] if args.timeout[0] > 0 else 1
+        L.settimeout(timeout)
+        if args.timeout[1] <= 0:
+            nchecks = -1
+        else:
+            nchecks = max(int(round(0.5 + ((args.timeout[1] or 30) / timeout))), 1)
         show = '...   '
         count = 3
-        while p.poll() is None or nchecks != 0:
-            try:
-                s, a = L.accept()
-            except Exception:
-                nchecks -= 1
-                print(
-                    ''.join([
-                        '\rWaiting for reminder startup',
-                        show[count:count+3],
-                        (nchecks if nchecks >= 0 else '')]),
-                    file=sys.stderr, end='', flush=True)
-                count -= 1
-                count %= 4
-                if p.poll() is not None:
-                    # Continue checking for about 2 seconds after the
-                    # launching process exits.
-                    nchecks = min(nchecks, max(1, int(2.0 / max(.1, args.timeout[0]))))
-            else:
-                s.close()
-                print('\r\x1b[0KLaunched pid:', p.pid, file=sys.stderr)
-                return p
-        print(file=sys.stderr)
-        raise RuntimeError('Launcher exited without reminder startup notification.')
+        try:
+            while p.poll() is None or nchecks != 0:
+                try:
+                    s, a = L.accept()
+                except socket.timeout:
+                    nchecks -= 1
+                    print(
+                        ''.join([
+                            '\rWaiting for reminder startup',
+                            show[count:count+3],
+                            (nchecks if nchecks >= 0 else '')]),
+                        file=sys.stderr, end='', flush=True)
+                    count -= 1
+                    count %= 4
+                    if p.poll() is not None:
+                        # Continue checking for about 2 seconds after the
+                        # launching process exits.
+                        nchecks = min(nchecks, max(1, int(2.0 / timeout)))
+                else:
+                    s.close()
+                    print('\r\x1b[0KLaunched pid:', p.pid, file=sys.stderr)
+                    p = None
+                    return
+            print(file=sys.stderr)
+        except Exception:
+            p.terminate()
+            p = None
+            raise
+        finally:
+            if p is not None:
+                p.terminate()
+                raise RuntimeError('Launcher {} exited without reminder startup notification.'.format(p.pid))
     finally:
         L.close()
 
@@ -614,7 +627,7 @@ def send_command(args, retrying=False):
                 return 1
             else:
                 try:
-                    p = launch(args)
+                    launch(args)
                 except Exception:
                     print(
                         'Reminder server startup failed:\n   ',
@@ -675,8 +688,8 @@ if __name__ == '__main__':
     p.add_argument('--sequence', default='<Control-Shift-Alt-space>', help='bind sequence to close reminder popup.')
     p.add_argument('-f', '--font', default='TkDefaultFont')
     p.add_argument(
-        '-t', '--timeout', type=float, nargs=2, default=[1, -1],
-        help='(Timeout, maxtries) waiting for background reminder server to start.')
+        '-t', '--timeout', type=float, nargs=2, default=[1, 30],
+        help='(subTimeout, maxtimeout) waiting for background reminder server to start.')
 
     p.add_argument(
         'cmd', nargs='?',
