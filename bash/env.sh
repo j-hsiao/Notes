@@ -110,7 +110,7 @@ replace_section() # <file> <data> <delimline> [isfile=0] ...
 	# though <delimline> should all be unique within a single call.
 	local lines=()
 	local target="${1}"
-	readarray -t lines < "${target}"
+	readarray -t lines < "${target}" &>/dev/null
 	shift 1
 	while ((${#}))
 	do
@@ -170,7 +170,7 @@ capp() {
 ccat() {
 	# ccat <src> <target>
 	# Similar to capp, except src is a file instead of text.
-	# If target does not already exist, then use "${CREATE[@]}" to create it from src
+	# If target does not already exist, then use ${CREATE} to create it from src
 	# Otherwise, equivalent to capp "$(cat src)" <target>
 	local src="${1}"
 	local target="${2}"
@@ -178,7 +178,7 @@ ccat() {
 	then
 		capp "$(cat "${src}")" "${target}"
 	else
-		${DRYRUN:+echo} "${CREATE[@]}" "${src}" "${target}"
+		${DRYRUN:+echo} ${CREATE:-cp} "${src}" "${target}"
 	fi
 }
 
@@ -214,7 +214,7 @@ setup_vim() {
 			if [[ ! -e "${target}" ]] || ! diff "${target}" "${src}"
 			then
 				echo "Update script path: \"${target}\"."
-				${DRYRUN:+echo} "${CREATE[@]}" "${src}" "${target}"
+				${DRYRUN:+echo} ${CREATE:-cp} "${src}" "${target}"
 			else
 				echo "Exists and matches: \"${target}\"."
 			fi
@@ -226,6 +226,11 @@ setup_readline() {
 	local refpath="${ROOTDIR%/bash*}/readline/inputrc"
 	echo "Updating ~/.inputrc"
 	${DRYRUN:+echo} replace_section "${HOME}/.inputrc" "${refpath}" "# ${refpath}" 1
+}
+setup_tmux() {
+	local refpath="${ROOTDIR%/bash*}/remotehost/tmux/tmux.conf"
+	echo "Updating ~/.tmux.conf"
+	${DRYRUN:+echo} replace_section "${HOME}/.tmux.conf" "${refpath}" "# ${refpath}" 1
 }
 
 setup_bash() {
@@ -314,9 +319,9 @@ run_setup_env() {
 	local DRYRUN=''
 	if ((IS_CYGWIN))
 	then
-		local CREATE=(cp)
+		local CREATE=cp
 	else
-		local CREATE=(ln -s)
+		local CREATE='ln -s'
 	fi
 
 	local targets=,
@@ -328,24 +333,40 @@ run_setup_env() {
 				DRYRUN=' '
 				;;
 			-c|--create)
-				CREATE="${@}"
-				break
+				shift
+				CREATE="${1}"
 				;;
 			-h|--help)
-				echo "${BASH_SOURCE[0]} [-d] [-c ...] [-h]
+				local fnames= fname
+				while read fname
+				do
+					if [[ "${fname}" = 'declare -f setup_'* ]]
+					then
+						fnames+="${fnames:+ | }${fname#*setup_}"
+					fi
+				done < <(declare -F)
 
-[-d|--dryrun]
-Only print what would happen, do not actually make any changes.
+				local msg="${BASH_SOURCE[0]##*/} [-d] [-c cp] [-h] targets...
 
-[-c|--create] [args...]
-The command to use when creating a new file.  Suggestions are:
-ln -s (default)
-ln -i
-cp -i
+				[-h|--help]
+				    Display this help message
 
-[-h|--help]
-Display this help message
-"
+				[-d|--dryrun]
+				    Only print what would happen, do not actually make any changes.
+
+				[-c|--create] cmd
+				    A string containing the command to copy a file.  This is mainly for
+				    config files that would be used exactly as is.
+				    Suggestions are:
+				    'ln -s' (general default)
+				    'cp'    (cygwin default)
+				    'ln -i'
+				    'cp -i'
+
+				targets: [${fnames}]
+				    The targets to update.  By default, all are updated."
+
+				echo "${msg//$'\t'}"
 				return
 				;;
 			*)
