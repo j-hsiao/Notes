@@ -1010,26 +1010,17 @@ example:
 ==========
 name=value          set env var
 %hidden name=value  local tmux var
-%if format
-%elif format
+%if formatstr
+%elif formatstr
 %else
 %endif
 
-
 The config file is ".tmux.conf" in the user's home directory.
 
-unbind keycombo         unbinds a binding.
-bind keycombo command   bind a command to a keycombo
-set [flags] key value   set a key/value setting
-	flags:
-		-s                  server setting (or use set)
-		-w                  window setting (or use setw)
-		-g                  global option
-
-useful commands:
-	unbind C-b              remove C-b binding so terminal can go back
-	set -g prefix C-q       rebind to C-q because unused
-	setw -g mode-keys vi    use vi copy mode
+NOTE: On startup, there is no tmux session.  As a result,
+any `set-option` command in the conf has no session to set the
+options on.  As a result, -g is basically always required
+when using `set-option` inside the config file.
 
 ==============
 -3.1- settings
