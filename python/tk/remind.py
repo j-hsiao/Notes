@@ -579,7 +579,7 @@ def launch(args):
                         ''.join([
                             '\rWaiting for reminder startup',
                             show[count:count+3],
-                            (nchecks if nchecks >= 0 else '')]),
+                            str(nchecks if nchecks >= 0 else '')]),
                         file=sys.stderr, end='', flush=True)
                     count -= 1
                     count %= 4
