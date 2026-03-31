@@ -146,6 +146,8 @@ miscellaneous observations
 	${vname}
 		This works too, and allows using different strings
 		(not just alpha-num} as the variable name.)
+		NOTE: in this syntax, the very first } will close the
+		variable name, even if there are other { in the name
 
 	[clock seconds]
 		"command substitution."
@@ -172,6 +174,16 @@ miscellaneous observations
 		from some testing, comments seem to work, but I remember
 		some command was failing, and removing comments finally
 		made it succeed.
+		NOTE:
+			Inside a double-quoted string, {} has no actual meaning.
+			However, following a $, the {} is part of the variable
+			expansion.
+			example: very bad variable name:
+				set {$window} 32
+				puts "${$window}" -> prints 32
+				puts "{$window}" -> error, can't read "window": no such variable
+				set vname {$window}
+				eval "puts \"\${vname} is \${${vname}}\""
 
 	\
 		escape the next character. Generally, this disables substitution
@@ -285,13 +297,12 @@ miscellaneous observations
 		-----
 		upvar
 		-----
-		upvar ?level? othervar myvar ?othervar myvar?...
-			Like global, except only go up ?level? levels
-			This way, a proc can refer to variables in the
-			caller's scope.  ?level? defaults to 1. (parent scope)
-			This has the same restrictions as `variable`, the
-			`myvar` must not exist in the current scope.
-
+		upvar [level=1] othervar myvar [othervar myvar]...
+			This is like creating a reference variable in c++ or
+			`local -n myvar=othervar` in bash.  If level is 0, then it would
+			just be aliases over variables in the current scope.  If othervar
+			is a fully-qualified name, then level does not matter.  `myvar`
+			must not already exist.
 		-------
 		uplevel
 		-------
@@ -657,9 +668,10 @@ miscellaneous observations
 		============
 		-1.6.2- puts
 		============
-			print arguments
-			THIS IS LITERAL, so there is no variable expansion etc.
-			use expr instead for variable expansion.
+		puts [-nonewline] [channelid] msg
+			msg must be a single string.
+			channelid must be from `open` or `socket` or one of [stdout | stderr].
+
 		============
 		-1.6.3- bind
 		============
@@ -982,19 +994,17 @@ miscellaneous observations
 		============
 			Each argument to call() will be converted to str and properly escaped.
 			This means that call is unsuitable for any more complex expression than
-			single literal strings.
+			single literal strings.  There will be no expansions of any kind.
 			Call will however, attempt to interpret the return results of the expression.
 			ex:
 				r = tk.Tk()
 				r.call('expr', '3 + 2') -> int(5)
 
-
 		============
 		-2.0.2- eval
 		============
-			eval() takes a single string argument that is an expression/script for tcl to
-			interpret.  This means that the full tcl syntax is allowed.  However, it does
-			not attempt to interpret the output, so it always returns a str.
+			eval() takes a SINGLE STRING ARGUMENT which contains the tcl command(s).
+			Expansions WILL be performed.  Unlike, call, the output is ALWAYS a str.
 
 			ex increment a variable:
 				r = tk.Tk()
