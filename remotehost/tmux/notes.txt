@@ -353,7 +353,14 @@ contents:
 		============================
 		-0.3.2- command substitution
 		============================
-		#() (only the most recent line)
+		#(command)
+		NOTE: unlike bash, command substitution in tmux only uses the LATEST line.
+		where latest means temporally latest.  On the first invocation, there have
+		been no lines.  It would very likely be substituted as "<'command arg...' not ready>"
+		However, any formatting afterwards would then update to whatever the latest line
+		is.  Even if you use display-message -d 0 ..., the formatting happens before
+		waiting for keypress, so it will still end up as "not ready".
+
 		==============
 		-0.3.3- styles
 		==============
@@ -1105,9 +1112,9 @@ prefix2 key
 renumber-windows [on | off]
 	renumbers windows when one is closed
 repeat-time time
-	multiple prefix-key commands without having to
-	re-press the prefix key over and over again.
-	NOTE: the binding MUST have the -r flag.
+	repeat timeout (msec) for `bind -r` bindings.
+	Keys must be pressed within timeout for the repeated
+	keybind without having to re-press the prefix key.
 set-titles [on | off]
 set-titles-string string
 silence-action [any | none | current | other]
