@@ -110,7 +110,7 @@ replace_section() # <file> <data> <delimline> [isfile=0] ...
 	# though <delimline> should all be unique within a single call.
 	local lines=()
 	local target="${1}"
-	readarray -t lines < "${target}" &>/dev/null
+	[[ -f "${target}" ]] && readarray -t lines < "${target}"
 	shift 1
 	while ((${#}))
 	do
