@@ -857,7 +857,12 @@ seems to use the table properly.
 It seems that #{prefix} cannot be bound to in a separate key-table.
 Even if you use the command prompt to switch to a different key-table that
 has #{prefix} bound to something, #{prefix} will STILL just activate the
-prefix key-table.
+prefix key-table.  This applies even when the value of prefix is changed.
+I also tried binding prefix in the root key-table in case it was something
+to do with how the prefix table is activated.  If the prefix key was
+intercepted by the root table, maybe the prefix bindings in other tables
+would activate? but no, prefix bindings NEVER happen in key-tables
+besides the prefix table.
 
 =============
 -2.1- general
