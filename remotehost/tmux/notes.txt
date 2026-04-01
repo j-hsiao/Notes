@@ -17,6 +17,7 @@ contents:
 	-1.8- env
 	-1.9- other
 -2- keybindings
+	-2.0- observations
 	-2.1- general
 	-2.2- copy/paste
 	-2.3- windows
@@ -682,6 +683,7 @@ bind | bind-key [-nr] [-N note] [-T key-table] key command [arguments]
 	-n: alias for -T root
 	-r: may repeat
 	-N: add a note
+
 unbind | unbind-key [-anq] [-T key-table] key
 	-nT: same as bind
 	-a: all keybindings are removed
@@ -833,6 +835,29 @@ Key syntax:
 	Any
 
 Use tmux list-keys to list all key bindings.
+==================
+-2.0- observations
+==================
+It seems that normal vs repeatable keybinds just treat the next key
+differently and depending on whether there is an active key-table.
+With an active key-table:
+	normal:
+		read the next key
+		If binding, activate it.
+		If not, consume the key and do nothing.
+	repeat:
+		read the next key
+		If binding, activate it.
+		If not, don't consume the key, just deactivate the current key-table
+
+Also, it seems that a normal keybind deactivate the key-table ?before?
+running the binding.  As a result, switch-client -T as the binding
+seems to use the table properly.
+
+It seems that #{prefix} cannot be bound to in a separate key-table.
+Even if you use the command prompt to switch to a different key-table that
+has #{prefix} bound to something, #{prefix} will STILL just activate the
+prefix key-table.
 
 =============
 -2.1- general
