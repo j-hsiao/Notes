@@ -105,13 +105,17 @@ contents:
 		#{optname}
 		#S where S is short alias
 		#{?variable,yes,no}
-		#{cmd/opts/...:v1[,v2...]}
-			binary command
-				< <= > >= == != 
-				|| &&
-				m/opts
-					r: regex
-					i: ignorecase
+		#{cmd/opts/...:arg1[,arg2...]}
+			binary command:
+				string comparison:
+					< <= > >= == != 
+					m/opts
+						r: regex
+						i: ignorecase
+				bool operators:
+					|| &&
+
+				math operators:
 				e|op|opts:v1,v2
 					math expr
 					NOTE: use | instead of / (?because / is division?)
@@ -419,7 +423,18 @@ same as bash
 
 ______________
 diff from bash
-	{} is parsed as config file and then converted to string and can be nested.
+	"{} is parsed as config file and then converted to string and can be nested."
+	What this means is that {} is kind of like using C preprocessor.
+	{
+		%if ...
+		command1
+		%else
+		command2
+		%endif
+	}
+	will either become 'command1' or 'command2' the %ifs etc are discarded/evaluated
+	at the time of evaluating {}.
+
 	commands separated by a ; is more like bash &&
 	Line continuation is allowed everywhere except in {}
 
@@ -691,7 +706,8 @@ unbind | unbind-key [-anq] [-T key-table] key
 send-prefix [-2] [-t target-pane]
 	Send prefix key or secondary prefix key
 send | send-keys [-FHlMRX] [-N repeat-count] [-t target-pane] key ...
-	send keys, like a macro
+	send keys, like a macro.
+	NOTE: this does not trigger tmux bindings.
 	Uncrecognized keys are sent as a string of characters
 	-l disable name lookup
 	-H hex
@@ -838,31 +854,43 @@ Use tmux list-keys to list all key bindings.
 ==================
 -2.0- observations
 ==================
-It seems that normal vs repeatable keybinds just treat the next key
-differently and depending on whether there is an active key-table.
-With an active key-table:
-	normal:
-		read the next key
-		If binding, activate it.
-		If not, consume the key and do nothing.
-	repeat:
-		read the next key
-		If binding, activate it.
-		If not, don't consume the key, just deactivate the current key-table
+_________________________
+normal vs repeat bindings
+normal bindings: consume keys, do nothing if no binding (consume the keypress)
+repeat bindings: check keys, let the keypress go if NO REPEAT BINDINGS IN THE CURRENT TABLE.
 
-Also, it seems that a normal keybind deactivate the key-table ?before?
-running the binding.  As a result, switch-client -T as the binding
-seems to use the table properly.
+	example:
+	bind u "something; switch-client -Ttesting"
+	This is a normal keybinding that ends with changing to a different key-table.
+	If a keypress is done that does not match any in the key-table, then it will be consumed and
+	nothing happens.
 
-It seems that #{prefix} cannot be bound to in a separate key-table.
-Even if you use the command prompt to switch to a different key-table that
-has #{prefix} bound to something, #{prefix} will STILL just activate the
-prefix key-table.  This applies even when the value of prefix is changed.
-I also tried binding prefix in the root key-table in case it was something
-to do with how the prefix table is activated.  If the prefix key was
-intercepted by the root table, maybe the prefix bindings in other tables
-would activate? but no, prefix bindings NEVER happen in key-tables
-besides the prefix table.
+	bind -r u "something; switch-client -Ttesting"
+	This is a repeat keybinding that ends with changing to a different key-table.
+	If a keypress is done that does not match any in the key-table, then it will NOT be consumed
+	and instead be sent to whatever program is in the current pane.
+
+____________________________
+prefix key special treatment
+1. bindings to prefix will NEVER be used EVEN IF THE BINDING IS -Troot.
+   (except in the prefix table)
+2. prefix key after a repeat binding changes to the prefix table if not
+   already BUT MAINTAINS REPEAT MODE.  Only repeat bindings are able to be
+   activated until repeatmode ends. NOTE it also does not seem to change the
+   current repeat-time timeout.
+   ex:
+   1. set repeat-time to 10000 (10 seconds)
+   2. In a repeat keybinding, set repeat-time to 100
+   3. press prefix after 5 seconds
+   4. within 5 seconds, press another repeat keybinding -> activates
+   5. after 5 secnods, press another repeat keybinding -> does NOT activate
+
+Allow prefix to behave like any other keybind:
+1. set-option prefix None
+2. add a root binding `bind -Troot prefix "switch-client -Tprefix"`
+
+now "prefix" still activates bindings etc
+BUT it nolonger takes the weird priority it seems to take if activated via the prefix setting.
 
 =============
 -2.1- general
@@ -1077,9 +1105,8 @@ command-alias[] name=value
 default-terminal terminal
 	Otherwise use $TERM
 copy-command shell-command
-escape-time time
+escape-time time=500
 	msec after <Esc> to determine whether it is part of a function or meta key seq.
-	default 500
 editor shell-command
 exit-empty on|off
 	close server if no sessions
@@ -1136,6 +1163,12 @@ repeat-time time
 	repeat timeout (msec) for `bind -r` bindings.
 	Keys must be pressed within timeout for the repeated
 	keybind without having to re-press the prefix key.
+
+	NOTE: changing repeat-time in a binding DOES NOT TAKE EFFECT IMMEDIATELY.
+	if a binding changes repeat-time, the original repeat-time is used
+	right after that initial binding.  Only afterwards is the new repeat-time used.
+	This means using repeat-time as a means to break a chain of repeat keybinds
+	is not a good idea.
 set-titles [on | off]
 set-titles-string string
 silence-action [any | none | current | other]
