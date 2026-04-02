@@ -7,6 +7,7 @@ contents
 	-2.1- reference syntax
 	-2.2- common commands
 		-2.2.1- clone
+			-2.2.1.1- bare vs mirror:
 		-2.2.2- add
 		-2.2.3- commit
 		-2.2.4- checkout
@@ -184,6 +185,22 @@ other
 		=============
 			clone a repo
 				git clone uri
+
+			--bare: clone into a bare repo
+			--mirror: clone into a bare mirrored repo
+
+			=========================
+			-2.2.1.1- bare vs mirror:
+			=========================
+			--mirror implies bare, but only --bare means that the result
+			is ?intended to be a fork?  It is INDEPENDENT from the initial remote.
+			As a result, git fetch, etc will REFUSE to track remote directories.
+			Instead, fetch will just pull the remote branches etc directly into the
+			local branches.  There will be no upstream branches.  To get upstream
+			branches, the initial origin remote must be removed and then added again
+			before origin remote branches will be tracked.
+			--mirror results in a bare repo but also sets up local branches to track
+			remote branches.
 		===========
 		-2.2.2- add
 		===========
