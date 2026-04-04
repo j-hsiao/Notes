@@ -3,8 +3,8 @@
 
 # Using environment is ?probably? reliable and on Cygwin does not have
 # the extra subprocess overhead.
-! [[ "${PATH}" =~ ':/cygdrive/' ]]; IS_CYGWIN=$?
-! [[ -n "${!WSL_*}" ]]; IS_WSL=$?
+[[ "${PATH}" = ?(*:)'/cygdrive/'* ]] && IS_CYGWIN=1 || IS_CYGWIN=0
+[[ -n "${!WSL_*}" ]] && IS_WSL=1 || IS_WSL=0
 
 ROOTDIR="$(realpath "$(dirname "${BASH_SOURCE[0]}")")"
 
@@ -116,7 +116,7 @@ replace_section() # <file> <data> <delimline> [isfile=0] ...
 	do
 		if ((${3:-0}))
 		then
-			local data="$(cat ${1} && echo x)"
+			local data="$(cat "${1}" && echo x)"
 			data="${data%x}"
 			decadd lines "${data}" "${2}"
 		else
@@ -198,7 +198,8 @@ setup_vim() {
 	vimdir="${ROOTDIR%/bash*}/editors/vim"
 
 	echo "Updating ~/.vimrc"
-	${DRYRUN:+echo} replace_section "${HOME}/.vimrc" "${vimdir}/.vimrc" "\" ${vimdir}/.vimrc" 1
+	local vimrc="${vimdir//'\'/'\\'}/.vimrc"
+	${DRYRUN:+echo} replace_section "${HOME}/.vimrc" "source \"${vimrc//'"'/'\"'}\"" "\" ${vimdir}/.vimrc" 0
 	${DRYRUN:+echo} bash "${vimdir}/makeft.sh"
 	local loc
 	for loc in 'autoload' 'plugin'
@@ -224,13 +225,15 @@ setup_vim() {
 
 setup_readline() {
 	local refpath="${ROOTDIR%/bash*}/readline/inputrc"
+	# After some testing, it seems $include does not need to be quoted.
 	echo "Updating ~/.inputrc"
-	${DRYRUN:+echo} replace_section "${HOME}/.inputrc" "${refpath}" "# ${refpath}" 1
+	${DRYRUN:+echo} replace_section "${HOME}/.inputrc" "\$include ${refpath}" "# ${refpath}" 0
 }
 setup_tmux() {
 	local refpath="${ROOTDIR%/bash*}/remotehost/tmux/tmux.conf"
+	refpath="${refpath//'\'/'\\'}"
 	echo "Updating ~/.tmux.conf"
-	${DRYRUN:+echo} replace_section "${HOME}/.tmux.conf" "${refpath}" "# ${refpath}" 1
+	${DRYRUN:+echo} replace_section "${HOME}/.tmux.conf" "source-file \"${refpath//'"'/'\"'}\"" "# ${refpath}" 0
 }
 
 setup_bash() {
