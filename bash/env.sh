@@ -199,7 +199,7 @@ setup_vim() {
 
 	echo "Updating ~/.vimrc"
 	local vimrc="${vimdir//'\'/'\\'}/.vimrc"
-	${DRYRUN:+echo} replace_section "${HOME}/.vimrc" "source \"${vimrc//'"'/'\"'}\"" "\" ${vimdir}/.vimrc" 0
+	${DRYRUN:+echo} replace_section "${HOME}/.vimrc" "source ${vimrc//'"'/'\"'}" "\" ${vimdir}/.vimrc" 0
 	${DRYRUN:+echo} bash "${vimdir}/makeft.sh"
 	local loc
 	for loc in 'autoload' 'plugin'

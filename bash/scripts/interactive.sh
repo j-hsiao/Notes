@@ -8,6 +8,10 @@ then
 	alias cp='cp -i'
 	alias mv='mv -i'
 
+	# color
+	alias ls='ls --color=auto'
+	alias grep='grep --color=auto'
+
 	# custom PS1 settings
 	if [[ "${TERM}" = @(xterm-color|*-256color) || "${COLORTERM}" = *color* ]] \
 		|| { hash tput &>/dev/null && tput setaf 1 &>/dev/null; }
