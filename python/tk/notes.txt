@@ -1728,7 +1728,7 @@ ______________________________
 			use no args to find valid attributes (flattened Nx2 array)
 			Options vary by OS
 			unix (tested on wsl ubuntu):
-				-alpha (??)
+				-alpha 0-1  (tested on XWayland on arch)
 				-topmost (bool)
 				-zoomed (?bool?)
 				-fullscreen (?bool?)
@@ -1741,6 +1741,15 @@ ______________________________
 				-disabled (bool)
 				-alpha (0-1)
 				-transparentcolor (index)
+			NOTE:
+				fullscreen, topmost:
+					These can be set whether the window is withdrawn or not.
+					However, while withdrawn, they will always be 0. After deiconify,
+					they will become the "actual" value
+				alpha
+					Setting alpha immediately seems to do nothing. Instead, at least
+					call an update() before setting alpha.
+
 		deiconify()
 		geometry: similar to winfo_geometry, but allows setting geometry
 			<width>x<height>+x+y, can ommit width/height or x/y
