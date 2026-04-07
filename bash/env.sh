@@ -3,10 +3,23 @@
 
 # Using environment is ?probably? reliable and on Cygwin does not have
 # the extra subprocess overhead.
+
+if [[ "${BASH_SOURCE[0]}" != /* ]]
+then
+	bash "${PWD}/${BASH_SOURCE[0]}" "${@}"
+	if [[ "${BASH_SOURCE[0]}" != "${0}" ]]
+	then
+		return
+	else
+		exit
+	fi
+fi
+
 [[ "${PATH}" = ?(*:)'/cygdrive/'* ]] && IS_CYGWIN=1 || IS_CYGWIN=0
 [[ -n "${!WSL_*}" ]] && IS_WSL=1 || IS_WSL=0
 
-ROOTDIR="$(realpath "$(dirname "${BASH_SOURCE[0]}")")"
+ROOTDIR="${BASH_SOURCE[0]%/*}"
+NOTESDIR="${ROOTDIR%/bash*}"
 
 findch() # <text> <char> [out=RESULT] [start=0]
 {
@@ -195,11 +208,13 @@ redirect_cmd() {
 
 setup_vim() {
 	local vimdir
-	vimdir="${ROOTDIR%/bash*}/editors/vim"
+	vimdir="${NOTESDIR}/editors/vim"
 
 	echo "Updating ~/.vimrc"
-	local vimrc="${vimdir//'\'/'\\'}/.vimrc"
-	${DRYRUN:+echo} replace_section "${HOME}/.vimrc" "source ${vimrc//'"'/'\"'}" "\" ${vimdir}/.vimrc" 0
+	local notesvimrc="${vimdir/#"${HOME}/"/'~/'}/vimrc"
+	notesvimrc="${notesvimrc//'\'/'\\'}"
+	${DRYRUN:+echo} replace_section "${HOME}/.vimrc" "source ${notesvimrc//'"'/'\"'}" "\" ${BASH_SOURCE[0]}: vimrc" 0
+
 	${DRYRUN:+echo} bash "${vimdir}/makeft.sh"
 	local loc
 	for loc in 'autoload' 'plugin'
@@ -224,16 +239,15 @@ setup_vim() {
 }
 
 setup_readline() {
-	local refpath="${ROOTDIR%/bash*}/readline/inputrc"
-	# After some testing, it seems $include does not need to be quoted.
+	# After some testing, it seems $include must not quote the path
 	echo "Updating ~/.inputrc"
-	${DRYRUN:+echo} replace_section "${HOME}/.inputrc" "\$include ${refpath}" "# ${refpath}" 0
+	${DRYRUN:+echo} replace_section "${HOME}/.inputrc" "\$include ${NOTESDIR/#"${HOME}/"/'~/'}/readline/inputrc" "# ${BASH_SOURCE[0]}: readline" 0
 }
 setup_tmux() {
-	local refpath="${ROOTDIR%/bash*}/remotehost/tmux/tmux.conf"
+	local refpath="${NOTESDIR/#"${HOME}/"/'$HOME/'}/remotehost/tmux/tmux.conf"
 	refpath="${refpath//'\'/'\\'}"
 	echo "Updating ~/.tmux.conf"
-	${DRYRUN:+echo} replace_section "${HOME}/.tmux.conf" "source-file \"${refpath//'"'/'\"'}\"" "# ${refpath}" 0
+	${DRYRUN:+echo} replace_section "${HOME}/.tmux.conf" "source-file \"${refpath//'"'/'\"'}\"" "# ${BASH_SOURCE[0]}: tmux" 0
 }
 
 setup_bash() {
@@ -264,8 +278,7 @@ setup_bash() {
 	printf -v data '%s' ". \"${ROOTDIR/#"${HOME}"/'${HOME}'}/scripts/load.sh\"" "${scriptdirs[@]}" $'\n'
 	echo "Updating ~/.bashrc"
 
-	${DRYRUN:+echo} replace_section "${HOME}/.bashrc" \
-		"${data}" "# ${ROOTDIR}: scripts" 0
+	${DRYRUN:+echo} replace_section "${HOME}/.bashrc" "${data}" "# ${BASH_SOURCE[0]}: scripts" 0
 }
 
 if [[ "${TERM}" = 'xterm-kitty' ]]
@@ -282,7 +295,7 @@ then
 			color12 #80bbff
 			copy_on_select yes'
 		${DRYRUN:+echo} replace_section "${HOME}/.config/kitty/kitty.conf" \
-			"${settings//$'\n\t\t'/$'\n'}" "# ${ROOTDIR}: kitty" 0
+			"${settings//$'\n\t\t'/$'\n'}" "# ${BASH_SOURCE[0]}: kitty" 0
 	}
 fi
 
