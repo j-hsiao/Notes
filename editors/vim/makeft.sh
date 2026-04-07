@@ -25,10 +25,32 @@ settings=(
 	'vim ts=4 sts=0 sw=0 noexpandtab'
 )
 
+maxlen=0
+for info in "${settings[@]}"
+do
+	info="${info%% *}"
+	((maxlen = "${#info}" > maxlen ? "${#info}" : maxlen))
+done
+fmt="%${maxlen}s : %s\\n"
+
 for info in "${settings[@]}"
 do
 	ft=${info%% *}
 	settings="${info#* }"
-	printf 'setlocal %s\n' "${settings#${settings%%[^[:blank:]]*}}" > "${OUTDIR}/${ft}.vim"
-	printf '%7s: setlocal %s\n' "${ft}" "${settings#${settings%%[^[:blank:]]*}}"
+	settings="${settings#${settings%%[^[:blank:]]*}}"
+
+	if [[ -f "${OUTDIR}/${ft}.vim" ]]
+	then
+		read -r -d '' result < "${OUTDIR}/${ft}.vim"
+		if [[ "${result}" = "setlocal ${settings}"?($'\n') ]]
+		then
+			printf "${fmt}" "${ft}" 'up to date'
+			continue
+		else
+			printf "${fmt}" '-' "${result}"
+		fi
+	fi
+	printf "${fmt}" "${ft}" "setlocal ${settings}"
+	continue
+	echo "setlocal ${settings}" > "${OUTDIR}/${ft}.vim"
 done
