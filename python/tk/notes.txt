@@ -22,6 +22,7 @@ Contents
 		-1.6.6- io
 			-1.6.7- channels
 		-1.6.7- filesystems
+		-1.6.8- info
 	-1.7- packages
 -2- tk
 	-2.0- call vs eval
@@ -648,7 +649,7 @@ miscellaneous observations
 				x?y:z     ternary, x must be bool or numeric
 				$$vname   variable indirection
 
-			math functions
+			math functions (::tcl::mathfunc::*)
 				abs   acos    asin    atan
 				atan2 bool    ceil    cos
 				cosh  double  entier  exp
@@ -912,6 +913,83 @@ miscellaneous observations
 				If any command fails, `exec` returns error.
 				Any stderr output from subprocesses is considered an error.
 				Normally, globbing is handled by the shell. To glob, use [glob ...]
+		============
+		-1.6.8- info
+		============
+		Info is similar to dir in python. Subcommands:
+			args procname
+				List arguments of the proc
+			body procname
+				display body of a proc
+			class
+				Interact with a class, this has subcommands:
+					TODO
+			cmdcount
+				number of invocations in this interpreter
+			commands pat
+				list of names matching pat
+			complete cmd
+				Check whether cmd appears to be a complete command
+				(useful for getting a command from user)
+			coroutine
+				Get the name of the current coroutine (empty if None)
+			default proc arg varname
+				Check for default value of arg for proc.
+				Return true if has a default value and store in varname
+				else false
+			errorstack
+			exists varname
+				check if variable exists
+			frame [level]
+				if level, then a dict:
+					type: source|proc|eval|precompiled
+					line:
+						lineno, relative to start of file if type==source
+						otherwise start of the proc/eval string
+						absent if precompiled
+					file:
+						only for source: normalized path of the sourced file
+					cmd
+						the command being run
+					proc
+						procname if frame inside a proc
+					lambda
+						the lambd def, if called inside a lambda
+					level
+						only if `info level` includes this frame
+				else the current frame level
+			functions [pat]
+				List of ::tcl::mathfunc::* matching pat if given
+			globals [pat]
+				list of global vars matching pat if given
+			hostname
+				the hostname
+			level [num]
+				get current level num or the proc/args for the given level
+			library
+				path of the standard tcl script dir
+			loaded
+				return list [(fname, pkname)] of loaded packages
+			locals [pat]
+				list of locals matching [pat]
+			nameofexecutable
+				name of thing that invoked tcl
+			object subcmd obj [arg...]
+				TODO
+			patchlevel
+				$tcl_patchLevel
+			procs [pat]
+				list procs matching pat if given
+			script [fname]
+				current fname of script being called
+				or if fname is given, modify the return value "for the duration of the active invocation"
+			sharedlibextension
+				extension of shared lib (.so or .dll)
+			tclversion
+				$tcl_version
+			vars
+				list of variables (combo of globals and locals)
+
 	==============
 	-1.7- packages
 	==============
@@ -927,7 +1005,11 @@ miscellaneous observations
 			pkgIndex.tcl (Should ONLY tell how to load)
 				should contain `package ifneeded`
 			script with `package provide` command
-			Place package on a search path: `tcl_pkgPath` or `auto_path`
+			Place package on a search path: `auto_path`
+			NOTE:
+				docs mention a `tcl_pkgPath`, but this is ?only for initialization?
+				adding to tcl_pkgPath WILL NOT allow you to load new packages.
+				"Note: tcl_pkgPath is not intended to be modified by the application"
 		subcommands:
 			require [-exact] name [version]
 				import a package with optional version.
@@ -1747,8 +1829,11 @@ ______________________________
 					However, while withdrawn, they will always be 0. After deiconify,
 					they will become the "actual" value
 				alpha
-					Setting alpha immediately seems to do nothing. Instead, at least
-					call an update() before setting alpha.
+					Arch + Xwayland:
+						Setting alpha immediately seems to do nothing. Instead, at least
+						call an update() before setting alpha.
+					windows:
+						Can set it immediately, no problem
 
 		deiconify()
 		geometry: similar to winfo_geometry, but allows setting geometry
