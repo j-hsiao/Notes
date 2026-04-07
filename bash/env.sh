@@ -229,10 +229,10 @@ setup_vim() {
 			local target="${HOME}/.vim/${loc}/${src##*/}"
 			if [[ ! -e "${target}" ]] || ! diff "${target}" "${src}"
 			then
-				echo "Update script path: \"${target}\"."
+				echo "Out of date: \"${target}\"."
 				${DRYRUN:+echo} ${CREATE:-cp} "${src}" "${target}"
 			else
-				echo "Exists and matches: \"${target}\"."
+				echo "Up to date : \"${target}\"."
 			fi
 		done
 	done
