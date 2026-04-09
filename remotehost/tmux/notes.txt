@@ -37,9 +37,15 @@ contents:
 ===========
 -0- general
 ===========
-	observations:
-		typing in vim, esc to exit insert mode, then <pre> ends up in a raw <pre> being
+	==================
+	-0.0- observations
+	==================
+	typing in vim, esc to exit insert mode, then <pre> ends up in a raw <pre> being
 		sent. It is not interpreted as the tmux <pre> key...
+
+	tmux vim colors are messed up, but if `set default-terminal screen-256color`
+		then vim colors are ok.  Without this, the cygwin colors still work,
+		but the wsl colors do not.
 
 	=================
 	-0.1- terminology
@@ -97,6 +103,8 @@ contents:
 	-0.3- format
 	============
 	Format arguments are for commands that take -F flag.
+	These are typically a sequence of characters starting with a #.
+
 	The string can contain these values:
 		=================
 		-0.3.1- variables
@@ -105,15 +113,22 @@ contents:
 		#{optname}
 		#S where S is short alias
 		#{?variable,yes,no}
+			it MUST be a variable name, no values allowed.
 		#{cmd/opts/...:arg1[,arg2...]}
-			binary command:
-				string comparison:
+			binary cmd:
+				Direct string comparison:
 					< <= > >= == != 
+					result: 0/1 depending on comparison
+				strmatch
 					m/opts
-						r: regex
+						r: regex (instead of globbing match)
 						i: ignorecase
+					result: 0/1 depending on match or not
 				bool operators:
 					|| &&
+					YES, these ARE BINARY, if you try to add more than 2, then the extra
+					will be tacked on as values for the 2nd value meaning it will always be truthy.
+					result: 0/1 depending on any or both
 
 				math operators:
 				e|op|opts:v1,v2
@@ -123,14 +138,15 @@ contents:
 					opts:
 						f: use float
 						D: evaluate to D digits
+						N: number of decimal places
 
-			unary commands
+			unary cmd
 				C/opts:
 					search for regexp, evaluate to lineno if found else empty
 				a
 					Convert number to ascii
 				=
-					Truncate a string
+					Truncate a variable (must be a variable name)
 					N: size limit of N chars.  If negative, then take chars from the end
 					presuff: use this as prefix/suffix if trimmed.
 				p
@@ -738,6 +754,8 @@ set | set-option [-aFgopqsuUw] [-t target-pane] option value
 	-o    set if not already set
 	-q    ignore errors
 	-a    append (only works for strings or styles)
+	      Man does not mention this, but this also seems to work
+	      for arrays
 
 
 ===========
