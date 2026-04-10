@@ -6,46 +6,57 @@ contents:
 	-0.3- regex
 	-0.4- undo history
 	-0.5- sourcing
--1- normal mode
-	-1.1- movement
-	-1.2- scrolling
-	-1.3- editing
-	-1.4- jumps
-	-1.5- marks and registers/macros
-	-1.6- folding
-	-1.7- windows, viewports, tabs
-	-1.8- searching
-	-1.9- others
--2- insert mode
-	-2.1- digraph
--3- visual mode
--4- command mode
-	-4.1- :help
-	-4.2- :set
-		-4.2.1- indentation
-		-4.2.2- visual changes
-	-4.3- files/buffers
-	-4.4- search/replace
-	-4.5- windows/tabs
-	-4.6- autocmd
-	-4.7- map
-	-4.8- custom commands
-	-4.9- others
--5- vim scripts and config files
-	-5.1- variables
-		-5.1.1- types
-		-5.1.2- namespaces
-		-5.1.3- curly-braces-names
-		-5.1.4- operations
-		-5.1.5- special variables:
-	-5.2- loops
-	-5.3- operator precedence
-	-5.4- user defined functions
-	-5.5- builtin functions
-	-5.6- plugins
-		-5.6.1- writing plugins
-		-5.6.2- :help docs
-		-5.6.3- autoload
+-1- modes
+	-1.1- normal mode
+		-1.1.1- movement
+		-1.1.2- scrolling
+		-1.1.3- editing
+		-1.1.4- jumps
+		-1.1.5- marks and registers/macros
+		-1.1.6- folding
+		-1.1.7- windows, viewports, tabs
+		-1.1.8- searching
+		-1.1.9- others
+	-1.2- insert mode
+		-1.2.1- digraph
+	-1.3- visual mode
+	-1.4- command mode
+		-1.4.1- :help
+			-1.4.1.1- useful searches
+		-1.4.2- :set
+			-1.4.2.1- indentation
+			-1.4.2.2- visual changes
+			-1.4.2.3- statusline
+			-1.4.2.4- scratch files
+			-1.4.2.5- searching
+			-1.4.2.9- others
+		-1.4.3- files/buffers
+		-1.4.4- search/replace
+		-1.4.5- windows/tabs
+		-1.4.6- autocmd
+		-1.4.7- map
+		-1.4.8- custom commands
+		-1.4.9- others
+			-1.4.9.1- abbreviations
+			-1.4.9.2- redirection
+			-1.4.9.3- visual
+			-1.4.9.9- miscellaneous
+	-1.5- terminal mode
+-2- vim scripts and config files
+	-2.1- variables
+		-2.1.1- types
+		-2.1.2- namespaces
+		-2.1.3- curly-braces-names
+		-2.1.4- operations
+		-2.1.5- special variables:
+	-2.2- loops
+	-2.3- operator precedence
+	-2.4- user defined functions
+	-2.5- builtin functions
+	-2.6- plugins
+		-2.6.1- writing plugins
+		-2.6.2- :help docs
+		-2.6.3- autoload
 
 quick topics:
 	registers, macros       -1.5-
@@ -53,26 +64,31 @@ quick topics:
 	viewports/tabs          -1.7-
 	file manipulation       -1.3-, -4.3-
 	indentation             -4.2.1-
+	useful help pages       -1.4.1.1-
 
 Vim is a modal editor.  In general, vim has normal, insert, visual,
 and command modes each with their own functionalities.
 
-______________________________
+===========
 -0- general
-	______________________________
+===========
+	=============
 	-0.0- gotchas
+	=============
 		Bizarre behavior when nnoremap <Esc><Esc>.  This causes <Esc>C-w to
 		undo everything or at least a large amount.
 
-	______________________________
+	==================
 	-0.1- starting vim
+	==================
 		vim/vi can be started by vim <file1> <file2>...
 		useful commandline arguments:
 			-u <file|NONE>  use <file> instead of ${HOME}/.vimrc for
 			                initialization.  If NONE, no initialization.
 
-	______________________________
+	=================
 	-0.2- terminology
+	=================
 		buffer: A buffer of text, usually representing/backed by a file.
 		window: The terminal window
 		viewport:   A visual section of the window usually associated with a
@@ -81,8 +97,9 @@ ______________________________
 		        at a time.
 		cursor: The indicator for your current location.
 
-	______________________________
+	===========
 	-0.3- regex
+	===========
 		:h regex
 		terminology:
 			pattern: 1 or more branches joined by \|
@@ -180,8 +197,9 @@ ______________________________
 					Matches with zero width if previous ATOM does NOT match.
 					ex: foo\(bar\)\@!: 'foo' not followed by 'bar'
 
-	______________________________
+	==================
 	-0.4- undo history
+	==================
 		:h undo-branches, undo-tree
 		Vim saves undo history as branches rather than linear
 
@@ -193,9 +211,9 @@ ______________________________
 
 
 
-	------------------------------
+	==============
 	-0.5- sourcing
-	------------------------------
+	==============
 	:so[urce] script
 		run a vimscript
 		This is kind of like #include <header> in C++
@@ -210,9 +228,14 @@ ______________________________
 
 	This can be useful on windows when mixing windows git and cygwin.
 
+=========
+-1- modes
+=========
+=================
+-1.1- normal mode
+=================
+	<C-\><C-N> always goes to normal mode in all modes (except ex mode?)
 
-______________________________
--1- normal mode
 	Normal mode is generally the default mode when vim is opened.  It is
 	used for seeking, deleting, copy/cut/paste, macros, viewports, etc.
 	Escape can spammed repeatedly to reach normal mode.
@@ -220,8 +243,9 @@ ______________________________
 	Commands can usually be prefixed with a number to act as an argument.
 	Arguments will generally be interpreted as a repeat-count or a line
 	number.
-	______________________________
-	-1.1- movement
+	================
+	-1.1.1- movement
+	================
 		hjkl            left, down, up, right 1 char respectively (same column)
 		gj|gk           move down|up a visual line (when linewrapping)
 		<space>         forward 1 char (linewraps)
@@ -246,16 +270,18 @@ ______________________________
 		There are also special motions that can be used after an operator (like d)
 			:h object-select
 			i(            delete within parentheses
-	______________________________
-	-1.2- scrolling
+	=================
+	-1.1.2- scrolling
+	=================
 		C-f|C-d|C-e     down 1-screen|half-screen|1-line
 		C-b|C-u|C-y     up 1-screen|half-screen|1-line
 		z<t|z|b>        scroll current line to top|middle|bottom of screen
 		z[H|L]          scroll left|right half-screen
 		z[h|l]          scroll left|right char
 		z[s|e]          scroll current column to left|right of screen
-	______________________________
-	-1.3- editing
+	===============
+	-1.1.3- editing
+	===============
 		Entering insert mode for typing:
 			These commands enter insert mode after possible doing something.
 			i         on cursor
@@ -295,8 +321,9 @@ ______________________________
 			J         join current and next N>2 lines
 			gq<move>  format text to fit within textwidth
 
-	______________________________
-	-1.4- jumps
+	=============
+	-1.1.4- jumps
+	=============
 		Jumping will append to a jump list which can be traversed.
 		NOTE: jumplist can span files (if you jump to another file by global
 		mark for example)
@@ -309,8 +336,9 @@ ______________________________
 		{}      previous/next blank line
 		()      beginning/end of N sentences
 		[]      JUMP to a section (see :h [)
-	______________________________
-	-1.5- marks and registers
+	===========================
+	-1.1.5- marks and registers
+	===========================
 		______________________________
 		marks
 			Marks are named a-z (local) or A-Z (global) and represent a
@@ -369,8 +397,9 @@ ______________________________
 		Macros can be set via commandmode with let (-5.1-)
 
 
-	______________________________
-	-1.6- folding
+	===============
+	-1.1.6- folding
+	===============
 		Folds temporarily hide sections of the current file and may contain
 		other folds.
 
@@ -387,8 +416,9 @@ ______________________________
 			z<m|M>        close 1/all folds everywhere
 		moving to folds
 			z<j|k>        JUMP to next|previous fold.
-	______________________________
-	-1.7- windows, viewports, tabs
+	================================
+	-1.1.7- windows, viewports, tabs
+	================================
 		:h ctrl-w
 
 		Window commands are prefixed with C-w
@@ -434,8 +464,9 @@ ______________________________
 			Ngt           go to the Nth(absolute tab if given else next
 			NgT           go to the Nth(default 1) previous tab
 
-	______________________________
-	-1.8- searching
+	=================
+	-1.1.8- searching
+	=================
 		(see also -0.3- regex)
 		/|?<pat>    initiate forward|backward regexp search for <pat>
 		n|N         go to next/previous search match (retain search direction)
@@ -456,8 +487,9 @@ ______________________________
 		g<*|#>      search for word under cursor forward|backward
 		            (includes subword)
 
-	______________________________
-	-1.9- others
+	==============
+	-1.1.9- others
+	==============
 		K       look up word under cursor as a "keyword" in keywordprg (default man)
 		ZZ      save and close
 		ZQ      :q!
@@ -466,8 +498,9 @@ ______________________________
 		g C-g   cursor position (col, line, word, bytes)
 		C-<a|x> increment|decrement number under cursor
 
-______________________________
--2- insert mode
+===============
+-1.2- insert mode
+===============
 	:h i_ctrl-l
 
 	C-t|C-d       indent right/left by shiftwidth
@@ -498,9 +531,9 @@ ______________________________
 		C-X C-K     identifiers from dictionary (:h 'dictionary')
 		C-X C-L     match previous line
 
-	=============
-	-2.1- digraph
-	=============
+	===============
+	-1.2.1- digraph
+	===============
 	Digraphs are shortcut ways to enter unicode.  The default binding is <C-K>CC
 	where CC is the digraph code, 2 characters, to choose the digraph binding.
 
@@ -522,8 +555,9 @@ ______________________________
 		h: horizontal
 
 
-______________________________
--3- visual mode
+=================
+-1.3- visual mode
+=================
 	This mode is generally for selecting text to perform a command over.
 
 	From normal mode:
@@ -572,8 +606,9 @@ ______________________________
 					    result:
 					      hello
 					      world
-______________________________
--4- command mode
+==================
+-1.4- command mode
+==================
 	Enter command mode with :.  This only allows 1 command.  Ex-mode
 	allows multiple consecutive commands.  (press Q in normal mode)
 
@@ -602,8 +637,9 @@ ______________________________
 		when entering commandmode from visual mode with a selection,
 		the range is shown as '<,'> which means from the < mark to the > mark
 		(-1.5- <> = first/last line of visual selection)
-	______________________________
-	-4.1- :help
+	=============
+	-1.4.1- :help
+	=============
 		:h <thing>
 			prefixes for <thing>:
 				i_      insert mode
@@ -614,17 +650,23 @@ ______________________________
 				/       regexp pattern eg. /[]
 			postfixes
 				()      builtin function
-			===============
-			useful searches
-			===============
+
+			When searching, use ctrl, searching for keynotation
+			style does not work.  For multiple keypresses, use _ as a separator
+			example: searching for key sequence <C-\><C-N>,
+			use `:h ctrl-\\_ctrl-n`
+			=========================
+			-1.4.1.1- useful searches
+			=========================
 				index               default controls by mode (can also use mode-index for index of that mode)
 				key-notation        notation for special keys
 				quote-expr          vimscript special keys as string
 				builtin-functions   vimscript functions
 		C-]         jump to link
 		C-t         previous topic (can also use <C-O>)
-	______________________________
-	-4.2- :set
+	============
+	-1.4.2- :set
+	============
 		syntax:
 			:set <option>=value   set option to value
 			:set <option>         set boolean option to True
@@ -637,8 +679,9 @@ ______________________________
 
 		Use setlocal for a buffer-local version
 		(not all variables can be buffer local though)
-		______________________________
-		-4.2.1- indentation
+		=====================
+		-1.4.2.1- indentation
+		=====================
 			softtabstop     sts     target destinations of pressing tabkey or
 			                        backspace.  Fit as many tabs as possible, and do
 			                        the rest with spaces
@@ -653,8 +696,9 @@ ______________________________
 
 			If applicable, spaces will be converted to tabs once they
 			reach tabstop
-		______________________________
-		-4.2.2- visual changes
+		========================
+		-1.4.2.2- visual changes
+		========================
 			ruler             ru      show cursor position in statusline
 			number            nu      number lines
 			relativenumber    rnu     number lines relative to cursor (current
@@ -686,8 +730,9 @@ ______________________________
 			                          0: never
 			                          1: if at least 2 windows
 			                          2: always
-		______________________________
-		-4.2.3- statusline
+		====================
+		-1.4.2.3- statusline
+		====================
 			the bar at the bottom of viewports.
 			Set laststatus=2 to always have the bar.
 			statusline        stl     str:
@@ -729,20 +774,24 @@ ______________________________
 					%{expr}   cannot contain } since that's the ending delim
 					%(...%)   item-group ( can set align, widths etc of a group
 					          of items)
-		______________________________
-		scratch files:  this will not be saved to files and will not prevent
-		                closing when modified
+		=======================
+		-1.4.2.4- scratch files
+		=======================
+		this will not be saved to files and will not prevent
+		closing when modified
 			buftype=nofile
 			bufhidden=hide
 			noswapfile
-		______________________________
-		searching
+		===================
+		-1.4.2.5- searching
+		===================
 			hlsearch          hls     highlight search matches
 			insearch          is      find search matches as you type
 			ignorecase        ic      case-insensitive searching
 			smartcase         scs     case sensitive if have caps
-		______________________________
-		others
+		================
+		-1.4.2.9- others
+		================
 			autochdir         acd     automatically change to viewport's directory
 			belloff <when>    bo      don't ring bell when
 			paste                     paste mode (turns off autoindent etc)
@@ -762,8 +811,9 @@ ______________________________
 			titlestring               name of title, statusline syntax
 			statusline        stl     content of status line
 			formatoptions     fo      some options like continue comments on next line.
-	______________________________
-	-4.3- files/buffers
+	=====================
+	-1.4.3- files/buffers
+	=====================
 		write       w       write to file
 		update      up      write to file if modified
 		quit        q       close viewport
@@ -781,8 +831,9 @@ ______________________________
 		                      %: current buffer
 		bdelete<N>  bd<N>   close the buffer.  N is as above.
 		buffers     ls      list current buffers.
-	______________________________
-	-4.4- search/replace
+	======================
+	-1.4.4- search/replace
+	======================
 		(see also -0.3- regex)
 		:s/text/replacement/[gciI]  run search/substitution
 		                            g: all matches per line
@@ -792,8 +843,9 @@ ______________________________
 
 		:g[!]/pattern/cmd           Run cmd on all matches of pattern
 		:v/pattern/cmd              v or g! = invert match
-	______________________________
-	-4.5- windows/tabs
+	====================
+	-1.4.5- windows/tabs
+	====================
 		:split <filename>   split view horizontally opens file fn,
 		                    or current file if fn is absent
 		:vsplit <filename>  split vertically, as above
@@ -801,8 +853,9 @@ ______________________________
 		:tabs               list tabs and viewports
 		:tabc               close tab
 		:tabo               make this the only tab (close all others)
-	______________________________
-	-4.6- autocmd
+	===============
+	-1.4.6- autocmd
+	===============
 		Run commands on events like open file or file type etc.
 		Commands are added in order.  They are always added regardless
 		of whether they're already defined.  Use groups to manage.
@@ -875,8 +928,9 @@ ______________________________
 				au mygroup BufEnter * echo hello
 			augroup END
 
-	______________________________
-	-4.7- map
+	===========
+	-1.4.7- map
+	===========
 		:h :key-notation
 		no notes on casing for <C-key> notation, but generally use caps.
 
@@ -1014,8 +1068,9 @@ ______________________________
 			in general <C-Bslash> seems to be safe to use as as an opener
 			as long as the second key is not a-z
 
-	______________________________
-	-4.8- custom commands
+	=======================
+	-1.4.8- custom commands
+	=======================
 		:command [attrs] <name> <commandline>
 			<name> MUST be capitalized.  :X, :Next, :Print are taken.
 			<commandline> is a command-line expr
@@ -1052,12 +1107,12 @@ ______________________________
 					          ex:
 					            :command -nargs=* Mycmd call Myfunc(<f-args>)
 
-
-
-	______________________________
-	-4.9- others
-		______________________________
-		abbreviations
+	==============
+	-1.4.9- others
+	==============
+		======================
+		-1.4.9.1- abbreviations
+		======================
 			Abbreviations are triggered by:
 				punctuation
 				whitespace
@@ -1073,13 +1128,15 @@ ______________________________
 			:inorea
 			:cnorea
 
-		______________________________
-		redirection
+		=====================
+		-1.4.9.2- redirection
+		=====================
 			:redi[r] => <var> redirect output to variable
 			:redi[r] END      stop redirection
 
-		______________________________
-		visual
+		================
+		-1.4.9.3- visual
+		================
 			:highlight     hi     define highlighting group (capitalized name)
 			                      hi {group} key=arg
 			                        attrlist: comma delimited list of:
@@ -1169,8 +1226,9 @@ ______________________________
 				*zaibatsu
 				zellner
 
-		______________________________
-		miscellaneous
+		=======================
+		-1.4.9.9- miscellaneous
+		=======================
 			nohlsearch    noh     stop search highlighting
 			Explore       Ex      open file explorer
 			syntax on|off         turn syntax highlighting on|off
@@ -1185,8 +1243,30 @@ ______________________________
 			jumps        ju       show jumplist
 			g/pat/cmd             run cmd globally on lines matching pat
 
-______________________________
--5- vim scripts and config files
+	===================
+	-1.5- terminal mode
+	===================
+	:h terminal-window
+	:ter[minal] to enter terminal mode (in a new viewport)
+
+	<C-W> bindings are useable inside the terminal window.
+	notable:
+		<C-W>:  activate :, same as : in normal mode
+	extra
+		<C-W>.      Send <C-W> to the terminal
+		<C-W><C-\>  send <C-\> to terminal
+		<C-W>N      terminal-normal mode
+		<C-\><C-N>  "
+		<C-W>"reg   past a register (= work to for eval expr)
+		<C-W><C-c>  kill the terminal
+		<C-W>gt     go to next tab page
+		<C-W>gT     go to previous tab page
+
+	NOTE: 'termwinkey' option can be set to change the <C-W>
+
+================================
+-2- vim scripts and config files
+================================
 	Vim scripts are basically lines of command-mode commands and the
 	default path is ~/.vimrc.  It can be specified with the -u argument.
 	Comments begin with "
@@ -1197,8 +1277,9 @@ ______________________________
 	long lines can be wrapped by prefixing continuation lines with a
 	backslash
 
-	______________________________
-	-5.1- variables
+	===============
+	-2.1- variables
+	===============
 		variables are generally created with :let.  Removed with :unlet.
 		(unlet also works with list idxs/dict keys)
 		type(var) -> type of variable
@@ -1216,17 +1297,21 @@ ______________________________
 		checking vars:
 			exists(varname)
 
-		______________________________
-		-5.1.1- types
-			______________________________
+		=============
+		-2.1.1- types
+		=============
+			======
 			number
+			======
 				boolean = number: false=0, True=!0
-			______________________________
+			=====
 			float
+			=====
 				xxx.yyy
 				or <xxx>.<yyy>e[exp]
-			______________________________
+			======
 			string
+			======
 				strings are null-terminated.
 				quotes used is similar to bash:
 					'' = literal, no expansions/escapes
@@ -1245,8 +1330,9 @@ ______________________________
 					\\            <Bslash>
 					\"            literal quote
 					\<key-notation>       some key notation like <C-b>
-			______________________________
+			====
 			list
+			====
 				creation                :let listvar = [item, item, [item, item],...]
 				                        split()
 				                        getline()
@@ -1273,8 +1359,9 @@ ______________________________
 				ordering                sort() reverse() uniq()
 				other functions         call(func, listvar), empty, len, max, min, count, index,
 				                        append, join, map
-			______________________________
+			==========
 			dictionary
+			==========
 				key-value mappings. keys are always strs (nums will be coerced)
 				creation                {k:v, ...}
 				indexing                mydict["key"]
@@ -1299,22 +1386,27 @@ ______________________________
 				                        :endfunction
 				                        mydict.newmemberfunc()
 				other functions         has_key, empty, len, min/max, count, string, map
-			______________________________
+			=======
 			funcref
+			=======
 				let Myvar = function("FuncName")
 				:echo Myvar()
 				:call Myvar()
 				funcvariables must start with a capital
 				function_name = string(Fn)
 				:call(Fn, list_of_args)
-			______________________________
+			=======
 			special
-			______________________________
+			=======
+			===
 			job
-			______________________________
+			===
+			=======
 			channel
-			______________________________
+			=======
+			====
 			blob
+			====
 				like a binary string, list of 0-255 numbers
 				creation:
 					let b = 0z<HEX_CHARS>
@@ -1322,8 +1414,9 @@ ______________________________
 					ch_readblob()
 
 
-			______________________________
+			=================
 			type conversions:
+			=================
 				implicit:
 					ONLY str/number (ints) are converted.
 					str->number: take the prefix
@@ -1339,8 +1432,9 @@ ______________________________
 					printf()
 					float2nr()
 
-		______________________________
-		-5.1.2- namespaces
+		==================
+		-2.1.2- namespaces
+		==================
 			a:    function argument
 			b:    buffer-local
 			      has special variable: changedtick
@@ -1365,8 +1459,9 @@ ______________________________
 					...
 				endfor
 
-		______________________________
-		-5.1.3- curly-braces-names
+		==========================
+		-2.1.3- curly-braces-names
+		==========================
 			:h curly-braces-names
 			place an expr in {}. It will be evaluated
 			and the result will be a variable name.
@@ -1374,8 +1469,9 @@ ______________________________
 
 			(alternative = str concatenation + :execute)
 
-		______________________________
-		-5.1.4- operations
+		==================
+		-2.1.4- operations
+		==================
 			=  assignment
 			+  add
 			.  str concatenate
@@ -1389,8 +1485,9 @@ ______________________________
 			+= .= -=
 			NOTE: *= and /= are NOT valid
 
-		______________________________
-		-5.1.5- special variables:
+		==========================
+		-2.1.5- special variables:
+		==========================
 			&var      local OPTION if available else global
 			&l:var    local value of OPTION
 			&g:var    global value of OPTION
@@ -1398,8 +1495,9 @@ ______________________________
 			$var      environmentvar
 			          can also use getenv(), setenv(), environ()
 
-	______________________________
-	-5.2- loops
+	===========
+	-2.2- loops
+	===========
 		for [varexpr] in [expr]
 				...
 		endfor
@@ -1408,8 +1506,9 @@ ______________________________
 				...
 		endwhile
 
-	______________________________
-	-5.3- operator precedence
+	=========================
+	-2.3- operator precedence
+	=========================
 		1. literals, &option, @register, func(...),  va{ri}able_expansion
 		2. list/dict/str indexing/slicing, number is converted to str, expr->method(...), funcref()
 		3. !/-/+ unary
@@ -1424,8 +1523,9 @@ ______________________________
 		8. ||
 		9. numexpr ? truexpr : falseexpr
 
-	______________________________
-	-5.4- user defined functions
+	============================
+	-2.4- user defined functions
+	============================
 		:h user-functions
 		function names MUST be capitalized
 		script-local begin with s:
@@ -1467,8 +1567,9 @@ ______________________________
 
 		use function {funcname} to find the definition.
 
-		______________________________
+		================
 		useful commands:
+		================
 			startinsert star  start insert mode after executing this command
 			function  fu      list specified function (default all) or
 			                  /pattern for function names matching pattern.
@@ -1502,8 +1603,9 @@ ______________________________
 			break     brea
 
 
-	______________________________
-	-5.5- builtin functions
+	=======================
+	-2.5- builtin functions
+	=======================
 		:h functions
 		notable functions:
 			winwidth(0)     current window width
@@ -1527,8 +1629,9 @@ ______________________________
 			                                  0 = stay in the current line/col
 			hasmapto(rhs)                     check if any mappings to rhs exist
 
-	______________________________
-	-5.6- plugins
+	=============
+	-2.6- plugins
+	=============
 		plugins must end with .vim extension
 
 		2 types of plugins:
@@ -1566,8 +1669,9 @@ ______________________________
 					:setlocal ...
 				for mappings:
 					:[invc...][nore]map <buffer> ...
-		______________________________
-		-5.6.1- writing plugins
+		=======================
+		-2.6.1- writing plugins
+		=======================
 			0. use vim9s at beginning of script to use vim9script
 				effects:
 					1. functions are local by default
@@ -1603,8 +1707,9 @@ ______________________________
 				and map it into <Plug>SomeNameAction1, it will become literally
 				<Plug>SomeNameAction1 instead of activating another mapping because
 				LHS is a prefix of RHS (This still applies even if <expr>)
-		______________________________
-		-5.6.2- :help docs
+		==================
+		-2.6.2- :help docs
+		==================
 			:h help-writing
 			put plugin in 'doc' dir somewhere in 'runtimepath'
 			run helptags command with doc dir (only need to run this once)
@@ -1635,8 +1740,9 @@ ______________________________
 				The rest of the file is whatever help info there is.
 				modeline would be something like
 					" vim: ts=8 sw=2, set display settings
-		______________________________
-		-5.6.3- autoload
+		================
+		-2.6.3- autoload
+		================
 			Vim checks files in 'runtimepath'/autoload.
 			autoload functions are [dirnames]#fname#funcname()
 			and need to be defined as fname#funcname()
