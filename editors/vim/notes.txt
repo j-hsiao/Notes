@@ -426,11 +426,13 @@ ______________________________
 			t|b       to top|bottom viewport
 
 		new tabs:
-			:tabn     command mode to create new tab
+			:tabnew   command mode to create new tab
 			T         move viewport to a new tab
 
 		change tabs:
-			g<t|T>    go to Nth(default=next)/previous Nth tab
+			:[+|-]tabnext go to next/prev tab
+			Ngt           go to the Nth(absolute tab if given else next
+			NgT           go to the Nth(default 1) previous tab
 
 	______________________________
 	-1.8- searching
@@ -612,10 +614,13 @@ ______________________________
 				/       regexp pattern eg. /[]
 			postfixes
 				()      builtin function
+			===============
 			useful searches
-				index           default controls by mode
-				key-notation    notation for special keys
-				quote-expr      vimscript special keys as string
+			===============
+				index               default controls by mode (can also use mode-index for index of that mode)
+				key-notation        notation for special keys
+				quote-expr          vimscript special keys as string
+				builtin-functions   vimscript functions
 		C-]         jump to link
 		C-t         previous topic (can also use <C-O>)
 	______________________________
@@ -1170,6 +1175,9 @@ ______________________________
 			Explore       Ex      open file explorer
 			syntax on|off         turn syntax highlighting on|off
 			shell         sh      start a shell
+			ter[minal]            start a shell in a viewport (version 8+):
+			                      NOTE: this has limited controls it seems, example, C-w cannot kill word
+			                      and always activates vim's bindings.
 			normal        norm    run a keysequence string in normal mode
 			cd                    change current working dir
 			                      %:h     current file's directory
