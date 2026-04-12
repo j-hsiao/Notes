@@ -25,17 +25,16 @@ Contents
 		-1.6.8- info
 	-1.7- packages
 -2- tk
-	-2.0- call vs eval
-		-2.0.1- call
-		-2.0.2- eval
-	-2.1- widgets
+	-2.1- options
 		-2.1.0- values
 			-2.1.0.1- colors
 			-2.1.0.2- fonts
 			-2.1.0.3- screen distances
+			-2.1.0.4- images
 		-2.1.1- generic options
 		-2.1.2- Text
 	-2.2- window manager
+
 -3- tkinter
 
 # -1- general
@@ -1056,72 +1055,97 @@ miscellaneous observations
 				-namespace
 					gets value of -command from create
 
-
-
-
 ======
 -2- tk
 ======
-	==================
-	-2.0- call vs eval
-	==================
-	Tkinter has 2 methods for interacting directly with the tcl interpreter.
-	The first is call() (tkinter.Tk.tk.call).
-	The second is eval() (tkinter.Tk.tk.eval).
-
-	tkinter.Tk seems to forward call and eval to tkinter.Tk.tk
-
-		============
-		-2.0.1- call
-		============
-			Each argument to call() will be converted to str and properly escaped.
-			This means that call is unsuitable for any more complex expression than
-			single literal strings.  There will be no expansions of any kind.
-			Call will however, attempt to interpret the return results of the expression.
-			ex:
-				r = tk.Tk()
-				r.call('expr', '3 + 2') -> int(5)
-
-		============
-		-2.0.2- eval
-		============
-			eval() takes a SINGLE STRING ARGUMENT which contains the tcl command(s).
-			Expansions WILL be performed.  Unlike, call, the output is ALWAYS a str.
-
-			ex increment a variable:
-				r = tk.Tk()
-				x = tk.IntVar(r, 2)
-				r.eval(f'set {x} [expr ${x} + 1]') -> str(3)
-
-				NOTE: this is not possible with call() because the [] expr would
-				be changed to a literal string.
+	tk widgets generally have a name that is also registered as a command.
 	=============
-	-2.1- widgets
+	-2.1- options
 	=============
+		options are managed with the configure subcommand:
+			widgetname configure [-option value...]
+
 		==============
 		-2.1.0- values
 		==============
 			================
 			-2.1.0.1- colors
 			================
+			https://www.tcl-lang.org/man/tcl8.6/TkLib/GetColor.htm
+			colorname
+				for a list of recognized color names:
+					https://www.tcl-lang.org/man/tcl8.6/TkCmd/colors.htm
+					in general:
+						color[1-4] where each 1,2,3,4 becomes darker
+			#RGB
+			#RRGGBB
+			#RRRGGGBBB
+			#RRRRGGGGBBBB
+				where each RGB is a hex digit
+				(so 4, 8, 12, and 16 bit colors)
+				8-bit probably the most common
+
 			===============
 			-2.1.0.2- fonts
 			===============
+			name of a created font
+			string of name and settings:
+				family [size] [options...]
+					options:
+						normall | bold | roman | italic | underline | overstrike
+			string of options as from font create
+				-family fam
+					use `font families` for a list of supported fonts
+				-size size
+					>0 = points (note: a point in modern day is 1/72 of an inch)
+					<0 = pixels
+				-weight [bold | normal]
+				-slant [roman | italic]
+				-underline true/false
+				-overstrike true/false
+
+			Guaranteed familes are:
+				monospace   Courier
+				serif       Times
+				sans-serif  Helvetica
+
+			Default fonts defined by tk
+				TkDefaultFont
+				TkTextFont
+				TkFixedFont
+				TkMenuFont
+				TkHeadingFont
+				TkCaptionFont
+				TkSmallCaptionFont
+				TkIconFont
+				TkTooltipFont
+
 			==========================
 			-2.1.0.3- screen distances
 			==========================
+			================
+			-2.1.0.4- images
+			================
+
 
 		=======================
 		-2.1.1- generic options
 		=======================
+
 		activebackground
 		activeborderwidth
 		activeforeground
-			Change the base options when "active".  This is usually when the
-			mouse is hovering over the widget.
+			Change background, borderwidth, foreground while "active"
+			where "active" is mouse hovering or button clicked.
 
 		anchor
+			[n | ne | e | se | s | sw | w | nw | center]
+			where content is displayed within the array
+
 		background
+			a background color
+
+
 		bitmap
 		borderwidth
 		cursor
@@ -1292,6 +1316,41 @@ Tkinter by default, forces all bindings to use this as the tcl script:
 
 This can be convenient, but leaves out some bindings and makes many unnecessary arg swaps.
 Can just make callbacks more directly.
+
+	==================
+	-3.0- call vs eval
+	==================
+	Tkinter has 2 methods for interacting directly with the tcl interpreter.
+	The first is call() (tkinter.Tk.tk.call).
+	The second is eval() (tkinter.Tk.tk.eval).
+
+	tkinter.Tk seems to forward call and eval to tkinter.Tk.tk
+
+		============
+		-3.0.1- call
+		============
+			Each argument to call() will be converted to str and properly escaped.
+			This means that call is unsuitable for any more complex expression than
+			single literal strings.  There will be no expansions of any kind.
+			Call will however, attempt to interpret the return results of the expression.
+			ex:
+				r = tk.Tk()
+				r.call('expr', '3 + 2') -> int(5)
+
+		============
+		-3.0.2- eval
+		============
+			eval() takes a SINGLE STRING ARGUMENT which contains the tcl command(s).
+			Expansions WILL be performed.  Unlike, call, the output is ALWAYS a str.
+
+			ex increment a variable:
+				r = tk.Tk()
+				x = tk.IntVar(r, 2)
+				r.eval(f'set {x} [expr ${x} + 1]') -> str(3)
+
+				NOTE: this is not possible with call() because the [] expr would
+				be changed to a literal string.
+
 
 ______________________________
 -1- general
