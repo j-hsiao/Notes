@@ -692,9 +692,14 @@ if __name__ == '__main__':
         help='(subTimeout, maxtimeout) waiting for background reminder server to start.')
 
     p.add_argument(
-        'cmd', nargs='?',
-        help=f'the client command: a time specification (YYYY-mm-dd HH:MM:SS), floats allowed, omissions allowed. or one of {[f"{k}->{v}" if v else k for k, v in COMMANDS.items()]}.')
-    p.add_argument('extra', nargs='*', help='remaining extra arguments for command.')
+        'cmd', nargs='*',
+        help=(
+            'Command followed by extra. Command can be a time specification'
+            ' (YYYY-mm-dd HH:MM:SS, floats and omissions allowed)'
+            ' or one of {}.  Any time-like (digit and :) args will be taken as a'
+            ' time command to schedule a reminder.  Escape an argument with a'
+            ' leading comma.  Alternatively, use the -m argument.').format(
+                [f"{k}->{v}" if v else k for k, v in COMMANDS.items()]))
     p.add_argument('-c', '--check', action='store_true', help='just check the time parsing.')
     p.add_argument('-p', '--port', type=int, default=65432, help='reminder server port.')
     p.add_argument('-d', '--delay', action='store_true', help='the given times are delays.')
@@ -711,12 +716,31 @@ if __name__ == '__main__':
     elif args.server:
         Server(args).run()
     else:
-        retcode = send_command(args)
-        if retcode == 0 and args.message:
-            for message in args.message:
-                args.cmd = message[0]
-                args.extra = message[1:]
-                retcode = send_command(args)
-                if retcode != 0:
-                    break
+        emsg = []
+        if args.cmd:
+            emsg.append(args.cmd)
+            extra = args.cmd
+            tpat = re.compile('^[0-9]*:[0-9]*:?[0-9]*$')
+            pre = None
+            for idx in range(1, len(extra)):
+                if extra[idx].startswith(','):
+                    extra[idx] = extra[idx][1:]
+                elif tpat.match(extra[idx]):
+                    if pre is None:
+                        pre = idx
+                        emsg[0] = extra[:pre]
+                    else:
+                        emsg.append(extra[pre:idx])
+                        pre = idx
+            if pre:
+                emsg.append(extra[pre:])
+        if args.message:
+            emsg.extend(args.message)
+        retcode = 0
+        for message in emsg:
+            args.cmd = message[0]
+            args.extra = message[1:]
+            retcode = send_command(args)
+            if retcode != 0:
+                break
         sys.exit(retcode)
