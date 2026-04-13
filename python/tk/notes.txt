@@ -33,7 +33,7 @@ Contents
 			-2.1.0.3- screen distances
 			-2.1.0.4- images
 				-2.1.0.4.1- bitmap
-				-2.1.0.4.1- photo
+				-2.1.0.4.2- photo
 		-2.1.1- generic options
 	-2.2- widgets
 		-2.2.1- Text
@@ -41,6 +41,8 @@ Contents
 	-3.0- call vs eval
 		-3.0.1- call
 		-3.0.2- eval
+	-3.1- images
+
 
 # -1- general
 # 	-1.0- Terms
@@ -90,6 +92,8 @@ Contents
 ===========
 -0- general
 ===========
+In general, the tcl version that ships with python seems to be 8.6
+
 Tcl is the interpreter (handles parsing and running commands).
 Tk is the gui (handles displaying gui, events, etc).
 Tkinter is a wrapper over Tcl/Tk.
@@ -1191,35 +1195,31 @@ Create an image:
 	image create tp ...
 		where tp is: [bitmap | photo]
 
-NOTE: PIL from pillow seems to have some custom C code that will add
-handlers to specifically interact with tcl/tk.  As a result, using PIL
-is ?very likely? more efficient, but it can still be done without PIL
-by using the default PNG handler, base64 encoding, and cv2.imencode
-into png, or just direclty loading from file with the -file argument.
-
 ==================
 -2.1.0.4.1- bitmap
 ==================
 
 =================
--2.1.0.4.1- photo
+-2.1.0.4.2- photo
 =================
 options:
+	_______________
 	-data {data...}
 		list of lists
 		binary data
 		base64-encoded data (png/gif supported)
-		-file takes precedence
+		-file takes precedence if both given
+	______________________
 	-format {fmt sub opts}
 		list of fmt name and sub options
-		default
+		gif -index idx
+		png -alpha alpha
+		default (v9.1+)
 			-colorformat fmttype
 				rgb: #RRGGBB
 				rgba: #RRGGBBAA
 				list: {r g b a}
-		gif -index idx
-		png -alpha alpha
-		svg
+		svg (v9.1+)
 			-dpi <dpi>
 			-scale <scale>
 			-scaletowidth <width>
@@ -1275,15 +1275,17 @@ options:
 					offset
 					id
 					class
-
-
+	___________
 	-file fname
 		name of the file to load from.
+	________
 	-gamma g
 		gamma value, 0 = no correction
+	_________
 	-height h
 		height of image in pixels
-	-metadata
+	_______________
+	-metadata (9.1)
 		common
 			DPI (png): horizontal DPI (double)
 			aspect (png gif) horiznotal / vertical (double)
@@ -1302,10 +1304,12 @@ options:
 			________________________________________
 			update region <x0> <y0> <width> <height>
 
+	_____________
 	-palette spec
 		spec can be:
 			single number: number of shades of gray
 			R/G/B: number of shades of red, green, blue
+	________
 	-width w
 		width of image in pixels
 
@@ -1547,6 +1551,141 @@ tkinter.Tk seems to forward call and eval to tkinter.Tk.tk
 
 		NOTE: this is not possible with call() because the [] expr would
 		be changed to a literal string.
+
+============
+-3.1- images
+============
+In python images are usually represented with a HxWx3 numpy array.
+
+===
+PIL
+===
+To create a tk image from python, the choice is usually using PIL:
+`pip install pillow`
+
+```
+from PIL import Image, ImageTk
+...
+tkimage = ImageTk.PhotoImage(Image.fromarray(nparray))
+...
+label = tk.Label(r, image=tkimage)
+...
+```
+
+NOTE1: ImageTk.PhotoImage deletes the image on __del__.  After __del__, then
+the image will be unuseable and cleared from any current widgets.  Keep a ref
+to it until it can be tossed.
+
+==========
+base64 png
+==========
+Using the base64 PNG/GIF support, Images can be created without using PIL.
+NOTE:
+after some experimentation,
+it seems like base64 isn't even necessary, can just pass it in as long
+as it is bytes.
+
+```
+import cv2
+import base64
+...
+succ, npdat = cv2.imencode('.png', image)
+
+imname = r.call(
+	'image', 'create', 'photo', '-format', 'png',
+	'-data', base64.b64encode(npdat).decode('utf-8'))
+...
+label = tk.Label(r, image=imname)
+...
+r.call('image', 'delete', imname)
+```
+
+NOTE: base64 produces `bytes`, but Tk.call/eval take strs so MUST decode().
+given how python works... this probably ends up copying the png data.
+
+
+======
+timing
+======
+`tkim.py`
+
+In all tested cases, PIL is faster, which makes sense since
+it uses some C extension stuff to add a custom format handler
+
+--------
+testcase
+--------
+Given an image, create a tk image and set the
+result as the 'image' option of a Label.
+
+------------
+descriptions
+------------
+	*b64: convert to base64
+	cv2*: use Tk.call() directly
+	tkphoto*: use tk.PhotoImage to create the image.
+	TkPIL: use PIL.Image and PIL.ImageTk
+
+-------
+results
+-------
+numbers are fps.
+
+640 x 480:
+	cv2b64
+		fps: 98.71734614612178
+	cv2png
+		fps: 85.05581196978592
+	tkphotob64
+		fps: 83.40997725169568
+	tkphoto
+		fps: 86.12470124746369
+	TkPIL
+		fps: 127.98205354504671
+
+1280 x 720
+cv2b64
+  fps: 49.57976350226801
+  len: 94
+  avg: 0.020169519363565647
+  min: 0.005717039108276367
+  max: 0.03379631042480469
+cv2png
+  fps: 44.26602013193261
+  len: 110
+  avg: 0.022590691393071956
+  min: 0.009634971618652344
+  max: 0.03354525566101074
+tkphotob64
+  fps: 47.3012006965625
+  len: 111
+  avg: 0.021141112387717306
+  min: 0.009797811508178711
+  max: 0.03384590148925781
+tkphoto
+  fps: 46.03684514079057
+  len: 108
+  avg: 0.021721731733392785
+  min: 0.00872492790222168
+  max: 0.033745527267456055
+TkPIL
+  fps: 71.82907903510129
+  len: 107
+  avg: 0.013921938209890206
+  min: 0.0
+  max: 0.03172874450683594
+
+----------
+conclusion
+----------
+Use PIL if possible.
+The base64 encoding timings seem to be inconsistent,
+sometimes skipping is faster, sometimes b64 encoding is faster, likely means
+the choice is irrelevant.
+Larger images are faster, implying that regardless of choice, data still must
+be copied around, even with PIL c extensions, can't just use the data pointer
+directly.
+
 
 
 ______________________________
