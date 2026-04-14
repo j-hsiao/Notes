@@ -1,4 +1,4 @@
-.vimrc text eol=lf
+editors/vim/vimrc text eol=lf
 *.sh text eol=lf
 python/tk/remind text eol=lf
 *.vim text eol=lf
