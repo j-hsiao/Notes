@@ -227,7 +227,7 @@ setup_vim() {
 		for src in "${vimdir}/vim/${loc}"/*
 		do
 			local target="${HOME}/.vim/${loc}/${src##*/}"
-			if [[ ! -e "${target}" ]] || ! diff "${target}" "${src}"
+			if [[ "${src}" -nt "${target}" ]]
 			then
 				echo "Out of date: \"${target}\"."
 				${DRYRUN:+echo} ${CREATE:-cp} "${src}" "${target}"
