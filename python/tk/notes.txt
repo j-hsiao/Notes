@@ -10,6 +10,7 @@ Contents
 		-1.3.3- strings
 		-1.3.4- Associative Arrays
 		-1.3.5- dicts
+		-1.3.6- default variables
 	-1.4- looping
 	-1.5- branching
 	-1.6- Other commands
@@ -24,6 +25,7 @@ Contents
 		-1.6.7- filesystems
 		-1.6.8- info
 		-1.6.9- wm
+		-1.6.10- after
 	-1.7- packages
 -2- tk
 	-2.1- options
@@ -449,6 +451,10 @@ array size arrname               len(d)
 -1.3.3- strings
 ===============
 string command works with strings:
+
+Strings can be either double-quoted ("") or in curly braces {}.
+curly braces are literal strings
+
 String commands are all sub-commands of the string command
 _________________
 string length str
@@ -568,6 +574,73 @@ dict create k v k v...
 	set a [dict create k v k v...]
 _______________________
 dict get dictVAL key...
+
+=========================
+-1.3.6- default variables
+=========================
+auto_path
+	list of paths to search for packages
+env
+	array of environment variables ${env(ENVVARNAME)}
+	special values:
+		TCL_LIBRARY: initial ?systemwide? tcl scripts dir
+		TCLLIBPATH: initializatin for auto_path
+		TCL_TZ
+		TZ
+		LC_ALL
+		LC_MESSAGES
+		LANG
+		TCL_INTERP_DEBUG_FRAME
+errorCode
+	The last erorr
+errorInfo
+	list of lines, a stack trace
+tcl_library
+tcl_patchLevel
+tcl_pkgPath
+tcl_platform
+	an array with keys:
+	byteOrder: [littleEndian|bigEndian]
+	debug: ?windows only?
+	engine: name of Tcl language implementation
+	machine: [intel|PPC|68k|sum4m|x86_64,...], same as `uname -m`
+	os: [Windows NT|SunOS|Linux...], same as uname -s
+	osVersion: version number, same as `uname -r`
+	pathSeparator: sep char for ${PATH}
+	platform: [windows|unix]
+	pointerSize: pointerSize (sizeof(void*))
+	threaded: bool
+	user: user name (getuid/getpwuid/GetUserName) $USER
+	wordSize: sizeof(long)
+tcl_precision
+	"applications should not change this value"
+tcl_rcFileName
+	startup file, ~/.tclshrc
+tcl_traceCompile
+	amount of tracing information
+	0: nothing
+	1: single-line summary of compilation
+	2:detailed listing of bytecode instructions of compilation
+tcl_traceExec
+	info during bytecode execution
+	0: no info
+	1: single-line
+	2: any tcl command
+	3: every bytecode
+tcl_wordchars
+	regexp of what chars are words. generally \S \w
+tcl_nonwordchars
+	regexp of not words, generally \s or \W
+tcl_version
+	the tcl version, x.y
+argc
+	number of arguments to tclsh
+argv
+	list of arguments to tclsh
+argv0
+	the script or invocation name
+tcl_interactive
+	1 if interactive else 0 (?event driven?)
 
 =============
 -1.4- looping
@@ -703,6 +776,25 @@ on code varlist script
 
 trap pattern varlist script
 	If error and prefix of -errorcode matches pattern.
+	error codes are lists {type data...}
+	ARITH code msg
+		codes:
+			DIVZERO
+			DOMAIN
+			IOVERFLOW
+			OVERFLOW
+			UNKNOWN
+	CHILDKILLED pid signame msg
+		child killed by a signal
+	CHILDSTATUS pid code
+		child exited non-zero
+	CHILDSUSP pid signame msg
+		child suspended by a signal
+	NONE
+	POSIX ename msg
+		ename: a posix error such as ENOENT
+	TCL ...
+		some internal tcl error
 
 examples:
 	try {
@@ -1049,6 +1141,44 @@ title(title): set window title
 
 overrideredirect: ignore window manager->no top ribbon, doesn't show
 	up in list of windows, etc, attributes are invalid.
+==============
+-1.6.10- after
+==============
+after tm
+	sleep for tm msecs, <0 treated as 0
+after tm script
+	do script after tm msecs
+	0 = immediately next
+	return an id
+after cancel id
+	cancel a scheduled after script.
+	If already run, does nothing.
+after idle script
+	run next time event loop is enterred.
+after info
+	All existing ids
+after info id
+	id must refer to an existing scheduled after.
+	"Must not have triggered yet or been cancelled."
+	Return a list of {script [idle|timer]}
+
+===============
+-1.6.11- append
+===============
+append vname v1 v2 v3 ...
+	concatenate vi and append to variable named vname
+	NOTE: "more efficient than" `set vname "${vname}newdata"
+
+==============
+-1.6.12- apply
+==============
+apply func arg...
+	apply an anonymous function
+	func: {args body} or {args body namespace}
+	This is similar to [](args){body}(callargs...) in C
+	`namespace` is always taken as relative to global.
+
+
 
 ==============
 -1.7- packages
