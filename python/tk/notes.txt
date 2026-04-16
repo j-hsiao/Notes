@@ -13,20 +13,24 @@ Contents
 		-1.3.6- default variables
 	-1.4- looping
 	-1.5- branching
-	-1.6- Other commands
-		-1.6.0- eval
-		-1.6.1- expr
-		-1.6.2- puts
-		-1.6.3- bind
-		-1.6.4- try
-		-1.6.5- incr
-		-1.6.6- io
-			-1.6.7- channels
-		-1.6.7- filesystems
-		-1.6.8- info
-		-1.6.9- wm
-		-1.6.10- after
-	-1.7- packages
+	-1.6- packages
+	-1.7- error handling
+		-1.7.1- try
+		-1.7.2- bgerror
+	-1.9- Other commands
+		-1.9.0- eval
+		-1.9.1- expr
+		-1.9.2- puts
+		-1.9.3- bind
+		-1.9.4- interp
+		-1.9.5- incr
+		-1.9.6- io
+			-1.9.7- channels
+		-1.9.7- filesystems
+		-1.9.8- info
+		-1.9.9- wm
+		-1.9.10- after
+		-1.9.11- binary
 -2- tk
 	-2.1- options
 		-2.1.0- values
@@ -699,70 +703,76 @@ with only 1 argument.  It wouldn't know that if actually expects
 opening brace of the body MUST BE ON THE SAME LINE as the closing
 brace of the condition.
 
+==============
+-1.6- packages
+==============
+____________
+source fname
+	load files, similar to shell source or python import
+	on success, return last return value
+	return will cause the source to return immediate, like bash
+	fname will be ~expanded
+_______
+package
+	A package is a directory containing:
+		pkgIndex.tcl (Should ONLY tell how to load)
+			should contain `package ifneeded`
+		script with `package provide` command
+		Place package on a search path: `auto_path`
+		NOTE:
+			docs mention a `tcl_pkgPath`, but this is ?only for initialization?
+			adding to tcl_pkgPath WILL NOT allow you to load new packages.
+			"Note: tcl_pkgPath is not intended to be modified by the application"
+	subcommands:
+		require [-exact] name [version]
+			import a package with optional version.
+			Look for same major version number or exact if `-exact`
+		provide name [version]
+			declare a package.  If already loaded, then return the version
+			otherwise empty string.
+		ifneeded pkg version script
+			register a script to load the package if it is ever required.
+			This should go in the pkgIndex.tcl
+___________
+pkg_mkIndex [-direct] [-lazy] [-load pkgPat] [-verbose] dir [pat1 pat2 ....]
+	Helper to create a package index file.
+	Load files matching pat and search for `package provide` commands
+
+_____________________________
+namespace ensemble subcommand
+	___________________
+	create [opt val...]
+		Create an ensemble. The main namespace becomes the command.
+	______________________________
+	configure command [opt val...]
+		Change or query options
+	______________
+	exists command
+		return bool
+
+	options:
+		shared:
+			-command name
+				Change the ensemble name
+			-map
+				a dict for subcommand to a list of prefix words to full name
+			-parameters
+				list of named arguments between ensemble and subcommand
+			-subcommands
+				list of subcommands
+			-unknown
+				fallback command
+		create:
+			-command
+				Change the name of the created ensemble, defaults to full namespace where it is called
+		configure:
+			-namespace
+				gets value of -command from create
 ====================
--1.6- Other commands
+-1.7- error handling
 ====================
-============
--1.6.0- eval
-============
-eval [args...]
-	Concatenate args to a line and pass it to the interpreter
-	Use [list args...] to quote args as desired.
-============
--1.6.1- expr
-============
-Evaluate an expression.  This could be a mathematical expression.
-It could be a str.  Note, although expr allows multiple args
-(concatenated, then evaluated), using a single argument is faster
-(skips concatenation step) so using {} is recommended.
-
-	-+~!      (unary) negative, positive, bit-wise not, logical not
-	**        exponent
-	*/%       multiply/divide/remainder(pos)
-	+-        add/subtract
-	<<>>      left/right (signed)bitshift
-	<> <= >=  comparison, strings or nums ok
-	== !=     equality, all types ok
-	eq ne     str comparison
-	in ni     contained, negated contains (ni = not in)
-	&^|       bitwise operators
-	&&||      logical [and|or], numeric only
-	x?y:z     ternary, x must be bool or numeric
-	$$vname   variable indirection
-
-math functions (::tcl::mathfunc::*)
-	abs   acos    asin    atan
-	atan2 bool    ceil    cos
-	cosh  double  entier  exp
-	floor fmod    hypot   int
-	isqrt log     log10   max
-	min   pow     rand    round
-	sin   sinh    sqrt    srand
-	tan   tanh    wide
-
-
-examples:
-	set a 32
-	puts $a       # prints '$a'
-	expr $a       # prints 32
-	expr $a + 5   # prints 37
-	expr "$a + 5" # prints the string "32 + 5"
-============
--1.6.2- puts
-============
-puts [-nonewline] [channelid] msg
-	msg must be a single string.
-	channelid must be from `open` or `socket` or one of [stdout | stderr].
-
-============
--1.6.3- bind
-============
-bind tag <seq> [+]{script}
-bind only takes tag. To apply a binding to a widget, use
-bindtags to add the corresponding tag to the widget's bindtags.
-
 ===========
--1.6.4- try
+-1.7.1- try
 ===========
 try {body} {handler}? ?finally {script}?
 
@@ -809,13 +819,286 @@ examples:
 		...
 	}
 
+
+===============
+-1.7.2- bgerror
+===============
+bgerror is the default "background exception handler".  It is used
+when an error happens in background such as when `update` is called.
+It takes a single {message} the `interp bgerror` (see interp command)
+command changes the background handler after 8.5 otherwise, would need
+to overwrite ::bgerror proc to change handling.
+
+The exception handler is a list.  A value and return opts dict will
+be added and then the result is execed in global namespace.
+
+NOTE: python function errors are not caught via bgerror.
+tk's bind() will wrap a function with a try/except.  However, createcommand()
+will not.  An exception inside this will cause the error to propagate.
+
+
+====================
+-1.9- Other commands
+====================
 ============
--1.6.5- incr
+-1.9.0- eval
+============
+eval [args...]
+	Concatenate args to a line and pass it to the interpreter
+	Use [list args...] to quote args as desired.
+============
+-1.9.1- expr
+============
+Evaluate an expression.  This could be a mathematical expression.
+It could be a str.  Note, although expr allows multiple args
+(concatenated, then evaluated), using a single argument is faster
+(skips concatenation step) so using {} is recommended.
+
+	-+~!      (unary) negative, positive, bit-wise not, logical not
+	**        exponent
+	*/%       multiply/divide/remainder(pos)
+	+-        add/subtract
+	<<>>      left/right (signed)bitshift
+	<> <= >=  comparison, strings or nums ok
+	== !=     equality, all types ok
+	eq ne     str comparison
+	in ni     contained, negated contains (ni = not in)
+	&^|       bitwise operators
+	&&||      logical [and|or], numeric only
+	x?y:z     ternary, x must be bool or numeric
+	$$vname   variable indirection
+
+math functions (::tcl::mathfunc::*)
+	abs   acos    asin    atan
+	atan2 bool    ceil    cos
+	cosh  double  entier  exp
+	floor fmod    hypot   int
+	isqrt log     log10   max
+	min   pow     rand    round
+	sin   sinh    sqrt    srand
+	tan   tanh    wide
+
+
+examples:
+	set a 32
+	puts $a       # prints '$a'
+	expr $a       # prints 32
+	expr $a + 5   # prints 37
+	expr "$a + 5" # prints the string "32 + 5"
+============
+-1.9.2- puts
+============
+puts [-nonewline] [channelid] msg
+	msg must be a single string.
+	channelid must be from `open` or `socket` or one of [stdout | stderr].
+
+============
+-1.9.3- bind
+============
+bind tag <seq> [+]{script}
+bind only takes tag. To apply a binding to a widget, use
+bindtags to add the corresponding tag to the widget's bindtags.
+
+==============
+-1.9.4- interp
+==============
+The interp command works with tcl interpreter(s).  Each interpreter
+has a name, usually referred to as a "path".  This is just a list
+of interp names from root.  When referring to other interpreters,
+the "path" is RELATIVE.  This means that there is no way for
+an interp to directly refer to parents or siblings.
+The parent interp must do any setup such as aliasing to allow such
+interpreters to refer to each other.
+
+An empty list refers to the current interpreter.
+
+-----------------
+safe interpreters
+-----------------
+Safe interpreters are interpreters running in safe mode.  They cannot
+do fileio or run subprocs.
+?? but then docs say ?? "The dangerous functionality is not removed from the safe interpreter; instead, it is hidden..."
+The goal of safe interpreters seems to be to run untrusted code such as from a user...
+
+-------
+aliases
+-------
+Aliases are expanded only in the child interpreter and NEVER
+in the parent interpreter.
+
+--------------
+child commands
+--------------
+When creating an interpreter, a subcommand for the interpreter is created as well.
+With some minor differences, this is basically just an alias for the interp
+command, except with [path] auto-filled with the corresponding interp.
+child subcommands:
+	aliases
+	alias aliasID
+	alias aliasID {}
+	alias aliasID alias parcmd [args...]
+		child calls parent cmd
+	bgerror [cmd [args...]]
+	eval cmd [args...]
+	expose hiddenName [exposedName]
+	hide exposedname [hiddenname]
+	hidden
+	invokehidden [-option...] hiddenName [args...]
+	issafe
+	limit tp [-option value...]
+	marktrusted
+	recursionlimit [limit]
+
+
+
+==============================
+-1.9.4.1- subinterp management
+==============================
+____________________________________________
+interp cancel [-unwind] [--] [path] [result]
+	Cancel the script being evaluated in the corresponding interp.
+	with -unwind, disregard any catches etc.
+	If result is given, use it as the error message string.
+_________________________________
+interp create [-safe] [--] [path]
+	Create a child interpreter.  The parent must exist.  A "child command"
+	is created in its immediate parent and is the same as the
+	interpreter's direct name (last item in [path])
+	example:
+	interp create {a b c d}->
+		creates interpreter named "d" under {a b c}
+		Interpreter {a b c} gets the "d" command which invokes the "d" interpreter
+	path defaults to "interpx" where x is some number
+	Error if path already exists.
+____________________
+interp delete [path...]
+	delete interpreters recursively.  Error if not exist.
+_____________________________
+interp eval path arg [arg...]
+	concat args and run under the given interp
+	same as `interpcmd eval arg [arg...]`
+__________________
+interp exists path
+	check if the interpreter exists.
+____________________
+interp issafe [path]
+	return whether interp is safe.
+______________________________________________
+interp limit path limitType [-option value...]
+	Check/Set limits on interpreter.  When reached, an error is raised.
+	limitType:
+		command (number of commands allowed)
+		time (absolute time)
+	options:
+		-command script
+			callback for reaching limit.  Might modify/increase limits
+		-granularity g
+			how frequently the limits are checked to limit limit-check overhead
+			(but what are the units??)
+		-milliseconds
+			specifies number of msecs, requires -seconds
+		-seconds
+			The last unix timestamp that interp is allowed to run.
+			Empty for no limit.
+		-value
+			number of commands that the interp can execute or empty for no limit
+_______________________
+interp marktrusted path
+	Mark the interp as trusted.  Only works if called
+	by a trusted interp.
+_____________________________________
+interp recursionlimit path [newlimit]
+	Set/check recursion limit
+____________________
+interp slaves [path]
+	list all child interpreters for [path]
+______________________
+interp children [path]
+	synonym for slaves
+
+=================
+-1.9.4.2- aliases
+=================
+____________________________
+interp alias srcPath aliasID
+	Return the targetcmd of the specified alias.
+________________________________
+interp alias srcpath aliasID {}
+	Delete the alias
+_________________________________________________________
+interp alias srcpath srccmd targetpath targetcmd [arg...]
+	Create an alias in src that calls a command in target
+	Any arguments to srccmd will be appended to `targetcmd [arg...]`
+	Return an aliasID
+_____________________
+interp aliases [path]
+	Return a list of aliasIDs
+__________________________
+interp target path aliasID
+	Return {path cmd} of the alias.
+
+================
+-1.9.4.3- hiding
+================
+Used to hide commands.
+Hidden commands still have a name to refer to the
+corresponding command, it just can't be called.
+In general, this should probably be the hidden and
+exposed name should probably be the same.  Commands
+fail if the target name already exists.
+
+NOTE: hiding only works on commands in the global namespace.
+
+______________________________________________
+interp expose path hiddenName [exposedCmdName]
+	Add an "exposed name" for hidden command.
+_______________________________________________
+interp hide path exposedCmdName [hiddenCmdName]
+	Hide an "exposed command" under hiddenCmdName
+__________________
+interp hidden path
+	return a list of hidden names
+_____________________________________________________________
+interp invokehidden path [-option ...] hiddenCmdName [arg...]
+	Invoke a hidden command with given args in current namespace
+	options:
+		-namespace
+			the namespace to run in
+		-global
+			Run in the global namespace (takes precedence over -namespace)
+		--
+
+=================
+-1.9.4.4- sharing
+=================
+_______________________________________
+interp share srcpath channelid destpath
+	Share a channel in interp src with interp dest
+__________________________________________
+interp transfer srcpath channelid destpath
+	Same as share, except close the channel in src interp
+
+===============
+-1.9.4.9- other
+===============
+__________________________________
+interp bgerror path [cmd [args...]]
+	Set the bgerror handler to `cmd [args...]` if given
+	Otherwise return the current handler.
+_________________________________
+interp debug path [-frame] [bool]
+	Return current setting if bool not given, otherwise,
+	set whether frame-level stack info is captured.
+	(affects info frame)
+
+
+============
+-1.9.5- incr
 ============
 	Incr is useful for incrementing values in for loops.
 
 ==========
--1.6.6- io
+-1.9.6- io
 ==========
 stdout stdin stderr or return from `open`
 _____________________________
@@ -853,7 +1136,7 @@ source fname
 	source a file
 
 ==================
--1.6.6.1- channels
+-1.9.6.1- channels
 ==================
 Channels have callbacks for onreadable and onwritable.
 If waiting is required, then set a variable in the handler
@@ -918,7 +1201,7 @@ chan
 		truncate
 
 ===================
--1.6.7- filesystems
+-1.9.7- filesystems
 ===================
 __________
 cd [dname]
@@ -973,7 +1256,7 @@ glob [switches] pattern [pattern2 ...]
 	~[loginid]    loginid's home dir, defaulting to current user
 
 ====================
--1.6.8- subprocesses
+-1.9.8- subprocesses
 ====================
 _________________________________
 open |{cmd arg1 arg2...} [access]
@@ -1014,7 +1297,7 @@ exec [switches] arg1 [arg2...]
 		Any stderr output from subprocesses is considered an error.
 		Normally, globbing is handled by the shell. To glob, use [glob ...]
 ============
--1.6.8- info
+-1.9.8- info
 ============
 Info is similar to dir in python. Subcommands:
 	args procname
@@ -1091,7 +1374,7 @@ Info is similar to dir in python. Subcommands:
 		list of variables (combo of globals and locals)
 
 ==========
--1.6.9- wm
+-1.9.9- wm
 ==========
 The window manager manages windows...
 On Windows 10?, window manager pushes windows a few pixels to the right.
@@ -1142,7 +1425,7 @@ title(title): set window title
 overrideredirect: ignore window manager->no top ribbon, doesn't show
 	up in list of windows, etc, attributes are invalid.
 ==============
--1.6.10- after
+-1.9.10- after
 ==============
 after tm
 	sleep for tm msecs, <0 treated as 0
@@ -1163,14 +1446,14 @@ after info id
 	Return a list of {script [idle|timer]}
 
 ===============
--1.6.11- append
+-1.9.11- append
 ===============
 append vname v1 v2 v3 ...
 	concatenate vi and append to variable named vname
 	NOTE: "more efficient than" `set vname "${vname}newdata"
 
 ==============
--1.6.12- apply
+-1.9.12- apply
 ==============
 apply func arg...
 	apply an anonymous function
@@ -1179,72 +1462,59 @@ apply func arg...
 	`namespace` is always taken as relative to global.
 
 
+===============
+-1.9.11- binary
+===============
+Handle binary data
+subcommands:
+	decode format [-option value...] data
+	encode format [-option value...] data
+		format:
+			base64
+				-maxlen length
+					split lines to length
+				-wrapchar char
+					when splitting lines, use char to separate them (default \n)
+				-strict
+					error if not strictly base64, otherwise ignore it.
+			hex
+				-strict:
+					error if whitespace else ignore
+			uuencode
+				same options as base64
+				This encoding ?is outdated?
+	format format [args...]
+	scan string format [outvars...]
+		like printf/scanf
+		Each item is type[flag][count]
+		type:
+			a
+				fixed width ascii string padded with nul
+			A
+				fixed widtha scii string padded with space
+			b
+				store binary string (01) as an int
+				Store from low-to-high as an int (inverts the binary string)
+			B
+				same as b but high to low
+			TODO
 
-==============
--1.7- packages
-==============
-____________
-source fname
-	load files, similar to shell source or python import
-	on success, return last return value
-	return will cause the source to return immediate, like bash
-	fname will be ~expanded
-_______
-package
-	A package is a directory containing:
-		pkgIndex.tcl (Should ONLY tell how to load)
-			should contain `package ifneeded`
-		script with `package provide` command
-		Place package on a search path: `auto_path`
-		NOTE:
-			docs mention a `tcl_pkgPath`, but this is ?only for initialization?
-			adding to tcl_pkgPath WILL NOT allow you to load new packages.
-			"Note: tcl_pkgPath is not intended to be modified by the application"
-	subcommands:
-		require [-exact] name [version]
-			import a package with optional version.
-			Look for same major version number or exact if `-exact`
-		provide name [version]
-			declare a package.  If already loaded, then return the version
-			otherwise empty string.
-		ifneeded pkg version script
-			register a script to load the package if it is ever required.
-			This should go in the pkgIndex.tcl
-___________
-pkg_mkIndex [-direct] [-lazy] [-load pkgPat] [-verbose] dir [pat1 pat2 ....]
-	Helper to create a package index file.
-	Load files matching pat and search for `package provide` commands
 
-_____________________________
-namespace ensemble subcommand
-	___________________
-	create [opt val...]
-		Create an ensemble. The main namespace becomes the command.
-	______________________________
-	configure command [opt val...]
-		Change or query options
-	______________
-	exists command
-		return bool
+		flag:
+		count:
+			take N chars from corresponding value
+			int>0
+			*: all of them
 
-	options:
-		shared:
-			-command name
-				Change the ensemble name
-			-map
-				a dict for subcommand to a list of prefix words to full name
-			-parameters
-				list of named arguments between ensemble and subcommand
-			-subcommands
-				list of subcommands
-			-unknown
-				fallback command
-		create:
-			-command
-				Change the name of the created ensemble, defaults to full namespace where it is called
-		configure:
-			-namespace
-				gets value of -command from create
+		example:
+			binary format d3d {1.0 2.0 3.0 4.0} 0.1
+
+			d3 -> {1.0 2.0 3.0 4.0} -> takes 3 floats from here
+			d  -> 0.1               -> takes 1 float from here
+			result:
+				1.0, 2.0, 3.0, 0.1
+
+
 
 ======
 -2- tk
