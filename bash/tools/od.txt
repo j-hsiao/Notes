@@ -1,0 +1,39 @@
+od: octal dump
+
+od converts stdin into various integer formats
+
+
+=============
+-1.0- options
+=============
+-t typetypetype...
+	a  named character, ignoring high-order bit
+	c  printable char or backslash escape
+	dN Nbyte SIGNED decimal int
+	fN signed float Nbyte float
+	oN Nbyte octal
+	uN N byte UNSIGNED decimal
+	xN N byte hex
+	z  add text at end of line
+
+	N can also be
+		integral:
+			C: sizeof(char)
+			S: sizeof(short)
+			I: sizeof(int)
+			L: sizeof(long)
+		float:
+			F: sizeof(float)
+			D: sizeof(double)
+			L: sizeof(long double)
+shortcuts:
+	-a a
+	-b o1
+	-c c
+	-d u2
+	-f fF
+	-i dI
+	-l dL
+	-o o2
+	-s d2
+	-x x2
