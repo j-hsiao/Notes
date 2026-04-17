@@ -891,40 +891,36 @@ Use tmux list-keys to list all key bindings.
 _________________________
 normal vs repeat bindings
 normal bindings: consume keys, do nothing if no binding (consume the keypress)
-repeat bindings: check keys, let the keypress go if NO REPEAT BINDINGS IN THE CURRENT TABLE.
+	example: default prefix: C-b, default bindings does not have `bind-key -Tprefix a`
+	pressing <C-b><a> does nothing.
+repeat bindings: check keys, let the keypress pass through if NO REPEAT BINDINGS IN THE CURRENT TABLE.
+	<C-b><C-Up>: resize pane
+	<C-b><C-Up><C-Up><C-Up><C-Up>... keeps resizing pane
+	<q> just ends up doing q as normal, in shell, types a q onto the commandline.
+	(even though a <C-b><q> binding exists, it is not repeatable so it does not activate)
 
-	example:
-	bind u "something; switch-client -Ttesting"
-	This is a normal keybinding that ends with changing to a different key-table.
-	If a keypress is done that does not match any in the key-table, then it will be consumed and
-	nothing happens.
-
-	bind -r u "something; switch-client -Ttesting"
-	This is a repeat keybinding that ends with changing to a different key-table.
-	If a keypress is done that does not match any in the key-table, then it will NOT be consumed
-	and instead be sent to whatever program is in the current pane.
+NOTE:
+	There is an exception to this rule.
+	If the current pane is in copy mode, then pressing a non-repeat binding
+	WILL CONSUME the key and DISCARD it.
 
 ____________________________
 prefix key special treatment
-1. bindings to prefix will NEVER be used EVEN IF THE BINDING IS -Troot.
-   (except in the prefix table)
-2. prefix key after a repeat binding changes to the prefix table if not
-   already BUT MAINTAINS REPEAT MODE.  Only repeat bindings are able to be
-   activated until repeatmode ends. NOTE it also does not seem to change the
-   current repeat-time timeout.
-   ex:
-   1. set repeat-time to 10000 (10 seconds)
-   2. In a repeat keybinding, set repeat-time to 100
-   3. press prefix after 5 seconds
-   4. within 5 seconds, press another repeat keybinding -> activates
-   5. after 5 seconds, press another repeat keybinding -> does NOT activate
+The prefix key ALWAYS takes precedence.  If the current key-table is prefix,
+then the binding is used.  Otherwise, it ALWAYS just changes to the prefix table.
+However, this also does NOT interrupt key-bind repeating, nor does it reset the
+repeat timeout.
+ex:
+	time
+	|
+	|--press prefix key
+	|
+	|
+	|--Press prefix key before the timeout
+	|--would timeout
+	|--press a repeat-key immediately after original timeout -> does NOT activate keybinding
+	V
 
-Allow prefix to behave like any other keybind:
-1. set-option prefix None
-2. add a root binding `bind -Troot prefix "switch-client -Tprefix"`
-
-now "prefix" still activates bindings etc
-BUT it nolonger takes the weird priority it seems to take if activated via the prefix setting.
 
 =============
 -2.1- general
