@@ -25,12 +25,16 @@ Contents
 		-1.9.4- interp
 		-1.9.5- incr
 		-1.9.6- io
-			-1.9.7- channels
+			-1.9.6.1- channels
 		-1.9.7- filesystems
 		-1.9.8- info
 		-1.9.9- wm
 		-1.9.10- after
 		-1.9.11- binary
+		-1.9.12- break
+		-1.9.13- catch
+		-1.9.14- return
+		-1.9.15- cd
 -2- tk
 	-2.1- options
 		-2.1.0- values
@@ -1182,14 +1186,31 @@ chan
 					inout: setting for both, or a tcl list for read and write
 						separately.
 						values: [auto|binary|cr|crlf|lf]
-		copy
-		create
-		eof
-		event
-		flush
-		gets
-		names
-		pending
+		copy inp out [-size nbytesOrChars] [-command cb]
+			Copy data from inp to out
+			Stop when eof or size, whichever is first
+			-size: bytes if inp and out have same encoding, else chars
+			-command puts the copy in the background. call cb when done.
+				cb is called with {nbytes errmessage}
+				must use vwait or tk to enter loop for background tasks to happen
+		create mode cmdPrefix
+			create a "reflected" new channel with cmdPrefix as handler.
+			cmdprefix must provide interface in refchan
+			mode: list of read|write or both
+		eof channelid
+			test if the channel is eof
+		event channelid [readable|writable] [script]
+			set or get callback script for the event
+		flush channelid
+			flush the buffered output for channel
+		gets channelid [varname]
+			read next line and return if varname is omitted
+			else number of chars (-1 if eof)
+		names ?pattern?
+			list of channel names matching pattern if specified
+		pending [input|output] channelid
+			number of buffered input/output bytes
+			-1 if not opened in the given mode.
 		pipe
 		pop
 		postevent
@@ -1487,32 +1508,187 @@ subcommands:
 	scan string format [outvars...]
 		like printf/scanf
 		Each item is type[flag][count]
-		type:
+		For scan, inadequate outvars will result in error.
+		Store items into outvars and return number of vars parsed.
+		NOTE:
+			when scanning:
+				1. integral values will be sign-extended into 32-bit ints (unless 'u' flag)
+				2. Variables will not be initialized if the input string is not long enough.
+
+		_____
+		count
+			If given, then take N chars from corresponding value
+			If omitted, the value must be a single item
+			If *, then take all values
+			example:
+				binary format d3dd1d {1.0 2.0 3.0 4.0} 0.1 {0.1 0.2} {0.1 0.2}
+
+				d3 + {1.0 2.0 3.0 4.0} -> 1.0 2.0 3.0
+				d  + 0.1               -> 0.1
+				d1 + {0.1 0.2}         -> 0.1
+				d  + {0.1 0.2}         -> ERROR, no count, but not a single value
+		_____
+		flags
+			u: unsigned
+		____
+		type
 			a
-				fixed width ascii string padded with nul
+				fixed width, left-justified ascii string padded with nul
+				example:
+					binary scan abcdefghij a6a10 var1 var2
+					var1 -> abcdef
+					var2 -> not set (< 10 remaining chars)
 			A
-				fixed widtha scii string padded with space
+				format:
+					fixed width a, left-justified ascii string padded with space
+				scan:
+					same as a but strip trailing space/nul
 			b
-				store binary string (01) as an int
-				Store from low-to-high as an int (inverts the binary string)
+				format:
+					Split binary string into 8bit bytes(0padded on the right)
+					and store each item as low-to-high bits.
+					(inverts the number)
+					example:
+						`binary format b5b* 11100 111000011010`
+						b5 + 11100 -> 11100000 -> 00000111 -> \x07
+						b* + 111000011010 -> 11100001 10100000 -> 10000111 00000101 -> \x87\x05
+				scan:
+					split into bytes and grab bits from low to high, ignoring any extra trailing bytes.
 			B
 				same as b but high to low
-			TODO
+				example:
+					`binary format B5B* 11100 111000011010`
+					B5 + 11100 -> 11100000 -> \xe0
+					B* + 111000011010 -> 11100001 1010 -> 11100001 10100000 -> \xe1\xa0
+			H
+				count hex digits high to low
+				example:
+					binary format H3H*H2 ab DEF 987
+					H3 + ab -> ab00 -> \xab\x00
+					H* + DEF -> DEF0 -> \xde\xf0
+					H2 + 987 -> 98 -> \x98
+			h
+				same as H except low to high
+				example:
+					binary format h3h*h2 ab DEF 987
+					h3 + ab -> ab00 -> ba 00 -> \xba\x00
+					h* + DEF -> DEF0 -> ED 0F -> \xed\x0f
+					h2 + 987 -> 98 -> \x89
+			c
+				store char ints
+				example:
+					binary format c3cc* {3 -3 128 1} 260 {2 5}
+						c3 + {3 -3 128 1} -> \x03\xfd\x80
+						c + 260 -> 0x104 -> \x04
+						c* + {2 5} -> \x02\x05
+			s
+				store little endian shorts
+				example:
+					binary format s3 {3 -3 258 1}
+					\x03\x00\x0xfd\xff\x02\x01
+			S
+				store big endian shorts
+				example:
+					binary format S3 {3 -3 258 1}
+					\x00\x03\xff\xfd\x01\x02
+			t
+				same as s/S except native order
+			i
+				store 32-bit little-endian ints
+				example:
+					binary format i3 {3 -3 65536 1}
+					0x03\x00\x00\x00\xfd\xff\xff\xff\x00\x00\x01\x00
+			I
+				store 32-bit big-endian ints
+				example:
+					binary format i3 {3 -3 65536 1}
+					0x00\x00\x00\x03\xff\xff\xff\xfd\x00\x01\x00\x00
+			n
+				same as i/I except native order
+			w
+				64-bit little-endian ints
+			W
+				64-bit big-endian ints
+			m
+				64-bit native-endian ints
+			f
+				32-bit native-repr floats
+			r
+				32-bit little-endian float
+			R
+				32-bit big-endian float
+			d
+				64-bit native-repr double
+			q
+				64-bit little-endian double
+			Q
+				64-bit big-endian double
+			x
+				pad with nullbytes (like moving forward N bytes)
+			X
+				move cursor back N bytes
+			@
+				move cursor to absolute location
 
+==============
+-1.9.12- break
+==============
+break causes a break exception (3, TCL_BREAK)
+By default, break exceptions are caught by loops which then exit.
+They are also handled by catch, tk event bindings, and ?"outermost scripts of proc bodies"?
 
-		flag:
-		count:
-			take N chars from corresponding value
-			int>0
-			*: all of them
+==============
+-1.9.13- catch
+==============
+catch script [resultvar] [optsvar]
+similar to except store results instead.
+Returns the corresponding `on` handler for try
+	0: ok
+	1: error
+	2: return
+	3: break
+	4: continue
 
-		example:
-			binary format d3d {1.0 2.0 3.0 4.0} 0.1
+Store return value in resultvar and return options in optsvar
 
-			d3 -> {1.0 2.0 3.0 4.0} -> takes 3 floats from here
-			d  -> 0.1               -> takes 1 float from here
-			result:
-				1.0, 2.0, 3.0, 0.1
+===============
+-1.9.14- return
+===============
+return [-code code] [-opt opts] [result]
+
+result defaults to the empty string
+return will also interrupt a file being sourced
+
+_____
+-code
+	ok | 0
+	error | 1
+	return | 2
+	break | 3
+	continue | 4
+
+NOTE:
+	return does not exactly behave as break/continue/error, etc
+	while {1==1} {break} -> breaks the while as normal
+		vs
+	while {1==1} {return -code break} -> errors out: invoked "break" outside of a loop
+	-code return:
+		decrement -level, if 0, then use -code as the procedure's -code.
+		Otherwise, -code is still return
+_______
+options
+	-errorcode errorlist
+	-errorinfo stacktraceinfo
+	-errorstack stacklist
+	-level level
+	-options dict
+
+===========
+-1.9.15- cd
+===========
+Change working dir
+applies to al interps
+
 
 
 
