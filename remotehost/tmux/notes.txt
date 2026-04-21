@@ -698,7 +698,16 @@ displayp | display-panes [-bN] [-d duration] [-t target-client] [template]
 	-b: do not block other commands while displaying
 	-N: display until keypress (?but do not change pane? man doesn't mention this, but trying it out, it seems to work like this)
 findw | find-window
-joinp | join-pane
+joinp | join-pane [-bdfhv] [-l size] [-s src-pane] [-t dst-pane]
+	-d: (not documented, but probably keep the current pane active?)
+	-f: full window height/width
+	-h: join panes horizontally (vertical cut)
+	-l: new pane size in lines/cols or X%
+	-v: join panes vertically (horizontal cut)
+	-b: left or above
+	-s: if omitted, use a marked pane
+	"This is like split-window" except instead of a new shell in the new pane,
+	move the source pane into the new pane.
 killp | kill-pane
 killw | kill-window
 lastp | last-pane
