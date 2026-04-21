@@ -21,20 +21,24 @@ Contents
 		-1.9.0- eval
 		-1.9.1- expr
 		-1.9.2- puts
-		-1.9.3- bind
-		-1.9.4- interp
-		-1.9.5- incr
-		-1.9.6- io
-			-1.9.6.1- channels
-		-1.9.7- filesystems
-		-1.9.8- info
-		-1.9.9- wm
-		-1.9.10- after
-		-1.9.11- binary
-		-1.9.12- break
-		-1.9.13- catch
-		-1.9.14- return
-		-1.9.15- cd
+		-1.9.3- interp
+			-1.9.3.1- subinterp management
+			-1.9.3.2- aliases
+			-1.9.3.3- hiding
+			-1.9.3.4- sharing
+			-1.9.3.9- other
+		-1.9.4- incr
+		-1.9.5- io
+			-1.9.5.1- channels
+		-1.9.6- filesystems
+		-1.9.7- info
+		-1.9.8- wm
+		-1.9.9- after
+		-1.9.10- binary
+		-1.9.11- break
+		-1.9.12- catch
+		-1.9.13- return
+		-1.9.14- cd
 -2- tk
 	-2.1- options
 		-2.1.0- values
@@ -44,14 +48,22 @@ Contents
 			-2.1.0.4- images
 				-2.1.0.4.1- bitmap
 				-2.1.0.4.2- photo
+			-2.1.0.5- stipple
 		-2.1.1- generic options
-	-2.2- widgets
-		-2.2.1- Text
+	-2.2- commands
+		-2.2.1- bind
+			-2.2.1.1- modifiers
+			-2.2.1.2- event types
+			-2.2.1.3- substitutions
+		-2.2.2- event
+	-2.3- widgets
+		-2.3.1- Text
 -3- tkinter
 	-3.0- call vs eval
 		-3.0.1- call
 		-3.0.2- eval
 	-3.1- images
+	-3.2- callbacks
 
 
 # -1- general
@@ -896,15 +908,8 @@ puts [-nonewline] [channelid] msg
 	msg must be a single string.
 	channelid must be from `open` or `socket` or one of [stdout | stderr].
 
-============
--1.9.3- bind
-============
-bind tag <seq> [+]{script}
-bind only takes tag. To apply a binding to a widget, use
-bindtags to add the corresponding tag to the widget's bindtags.
-
 ==============
--1.9.4- interp
+-1.9.3- interp
 ==============
 The interp command works with tcl interpreter(s).  Each interpreter
 has a name, usually referred to as a "path".  This is just a list
@@ -956,7 +961,7 @@ child subcommands:
 
 
 ==============================
--1.9.4.1- subinterp management
+-1.9.3.1- subinterp management
 ==============================
 ____________________________________________
 interp cancel [-unwind] [--] [path] [result]
@@ -1021,7 +1026,7 @@ interp children [path]
 	synonym for slaves
 
 =================
--1.9.4.2- aliases
+-1.9.3.2- aliases
 =================
 ____________________________
 interp alias srcPath aliasID
@@ -1042,7 +1047,7 @@ interp target path aliasID
 	Return {path cmd} of the alias.
 
 ================
--1.9.4.3- hiding
+-1.9.3.3- hiding
 ================
 Used to hide commands.
 Hidden commands still have a name to refer to the
@@ -1073,7 +1078,7 @@ interp invokehidden path [-option ...] hiddenCmdName [arg...]
 		--
 
 =================
--1.9.4.4- sharing
+-1.9.3.4- sharing
 =================
 _______________________________________
 interp share srcpath channelid destpath
@@ -1083,7 +1088,7 @@ interp transfer srcpath channelid destpath
 	Same as share, except close the channel in src interp
 
 ===============
--1.9.4.9- other
+-1.9.3.9- other
 ===============
 __________________________________
 interp bgerror path [cmd [args...]]
@@ -1097,12 +1102,12 @@ interp debug path [-frame] [bool]
 
 
 ============
--1.9.5- incr
+-1.9.4- incr
 ============
 	Incr is useful for incrementing values in for loops.
 
 ==========
--1.9.6- io
+-1.9.5- io
 ==========
 stdout stdin stderr or return from `open`
 _____________________________
@@ -1140,7 +1145,7 @@ source fname
 	source a file
 
 ==================
--1.9.6.1- channels
+-1.9.5.1- channels
 ==================
 Channels have callbacks for onreadable and onwritable.
 If waiting is required, then set a variable in the handler
@@ -1222,7 +1227,7 @@ chan
 		truncate
 
 ===================
--1.9.7- filesystems
+-1.9.6- filesystems
 ===================
 __________
 cd [dname]
@@ -1318,7 +1323,7 @@ exec [switches] arg1 [arg2...]
 		Any stderr output from subprocesses is considered an error.
 		Normally, globbing is handled by the shell. To glob, use [glob ...]
 ============
--1.9.8- info
+-1.9.7- info
 ============
 Info is similar to dir in python. Subcommands:
 	args procname
@@ -1395,7 +1400,7 @@ Info is similar to dir in python. Subcommands:
 		list of variables (combo of globals and locals)
 
 ==========
--1.9.9- wm
+-1.9.8- wm
 ==========
 The window manager manages windows...
 On Windows 10?, window manager pushes windows a few pixels to the right.
@@ -1446,7 +1451,7 @@ title(title): set window title
 overrideredirect: ignore window manager->no top ribbon, doesn't show
 	up in list of windows, etc, attributes are invalid.
 ==============
--1.9.10- after
+-1.9.9- after
 ==============
 after tm
 	sleep for tm msecs, <0 treated as 0
@@ -1484,7 +1489,7 @@ apply func arg...
 
 
 ===============
--1.9.11- binary
+-1.9.10- binary
 ===============
 Handle binary data
 subcommands:
@@ -1631,14 +1636,14 @@ subcommands:
 				move cursor to absolute location
 
 ==============
--1.9.12- break
+-1.9.11- break
 ==============
 break causes a break exception (3, TCL_BREAK)
 By default, break exceptions are caught by loops which then exit.
 They are also handled by catch, tk event bindings, and ?"outermost scripts of proc bodies"?
 
 ==============
--1.9.13- catch
+-1.9.12- catch
 ==============
 catch script [resultvar] [optsvar]
 similar to except store results instead.
@@ -1652,7 +1657,7 @@ Returns the corresponding `on` handler for try
 Store return value in resultvar and return options in optsvar
 
 ===============
--1.9.14- return
+-1.9.13- return
 ===============
 return [-code code] [-opt opts] [result]
 
@@ -1684,7 +1689,7 @@ options
 	-options dict
 
 ===========
--1.9.15- cd
+-1.9.14- cd
 ===========
 Change working dir
 applies to al interps
@@ -1761,6 +1766,8 @@ Default fonts defined by tk
 ==========================
 -2.1.0.3- screen distances
 ==========================
+TODO
+
 
 ================
 -2.1.0.4- images
@@ -1907,6 +1914,41 @@ Each pixel can be:
 	#RRGGBBAA
 
 
+=================
+-2.1.0.5- stipple
+=================
+stipple: use something like pointilism to display partial fill.  Kind of like
+	alpha but not quite.
+	always available:
+		error
+		gray75
+		gray50
+		gray25
+		gray12
+		hourglass
+		info
+		questhead
+		question
+		warning
+
+	Macintosh only
+		document
+		stationery
+		edition
+		application
+		accessory
+		folder
+		pfolder
+		trash
+		floppy
+		ramdisk
+		cdrom
+		preferences
+		querydoc
+		stop
+		note
+		caution
+
 
 =======================
 -2.1.1- generic options
@@ -1964,11 +2006,504 @@ wraplength
 xscrollcommand
 yscrollcommand
 
+==============
+-2.2- commands
+==============
+============
+-2.2.1- bind
+============
+bind tag <seq> [+]{script}
+bind only takes tag. To apply a binding to a widget, use
+bindtags to add the corresponding tag to the widget's bindtags.
+If the + is given, then the script will be joined to any existing script
+with a newline.
+
+When events are fired on a widget, the bindtags for that widget are traversed.
+For each bindtag, the most appropriate binding is chosen, if any and run.
+a `break` command will stop the propagation.  By default,
+bindtags include
+	1. the instance
+	2. the class
+	3. the Toplevel (if not a Toplevel)
+	4. "all"
+
+Event sequences are generally <modifier-event-specifier>
+===================
+-2.2.1.1- modifiers
+===================
+	Control
+	Alt
+	Shift
+	Lock
+	Extended
+	Button1 | B1
+	Button2 | B2
+	Button3 | B3
+	Button4 | B4
+	Button5 | B5
+	bindseq
+	Mod1 | M1 | Command (numlock)
+	Mod2 | M2 | Option (alt)
+	Mod3 | M3 (scroll lock)
+	Mod4 | M4
+	Mod5 | M5
+	Meta | M
+	Double
+	Triple
+	Quadruple
+
+=====================
+-2.2.1.2- event types
+=====================
+summary:
+	Activate      Deactivate
+	Key[Press]    KeyRelease
+	Enter         Leave
+	FocusIn       FocusOut
+	Map           Unmap
+	Button[Press] ButtonRelease   MouseWheel    Motion
+
+	Destroy
+	Configure
+	Property
+	Colormap
+	Expose
+	Visibility
+
+"for completeness"
+	MapRequest    CirculateRequest    ConfigureRequest    ResizeRequest
+	Create        Circulate           Gravity             Reparent
+
+---------------------
+Activate / Deactivate
+---------------------
+Sent to all widgets under a Toplevel when changing between active and deactive window.
+no substitutions.
+
+--------------------------------------
+[ButtonPress | Button] / ButtonRelease
+--------------------------------------
+Button[Press | Release]-[1|2|3]
+
+These are pressing the mouse button.
+1 left
+2 middle
+3 right
+
+--------------------------------
+MouseWheel / Button-4 / Button-5
+--------------------------------
+These are scrolling commands.
+MouseWheel uses the %D substitution to determine what the scroll delta is.
++ scroll up
+- scroll down
+
+For X type window systems
+	Button-4 scroll up
+	Button-5 scroll down
+
+Generally, shift modifier indicates horizontal scrolling.
+
+------
+Motion
+------
+This indicates the mouse moved.
+
+Observations about Motion events:
+	Documentation says if several motion events occur in a row,
+	only the last is used for bind matching purposes.  However, it is
+	unclear how this is done.  When using warp, a new Motion event is
+	only generated if the mouse is not already at the coordinate.
+	The event from event_generate and the motion from warp are
+	considered separate things.  The warp happens at time of event
+	generation.  The callbacks happen in queue order.  The merging
+	of Motion events also seems to happen at enqueueing time.
+	(If enqueue at end, check last items to see if merge)
+
+	generate warp <Motion> events from x=y=0 to x=y=10
+	1. final mouse position is always 10 regardles of 'when'
+	2. if when ==
+		'tail': only 1 <Motion> callback is called (and maybe a generated one too)
+		'head': all <Motion> callbacks are called
+		'mark': all <Motion> callbacks are called
+		'now': all <Motion> callbacks are called immediately
+	3. Motion events are only created naturally if the cursor is
+		already within the application window.  (otherwise is <Enter>
+		when first enterring the window from outside)
+
+	As an example, if you are trying to lock mouse position.
+	if tail:
+		the newly generated <Motion> events will be enqueued at tail
+		and may be overwritten by actual mouse movements.  As a result,
+		the generated event will warp, but might not be processed (merged
+		with actual mouse motions).  To ensure processing, must event_generate
+		with head, mark or now.  If event_generate with now, then it may
+		also result in incorrect behavior with sequence of events:
+			<Motion>(bindtag1)
+			event generate when=now!
+			generated<Motion>(bindtag1)
+			generated<Motion>(bindtag2)
+			return from <Motion>(bindtag1)
+			<Motion>(bindtag2)
+
+
+-----------------------
+Key[Press] / KeyRelease
+-----------------------
+A press on the keyboard.
+Specifiers:
+	lowercase                 Capitalized
+	-------------------------------------
+	a-zA-Z0-9                 F1-12
+	space                     Escape
+	grave               `     BackSpace
+	asciitilde          ~     Return
+	exclam              !     Insert
+	at                  @     Home
+	numbersign          #     Prior     (page up)
+	dollar              $     Delete
+	percent             %     End
+	asciicircum         ^     Next      (page down)
+	ampersand           &     Tab
+	asterisk            *     [Caps|Scroll|Num]_Lock
+	paren[left|right]   ()    Pause
+	minus               -     [Super|Alt|Shift|Control]_[L|R]
+	underscore          _     Menu
+	equal               =     Up        (arrow keys)
+	plus                +     Left
+	bracket[left|right] []    Down
+	brace[left|right]   {}    Right
+	backslash           \
+	bar                 |
+	semicolon           ;
+	colon               :
+	apostrophe          '
+	quotedbl            "
+	comma               ,
+	less                <
+	period              .
+	greater             >
+	slash               /
+	question            ?
+
+NOTE: to remember which names are capitalized and which are not,
+	lowercase: single-width char
+	uppercase: anything else
+
+-------------
+Enter / Leave
+-------------
+Mouse pointer enters/leaves
+These are fired across intermediate widgets.
+
+------------------
+FocusIn / FocusOut
+------------------
+Obtain or lose focus, These events are fired across intermediate widgets
+
+-------
+Destroy
+-------
+When a widget is destroyed "half-dead state"
+
+-----------
+Map / Unmap
+-----------
+"Mapping state changed"
+Toplevel:
+	map: state -> normal
+	unmap: state -> withdrawn/iconic
+others:
+	map: grid/packed etc
+	unamp: gird_remove etc
+
+---------
+Configure
+---------
+Configure events indicate a change in size, position, border, etc
+
+------
+Expose
+------
+Whenever (part of) widget needs to be redrawn.
+
+--------
+Property
+--------
+Whenever an X property is changed.
+
+--------
+Colormap
+--------
+Whenever the colormap is changed/installed/removed.
+
+----------
+Visibility
+----------
+Whenever "obscurity state" changes (by other windows)
+	%s: new state
+
+-------------------------------------------------------------------------
+Create / MapRequest / CirculateRequest / ConfigureRequest / ResizeRequest
+-------------------------------------------------------------------------
+These are "for completeness", ?not handled by tk core?
+"make it possible to write X11 window managers in Tk"
+
+------------------------------
+Circulate / Gravity / Reparent
+------------------------------
+gravity/reparent:
+	These are "for completeness", ?not handled by tk core?
+circulate:
+	moved to top/bottom of stacking order
+
+=======================
+-2.2.1.3- substitutions
+=======================
+Binding scripts can use %<char> substitutions to get information
+about the event that the script is being called for.
+Any %<char> is replaced with the corresponding value of the event.
+A %% is a literal %
+See (-2.2.2- event)
+
+
 =============
--2.2- widgets
+-2.2.2- event
+=============
+___________
+subcommands
+
+add <<virtual>> seq [seq...]
+	Associate the virtual event with given sequences.
+	If <<virtual>> is already defined, then add to it.
+
+delete <<virtual>> [seq...]
+	Delete the virtual event from the given sequences or all if omitted.
+
+generate widget event [-opt val...]
+	Create a new event for the widget.
+
+event info [<<virtual>>]
+	Return info about virtual events.
+	If specified, then return the associated keyseqs.
+
+=======================
+-2.2.2.1- event options
+=======================
+summary chart
+                   |#|A|a|B|b|c|D|d|E|f|h|i|k|K|M|m|N|o|P|p|R|s|S|T|t|W|w|X|Y|x|y|
+<Configure>        |o| |o|o| | | | |o| |o|o| | |o| | |o| | | | | |o| |o|o| | |o|o|
+<Button[Release]>  |o| | | |o| | | |o| | |o| | |o| | | | | |o|o|o|o|o|o| |o|o|o|o|
+<Motion>           |o| | | | | | | |o| | |o| | |o| | | | | |o|o|o|o|o|o| |o|o|o|o|
+<MouseWheel>       |o| | | | | |o| |o| | |o| | |o| | | | | | | | |o| |o| | | |o|o|
+<Enter|Leave>      |o| | | | | | |o|o| | |o| | |o|o| | | | |o|o|o|o|o|o| |o|o|o|o|
+<Key[Release]>     |o|o| | | | | | |o| | |o|o|o|o| |o| | | |o|o|o|o|o|o| |o|o|o|o|
+<Focus[In|Out]>    |o| | | | | | |o|o|o| |o| | |o|o| | | | | | | |o| |o| | | | | |
+<Expose>           |o| | | | |o| | |o| |o|o| | |o| | | | | | | | |o| |o|o| | |o|o|
+<<VirtualEvent>>   |o| | | | | | |o|o| | |o| | |o| | | | | | | | |o| |o| | | | | |
+<Map>              |o| | | | | | | |o| | |o| | |o| | |o| | | | | |o| |o| | | | | |
+<Circulate>        |o| | | | | | | |o| | |o| | |o| | | | |o| | | |o| |o| | | | | |
+<Visibility>       |o| | | | | | | |o| | |o| | |o| | | | | | |o| |o| |o| | | | | |
+<Property>         |o| | | | | | | |o| | |o| | |o| | | |o| | |o| |o|o|o| | | | | |
+<Reparent>         |o| | | | | | | |o| | |o| | |o| | |o| | | | | |o| |o| | | |o|o|
+<Gravity>          |o| | | | | | | |o| | |o| | |o| | | | | | | | |o| |o| | | |o|o|
+<ConfigureRequest> |o| | |o| | | |o|o| |o|o| | |o| | | | | | | | |o| |o|o| | | | |
+<Create>           |o| | |o| | | | |o| |o|o| | |o| | | | | | | | |o| |o|o| | |o|o|
+<ResizeRequest>    |o| | | | | | | |o| |o|o| | |o| | | | | | | | |o| |o|o| | | | |
+<CirculateRequest> |o| | | | | | | |o| | |o| | |o| | | | |o| | | |o| |o| | | | | |
+
+Descriptions:
+	%# -serial <number>
+	%A
+		The unicode character of the event
+	%a -above <window>
+		"Sibling window immediately below the receiving window in the stacking order, or 0 if at bottom."
+	%B -borderwidth <size>
+	%b -button <number>
+	%c -count <number>
+		Number of pending <Expose> events
+	%D -delta <number>
+		Usually multiples of 120.  +/- = up/down
+	%d -data <string>
+		<<Virtual>>
+			user data for the event
+		<ConfigureRequest>
+			Above|Below|BottomIf|Opposite|None|TopIf
+	%d -detail Notify[Ancestor|DetailNone|Inferior|Nonlinear|NonlinearVirtual|Pointer|PointerRoot|Virtual]
+		<Focus[In|Out]|Enter|Leave>
+	%E -sendevent <bool>
+		0 "normal" event
+		1 "synthetic" event (SendEvent)
+	%f -focus <bool>
+	%h -height <size>
+	%i
+		Hex number representing the widget
+	%k -keycode <number>
+	%K -keysym <name>
+	%M
+		Number of script-based binding patterns matched so far for the event
+	%m -mode Notify[Normal|Grab|Ungrab|WhileGrabbed]
+	%N
+		keysym as a decimal number
+	%o -override <bool>
+	%P
+		The property name being changed/deleted
+	%p -place PlaceOn[Top|Bottom]
+	%R -root <window>
+	%s -state <state>
+		<Key[Release]|Button[Release]|Enter|Leave|Motion>
+			(Look at tk.Event.__repr__ impl)
+			int flag:
+			bit meaning
+			0   Shift
+			1   Caps_Lock
+			2   Control
+			3   Mod1 (Seems to be Alt, on arch and wsl)
+			4   Mod2
+			5   Mod3
+			6   Mod4 (seems to be windows key ?super? on arch)
+			7   Mod5
+			8   B1
+			9   B2
+			10  B3
+			11  B4
+			12  B5
+			17  Alt (windows)
+		<Visibility>
+			Visibility[Unobscured|PartiallyObscured|FullyObscured]
+		<Property>
+			NewValue|Delete
+	%S -subwindow <widget>
+		hex widget identifier
+	%T
+		type of the event as n int
+		(check tk.EventType)
+			KeyPress = '2'
+			Key = KeyPress,
+			KeyRelease = '3'
+			ButtonPress = '4'
+			Button = ButtonPress,
+			ButtonRelease = '5'
+			Motion = '6'
+			Enter = '7'
+			Leave = '8'
+			FocusIn = '9'
+			FocusOut = '10'
+			Keymap = '11'           # undocumented
+			Expose = '12'
+			GraphicsExpose = '13'   # undocumented
+			NoExpose = '14'         # undocumented
+			Visibility = '15'
+			Create = '16'
+			Destroy = '17'
+			Unmap = '18'
+			Map = '19'
+			MapRequest = '20'
+			Reparent = '21'
+			Configure = '22'
+			ConfigureRequest = '23'
+			Gravity = '24'
+			ResizeRequest = '25'
+			Circulate = '26'
+			CirculateRequest = '27'
+			Property = '28'
+			SelectionClear = '29'   # undocumented
+			SelectionRequest = '30' # undocumented
+			Selection = '31'        # undocumented
+			Colormap = '32'
+			ClientMessage = '33'    # undocumented
+			Mapping = '34'          # undocumented
+			VirtualEvent = '35',    # undocumented
+			Activate = '36',
+			Deactivate = '37',
+			MouseWheel = '38',
+
+	%t -time <int|"current">
+		The X server timestamp in msec
+	%W
+		The widget
+	%w -width <size>
+	%X -rootx <coord>
+	%Y -rooty <coord>
+	%x -x <coord>
+	%y -y <coord>
+		x, y coordinates, used for warping. If widget is empty, then
+		use absolute coordinates ("relative to screen")
+		tl must be unmapped
+		<Configure>/<Create>
+			coordinates of the widget relative to parent
+
+event-only, no subs
+	-warp <bool>
+		For motion events, warp the mouse pointer to the provided x,y position (widget must be mapped)
+		Only uses -x and -y, and to the corresponding widget.
+	-when [now|tail|head|mark]
+		Where to put the event in the event queue.
+		mark: same as head, except after any other mark.
+
+==============
+Virtual Events
+==============
+Virtual events take the form <<name>>.
+Virtual events are generally "Actions" to be performed.  
+Use `event add` ..., bindings can be bound to activate these virtual events.
+ex:
+	event add <<Save>> <Control-s>
+
+Default events:
+"for the purposes of notification":
+	AltUnderlined
+	Invoke: button, listbox, menu, ..., alternative to <space>
+	ListboxSelect
+	MenuSelect
+	ThemeChanged
+	TkWorldChanged
+	TraverseIn
+	TraverseOut
+	UndoStack
+Text widget:
+	Modified: contents changed
+	Selection: selection changed
+	WidgetViewSync: %d: true (in sync) or false (out of sync)
+
+"For the purposes of unifying bindings across multiple platforms"
+	Clear
+	Copy
+	Cut
+	LineEnd
+	LineStart
+	NextChar
+	NextLine
+	NextPara
+	NextWord
+	Paste
+	PasteSelection
+	PrevChar
+	PrevLine
+	PrevPara
+	PrevWindow
+	PrevWord
+	Redo
+	SelectAll
+	SelectLineEnd
+	SelectLineStart
+	SelectNextChar
+	SelectNextLine
+	SelectNextPara
+	SelectNextWord
+	SelectNone
+	SelectPrevChar
+	SelectPrevLine
+	SelectPrevPara
+	SelectPrevWord
+	ToggleSelection
+	Undo
+
+=============
+-2.3- widgets
 =============
 ============
--2.2.1- Text
+-2.3.1- Text
 ============
 Text widgets allow editing text.
 
@@ -2059,41 +2594,9 @@ tkinter provides wrappers around the tcl/tk commands.
 To bridge tcl/tk with python, the `createcommand(name, func)` method is used.
 This will map a tcl command `name` to the python func `func`.
 When func is called, any arguments given from tcl will be provided as str *args.
+If the command is no longer needed, use `deletecommand(name)` to remove the
+mapping.
 
-ex:
-	def myfunc(*args):
-		print(args)
-	r = tk.Tk()
-	r.createcommand('myfunc', myfunc)
-	r.call('myfunc', 'a', 'b', 'c')
-
-	will print:
-		('a', 'b', 'c')
-
-sidenote, maybe this kind of setup could be useful?
-```
-	commands = {}
-	def callpy(command, *args):
-		return commands[command](*args)
-	r = tk.Tk()
-	r.createcommand('callpy', callpy)
-
-	def someotherfunc():
-		pass
-	comands['someotherfunc'] = someotherfunc
-
-	r.call('callpy', 'someotherfunc', arg...)
-```
-would call someotherfunc with corresponding args
-
-
-
-Tkinter by default, forces all bindings to use this as the tcl script:
-	'if {"[2235275164928callback %# %b %f %h %k %s %t %w %x %y %A %E %K %N %W %T %X %Y %D]" == "break"} break\n\n
-	 if {"[2235301124864callback %# %b %f %h %k %s %t %w %x %y %A %E %K %N %W %T %X %Y %D]" == "break"} break\n'
-
-This can be convenient, but leaves out some bindings and makes many unnecessary arg swaps.
-Can just make callbacks more directly.
 
 ==================
 -3.0- call vs eval
@@ -2262,70 +2765,74 @@ Larger images are faster, implying that regardless of choice, data still must
 be copied around, even with PIL c extensions, can't just use the data pointer
 directly.
 
+===============
+-3.2- callbacks
+===============
+For callbacks, tkinter can generally take a callable(event) as a callback.
+The callback is first wrapped to take multiple substitution arguments:
+	%# %b %f %h %k %s %t %w %x %y %A %E %K %N %W %T %X %Y %D
+The wrapper will convert each of these arguments to the corresponding type
+or '?' if not applicable.  `createcommand` is used on the wrapped result
+and a script is generated to be used as the callback which (for bindings)
+also checks for a return value of "break".
 
+__________________________________________
+bind(seq, callableOrScript, add=False):
+
+can take either a callable OR a script.
+The `add` argument for `bind()` ONLY works
+for a callable.  If given a script, the script
+will be used directly.  In this case, add a '+'
+in front of the script to achieve the "add" effect.
+If callback is a callable, then the corresponding registered id is
+returned.  If it is a str, the returnvalue is None.
+
+______________________________________________________
+bind_class(bindtag, seq, callableOrScript, add=False):
+
+Similar to bind, except manually specify the bindtag.
+
+________________________
+tk.after(dur, callable):
+
+can ONLY take a callable, SCRIPT IS NOT ALLOWED. (use tk.call/eval instead for script)
+
+
+sidenote, maybe this kind of setup could be useful?
+```
+	commands = {}
+	def callpy(command, *args):
+		return commands[command](*args)
+	r = tk.Tk()
+	r.createcommand('callpy', callpy)
+
+	def someotherfunc():
+		pass
+	comands['someotherfunc'] = someotherfunc
+
+	r.call('callpy', 'someotherfunc', arg...)
+```
+would call someotherfunc with corresponding args
+
+
+===============
+-3.3.- mainloop
+===============
+`mainloop(N)` runs the application until N tk interpreters remain.
+(see -1.9.4-) and defaults to 0.
+
+NOTE: tk.Tk() also creates a new interpreter so they count as well.
+
+
+The mainloop is essentially something like:
+```
+while X:
+	?update_idletasks()?
+	update()
+```
 
 ______________________________
 -1- general
-
-	General usage is create a Tk instance
-		import tkinter as tk
-		r = tk.Tk()
-		...
-		r.mainloop(N)
-
-	NOTE:
-		mainloop runs until N tk interpreters remain.  N defaults to 0.
-		examples:
-			Must close both to exit mainloop()
-				r1 = tk.Tk(); r2 = tk.Tk(); r2.mainloop()
-
-			Close one root to exit mainloop(), either one works...
-				r1 = tk.Tk(); r2 = tk.Tk(); r3 = tk.Toplevel(r1); r3.title('toplevel1'); r4 = tk.Toplevel(r2); r4.title('toplevel2'); r2.mainloop(1)
-
-		wait_window() on root window might be the better choice compared to mainloop()
-		if there is a possibility of multiple tkinter instances.
-
-	tk is a wrapper over tcl.
-	tcl can be accessed directly via widget.tk.call which invokes
-	tcl commands.  (Everything is a string, user must handle type conversions)
-
-	______________________________
-	-1.0- Terms
-		active: mouse is over the item/interacting with item
-			(if click+drag away from item, it is still active until released)
-
-		stipple: use something like pointilism to display.  Kind of like
-			alpha but not quite.
-			always available:
-				error
-				gray75
-				gray50
-				gray25
-				gray12
-				hourglass
-				info
-				questhead
-				question
-				warning
-			Macintosh only
-				document
-				stationery
-				edition
-				application
-				accessory
-				folder
-				pfolder
-				trash
-				floppy
-				ramdisk
-				cdrom
-				preferences
-				querydoc
-				stop
-				note
-				caution
-
-
 	______________________________
 	-1.1- Widgets
 		Widgets are tk classes.  They take a parent and kwargs.
@@ -2843,424 +3350,6 @@ ______________________________
 	2. event_generate() is generally what you would use to signal the tk interpreter
 	   from a different thread.  This way, all the tk methods etc would be running
 	   in the main thread.
-______________________________
--2- Bindings
-	Bindings associate some event sequence with a script.
-	They are associated with a bindtag.  Every widget has a bindtag
-	available with widget.bindtags().  (tcl: bindtags widgetname)
-	Bindtags can be set with widget.bindtags((tag1, tag2, tag3...))
-	(tcl: 'bindtags widgetname {tag1 tag2 "tag3 with space" tag4...}')
-
-	Whenever an event is fired on a widget, its bind tags will be walked
-	through in order.  Any matching bindings associated with that bind
-	tag will be run.
-
-	In Tkinter, widget.bind(seq, func) performs this sequence of actions:
-	1. wrap func to pass it arguments.
-	2. Tk.createcommand('generatedname', wrapped_func)
-	3. Tk.call('bind', widgetname, evseq, 'generatedname %...')
-
-	The Tk.createcommand creates a mapping between a tcl command 'generatedname'
-	and the python function wrapped_func.  In tcl, whenever 'generatedname'
-	is used as a command, any given arguments will then be passed on to wrapped_func
-	in order, as str.  The wrapping accepts these str values, converts them, and
-	then adds them to an Tkinter Event object.
-
-	In Tkinter, the returning 'break' to stop event propagation is handled through the script
-	which is actually in the form of if {"[generatedname args...]" == "break"} break\n
-	Appending to a binding is just generating a new script and appending it to the
-	original script.  Blank lines are ignored.
-
-
-
-	If callback is a function, then the corresponding registered id is
-	returned.  If it is a str, the returnvalue is None.
-
-	NOTE:
-		more specifically:
-			tcl binds a script to a bindtag and event sequence specifier.
-			the script is a string, and if prefixed with + will be appended
-			to any existing scripts.
-			tkinter wraps any bindings by:
-				1. wrap a function in a CallWrapper.  CallWrapper combines a
-					function with a substitute function and widget.  The substitute
-					function takes args and converts them.  (default is widget._substitute
-					which takes the default %<char> args and converts to particular
-					types)
-				2. Register the resulting CallWrapper under id(wrapper)+func.__name__
-					by using tk.createcommand(name, func) (delete by tk.deletecommand(name))
-				3. Bind a script using the registered function in step 2:
-					'if {"[2235275164928callback %# %b %f %h %k %s %t %w %x %y %A %E %K %N %W %T %X %Y %D]" == "break"} break\n\n
-					 if {"[2235301124864callback %# %b %f %h %k %s %t %w %x %y %A %E %K %N %W %T %X %Y %D]" == "break"} break\n'
-
-			In otherwords, for more control (not sure if parsing the extra
-			arguments may also reduce performance by any significant amount)
-				method 1: use register and the callwrapper mechanism:
-					def substitute(raw '%char' return values as strs):
-					    return (converted, arguments,...)
-					def somecallback(args, that, match, substitute):
-					    ...
-					funcid = widget.register(somecallback, substitute, needcleanup=0/1)
-						(needcleanup will add to widget._tclCommands, contents of which will be
-						tk.deletecommand()ed on __del__)
-					widget.bind('{funcid} %<char> ...'), add the %<char> values you are interested in
-				method 2:
-					use tk.createcommand directly:
-					def func(someargs):
-					    ...
-					tk.createcommand(name, func)
-					widget.bind(seq, '{name} %char %char ...')
-	Canvas items:
-		Fuse canvas.[tag_bind|gettags|addtag] instead of bind/bindtags.
-		Note that for canvas items there is no way to set multiple tags.
-		To reorder tags, you must remove tags and then add them again.
-
-	When an event is created on a widget, each tag in widget.bindtags is
-	considered.  If there is a binding for the event on that tag, then the
-	corresponding callback will be called.
-	eg. In tkinter, widgets by default have bindtags: ('path', 'class', '.', 'all')
-	This means bindings to the particular instance, the class bindings, then the
-	owning Tk() instance, and finally the 'all' tag.
-
-	tkwidget.bind(): bind to current widget's path
-	tkwidget.bind_class(path, ...): bind to the given path
-	Note that tkwidiget.bind() is basically tkwidget.bind_class(str(tkwidget), ...)
-
-	In tkinter, callbacks that are functions will be .register()ed.
-	The callback can also be a str in which case it is used directly
-	(example, a single space would cause it to become a noop)
-
-	______________________________
-	-2.1- Event Sequences
-		'<modifier-...-event>': An event sequence corresponding directly to
-			some keyboard/mouse input.
-		'key': same as '<key>'
-		'<<eventname>>': a virtual event.
-
-		______________________________
-		-2.1.1- Modifiers
-			key/button          bindseq   state (%s substitution)
-			Control             Mod1, M1, Command(num lock)
-			Alt                 Mod2, M2, Option(alt)
-			Shift               Mod3, M3, (scroll lock)
-			Lock                Mod4, M4
-			Extended            Mod5, M5
-			Button1, B1         Meta, M
-			Button2, B2         Double
-			Button3, B3         Triple
-			Button4, B4         Quadruple
-			Button5, B5
-		______________________________
-		-2.1.2- Event type
-			Activate                 FocusOut
-			ButtonPress, Button      Gravity
-			ButtonRelease            KeyPress, Key
-			Circulate                KeyRelease
-			CirculateRequest         Leave
-			Colormap                 Map
-			Configure                MapRequest
-			ConfigureRequest         Motion
-			Create                   MouseWheel
-			Deactivate               Property
-			Destroy                  Reparent
-			Enter                    ResizeRequest
-			Expose                   Unmap
-			FocusIn                  Visibility
-
-		NOTE: MouseWheel is usually only on mac/windows.
-			Use button4(up) and button5(down) otherwise.
-
-		Observations about Motion events:
-			Documentation says if several motion events occur in a row,
-			only the last is used for bind matching purposes.  However, it is
-			unclear how this is done.  When using warp, a new Motion event is
-			only generated if the mouse is not already at the coordinate.
-			The event from event_generate and the motion from warp are
-			considered separate things.  The warp happens at time of event
-			generation.  The callbacks happen in queue order.  The merging
-			of Motion events also seems to happen at enqueueing time.
-			(If enqueue at end, check last items to see if merge)
-
-			generate warp <Motion> events from x=y=0 to x=y=10
-			1. final mouse position is always 10 regardles of 'when'
-			2. if when ==
-				'tail': only 1 <Motion> callback is called (and maybe a generated one too)
-				'head': all <Motion> callbacks are called
-				'mark': all <Motion> callbacks are called
-				'now': all <Motion> callbacks are called immediately
-			3. Motion events are only created naturally if the cursor is
-				already within the application window.  (otherwise is <Enter>
-				when first enterring the window from outside)
-
-			As an example, if you are trying to lock mouse position.
-			if tail:
-				the newly generated <Motion> events will be enqueued at tail
-				and may be overwritten by actual mouse movements.  As a result,
-				the generated event will warp, but might not be processed (merged
-				with actual mouse motions).  To ensure processing, must event_generate
-				with head, mark or now.  If event_generate with now, then it may
-				also result in incorrect behavior with sequence of events:
-					<Motion>(bindtag1)
-					event generate when=now!
-					generated<Motion>(bindtag1)
-					generated<Motion>(bindtag2)
-					return from <Motion>(bindtag1)
-					<Motion>(bindtag2)
-
-
-		______________________________
-		-2.1.3- Keypress names
-			a-zA-Z0-9
-			space
-			grave               `
-			asciitilde          ~
-			exclam              !
-			at                  @
-			numbersign          #
-			dollar              $
-			percent             %
-			asciicircum         ^
-			ampersand           &
-			asterisk            *
-			paren[left|right]   ()
-			minus               -
-			underscore          _
-			equal               =
-			plus                +
-			bracket[left|right] []
-			brace[left|right]   {}
-			backslash           \
-			bar                 |
-			semicolon           ;
-			colon               :
-			apostrophe          '
-			quotedbl            "
-			comma               ,
-			less                <
-			period              .
-			greater             >
-			slash               /
-			question            ?
-
-			F1-12
-			Escape
-			BackSpace
-			Return
-			Insert
-			Home
-			Prior     (page up)
-			Delete
-			End
-			Next      (page down)
-			Tab
-			[Caps|Scroll|Num]_Lock
-			Pause
-			[Super|Alt|Shift|Control]_[L|R]
-			Menu
-
-			Up
-			Left
-			Down
-			Right
-
-		OBSERVATION:
-			printable = all lowercase?
-			non-printable = capitalized?
-			exceptions:
-				Tab
-				Return
-
-
-	______________________________
-	-2.2- Event objects
-		Callbacks take a single event as argument.
-		properties:
-			above       %a: a window
-			borderwidth %B: a size (screen dist)
-			button      %b: mouse button number -> num
-			char        %A: printable ascii character
-			count       %c: int, ??
-			data        %d: string, user data (virtual events)
-			delta       %D: int, scroll amount, +=up, -=down (MouseWheel event on windows)
-			detail      %d: Notify[Ancestor|DetailNone|Inferior|Nonlinear|
-			                       NonlinearVirtual|Pointer|PointerRoot|Virtual]
-			focus       %f: bool, if window has focus
-			height      %h: int, screendist
-			keycode     %k: int (the actual keyboard key identifier)
-			keysym      %K: string, key name (as would be used for bind)
-			keysym_num  %N: int representing the (virtual)key that was pressed
-			                eg.
-			                  <Shift-m>, keycode = 77, and keysym_num = 77, chr(77) = 'M')
-			                  <m>, keycode = 77, keysym_num = 109, chr(109) = 'm')
-			mode        %m: Notify[Normal|Grab|Ungrab|WhileGrabbed]
-			override    %o: bool
-			place       %p: Place[OnTop|OnBottom]
-			root        %R: str, window path??
-			rootx       %X: int, screendist (on screen) -> x_root
-			rooty       %Y: int, screendist (on screen) -> y_root
-			                NOTE:
-			                  rootx and rooty  when event_generate will become x/y instead of rootx/rooty
-			sendevent   %E: bool, 0 = "normal", 1 = "synthetic" ???
-			serial      %#: int, nth event
-			state       %s: int or Visibility[Unobscured|PartiallyObscured|FullyObscured]
-			                state int values (looking at tkinter/__init__.py Event.__repr__)
-			                  bit meaning
-			                  0   Shift
-			                  1   Caps_Lock
-			                  2   Control
-			                  3   Mod1 (Seems to be Alt, on arch and wsl)
-			                  4   Mod2
-			                  5   Mod3
-			                  6   Mod4 (seems to be windows key ?super? on arch)
-			                  7   Mod5
-			                  8   B1
-			                  9   B2
-			                  10  B3
-			                  11  B4
-			                  12  B5
-			                  17  Alt (windows)
-			subwindow   %S: string (path name) or int (window id)
-			time        %t: int, timestamp
-			type        %T: type field from event: (tk.EventType(strint) for py3)
-			                KeyPress = '2'
-			                Key = KeyPress,
-			                KeyRelease = '3'
-			                ButtonPress = '4'
-			                Button = ButtonPress,
-			                ButtonRelease = '5'
-			                Motion = '6'
-			                Enter = '7'
-			                Leave = '8'
-			                FocusIn = '9'
-			                FocusOut = '10'
-			                Keymap = '11'           # undocumented
-			                Expose = '12'
-			                GraphicsExpose = '13'   # undocumented
-			                NoExpose = '14'         # undocumented
-			                Visibility = '15'
-			                Create = '16'
-			                Destroy = '17'
-			                Unmap = '18'
-			                Map = '19'
-			                MapRequest = '20'
-			                Reparent = '21'
-			                Configure = '22'
-			                ConfigureRequest = '23'
-			                Gravity = '24'
-			                ResizeRequest = '25'
-			                Circulate = '26'
-			                CirculateRequest = '27'
-			                Property = '28'
-			                SelectionClear = '29'   # undocumented
-			                SelectionRequest = '30' # undocumented
-			                Selection = '31'        # undocumented
-			                Colormap = '32'
-			                ClientMessage = '33'    # undocumented
-			                Mapping = '34'          # undocumented
-			                VirtualEvent = '35',    # undocumented
-			                Activate = '36',
-			                Deactivate = '37',
-			                MouseWheel = '38',
-			warp          : event_generate argument: bool, "whether screen pointer should be warped as well"
-			                this allows you to move the mouse
-			widget      %W: widget name
-			width       %w: size, screendist
-			when          : event_generate argument: [now|tail|head|mark]
-			                now: handle before return
-			                tail: put at end of queue
-			                head: beginning of queue
-			                mark: at beginning of queue but after any other
-			                  when=mark events.
-			x           %x: int, x coord (for widget)
-			y           %y: int, y coord (for widget)
-
-		Note: some tcl properties are not available as a tk.Event property
-			like subwindow.  If these are necessary, then you'd probably need to
-			manually register and bind the callback.
-
-		tk only properties (not in tcl):
-			widget        : widget that got the event
-
-		Event properties vary by event type:
-			all                 sendevent serial
-			<Configure>         above borderwidth height override width x y
-			<ButtonPress>       button num root rootx rooty state subwindow time warp x y
-			<ButtonRelease>     button num root rootx rooty state subwindow time warp x y
-			<Circulate>         place
-			<Enter>             detail focus root rootx rooty state subwindow time x y
-			<Expose>            count mode x y
-			<FocusIn>           detail mode
-			<FocusOut>          detail mode
-			<Gravity>           x y
-			<KeyPress>          keycode keysym root rootx rooty state subwindow time warp x y
-			<KeyRelease>        keycode keysym root rootx rooty state subwindow time warp x y
-			<Leave>             detail focus mode root rootx rooty state subwindow time x y
-			<Map>               override
-			<Motion>            root rootx rooty state subwindow time warp x y
-			<MouseWheel>        delta
-			<Property>          time
-			<Reparent>          override x y
-			<<Virtual events>>  data
-			<Visibility>        state
-
-	______________________________
-	-2.3- Generation
-		Events can be generated via widget.event_generate()
-		Generated events act just like normal events.
-		Arg is a sequence (-2.1- Event Sequences) and any properties as
-		keyword arguments (-2.2- Event Objects).  The state property seems to be
-		automatically set based on seq.  eg. event_generate('<B1-Motion>')
-		has state == 256
-
-		The state flag values can be calculated by binding and generating events
-		to see what the state value is.
-
-		This can be used to create virtual events as well
-		(event_generate is threadsafe)
-
-		NOTE 1
-			event_generate uses 'now' as when by default which causes "immediate"
-			processing (within event_generate()) of the generated event.  'now' blocks
-			until all handlers for that event have completed.  (This can cause deadlock
-			depending on what callbacks do)  'head', 'tail', and 'mark'? can prevent
-			this since they ?just add events to a queue? and then exit immediately
-			without further processing.
-		NOTE 2
-			Regarding Motion events, generation at 'tail' causes all motion events
-			to be merged into 1... (the last motion event)
-			'head' causes them to remain separate though...
-		NOTE 3
-			Regarding Shift and Lock modifiers, generated events if lowercase
-			key press will be converted to the appropriate value.
-			eg: event_generate('<Shift-b>') will be queued as '<Shift-B>'
-				Binding to '<Shift-b>' will not see this event since it'll be
-				seen as '<Shift-B>'
-	______________________________
-	-2.4- Other Notes
-		Enter/Leave:
-			Leave is always called on previous widget before enter is
-			called on the next widget.  If any mouse buttons are held, then
-			enter will never be called on another widget until buttons are
-			released (button is held so the original widget still has focus
-			even if <Leave> is fired because dragged mouse out of widget)
-
-		Breaking:
-			Return 'break' to stop the callback chain
-			(see _bind() implementation for details (cmd=...)
-
-		Names:
-			bound function names are generated by register()
-			which tries to use repr(id(func)) + func.__name__
-
-		Caps Lock/shift:
-			Be careful with the case of the key when caps lock/shift
-			<Control-Shift-O> will fire when no capslock, but fails if
-			caps lock
-
-		bind(add=True/False):
-			tk _bind completely ignores add when the bind function is a str.
-			h/-2-
-
 ______________________________
 -3- Widgets
 	______________________________
