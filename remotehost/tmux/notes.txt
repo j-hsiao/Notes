@@ -111,66 +111,91 @@ contents:
 		=================
 		#{varname}
 		#{optname}
+
+		_________________________
 		#S where S is short alias
-		#{?variable,yes,no}
-			it MUST be a boolean-only variable name, no values allowed.
+		_______________
+		#{?expr,yes,no}
+			expr:
+				boolean-only variable name
+				boolean #{} expression.
 			ex:
 				status allows off, on, 2, 3, 4..., so status DOES NOT WORK
 				in this format expansion.  CANNOT use another #{} format as
 				the variable
-		#{cmd/opts/...:arg1[,arg2...]}
-			binary cmd:
-				Direct string comparison:
-					< <= > >= == != 
-					result: 0/1 depending on comparison
-				strmatch
-					m/opts
-						r: regex (instead of globbing match)
-						i: ignorecase
-					result: 0/1 depending on match or not
-				bool operators:
-					|| &&
-					YES, these ARE BINARY, if you try to add more than 2, then the extra
-					will be tacked on as values for the 2nd value meaning it will always be truthy.
-					result: 0/1 depending on any or both
+			example:
+				#{?#{==:0,0},a,b} -> a
+				#{?#{==:0,1},a,b} -> b
+
+		========
+		commands
+		========
+		Other commands take the form of:
+			#{cmd:arg1[,arg2...]}
+
+		where cmd is often
+			command/opt1/opt2/...
+			OR command|opt1|opt2...
+
+		For binary commands, arguments are usually a format string.
+		For unary commands, arguments are usually a variable name OR a #{} expression.
+			_______________
+			Binary commands
+				<!=>: direct string comparison
+					ex: #{==:string1,string2}
+
+				m[/r][/i]: string matching
+					/r: use regex instead of globbing
+					/i: ignore case
+
+				||&&: and/or
+					these must be binary, extra arguments will be considered as
+					part of the 2nd argument.
+
+				e|op[|f[|D]]: math expression
+					+-*% <!=> (NOTE: %% is needed if strftime expanded)
+
 
 				math operators:
-				e|op|opts:v1,v2
+				e|op[|f[|D]]:v1,v2
 					math expr
 					NOTE: use | instead of / (?because / is division?)
-					op: +-*/% (need to %% if also strftimed)
+					op: +-*/% and <!=> (need to %% if also strftimed)
 					opts:
 						f: use float
 						D: evaluate to D digits
-						N: number of decimal places
+					example:
+						#{e|/|f|5:32,3}
 
 			unary cmd
 				C/opts:
 					search for regexp, evaluate to lineno if found else empty
 				a
 					Convert number to ascii
-				=
-					Truncate a variable (must be a variable name)
+				=N
+				=/N/repl
+					Truncate a variable (MUST BE A VARIABLE NAME)
 					N: size limit of N chars.  If negative, then take chars from the end
-					presuff: use this as prefix/suffix if trimmed.
-				p
-					Pad a string
+					repl: replace the truncated text.
+				pN
+				p/N
+					Pad a variable (MUST BE A VARIABLE NAME)
 					N: Pad to this size, >0 pads left, <0 pads right
 				n
-					length (bytes)
+					calculate the length (bytes)
 				w
-					length (display)
+					calculate the length (display)
 				t/opts
 					convert time to string
 					opts:
 						f/strformat: format with strftime, need to escape %%
 						p: shorter
 				b
-					basename
+					basename, MUST BE A VARIABLE NAME
 				d
-					dirname
+					dirname, arg MUST BE A VARIABLE NAME
 				q/opts
-					quoted
+					quoted, arg MUST BE A VARIABLE NAME
 					opts:
 						h escape hash characters
 				E
@@ -186,7 +211,8 @@ contents:
 					check if name exists
 					w: window (default)
 					s: session
-				s/pat/repl/: 
+				s/pat/repl/:
+					arg MUST BE A VARIABLE NAME
 					regex substitution
 					opt: i: ignorecase
 				l
