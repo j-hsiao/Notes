@@ -101,7 +101,8 @@ and command modes each with their own functionalities.
 	-0.3- regex
 	===========
 		:h regex
-		terminology:
+		___________
+		terminology
 			pattern: 1 or more branches joined by \|
 			         Regex will match the first branch.
 			branch: 1 or more concats joined by \&
@@ -113,6 +114,7 @@ and command modes each with their own functionalities.
 			        Matches parts one by one in order.
 			piece: atom[multi] OR a pattern in \(\)
 
+		____________________
 		multis: (with magic)
 			*         0 or more greedy
 			\+        1 or more greedy
@@ -123,6 +125,7 @@ and command modes each with their own functionalities.
 			          m defaults to infinite
 			\{-n,m}   same as above but as few as possible
 
+		___________
 		magic atoms
 			^     beginning of line
 			$     end of line
@@ -137,6 +140,7 @@ and command modes each with their own functionalities.
 			            causes literal character or regex meaning
 			            (magic = .->any char, nomagic = \.->any char)
 
+		_________________
 		character-classes
 			invert letter case to invert match
 			ie: \s = whitespace, \S = not whitespace
@@ -149,14 +153,16 @@ and command modes each with their own functionalities.
 				\l      lowercase
 				\u      uppercase
 
-			escapes:
+			_______
+			escapes
 				\e          <Esc>
 				\t          <Tab>
 				\r          <CR>
 				\b          <BS>
 				\n          end-of-line (search) or null byte (replace)
 
-			groups:
+			______
+			groups
 				\(<pat>\)   store pat as a group, available for back-reference
 				            via \<num>
 				\%(<pat>\)  like above but don't count it as a group
@@ -170,6 +176,7 @@ and command modes each with their own functionalities.
 					cntrl     punct   tab
 					digit     space   escape
 
+			_____
 			Extra
 				:h E59
 				\@>
@@ -196,6 +203,14 @@ and command modes each with their own functionalities.
 					zero-width "negative lookbehind"
 					Matches with zero width if previous ATOM does NOT match.
 					ex: foo\(bar\)\@!: 'foo' not followed by 'bar'
+
+			_________
+			multiline
+				\_^ zero-width match of beg of line (can be mid-pattern)
+				\_$ zero-width match of end of line (can be mid-pattern)
+				\_. Matches any char including eol
+
+				Use \_$\_. to go across a single line in a regex pattern
 
 	==================
 	-0.4- undo history
