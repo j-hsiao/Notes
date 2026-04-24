@@ -1743,6 +1743,12 @@ and command modes each with their own functionalities.
 		================
 		-2.6.3- autoload
 		================
+			Autoload is recommended to improve vim startup time.
+			On startup, load plugins:
+				the mappings, commands, etc
+			When the keybindings are invoked, then the autoload feature kicks in
+				and automatically loads whatever is needed from the autoload dir.
+
 			Vim checks files in 'runtimepath'/autoload.
 			autoload functions are [dirnames]#fname#funcname()
 			and need to be defined as fname#funcname()
