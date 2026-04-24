@@ -1,43 +1,27 @@
 "Search the highlighted text
-function! s:VisualSearch(chr, useic)
-	" chr: search direction '/'=forward, '?'=backward
-	" useic: false = case sensitive, always exact
-	"        true  = use the value of &g:ignorecase
-	let ret = ["\<Esc>", a:chr, '\V']
-	if a:useic && &g:ignorecase
-		call add(ret, '\c')
-	else
-		call add(ret, '\C')
-	endif
-	let curmode=mode()
-	if curmode ==# 'v'
-		let col1 = col('v')
-		let col2 = col('.')
-		if col2 < col1
-			let [col1,col2] = [col2, col1]
-		endif
-		let col1 -= 1
-		call add(ret, escape(strpart(getline('.'), col1, col2-col1), '\/'))
-	elseif curmode ==# 'V'
-		call insert(ret, '^', 1)
-		call add(ret, trim(escape(getline('.'), '\/')))
-	else
-		return "\<Esc>"
-	endif
-	call add(ret, "\<CR>")
-	return join(ret, '')
-endfunction
+
+vnoremap <expr> <Plug>VsearchSearch_forward; vsearch#search('/', v:true)
+vnoremap <expr> <Plug>VsearchSearch_forward_exact; vsearch#search('/', v:false)
+vnoremap <expr> <Plug>VsearchSearch_backward; vsearch#search('?', v:true)
+vnoremap <expr> <Plug>VsearchSearch_backward_exact; vsearch#search('?', v:false)
+nnoremap <expr> <Plug>VsearchSearch_note_header; vsearch#notesearch()
+
 
 if maparg("*", 'v') == ''
-	vnoremap <expr> * <SID>VisualSearch('/', v:true)
+	vmap * <Plug>VsearchSearch_forward;
 endif
 if maparg("#", 'v') == ''
-	vnoremap <expr> # <SID>VisualSearch('?', v:true)
+	vmap # <Plug>VsearchSearch_backward;
 endif
 
 if maparg("<Leader>*", 'v') == ''
-	vnoremap <expr> <Leader>* <SID>VisualSearch('/', v:false)
+	vmap <Leader>* <Plug>VsearchSearch_forward_exact;
 endif
 if maparg("<Leader>#", 'v') == ''
-	vnoremap <expr> <Leader># <SID>VisualSearch('?', v:false)
+	vmap <Leader># <Plug>VsearchSearch_backward_exact;
+endif
+
+
+if maparg("<Leader><C-]>", 'n') == ''
+	nmap <Leader><C-]> <Plug>VsearchSearch_note_header;
 endif
