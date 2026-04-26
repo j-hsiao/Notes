@@ -1,4 +1,5 @@
 https://wiki.archlinux.org/title/Rime
+https://amigotechnotes.wordpress.com/2020/04/24/install-and-use-chinese-input-in-ubuntu/
 
 -1- installation
 -2- config
@@ -43,6 +44,17 @@ input method config
 -------------------
 system schema:
 	/usr/share/rime-data/build/*.schema.yaml
+
+	Inside these configs, there is a "switches" section.
+	These indicate the options that can be set.
+
+To set the (default) settings:
+	under ~/.config/ibus/rime/<name>.custom.yaml:
+		patch:
+			switches:
+				-name: switchname
+					reset: idx_of_the_desired_choice
+
 user schema:
 	~/.config/ibus/rime/<inputmethod>.custom.yaml
 	put the corresponding config under patch:
