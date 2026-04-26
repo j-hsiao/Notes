@@ -15,8 +15,13 @@ no viruses etc if using AUR...)
 ===========
 	-Q query database
 		checks
-
+			-d
+				restrict to search deps
+			-t
+				restried to unrequired deps
 	-R --remove
+		-s
+			remove recursively (also remove deps etc)
 
 	-S sync
 		synchronzies with remote repos
