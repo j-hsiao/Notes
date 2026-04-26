@@ -1,17 +1,18 @@
 -0- about
 -1- options
+-2- keys
 
-------------------------------
+=========
 -0- about
-------------------------------
+=========
 pacman is the package manager for arch linux.  It generally handles the
 official arch linux repositories.  However, Arch also has the AUR which
 is for user-managed packages (check and verify install scripts to ensure
 no viruses etc if using AUR...)
 
-------------------------------
+===========
 -1- options
-------------------------------
+===========
 	-Q query database
 		checks
 
@@ -21,3 +22,24 @@ no viruses etc if using AUR...)
 		synchronzies with remote repos
 		-s
 			search
+		-u
+			update packages
+		-y
+			Update package database
+
+========
+-2- keys
+========
+Update the archlinux-keyring package
+probably need to update archlinux-keyring package before
+refresh-keys or anything?
+
+Keys are located in `/etc/pacman.d/gnupg`
+To reset keys:
+	delete the keys directory above
+	then:
+		pacman-key --init
+		pacman-key --populate
+
+refresh keys:
+	pacman-key --refresh-keys
