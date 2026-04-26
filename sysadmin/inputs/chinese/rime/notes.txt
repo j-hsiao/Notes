@@ -1,0 +1,69 @@
+https://wiki.archlinux.org/title/Rime
+
+-1- installation
+-2- config
+-3- usage
+
+================
+-1- installation
+================
+pacman -S librime ibus-rime
+
+
+==========
+-2- config
+==========
+mkdir ~/.config/ibus/rime
+default.custom.yaml
+patch:
+	"menu/page_size": N # number of candidates
+	schema_list:
+		- schema: terra_pinyin
+
+ibus restart
+??
+ibus-setup
+	input method
+	add
+	chinese
+	rime
+?? this method not sure... what exactly it does? doesn't show up in the upperright list...
+
+?Gnome?
+	add input method via settings
+
+
+---------------------
+?apply configuration?
+---------------------
+rm ~/.config/ibus/rime/default.yaml && ibus-daemon -drx
+
+-------------------
+input method config
+-------------------
+system schema:
+	/usr/share/rime-data/build/*.schema.yaml
+user schema:
+	~/.config/ibus/rime/<inputmethod>.custom.yaml
+	put the corresponding config under patch:
+	example:
+		patch:
+			switches:
+				- name: ascii_mode
+
+?on gnome? "ibus-setup set orientation invalid"
+.config/ibus/rime/build/ibus_rime.yaml
+style:
+  horizontal: true
+
+
+=========
+-3- usage
+=========
+tones:
+	1 -
+	2 /
+	3 <
+	4 \
+
+f4: open menua or <C-`>
