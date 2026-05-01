@@ -14,6 +14,7 @@ contents
 -3- GUI
 -4- UEFI
 	-4.1- Secure Boot
+	-4.2- tools
 -5- Encryption
 -6- LVM
 -7- linux
@@ -237,113 +238,171 @@ linux
 ========
 -4- UEFI
 ========
-	https://wiki.debian.org/SecureBoot
+Unified Extensible Firmware Interface
 
-	UEFI is a boot format
-	Generally, it searches for a EFI partition FAT32 formatted
-	for .efi files that are executables to perform booting.
-	Generally should be located at /EFI/$vendor/$bootloader.efi
-	ex: debian:
-		amd64 \EFI\debian\grubx64.efi
-		i386  \EFI\debian\grubia23.efi
-		arm64 \EFI\debian\grubaa64.efi
-		armhf \EFI\debian\grubarm.efi
+https://wiki.archlinux.org/title/Unified_Extensible_Firmware_Interface
+https://wiki.debian.org/SecureBoot
 
-		amd64  \EFI\boot\bootx64.efi
-		i386   \EFI\boot\bootia23.efi
-		arm64  \EFI\boot\bootaa64.efi
-		armhf  \EFI\boot\bootarm.efi
-		nscv64 \EFI\boot\bootriscv64.efi
+UEFI is a boot format
+Generally, it searches for a EFI partition FAT32 formatted
+for .efi files that are executables to perform booting.
+Generally should be located at /EFI/$vendor/$bootloader.efi
+ex: debian:
+	amd64 \EFI\debian\grubx64.efi
+	i386  \EFI\debian\grubia23.efi
+	arm64 \EFI\debian\grubaa64.efi
+	armhf \EFI\debian\grubarm.efi
 
-	=================
-	-4.1- Secure Boot
-	=================
-	Secure boot is basically registering a public key to use
-	for verifying the efi files and kernel modules
-	Unsigned kernel modules (like drivers (nvidia) etc)
-	would be disallowed
+	amd64  \EFI\boot\bootx64.efi
+	i386   \EFI\boot\bootia23.efi
+	arm64  \EFI\boot\bootaa64.efi
+	armhf  \EFI\boot\bootarm.efi
+	nscv64 \EFI\boot\bootriscv64.efi
 
-		*history*: Most only had microsoft keys registered and
-		secure boot enabled by default = cannot run linux.
-		workaround = a "shim" signed by microsoft containing
-		other keys
+_____________
+UEFI bit mode
+	linux
+		cat /sys/firmware/efi/fw_platform_size 64/32 for 64/32-bit uefi
+		if not found, then not currently in uefi mode
+	windows:
+		msinfo
 
-	Check secure boot state:
-		sudo mokutil --sb-state
+=================
+-4.1- Secure Boot
+=================
+Secure boot is basically registering a public key to use
+for verifying the efi files and kernel modules
+Unsigned kernel modules (like drivers (nvidia) etc)
+would be disallowed
 
-		also can look at /var/log/syslog or something
-		or sudo dmesg
-			"loading X.509 cert 'name of cert' ..."
+	*history*: Most only had microsoft keys registered and
+	secure boot enabled by default = cannot run linux.
+	workaround = a "shim" signed by microsoft containing
+	other keys
 
-		===========
-		-4.1.1- MOK
-		===========
-		MOK = Machine Owner Key
-			mokutil can queue keys for registering, but
-			they must be verified at boot time
+Check secure boot state:
+	sudo mokutil --sb-state
 
-		check registered keys
-			sudo mokutil --list-enrolled
-			sudo mokutil --test-key path/to/key
+	also can look at /var/log/syslog or something
+	or sudo dmesg
+		"loading X.509 cert 'name of cert' ..."
 
-		default location:
-			debian:
-				/var/lib/dkms/mok.key
-				/var/lib/dkms/mok.pub
-			ubuntu:
-				/var/lib/shim-signed/mok/
-					MOK.der
-					MOK.pem
-					MOK.priv
+===========
+-4.1.1- MOK
+===========
+MOK = Machine Owner Key
+	mokutil can queue keys for registering, but
+	they must be verified at boot time
 
-		* some packages (like oracle virtualbox) expect ubuntu loc
+check registered keys
+	sudo mokutil --list-enrolled
+	sudo mokutil --test-key path/to/key
 
-		Generate a mok manually:
-			sudo dkms generate_mok
+default location:
+	debian:
+		/var/lib/dkms/mok.key
+		/var/lib/dkms/mok.pub
+	ubuntu:
+		/var/lib/shim-signed/mok/
+			MOK.der
+			MOK.pem
+			MOK.priv
 
-		custom MOK:
-			openssl req -nodes -new -x509 -newkey rsa:2048 -keyout MOK.priv -outform DER -out MOK.der -days 36500 -subj "/CN=My Name/"
-			openssl x509 -inform der -in MOK.der -out MOK.pem
+* some packages (like oracle virtualbox) expect ubuntu loc
 
-			* 4096 not supported 2022-06-21, fail to boot, use 2048 for now
+Generate a mok manually:
+	sudo dkms generate_mok
+
+custom MOK:
+	openssl req -nodes -new -x509 -newkey rsa:2048 -keyout MOK.priv -outform DER -out MOK.der -days 36500 -subj "/CN=My Name/"
+	openssl x509 -inform der -in MOK.der -out MOK.pem
+
+	* 4096 not supported 2022-06-21, fail to boot, use 2048 for now
 
 
-		Auto generated if not exist when making kernel module
-			DKMS (Dynamic Kernel Module System) builds/compiles modules
-			individually.  Compile happens on user machine, cannot use
-			any distro's private key to sign. Must use MOK
+Auto generated if not exist when making kernel module
+	DKMS (Dynamic Kernel Module System) builds/compiles modules
+	individually.  Compile happens on user machine, cannot use
+	any distro's private key to sign. Must use MOK
 
-			DKMS auto generation configuration:
-			/etc/dkms/framework.conf:
-				mok_signing_key="/var/lib..MOK.priv"
-				mok_certificate="/var/lib/...MOK.der"
-				sign_tool="/etc/dkms/sign_helper.sh"
+	DKMS auto generation configuration:
+	/etc/dkms/framework.conf:
+		mok_signing_key="/var/lib..MOK.priv"
+		mok_certificate="/var/lib/...MOK.der"
+		sign_tool="/etc/dkms/sign_helper.sh"
 
-			/etc/dkms/sign_helper.sh
-				#!/bin/bash
-				/lib/modules/"$1"/build/scripts/sign-file sha512 /root/.mok/client.priv /root/.mok/client.der "$2"
+	/etc/dkms/sign_helper.sh
+		#!/bin/bash
+		/lib/modules/"$1"/build/scripts/sign-file sha512 /root/.mok/client.priv /root/.mok/client.der "$2"
 
-		Enrolling the MOK:
-			sudo mokutil --import /var/lib/dkms/mok.pub
-		check keys queued for confirmation
-			sudo mokutil --list-new
-		reboot
-			select enroll MOK
+Enrolling the MOK:
+	sudo mokutil --import /var/lib/dkms/mok.pub
+check keys queued for confirmation
+	sudo mokutil --list-new
+reboot
+	select enroll MOK
 
-		-------------------------
-		Manually signing a kernel
-		-------------------------
+-------------------------
+Manually signing a kernel
+-------------------------
 
-			VERSION="$(uname -r)"
-			SHORT_VERSION="$(uname -r | cut -d . -f 1-2)"
-			MODULES_DIR=/lib/modules/$VERSION
-			KBUILD_DIR=/usr/lib/linux-kbuild-$SHORT_VERSION
+	VERSION="$(uname -r)"
+	SHORT_VERSION="$(uname -r | cut -d . -f 1-2)"
+	MODULES_DIR=/lib/modules/$VERSION
+	KBUILD_DIR=/usr/lib/linux-kbuild-$SHORT_VERSION
 
-			sudo apt install sbsigntool
+	sudo apt install sbsigntool
 
-		-------------------------
-		Manually signing a module
-		-------------------------
+-------------------------
+Manually signing a module
+-------------------------
+
+===========
+-4.2- tools
+===========
+______
+efivar
+	list efi variables
+
+__________
+efibootmgr
+	Manage boot entries
+
+	______
+	create
+	efibootmgr \
+		--create \
+		--disk /dev/sda \
+		--part 1 \
+		--loader '/vmlinuz-linux' \
+		--label 'displaylabel' \
+		--unicode \
+		'root=PARTUUID=... rw initrd=/*.img'
+
+	--part: partition number, usually the 'N' in /dev/sdaN
+	--loader: specify a "loader"
+	--label: displayed in boot menu
+
+	____
+	list
+		efibootmgr --unicode
+
+	______
+	delete
+	efibootmgr --delete-bootnum --bootnum XXXX --unicode
+
+	_______
+	reorder
+	efibootmgr --bootorder XXXX,XXXX,...
+		XXXX is the number listed as "BootXXXX*" from `efibootmgr`
+
+________
+uefivars
+
+________
+efitools
+
+
 ==============
 -5- Encryption
 ==============
@@ -364,39 +423,69 @@ open encrypted partition:
 =========
 -7- linux
 =========
-	==========
-	-7.1- grub
-	==========
-	grub-mkconfig
+https://wiki.archlinux.org/title/Arch_boot_process#UEFI_2
+
+boot process:
+	0. initialize hardware
+	1. ?motherboard? searches for uefi partition somewhere (usb, disk, network drive, etc)
+	   (EFI type GPT partition)
+	2. inside uefi partition, there are EFI executables, picks, one to run.
+	   (the efi ?is usually a bootloader?)
+	   /efi/.../*.efi
+	2.1 verify authenticity if secure boot
+	3. bootloader launch kernel, loads an "initramfs" from a (compressed) file in the
+	   boot partition.  initramfs has drivers etc needed to find the
+	   actual file system to be used as root.
+	4. load kernel modules, mount file systems (/etc/fstab)
+	5a. getty->login->shell
+	5b. display manager->graphical session
+
+==========
+-7.1- grub
+==========
+GRand Unified Bootloader
+native support of FAT32, ext4, Btrfs, XFS
+
+grub is generally installed in the boot partition:
+	/EFI/GRUB/grub*.efi
+modules in
+	/boot/grub/*
 
 
-	============
-	-7.2- kernel
-	============
-	Kernels are installed in
+
+grub-mkconfig
+
+
+============
+-7.2- kernel
+============
+Kernels are installed in
+arch:
+ubuntu(wsl):
 	/usr/lib/modules
-	=================
-	-7.2.1.- updating
-	=================
-	1. install(download) the kernel ?and headers?
-		arch:
-			pacman -S <kernelversion>
-				versions:
-					linux
-					linux-lts
 
-	==========
-	-7.3- boot
-	==========
-	?boot entries?
-		Conf files are at:
-			/boot/loader/entries/*.conf
-		contents:
-			title: ?shown as the entry?
-			linux: ?? path /...
-			initrd: /fname.img
-			options root=PARTUUID=<?partition uuid?> zswap.enabled=0 rw rootfstype=ext4
+=================
+-7.2.1.- updating
+=================
+1. install(download) the kernel ?and headers?
+	arch:
+		pacman -S <kernelversion>
+			versions:
+				linux
+				linux-lts
 
-		?linux, initrd are relative to /boot?  ?to the boot partition?
-		PARTUUID: use blkid to get this (NOT the UUID from lsblk -f)
-		rootfstype also listed by blkid
+==========
+-7.3- boot
+==========
+?boot entries?
+	Conf files are at:
+		/boot/loader/entries/*.conf
+	contents:
+		title: ?shown as the entry?
+		linux: ?? path /...
+		initrd: /fname.img
+		options root=PARTUUID=<?partition uuid?> zswap.enabled=0 rw rootfstype=ext4
+
+	linux and initrd: ?paths relative to /boot?  ?to the boot partition?
+	PARTUUID: use blkid to get this (NOT the UUID from lsblk -f)
+	rootfstype also listed by blkid
