@@ -16,13 +16,16 @@ contents
 	-4.1- Secure Boot
 -5- Encryption
 -6- LVM
+-7- linux
+	-7.1- grub
+	-7.2- kernel
 
 
 
 
-------------------------------
+==============
 -1- partitions
-------------------------------
+==============
 Disks (flash drive, usb, hdd, ssd, etc) can be split into partitions.
 Generally, 2 formats:
 	MBR: old, max 4 primary partitions
@@ -40,9 +43,9 @@ Generally, 2 formats:
 	https://man.archlinux.org/man/file-hierarchy.7
 
 
-	------------------------------
+	=======
 	-1.1- /
-	------------------------------
+	=======
 	The root directory.
 
 	This partition holds the os.  Must be sufficient to
@@ -58,9 +61,9 @@ Generally, 2 formats:
 
 	generally 23-32 GiB
 
-	------------------------------
+	================
 	-1.2- /boot /efi
-	------------------------------
+	================
 	contains vmlinuz, initramfs, boot loader config, data before kernel is run
 	If UEFI, can mount EFI system partition to /boot (use it as /boot)
 	Recommend 1 GiB, usually never exceed 4 GiB
@@ -74,9 +77,9 @@ Generally, 2 formats:
 	fdisk: xbootldr
 	MBR: ea
 
-	------------------------------
+	===========
 	-1.3- /home
-	------------------------------
+	===========
 	normal users' home directories, possibly shared with other systems.
 	might even be a network fs
 
@@ -85,9 +88,9 @@ Generally, 2 formats:
 	fdisk: home
 	MBR: "Linux" 83
 
-	------------------------------
+	==========
 	-1.4- swap
-	------------------------------
+	==========
 	swap file: easiy to resize
 	"equally performant"
 	Swap can be shared between OS (unless hibernate)
@@ -102,17 +105,17 @@ Generally, 2 formats:
 	fdisk: swap
 	mbr: 82
 
-	------------------------------
+	===========
 	-1.5- /data
-	------------------------------
+	===========
 	optional, can just use /home
 	"Linux filesystem"
 	GPT GUID: 0FC63DAF-8483-4772-8E79-3D69D8477DE4
 	MBR: 83
 
-	------------------------------
+	==========
 	-1.6- /var
-	------------------------------
+	==========
 	"variable data" spool directories, files admin, logging, cache
 	persistent
 
@@ -130,9 +133,9 @@ Generally, 2 formats:
 	MBR: 83
 
 
-	------------------------------
+	=======================
 	-1.7- Other directories
-	------------------------------
+	=======================
 	Other directories, usually not separate partition:
 	/etc                  MUST be part of / OR mounted early in initramfs
 	                      System configs
@@ -178,17 +181,17 @@ Generally, 2 formats:
 
 
 
-------------------------------
+==================
 -2- bootable media
-------------------------------
+==================
 Bootable media generally means:
-	------------------------------
+	=========
 	-2.1- GPT
-	------------------------------
+	=========
 	1. GPT
-		------------------------------
+		===============
 		-2.1.1- Windows
-		------------------------------
+		===============
 			Start an admin prompt (windows+x a)
 			1. Download the ISO, note the size
 			2. Create a partition:
@@ -213,15 +216,15 @@ Bootable media generally means:
 					create a FAT32 partition
 			Extract iso into the partition after creating as FAT32
 			Use 7z or something to extract ISO into the EFI
-		------------------------------
+		=============
 		-2.1.2- Linux
-		------------------------------
+		=============
 
 	2. MBR: TODO maybe
 
-------------------------------
+=======
 -3- GUI
-------------------------------
+=======
 linux
 	display manager: graphical login screen, starts the desktop
 	                 environment  after login
@@ -231,9 +234,9 @@ linux
 	login manager: usually same as display manager, handles user login
 	               sessions or multiple users etc
 
-------------------------------
+========
 -4- UEFI
-------------------------------
+========
 	https://wiki.debian.org/SecureBoot
 
 	UEFI is a boot format
@@ -252,9 +255,9 @@ linux
 		armhf  \EFI\boot\bootarm.efi
 		nscv64 \EFI\boot\bootriscv64.efi
 
-	------------------------------
+	=================
 	-4.1- Secure Boot
-	------------------------------
+	=================
 	Secure boot is basically registering a public key to use
 	for verifying the efi files and kernel modules
 	Unsigned kernel modules (like drivers (nvidia) etc)
@@ -272,9 +275,9 @@ linux
 		or sudo dmesg
 			"loading X.509 cert 'name of cert' ..."
 
-		------------------------------
+		===========
 		-4.1.1- MOK
-		------------------------------
+		===========
 		MOK = Machine Owner Key
 			mokutil can queue keys for registering, but
 			they must be verified at boot time
@@ -327,9 +330,9 @@ linux
 		reboot
 			select enroll MOK
 
-		------------------------------
+		-------------------------
 		Manually signing a kernel
-		------------------------------
+		-------------------------
 
 			VERSION="$(uname -r)"
 			SHORT_VERSION="$(uname -r | cut -d . -f 1-2)"
@@ -338,12 +341,12 @@ linux
 
 			sudo apt install sbsigntool
 
-		------------------------------
+		-------------------------
 		Manually signing a module
-		------------------------------
-------------------------------
+		-------------------------
+==============
 -5- Encryption
-------------------------------
+==============
 display devices and partitions:
 	lsblk
 
@@ -354,6 +357,46 @@ open encrypted partition:
 	cryptsetup open --type luks /dev/partition name
 
 
-------------------------------
+=======
 -6- LVM
-------------------------------
+=======
+
+=========
+-7- linux
+=========
+	==========
+	-7.1- grub
+	==========
+	grub-mkconfig
+
+
+	============
+	-7.2- kernel
+	============
+	Kernels are installed in
+	/usr/lib/modules
+	=================
+	-7.2.1.- updating
+	=================
+	1. install(download) the kernel ?and headers?
+		arch:
+			pacman -S <kernelversion>
+				versions:
+					linux
+					linux-lts
+
+	==========
+	-7.3- boot
+	==========
+	?boot entries?
+		Conf files are at:
+			/boot/loader/entries/*.conf
+		contents:
+			title: ?shown as the entry?
+			linux: ?? path /...
+			initrd: /fname.img
+			options root=PARTUUID=<?partition uuid?> zswap.enabled=0 rw rootfstype=ext4
+
+		?linux, initrd are relative to /boot?  ?to the boot partition?
+		PARTUUID: use blkid to get this (NOT the UUID from lsblk -f)
+		rootfstype also listed by blkid
