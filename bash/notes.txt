@@ -49,6 +49,9 @@ contents
 		-0.10.8- <() process substitution
 		-0.10.9- {} command grouping
 		-0.10.10- ${} parameter expansion
+	-0.11- process management
+		-0.11.1- background
+		-0.11.2- coproc
 -1- regexp
 -2- completion
 -3- ps1 (prompt)
@@ -1254,6 +1257,41 @@ contents
 
 
 
+
+=========================
+-0.11- process management
+=========================
+===================
+-0.11.1- background
+===================
+
+command line args... &
+When running something in the background:
+1. from inside a script, it servives after the script ends
+2. Terminals usually wait for them to complete before exiting
+   (so exiting looks ike it's hanging)
+3. use nohup to stop the hanging effect.
+
+===============
+-0.11.2- coproc
+===============
+bash4.0+
+
+coproc command arg arg...
+coproc [NAME] { command args ... redirections ; }
+
+Create a new process and provide its stdout/stdin fds in an array named
+NAME (NAME is COPROC if omitted).  The pid is stored as the NAME_PID
+variable.  After the coproc has been waited on, the corresponding
+variables WILL BE CLEANED UP (unset)
+
+(run coproc.sh to observe behavior)
+
+
+NOTE: to use NAME, the {} are required.
+NOTE: coprocs will be automatically waited on at certain points
+such as when a new command is run after it has exited, or at the end
+of a sourced script
 
 =========
 -1-regexp
