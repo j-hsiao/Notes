@@ -1261,6 +1261,20 @@ contents
 =========================
 -0.11- process management
 =========================
+==================
+-0.11.0- buffering
+==================
+stdbuf [-i mode] [-o mode] [-e mode]
+	L: line buffered
+	0: unbuffered
+	N[suffix][B]
+		B: Use 1000 as the base instead fo 1024
+		suffix: KMGTPEZYRQ: kilo, mega, giga, etc
+
+With coprocs, input/output might get buffered.  As a result, the input/output would not be
+readable.  Use stdbuf to remove buffering to make things readable or might hang
+waiting for buffered data to be flushed.
+
 ===================
 -0.11.1- background
 ===================
