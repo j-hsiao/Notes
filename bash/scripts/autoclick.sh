@@ -15,7 +15,7 @@ autoclick() # count [unit=10]
 {
 	local delay=1000
 	local count=1
-	local unit=10
+	local unit=1
 	while (($#))
 	do
 		case "${1}" in
@@ -104,13 +104,11 @@ run()
 		# therefore must communicate the pid of current process
 		# read to wait for parent to know the correct pid.
 		# Afterwards, start ydotoold and then finally cleanup.
-		echo "pid: $$"
-		read
 		stdbuf -o L ydotoold -p "${YDOTOOL_SOCKET}" &
-		pid=$!
+		local pid=$!
 		trap 'trap - RETURN
 			kill "${pid}"
-			rm "${YDOTOOL_SOCKET}"
+			[[ -S "${YDOTOOL_SOCKET}" ]] && rm "${YDOTOOL_SOCKET}"
 			wait "${pid}"' RETURN
 		read
 		return
@@ -118,15 +116,6 @@ run()
 	coproc ydo { stdbuf -o L bash "${BASH_SOURCE[0]}" ydotoold; }
 	trap 'trap - RETURN; ((${#ydo[@]})) && echo >&"${ydo[1]}"' RETURN
 	local line
-	read -u ${ydo[0]} line
-	if [[ "${line}" != 'pid: '[1-9]*([0-9]) ]]
-	then
-		echo "Failed to start ydotoold."
-		echo >&"${ydo[1]}"
-		return
-	fi
-	echo >&"${ydo[1]}"
-
 	local ready=0
 	while read -t 10 -u ${ydo[0]} line
 	do
@@ -142,7 +131,6 @@ run()
 		echo "ydotoold failed to ready"
 		return
 	fi
-
 	echo 'type -h for help'
 	local count=1
 	while read -r -p '>>> ' line

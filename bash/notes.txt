@@ -1291,6 +1291,9 @@ When running something in the background:
 ===============
 bash4.0+
 
+NOTE: there is always in intermediate bash process regardlesss of the command.
+killing the NAME_PID might just leave the actual command orphaned.
+
 coproc command arg arg...
 coproc [NAME] { command args ... redirections ; }
 
