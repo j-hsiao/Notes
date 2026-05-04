@@ -29,13 +29,14 @@ endfunction
 
 function! vsearch#notesearch()
 	" Search for the -N.N.N- that I use for header in my notes.
-	" It should be followed by some kind of barrier
+	" Allow N to also be X to indicate un-set numbering
+	" It should be surrounded by some kind of barrier
 	" usually ---- or =====
 
 	let curline = getline('.')
 	let curcol = col('.') - 1
 	let idx = 0
-	let pattern = '\m\(.\{-0,}\)\(-[0-9]\+\(\.[0-9]\+\)*-\)'
+	let pattern = '\m\(.\{-0,}\)\(-[0-9x]\+\(\.[0-9x]*\)*-\)'
 
 
 	let result = matchlist(curline, pattern, 0)
@@ -62,5 +63,10 @@ function! vsearch#notesearch()
 		let idx += end
 		let result = matchlist(curline, pattern, idx)
 	endwhile
-	return "\<C-\>\<C-N>" . '/\m^\t*\(.\)\1*\_$\_.\t*\V' . target . '\m.*\_$\_.\t*\1*$' . "\<CR>:nohl\<CR>zt"
+	if len(target)
+		" return "\<C-\>\<C-N>" . '/\m^\t*\(.\)\1*\_$\_.\t*\V' . target . '\m.*\_$\_.\t*\1*$' . "\<CR>:nohl\<CR>zt"
+		return "\<C-\>\<C-N>" . '/\m^\t*\(.\)\1*\_$\_.\t*\V' . target . "\<CR>:nohl\<CR>zt"
+	endif
+	echo 'No notes title detected.'
+	return "\<C-\>\<C-N>"
 endfunction
