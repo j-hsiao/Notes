@@ -1,6 +1,7 @@
 -0- general
 	-0.0- observations
 	-0.1- events
+	-0.2- methods
 -1- figure
 -2- axes
 	-2.1- Axes plotting methods
@@ -139,8 +140,77 @@ ______________________________
 				attrs:
 					width, height (of the canvas)
 
-______________________________
+=============
+-0.2- methods
+=============
+_____________________________________
+imshow(img, cmap = str, interp = val)
+	displays in RGB
+	if using cv2.imread:
+		need to flip r and b
+			img2 = img[:,:,::-1]
+				or
+			cv2.cvtColor(img, cv2.BGR2RGB)
+
+____________________
+subplot(rowscolsnum)
+	Figure.add_subplot
+
+	1st digit = numrows
+	2nd digit = numcol
+	3rd digit = count
+
+__________
+title(str)
+	Figure.suptitle
+	sets title of subplot to str
+
+____________________________________________________________________
+hist(x, [bins, range, normed, weights, cumulative, bottom, histtype,
+     align, orientation, rwidth, log, color, label, stacked, hold
+     data, **kwargs)
+	x: data
+	bins: number of bins
+	range: data range
+	normed: normalized
+	weights: weights for each entry
+	cumulative: cumulative histogram
+	bottom: bottom baseline shift of each bin
+	histtype: type
+	          bar, barstacked, step, stepfilled
+	align: bars aligned on
+	       left, mid, right
+	orientation: orientation of bars
+	             horizontal, vertical
+	rwidth: relative width of bar
+	log: bool-> use logscale?
+	color: specify colors for each bin
+	label: label for data set
+	stacked: stacked bars
+	hold: ??
+	data:??
+	**kwargs: patch properties
+	returns:
+		n, binEdges, patches
+
+
+_________________________
+plot(data, color = color)
+	data: data to plot
+	color: 'r', 'g', 'b', etc
+	plots data
+
+
+___________
+xlim(range)
+	range: range for x axis
+
+
+
+
+==========
 -1- figure
+==========
 	A figure is a collection of axes (plots) arranged in some way.
 	useful methods:
 		The figure.bbox gives information about the size of the figure

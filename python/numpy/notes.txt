@@ -12,6 +12,7 @@ contents
 	-1.4- strides
 	-1.5- fake dimensions and strides
 	-1.6- broadcasting
+	-1.7- usage
 -2- universal functions
 -3- interoperability features
 -4- array siblings
@@ -21,15 +22,57 @@ contents
 	4.3matrix
 -5- summary
 -6- contributing
-
+-7- methods
 
 ##############################
 -1- life of ndarray
 ##############################
-ndarray: memory + indexing + type
-         (raw data,
-         how to locate
-         how to interpret)
+ndarrays are n-dimensional arrays.
+They generally wrap arbitrary memory to view it as an N-dimensional array
+of some dtype.
+Generally, they have 3 important concepts:
+	memory: the raw data
+	indexing: how to locate each item.
+	type: how to interpret each item.
+
+Usually created with `np.array(data, dtype, ...)`
+
+_______
+methods
+
+_____________
+item(indices)
+	returns item
+
+_______________________
+itemset((indices), val)
+	sets item at indices to val
+
+______
+copy()
+	returns a copy
+
+________
+cumsum()
+	returns cumulative sum
+
+_______
+ravel()
+	array: array to flatten
+	returns:
+		flattened array (a view)
+
+_________
+flatten()
+	array: array to flatten
+	returns:
+		flattened array (a copy)
+
+__________
+properties
+	shape: The shape of the ndarray
+	size: number of values (row x col)
+	dtype: data type
 
 ______________________________
 -1.1- general
@@ -218,6 +261,25 @@ if modify shared data, results can be unexpected...
 x -= x.transpose(), element by element, data changed = use changed values for calcs
 
 
+===========
+-1.7- usage
+===========
+Access items in ndarray via __getitem__ ([])
+array[idx1, idx2, idx3, ...]
+	Each index is for each dimension.
+	If fewer indices than dimensions, then return a subarray
+	Example: 1080x1920x3 array, (an image)
+		array[0] = the first row
+		array[0, 0] = top-left pixel
+		array[0, 0, 0] = blue value of pixel (if image in bgr format)
+	NOTE1: array[idx1, idx2, idx3] is actually the same as array[(idx1, idx2, idx3)]
+		(it is a tuple of indices)
+
+	NOTE2: Each idx can also be a slice to grab a region.
+
+Unsigned integral operations will overflow/wrap around.
+
+
 ##############################
 -2- universal functions
 ##############################
@@ -312,3 +374,82 @@ ______________________________
 -4.3- matrix
 	always 2d
 	* is matmul not elemul
+===========
+-7- methods
+===========
+histogram(data, [bins, range, normed, weights, density])
+	data: the data
+	bins: number of bins
+	range: data range
+	normed:
+	returns:
+		hist, bin_edges
+
+
+
+bincount(data, [weights, minlength])
+	data: the data to analyze
+	weights: weights for each entry
+	minlength: min number of bins
+
+
+fft.fft2(a, [s, axes, norm])
+	a: array to transform
+	s: sequence of ints representing
+	   axes lengths (if none, uses input's axes)
+	   s>input = zero-padded, s<output  cropped
+	axes: axes to compute FFT (which 2 axes to use)
+	      (last  2 if not specified)
+	norm: None or "ortho"
+	      normalization mode
+	NOTE:
+		0,0 frequency at top left (index 0,0)
+
+
+fft.ifft2(a, [s, axes, norm])
+	 a: array to transform
+	 s: sequence of ints-axes lengths
+	 axes: axes to use for computation
+	 norm: None or "ortho"
+	 returns:
+		 inverse fft of matrix
+
+
+abs(num)
+	num: number to take abs value of
+	returns:
+		abs val
+
+
+fft.fftshift(x, [axes])
+	x: input array to shift
+	axes: axes to shift over
+	returns:
+		shifted matrix
+
+
+fft.ifftshift(x, [axes])
+	x: input array to inverse shift
+	returns:
+		shifted array
+
+
+check((dims), [type])
+	dims: for a checkerboard matrix (x,y)
+	type: np.uint8 etc
+	returns:
+		checkerboard matrix
+
+
+	zeros((dims), [type])
+		dims: dims for matrix
+		type: datatype
+		returns:
+			0 matrix
+
+
+	eye((dims), [type])
+		dims: dims for matrix
+		type: datatype
+		returns:
+			identity matrix
