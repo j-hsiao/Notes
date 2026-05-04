@@ -31,6 +31,10 @@ contents
 	-1.12- Histograms
 	-1.13- Fourier Transforms
 	-1.14- Haar Training
+	-1.15- alignment
+		-1.15.1- keypoints
+		-1.15.2- matching
+		-1.15.3- example
 -2- functions
 	-2.1- io
 		imread
@@ -67,11 +71,6 @@ contents
 		flip
 		copyMakeBorder
 		resize
-		warpAffine
-		getRotationMatrix2D
-		getAffineTransform
-		warpPerspective
-		getPerspectiveMatrix
 	-2.6- video
 		fourcc
 	-2.7- math
@@ -126,6 +125,14 @@ contents
 			fitLine
 
 		-2.9.- other
+			moments
+	-2.10- alignment
+		warpAffine
+		getRotationMatrix2D
+		getAffineTransform
+		warpPerspective
+		getPerspectiveMatrix
+		findHomography
 	-2.x- miscellaneous
 		getTickCount
 		getTickFrequency
@@ -528,6 +535,172 @@ train the classifier:
 				                                  default is basic
 
 
+================
+-1.15- alignment
+================
+Alignment usually follows this process:
+1. Calculate source and target points.
+2. Calculate some kind of pairing between points.
+3. Calculate some kind of aligning transform.
+
+The source and target points might or might not be fixed.
+Example 1:
+	face alignment.
+	The detected source points are things like eyes, nose, mouth, etc...
+	The target points are fixed ?averages? over many face images, the
+	points wher ethe eyes, nose mouth, etc... would be if the face
+	was viewed from the front
+Example 2:
+	Have an image of an object, try to detect it in another image.
+	1. The source points would be calculated keypoints of the object image.
+	2. The target points would be the keypoints in the target image.
+
+==================
+-1.15.1- keypoints
+==================
+Keypoints are generally detected with some kind of keypoint detector.
+```
+for k in dir(cv2):
+    x = getattr(cv2, k)
+    if isinstance(x, type) and issubclass(x, cv2.Feature2D):
+        print(k)
+```
+	AKAZE
+	AffineFeature
+	AgastFeatureDetector
+	BRISK
+	FastFeatureDetector
+	Feature2D
+	GFTTDetector
+	KAZE
+	MSER
+	ORB
+	SIFT
+	SimpleBlobDetector
+	xfeatures2d_AffineFeature2D
+	xfeatures2d_BEBLID
+	xfeatures2d_BoostDesc
+	xfeatures2d_BriefDescriptorExtractor
+	xfeatures2d_DAISY
+	xfeatures2d_FREAK
+	xfeatures2d_HarrisLaplaceFeatureDetector
+	xfeatures2d_LATCH
+	xfeatures2d_LUCID
+	xfeatures2d_MSDDetector
+	xfeatures2d_SURF
+	xfeatures2d_StarDetector
+	xfeatures2d_TBMR
+	xfeatures2d_TEBLID
+	xfeatures2d_VGG
+
+______________
+cv2.Feature2D
+	These calculate some kind of keypoints/descriptors for images.
+
+	Images can be a single image, in which case keypoints/descriptors are
+	a tuple for that image.  Otherwise, they can be a tuple of images, in
+	which case keypoints/descriptors is a parallel list of
+	keypoints/descriptors per image.
+
+	________
+	methods:
+	_____________________________________________________________________
+	compute(image[s], keypoints[, descriptors]) -> keypoints, descriptors
+		Return keypoints that have valid descriptors and the descriptors.
+
+	_____________________
+	detect(image[, mask])
+		Return a tuple of cv2.KeyPoint
+
+	____________________________________________________________________
+	detectAndCompute(image, mask[, descriptors[, useProvidedKeypoints]])
+		detect keypoints and compute their descriptors.
+		probably somewhat similar to:
+			return compute(image, detect(image[, mask]))
+
+	_____________
+	other:
+		defaultNorm()
+		descriptorType()
+		descriptorSize()
+
+		empty()
+		getDefaultName()
+		read(fname)
+		write(fname)
+		clear()
+		save(fname)
+
+=================
+-1.15.2- matching
+=================
+For some tasks, matches are predetermined.
+Example, in face alignment, left, right eye etc go to specific coordinates.
+
+In other cases, they are not.  For those cases, some kind of matching
+must be performed to create a set of corresponding points.
+
+
+================
+-1.15.3- example
+================
+https://docs.opencv.org/4.x/d1/de0/tutorial_py_feature_homography.html
+
+```
+sft = cv2.SIFT_create()
+kp1, des1 = sft.detectAndCompute(queryImage, None)
+kp2, des2 = sft.detectAndCompute(targetImage, None)
+
+FLANN_INDEX_KDTREE = 1
+index_params = dict(algorithm = FLANN_INDEX_KDTREE, trees = 5)
+search_params = dict(checks = 50)
+
+flann = cv.FlannBasedMatcher(index_params, search_params)
+matches = flann.knnMatch(des1, des2, k=2)
+
+good = []
+for m1, m2 in matches:
+    if m.distance < 0.7 * n.distance:
+        good.append(m)
+
+querypt = cv2.KeyPoint.convert([kp1[m.queryIdx] for m in good])[:,None,:]
+targetpt = cv2.KeyPoint.convert([kp2[m.trainIdx] for m in good])[:,None,:]
+
+Tx, mask = cv.findHomography(querypt, targetpt, cv2.RANSAC,5.0)
+Tx, mask = cv.estimateAffine2D(querypt, targetpt)
+```
+
+detectAndCompute
+
+The docs seem to leave out a lot of detail.
+1. the params are optional, but what the default values are
+	is never stated.
+
+2. knnMatch returns a list of [(match1, match2, ...)]
+	per descriptor in des1 where the length of each
+	(match1,match2,...) is the given k and each set of matches
+	is sorted from best to worst.
+
+3. Choosing the good matches uses "Lowe's ratio test."
+	https://stackoverflow.com/questions/51197091/how-does-the-lowes-ratio-test-work
+	The test assumes:
+		1. each point only has 1 actual match.
+		2. An actual match should have very low distance (nearly identical descriptor)
+		3. Any other match would just be random noise.
+	Therefore:
+	Find all the matches where the best is "significantly"
+	better than the 2nd best.
+
+4. Convert the chosen keypoint pairs into numpy arrays.
+	It seems that findHomography takes points in the shape of (N,1,D)
+	where N = number of points and D is the dimensionality
+
+5. Calculate the transformation that would take the query image to the target image.
+
+See also -2.10- alignment
+
+
+
 =============
 -2- functions
 =============
@@ -869,62 +1042,6 @@ resize(src, dsize, [dst, fx, fy interpolation])
 	NOTE:
 		if using fx, fy, just set dsize to (0,0)
 
-________________________________________________________________
-warpAffine(src, M, dsize, [dst, flags, borderMode, borderValue])
-	src: input image
-	M: 2x3 transformation matrix np.float32 from dst xy to src xy
-	dsize: size of output image (width, height)
-	dst: destination
-	flags: interp methods
-	       WARP_INVERSE_MAP: inverts the xform
-	borderMode: pixel interpolation
-	returns:
-		transformed image
-	NOTE:
-		M is 2row 3 col
-		each row is x, y, o
-		1st row affects x
-		2nd row affects y
-		equation is:
-		src(x,y) = dst(m11x+ m12y + m13, m21x + m22y + m23)
-		(for a translation, use [[1,0,x],[0,1,y]])
-
-_________________________________________
-getRotationMatrix2D(center, angle, scale)
-	center: center of rotation (x, y)
-	angle: angle of rotation (counterclockwise) degrees
-	scale: isotropic scale factor (image becomes scale
-	       times bigger)
-	returns:
-		the 2x3 rotation matrix
-
-____________________________
-getAffineTransform(src, dst)
-	src: coordinates of triangle in source
-	dst: coordinates of triangle in dst
-	returns:
-		corresponding 2x3 transform matrix
-	NOTE:
-		src, dst are floats
-
-___________________________________________________________________
-warpPerspective(src,M,dsize, [dst, flags, borderMode, borderValue])
-	src: input image
-	M: xform matrix
-	dsize: size of result
-	dst: destination
-	flags: INTER_ constants
-	borderMode: pixel extrapolation method
-	borderValue: for constant border
-
-_______________________________
-getPerspectiveTransform(p1, p2)
-	p1: set of 4 points for source
-	p2: set of 4 points after xform
-	returns:
-		3x3 transform matrix
-	NOTE:
-		should be floats
 
 ===========
 -2.6- video
@@ -1453,6 +1570,96 @@ moments(array, [binaryImage])
 	NOTE:
 		centroid: ((m10/m00),(m01/m00))
 		m00: area
+================
+-2.10- alignment
+================
+________________________________________________________________
+warpAffine(src, M, dsize, [dst, flags, borderMode, borderValue])
+	src: input image
+	M: 2x3 transformation matrix np.float32 from dst xy to src xy
+	dsize: size of output image (width, height)
+	dst: destination
+	flags: interp methods
+	       WARP_INVERSE_MAP: inverts the xform
+	borderMode: pixel interpolation
+	returns:
+		transformed image
+	NOTE:
+		M is 2row 3 col
+		each row is x, y, o
+		1st row affects x
+		2nd row affects y
+		equation is:
+		src(x,y) = dst(m11x+ m12y + m13, m21x + m22y + m23)
+		(for a translation, use [[1,0,x],[0,1,y]])
+
+_________________________________________
+getRotationMatrix2D(center, angle, scale)
+	center: center of rotation (x, y)
+	angle: angle of rotation (counterclockwise) degrees
+	scale: isotropic scale factor (image becomes scale
+	       times bigger)
+	returns:
+		the 2x3 rotation matrix
+
+____________________________
+getAffineTransform(src, dst)
+	src: coordinates of triangle in source
+	dst: coordinates of triangle in dst
+	returns:
+		corresponding 2x3 transform matrix
+	NOTE:
+		src, dst are floats
+
+___________________________________________________________________
+warpPerspective(src,M,dsize, [dst, flags, borderMode, borderValue])
+	src: input image
+	M: xform matrix
+	dsize: size of result
+	dst: destination
+	flags: INTER_ constants
+	borderMode: pixel extrapolation method
+	borderValue: for constant border
+
+_______________________________
+getPerspectiveTransform(p1, p2)
+	p1: set of 4 points for source
+	p2: set of 4 points after xform
+	returns:
+		3x3 transform matrix
+	NOTE:
+		should be floats
+
+____________________________________________________________________________________
+findHomography(srcpt, dstpt, *, method, ransacReprojThresh, mask, maxiters, confidence)
+	srcpt: np array of source points
+	dstpt: np array of destination points
+		TODO: the points used in the example are Nx1x2, but do they need to be?
+	method:
+		0
+		cv2.RANSAC: RANSAC
+		cv2.LMEDS: least median
+		cv2.RHO: PROSAC
+	ransacReprojThresh: float, for RANSAC/RHO methods
+	mask: output mask for chosen points
+	maxiters: ransac iters
+	confidence: 0-1
+
+	Return the (transform, mask)
+		transform: from src to dst
+		inliers: binary mask for which are inliers(1)/outliers(0)
+	Return empty matrix on failure.
+
+_________________________________________________________________________________________________________
+estimateAffine2D(from_, to, *, inliers, method, ransacReprojThreshold, maxIters, confidence, refineIters)
+
+	return (transform, inliers)
+		transform: from src to dst
+		inliers: binary mask for which are inliers(1)/outliers(0)
+
+
+
+
 ==================
 -2.x- miscellaneous
 ==================
