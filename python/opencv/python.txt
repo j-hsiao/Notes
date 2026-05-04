@@ -1573,6 +1573,15 @@ moments(array, [binaryImage])
 ================
 -2.10- alignment
 ================
+Generally, transformation methods take a matrix M.
+This is is input an x,y pixel coordinate in the source image
+and the result is the x,y pixel in the output image.
+(In general, the output image is created by using the inverse.
+Take an output x,y, what is the input x,y, take the values
+and put it in.)  As a result, Calling the warp* methods
+as usual would also calcuate inverse.  Use WARP_INVERSE_MAP
+to indicate that the given tranformation matrix is the opposite.
+
 ________________________________________________________________
 warpAffine(src, M, dsize, [dst, flags, borderMode, borderValue])
 	src: input image
@@ -1614,10 +1623,10 @@ getAffineTransform(src, dst)
 ___________________________________________________________________
 warpPerspective(src,M,dsize, [dst, flags, borderMode, borderValue])
 	src: input image
-	M: xform matrix
+	M: transformation matrix from src -> dst.
 	dsize: size of result
 	dst: destination
-	flags: INTER_ constants
+	flags: [INTER_LINEAR | INTER_NEAREST] | WARP_INVERSE_MAP
 	borderMode: pixel extrapolation method
 	borderValue: for constant border
 
@@ -1634,7 +1643,8 @@ ________________________________________________________________________________
 findHomography(srcpt, dstpt, *, method, ransacReprojThresh, mask, maxiters, confidence)
 	srcpt: np array of source points
 	dstpt: np array of destination points
-		TODO: the points used in the example are Nx1x2, but do they need to be?
+		NOTE: The example in the findHomography opencv docs uses point shapes Nx1x2
+		But in testing, it seems that using Nx2 is fine too.
 	method:
 		0
 		cv2.RANSAC: RANSAC
@@ -1648,7 +1658,7 @@ findHomography(srcpt, dstpt, *, method, ransacReprojThresh, mask, maxiters, conf
 	Return the (transform, mask)
 		transform: from src to dst
 		inliers: binary mask for which are inliers(1)/outliers(0)
-	Return empty matrix on failure.
+	Return empty matrix on failure. (None for python)
 
 _________________________________________________________________________________________________________
 estimateAffine2D(from_, to, *, inliers, method, ransacReprojThreshold, maxIters, confidence, refineIters)
