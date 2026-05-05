@@ -36,9 +36,7 @@ function! vsearch#notesearch()
 	let curline = getline('.')
 	let curcol = col('.') - 1
 	let idx = 0
-	let pattern = '\m\(.\{-0,}\)\(-[0-9x]\+\(\.[0-9x]*\)*-\)'
-
-
+	let pattern = '\m\(.\{-0,}\)\(-[0-9xX]\+\(\.[0-9xX]\+\)*-\)'
 	let result = matchlist(curline, pattern, 0)
 	let best = len(curline)
 	let target = ''
