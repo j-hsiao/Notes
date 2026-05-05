@@ -16,6 +16,10 @@ coroutines
 		-1.2.4- timeouts
 		-1.2.5- threads
 	-1.3- streams
+		-1.3.1- readers
+		-1.3.2- writers
+		-1.3.3- stream protocols
+		-1.3.x- example
 	-1.4- synchronization
 	-1.5- subprocesses
 	-1.6- queues
@@ -23,6 +27,8 @@ coroutines
 	-1.8- call graph introspection
 -2- low level apis
 	-2.1- event loops
+		-2.1.x1- fds
+		-2.1.x2- pipes
 	-2.2- futures
 	-2.3- transports/protocols
 	-2.4- policies
@@ -85,253 +91,438 @@ asyncio repl:
 	Similar to `python` repl, except asyncio:
 	`python -m asyncio`
 
-	============
-	-0.1- syntax
-	============
-	asyncio adds 2 special syntaxes:
+============
+-0.1- syntax
+============
+asyncio adds 2 special syntaxes:
 
-	1. async def funcname(args):
-	2. await awaitable_expr
-	3. async with
-	4. async for
+1. async def funcname(args):
+2. await awaitable_expr
+3. async with
+4. async for
 
-	async def commands return an awaitable
+async def commands return an awaitable
 
-	================
-	-0.2- interrupts
-	================
-	ctrl+C might destroy asyncio internals before 3.11.
-	after 3.11,
-	signal.signal(signal.SIGINT, x)
-		where x cancels the main task on the first interrupt
-		raises keyboard interrupt on the 2nd interrupt.
-			(useful if currently inside a tight loop without any await)
+================
+-0.2- interrupts
+================
+ctrl+C might destroy asyncio internals before 3.11.
+after 3.11,
+signal.signal(signal.SIGINT, x)
+	where x cancels the main task on the first interrupt
+	raises keyboard interrupt on the 2nd interrupt.
+		(useful if currently inside a tight loop without any await)
 
 ==================
 -1- high-level api
 ==================
-	=============
-	-1.1- runners
-	=============
-	Runners are basically wrapped asyncio.EventLoop
-	Only 1 asyncio.run() call per thread is allowed.
+=============
+-1.1- runners
+=============
+Runners are basically wrapped asyncio.EventLoop
+Only 1 asyncio.run() call per thread is allowed.
 
-	asyncio.run(coro, debug=None, loop_factory=None):
-	=================================================
-		create a new loop to run coro and then close it when done.
-		coro: the awaitable to run
-		debug: True/False to force, otherwise use system settings
-		loop_factory: (3.12+) callable to return a loop replacing "policy" system
+_________________________________________________
+asyncio.run(coro, debug=None, loop_factory=None):
+	create a new loop to run coro and then close it when done.
+	coro: the awaitable to run
+	debug: True/False to force, otherwise use system settings
+	loop_factory: (3.12+) callable to return a loop replacing "policy" system
 
-	asyncio.Runner(debug=None, loop_factory=None)
-	=============================================
-		asyncio.run() as a context manager.  Use this to run multiple
-		awaitables SERIALLY before closing the loop.
+_____________________________________________
+asyncio.Runner(debug=None, loop_factory=None)
+	asyncio.run() as a context manager.  Use this to run multiple
+	awaitables SERIALLY before closing the loop.
 
-		run(awaitable, context=None)
-		============================
-			If coroutine, wrapped in a Task. BUT... the task seems to be
-			immediately awaited so THEY WILL BE RUN SERIALLY.
+	run(awaitable, context=None)
+		If coroutine, wrapped in a Task. BUT... the task seems to be
+		immediately awaited so THEY WILL BE RUN SERIALLY.
 
-		close()
+	close()
+		* finalize asynchronous generators
+		* shutdown default executer
+		* close event loop
+		* release context
+
+	get_loop()
+		get the EventLoop
+
+	with asyncio.Runner(...) as runner:
+		(3.11+)
+		runner.run(coro)
+
+======================
+-1.2- coroutines/tasks
+======================
+=============
+-1.2.1- tasks
+=============
+asyncio.Task(coro, loop=None, name=None, context=None, eager_start=False)
+	methods:
+		cancel(msg (3.9+)) -> wasRunning, cause CancelledError to be thrown in the task coroutine.
+		cancelled() -> bool
+		cancelling() -> number of pending cancellation calls.
+		done() -> bool
+
+		result() -> return value or (re)raise exception.
+		exception() -> the raised exception (or None)
+			for the above:
+			if cancelled: raise CancelledError
+			if running: raise InvalidStateError
+		add_done_callback(callback, context=None)
+		remove_done_callback(callback)
+		get_stack(limit=None)
+		print_stack(limit=None, file=None)
+		3.8+
+			gt_coro()
+			get_name
+			set_name(name)
+		3.11+
+			uncancel() Call this when catching CancelledError, cancells a single cancel() and return remaining count.
+		3.12+
+			get_context()
+
+asyncio.create_task(coroutine, *, name=None(3.8), context=None(3.11), eager_start=None(3.14), **kwargs):
+	Create a task AND schedule to run.
+	`await task` to wait til finished
+	task.cancel() to cancel the task
+		(use try/finally for proper cleanup)
+	NOTE:
+		reference to the returned task must be maintained
+		or it might be garbage collected.
+
+===================
+-1.2.2- multitasking
+===================
+Aysncio offers various ways to handle multiple tasks:
+
+	asyncio.TaskGroup: group of tasks
+	=================================
+		(3.11+)
+		Tasks are run when reaching __exit__
+		async with asyncio.TaskGroup() as tg:
+			t1 = tg.create_task(...)
+			t2 = tg.create_task(...)
+		All tasks are run together and stopped together on any exception.
+			(besides being cancelled)
+
+		methods
 		=======
-			* finalize asynchronous generators
-			* shutdown default executer
-			* close event loop
-			* release context
-		get_loop()
-		==========
-			get the EventLoop
+		cancel()
+		uncancel()
+		add_done_callback(callback):
+			callback will be called with task as argument at the end.
 
-		with asyncio.Runner(...) as runner:
-			(3.11+)
-			runner.run(coro)
+	asyncio.gather(*aws, return_exceptions=bool)
+	====================================
+		similar to:
+			with asyncio.TaskGroup() as tg:
+				for item in aws:
+					tg.create_task(item)
+		return_exceptions:
+			return exception in place of return value.
+			Otherwise, immediately raise to whoever is awaiting on gather()
+			OTHER TASKS CONTINUE RUNNING unlike taskgroup
+		cancelled gather cancels all tasks (3.7+)
+		cancelled subtask DOES NOT cancel other tasks.
+		BUT if return_exc is False, the gather WILL RAISE THE CancelledError
+			AND CANNOT BE AWAITED ON AGAIN (
+				it'll just immediately reraise the cancelled error)
 
-	======================
-	-1.2- coroutines/tasks
-	======================
-		=============
-		-1.2.1- tasks
-		=============
-		asyncio.Task(coro, loop=None, name=None, context=None, eager_start=False)
-			methods:
-				cancel(msg (3.9+)) -> wasRunning, cause CancelledError to be thrown in the task coroutine.
-				uncancel() (3.11+) Call this when catching CancelledError, cancells a single cancel() and return remaining count.
-				cancelled() -> bool
-				cancelling() -> number of pending cancellation calls.
-				done() -> bool
+==============
+-1.2.3- shield
+==============
+asyncio.shield(task):
+	main purpose of shield is to allow cancelling await.
+	Use it in place of the actual task.  It doesn't actually
+	do anything to prevent the task from being cancelled.
 
-				result() -> return value or (re)raise exception.
-				exception() -> the raised exception (or None)
-					for the above:
-					if cancelled: raise CancelledError
-					if running: raise InvalidStateError
-				add_done_callback(callback, context=None)
-				remove_done_callback(callback)
-				get_stack(limit=None)
-				print_stack(limit=None, file=None)
-				gt_coro() (3.8+)
-				get_context (3.12+)
-				get_name (3.8+)
-				set_name(name) (3.8+)
+================
+-1.2.4- timeouts
+================
+Timeouts are implemented as cancelling and raising
+asyncio.TimeoutError
 
-		asyncio.create_task(coroutine, *, name=None(3.8), context=None(3.11), eager_start=None(3.14), **kwargs):
-			Create a task AND schedule to run.
-			`await task` to wait til finished
-			task.cancel() to cancel the task
-				(use try/finally for proper cleanup)
-			NOTE:
-				reference to the returned task must be maintained
-				or it might be garbage collected.
+asyncio.timeout(delay) (3.11+)
+	try:
+		async with asyncio.timeout(delay):
+			dostuff
+	except asyncio.TimeoutError
+		handle_timeout
 
-		===================
-		-1.2.2- multitasking
-		===================
-		Aysncio offers various ways to handle multiple tasks:
+asyncio.timeout_at(when) (3.11+)
+	same as asyncio.timeout(time.time()+delay)
 
-			asyncio.TaskGroup: group of tasks
-			=================================
-				(3.11+)
-				Tasks are run when reaching __exit__
-				async with asyncio.TaskGroup() as tg:
-					t1 = tg.create_task(...)
-					t2 = tg.create_task(...)
-				All tasks are run together and stopped together on any exception.
-					(besides being cancelled)
+asyncio.wait_for(aw, timeout)
+	CANCEL TASK IF TIMEOUT and raise TimeoutError after
+	task is cancelled.
 
-				methods
-				=======
-				cancel()
-				uncancel()
-				add_done_callback(callback):
-					callback will be called with task as argument at the end.
+asyncio.wait(awseq, timeout=None, return_when=ALL_COMPLETED)
+	done, pending = asyncio.wait(myawaitables)
+	must be a sequence.  On timeout, DOES NOT cancel anything
 
-			asyncio.gather(aws, return_exc=bool)
-			====================================
-				similar to:
-					with asyncio.TaskGroup() as tg:
-						for item in aws:
-							tg.create_task(item)
-				return_exc:
-					return exception in place of return value.
-					Otherwise, immediately raise to whoever is awaiting on gather()
-					OTHER TASKS CONTINUE RUNNING unlike taskgroup
-				cancelled gather cancels all tasks (3.7+)
-				cancelled subtask DOES NOT cancel other tasks.
-				BUT if return_exc is False, the gather WILL RAISE THE CancelledError
-					AND CANNOT BE AWAITED ON AGAIN (
-						it'll just immediately reraise the cancelled error)
+	return_when:
+		ALL_COMPLETED
+		FIRST_COMPLETED
+		FIRST_EXCEPTION
 
-		==============
-		-1.2.3- shield
-		==============
-		asyncio.shield(task):
-			main purpose of shield is to allow cancelling await.
-			Use it in place of the actual task.  It doesn't actually
-			do anything to prevent the task from being cancelled.
+asyncio.as_completed(aws, timeout=None)
+	similar to asyncio.wait(), but return items as soon as
+	items are completed.
 
-		================
-		-1.2.4- timeouts
-		================
-		Timeouts are implemented as cancelling and raising
-		asyncio.TimeoutError
+===============
+-1.2.5- threads
+===============
+asyncio.to_thread(func, args, kwargs)
+	run in a thread, same GIL performance considerations
+	apply as with threading.Thread
+	wait await for the function to complete.
 
-		asyncio.timeout(delay) (3.11+)
-			try:
-				async with asyncio.timeout(delay):
-					dostuff
-			except asyncio.TimeoutError
-				handle_timeout
+asyncio.run_coroutine_threadsafe(coro, loop)
+	(3.5.1+)
+	Run the coro in the given loop, CALLED FROM ANOTHER THREAD
+	Return a concurrent.futures.Future
 
-		asyncio.timeout_at(when) (3.11+)
-			same as asyncio.timeout(time.time()+delay)
+asyncio.iscoroutine(obj) 3.4+
 
-		asyncio.wait_for(aw, timeout)
-			CANCEL TASK IF TIMEOUT and raise TimeoutError after
-			task is cancelled.
+=============
+-1.3- streams
+=============
+Asyncio streams module only focuses on tcp connections.
+There doesn't seem to be any *convenient* way to handle files
+as asyncio.  To use StreamReader/StreamWriter, they must be linked to a protocol (see -2.3-)
 
-		asyncio.wait(awseq, timeout=None, return_when=ALL_COMPLETED)
-			done, pending = asyncio.wait(myawaitables)
-			must be a sequence.  On timeout, DOES NOT cancel anything
+Generally,
+	asyncio.streams.FlowControlMixin controls output io.
+	aysncio.streams.StreamReaderProtocol(StreamReader) controls input io.
 
-			return_when:
-				ALL_COMPLETED
-				FIRST_COMPLETED
-				FIRST_EXCEPTION
 
-		asyncio.as_completed(aws, timeout=None)
-			similar to asyncio.wait(), but return items as soon as
-			items are completed.
+NOTE: these are also aliased directly under asyncio.
 
-		===============
-		-1.2.5- threads
-		===============
-		asyncio.to_thread(func, args, kwargs)
-			run in a thread, same GIL performance considerations
-			apply as with threading.Thread
-			wait await for the function to complete.
+===
+TCP
+===
+open_connection(
+	host, port, *, limit=None, ssl=None, family=0, proto=0,flags=0, sock=None, local_addr=None, server_hostname=None,
+	ssl_handshake_timeout=None, ssl_shutdown_timeout=None, happy_eyeballs_delay=None, interleave=None)
 
-		asyncio.run_coroutine_threadsafe(coro, loop)
-			(3.5.1+)
-			Run the coro in the given loop, CALLED FROM ANOTHER THREAD
-			Return a concurrent.futures.Future
+	Return a (reader,writer) pair
 
-		asyncio.iscoroutine(obj) 3.4+
+	limit: buffersize
 
-	=============
-	-1.3- streams
-	=============
-	=====================
-	-1.4- synchronization
-	=====================
-	==================
-	-1.5- subprocesses
-	==================
-	============
-	-1.6- queues
-	============
-	================
-	-1.7- exceptions
-	================
-	==============================
-	-1.8- call graph introspection
-	==============================
-	asyncio.current_task(loop=None) 3.7+
-	asyncio.all_tasks(loop=None) 3.7+
+start_server(
+	connect_cb, host, port, *, limit=None, family=socket.AF_UNSPEC, flags=socket.AI_PASSIVE, sock=None, backlog=100,
+	ssl=None, reuse_address=None, reuse_port=None, keep_alive=None, ssl_handshake_timeout=None, ssl_shutdown_timeout=None,
+	start_serving=True)
+
+	Bind a socket and start serving.
+	connect_cb is called with (reader, writer)
+		if connect_cb is a coroutine, it is run as a task.
+		Otherwise, it is simply called.
+
+====
+Unix
+====
+open_unix_connection(
+	path, *, limit=None, ssl=None, sock=None, server_hostname=None, ssl_handshake_timeout=None, ssl_shutdown_timeout=None)
+start_unix_server(
+	connect_cb, path, limit=None, sock=None, backlog=100, ssl=None, ssl_handshake_timeout=None, ssl_shutdown_timeout=None,
+	start_serving=True, cleanup_socket=True)
+
+===============
+-1.3.1- readers
+===============
+Readers provide the async api for reading data.  These are generally binary.
+A transport/protocol will feed data to the StreamReader.
+Then the data becomes available via the async read* methods.
+
+StreamReader(limit=65536, loop=None)
+	NOTE: arguments are all optional
+async read(n=-1)
+async readline()
+async readexactly(n)
+async readuntil(sep)
+feed_eof()
+feed_data(self, data)
+at_eof()
+
+===============
+-1.3.2- writers
+===============
+Writers provide the async api for writing data.  Write data, then await drain() in place of flush()
+
+StreamWriter(transport, protocol, reader, loop)
+	NOTE: every argument is required.
+write(data)
+writelines(data)
+close()
+can_write_eof()
+write_eof()
+
+transport
+get_extra_info(name, default=None)
+async drain()
+
+3.7+
+	is_closing()
+	async wait_closed()
+3.11+
+	async start_tls(sslcontext, server_hostname, ssl_handshake_timeout=None, ssl_shutdown_timeout=None)
+
+========================
+-1.3.3- stream protocols
+========================
+--------------------------------
+asyncio.streams.FlowControlMixin
+--------------------------------
+This provides write-protocol controls.  I would guess that this doesn't actually
+have any "protocol" code, and just has "flow control" parts, like drain, wait to write, etc.
+
+adds methods:
+	pause_writing()
+	resume_writing()
+
+
+------------------------------------
+asyncio.streams.StreamReaderProtocol
+------------------------------------
+This inherits from FlowControlMixin? (seems kind of weird to me)
+but mainly provides a protocol interface.  It will feed data to the
+reader provided as an argument.
+
+StreamReaderProtocol(reader, connectcb=None, loop=None)
+
+===============
+-1.3.x- example
+===============
+------------------
+Wrapping an reader
+------------------
+```
+import sys
+reader = asyncio.StreamReader()
+loop = aysncio.get_event_loop()
+tp, pt = await loop.connect_read_pipe(lambda: asyncio.StreamReaderProtocol(reader), sys.stdin)
+```
+
+NOTES:
+	reader will return bytes even though sys.stdin returns strs.
+	it probably takes sys.stdin.fileno() somewhere and uses that directly.
+
+-----------------
+Wrapping a writer
+-----------------
+```
+loop = asyncio.get_event_loop()
+tp, pt = await loop.connect_write_pipe(asyncio.streams.FlowControlMixin, sys.stdout)
+writer = asyncio.streams.StreamWriter(tp, pt, reader loop)
+```
+
+NOTES:
+	pt: given to StreamReader to add support for async "drain" method
+	reader: async drain() will error if reader also errors (eg, from disconnect), can set to None
+
+	StreamWriter.close() probably callse the tp or pt.close()
+	which WILL close the corresponding fd.  No way to "detach" like io.BufferedWriter.
+
+https://stackoverflow.com/questions/64303607/python-asyncio-how-to-read-stdin-and-write-to-stdout
+
+
+=====================
+-1.4- synchronization
+=====================
+==================
+-1.5- subprocesses
+==================
+============
+-1.6- queues
+============
+================
+-1.7- exceptions
+================
+==============================
+-1.8- call graph introspection
+==============================
+asyncio.current_task(loop=None) 3.7+
+asyncio.all_tasks(loop=None) 3.7+
+asyncio.is_coroutine(obj) 3.4+
 
 
 ==================
 -2- low level apis
 ==================
-	=================
-	-2.1- event loops
-	=================
-	asyncio.*
-		get_running_loop()
-			Get the running event loop(raise if none)
-		get_event_loop()
-			same as `get_event_loop_policy().get _event_loop()`
-			should prefer `get_running_loop()`
-		set_event_loop(loop)
-			set the current loop to loop
-		new_event_loop()
-			create a new event loop.
+=================
+-2.1- event loops
+=================
+asyncio.*
+	get_running_loop()
+		Get the running event loop(raise if none)
+	get_event_loop()
+		same as `get_event_loop_policy().get_event_loop()`
+		should prefer `get_running_loop()`
+	set_event_loop(loop)
+		set the current loop to loop
+	new_event_loop()
+		create a new event loop.
 
-	=============
-	-2.2- futures
-	=============
-	==========================
-	-2.3- transports/protocols
-	==========================
-	==============
-	-2.4- policies
-	==============
-	======================
-	-2.5- platform support
-	======================
-	===============
-	-2.6- extending
-	===============
+============
+-2.1.x1- fds
+============
+loop.add_reader(fd, callback, *args)
+loop.remove_reader(fd)
+loop.add_writer(fd, callback, *args)
+loop.remove_writer(fd)
+
+callbacks are called whenever fd becomes readable/writeable
+
+NOTE: these are level triggered, not edge-triggered.
+
+==============
+-2.1.x2- pipes
+==============
+These are actually just file-like objects.
+These return (transport, protocol) pairs.
+
+async loop.connect_read_pipe(protocol_factory, fobj)
+async loop.connect_write_pipe(protocol_factory, fobj)
+
+These REQUIRE fobj to have a fileno (io.py).
+
+
+=============
+-2.2- futures
+=============
+==========================
+-2.3- transports/protocols
+==========================
+transports: how to send bytes
+protocols: bytes format/timing
+
+Most connection-oriented loop methods take a protocol factory
+and return a (transport, protocol) tuple
+
+Protocols have these methods:
+	connection:
+		connection_made(transport)
+		connection_lost(exc)
+
+	flow control:
+		pause_writing(): transport buffer is full
+		resume_writing(): transport buffer has space
+
+	streaming:
+		data_received(data)
+		eof_received()
+
+==============
+-2.4- policies
+==============
+======================
+-2.5- platform support
+======================
+===============
+-2.6- extending
+===============
 
 =========================
 -3- other asyncio methods
