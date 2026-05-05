@@ -124,7 +124,7 @@ contents
 			fitEllipse
 			fitLine
 
-		-2.9.- other
+		-2.9.x- other
 			moments
 	-2.10- alignment
 		warpAffine
@@ -133,6 +133,7 @@ contents
 		warpPerspective
 		getPerspectiveMatrix
 		findHomography
+		estimateAffine2D
 	-2.x- miscellaneous
 		getTickCount
 		getTickFrequency
@@ -554,6 +555,19 @@ Example 2:
 	Have an image of an object, try to detect it in another image.
 	1. The source points would be calculated keypoints of the object image.
 	2. The target points would be the keypoints in the target image.
+
+NOTE: generally, these methods
+will cause distortions because they are not rigid transforms.
+
+The transforms can be modified to become orthonormal using some algs
+(though opencv doesn't seem to directly implement any of them.)
+
+https://en.wikipedia.org/wiki/Orthogonal_matrix#Nearest_orthogonal_matrix
+https://en.wikipedia.org/wiki/Gram%E2%80%93Schmidt_process
+use SVD, and remove scaling. (or maybe even change to average scaling?)
+SVD -> (U,S,V), then just use U@V as the orthonormal matrix
+(although... this also removes all scaling...)
+
 
 ==================
 -1.15.1- keypoints
@@ -1559,7 +1573,7 @@ fitLine(points, distType, param, reps, aeps, [line])
 		reps and aeps, 0.01 if unsure
 
 ============
--2.9.- other
+-2.9.x- other
 ============
 _____________________________
 moments(array, [binaryImage])
@@ -1666,6 +1680,8 @@ estimateAffine2D(from_, to, *, inliers, method, ransacReprojThreshold, maxIters,
 	return (transform, inliers)
 		transform: from src to dst
 		inliers: binary mask for which are inliers(1)/outliers(0)
+		method, ransacReprojThreshold, maxIters, confidence:
+			same as findHomography
 
 
 
