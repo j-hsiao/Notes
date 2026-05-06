@@ -438,6 +438,7 @@ contents:
 				fg=color
 					name      black|red|green|yellow|blue|magenta|cyan|white
 					bright*   * is one of the above
+					dark*     NOTE not in man page, but seems to work.
 					colourN   N = 0-255 for 256 colors
 					default   for the default colour
 					terminal  for the terminal default colour
@@ -722,7 +723,12 @@ displayp | display-panes [-bN] [-d duration] [-t target-client] [template]
 	Press the number of the pane to switch to it.
 	-d: duration (msec), or 0 (wait until keypress)
 	-b: do not block other commands while displaying
-	-N: display until keypress (?but do not change pane? man doesn't mention this, but trying it out, it seems to work like this)
+	-N: "The indicator is closed when a key is pressed (unless -N is given)"
+		BUT this does not seem to be how it works.  It seems what this
+		actually does is ignore all keypresses (do not consume)
+		This way, if you `display-panes -N` after a repeatable binding,
+		the repeatable binding is still repeatable.  Otherwise, without -N,
+		the display-panes will eat the next keypress and end repeating.
 findw | find-window
 joinp | join-pane [-bdfhv] [-l size] [-s src-pane] [-t dst-pane]
 	-d: (not documented, but probably keep the current pane active?)
@@ -1209,6 +1215,7 @@ display-panes-active-colour color
 display-panes-colour color
 display-panes-time time
 	duration of display-panes
+display-time time
 history-limit lines
 key-table key-table
 	set the default key table instead of root
