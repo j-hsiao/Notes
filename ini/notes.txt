@@ -1,0 +1,100 @@
+-0- general
+-1- syntax
+-1.1- windows
+-1.2- cygwin setup
+
+===========
+-0- general
+===========
+INI files are "initialization" files of key-value pairs broken into sections.
+
+INI files do not actually have a specific syntax and have many "flavors"
+
+==========
+-1- syntax
+==========
+=============
+-1.1- windows
+=============
+; comment
+[section_name]
+[section_name.nested_section]
+[.relative_nested_section]
+key = value
+key: value
+line \
+	continuation
+
+escape characters
+	\\ \' \" \0 \a \b \t \r \n \; \# \= \: \xhhhh
+
+
+==================
+-1.2- cygwin setup
+==================
+https://sourceware.org/cygwin-apps/setup.ini.html
+Cygwin stores the package information from mirrors in an ini file.
+example: downloaddir/mirror/x86_64/setup.ini
+
+# comment
+
+line continuation requries no special characters
+(as long as no conflicts with keys)
+
+-------
+headers
+-------
+must be before the first package
+	setup-timestamp
+	setup-minimum-version
+	release
+	arch
+
+--------
+packages
+--------
+@ packagename
+	sdesc: short description
+	ldesc: long description
+	category: cat1 cat2 ...
+	Section: name1 name2
+	message: id "Text to display during install"
+	requires: pk1 pk2 pk3...
+	replace-versions: ver1 ver2...
+
+--------
+versions
+--------
+[curr] (default)
+[prev]
+[test]
+[<label>]
+If multiple prev/test, then last one is preferred.
+
+keys/values:
+	version: [a-z-!./:\_~+punctuation]
+	install: relpath nbytes checksumhash
+		The checksum hash is
+			SHA512 128 lowercase hex
+			sha512 86 b64 char
+			md5 32 lowercase hex
+	source: fname size hash
+		source code
+	Source: package [version-identifier]
+		the "source" package containing
+		(example, if this is foo-dev, then Source might be foo-src)
+		mutually exclusive with 'source:' entry
+	depends2: requires but also allow versions
+	depends: synonym for depends2
+	obsoletes: pkg+vers
+	conflicts: pkg+vers
+	provides: pkgs
+
+others: "not fully implemented yet"
+	build-depends: pkg+vers
+
+pkg+vers:
+	,-delimited package (optional ver) list
+	package (<=> version), ...
+	example:
+		depends2: cygwin (>=3.5.0), libcrypt2, libnettle8, libpcre2_8_0

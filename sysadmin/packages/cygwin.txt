@@ -1,0 +1,95 @@
+-0- general
+-1- installer
+	-1.1- ini
+
+===========
+-0- general
+===========
+In the cygwin environment, the setup exe acts like the package manager.
+It can be run as commandline with various flags.  However, because installation
+sometimes rebases dlls, and the rebasing process requires all cygwin applications
+to shut down, ?this might or might not work?
+
+=============
+-1- installer
+=============
+https://cygwin.com/install.html
+Download the setup-x86_64.exe
+optionally verify gpg
+launch it
+
+The installer can also be launched via commandline and used similar to apt or pacman.
+
+--------------------------
+useful commandline options
+--------------------------
+-h --help                         Print help
+
+-C --categories                   Specify categories to install
+-c --remove-categories            Specify categories to uninstall
+
+-D --download                     Download packages from internet
+-L --local-install                Install packages from local directory
+-g --upgrade-also                 Also upgrade installed packages
+-f --force-current                Select the current version for all packages
+
+-l --local-package-dir            Local package directory
+-m --mirror-mode                  Skip package availability check when
+                                  installing from local directory (requires
+                                  local directory to be clean mirror!)
+-B --no-admin                     Do not check for and enforce running as
+                                  Administrator
+-n --no-shortcuts                 Disable creation of desktop and start menu
+                                  shortcuts
+-M --package-manager              Semi-attended chooser-only mode
+-P --packages                     Specify packages to install
+-x --remove-packages              Specify packages to uninstall
+
+-R --root                         Root installation directory
+
+
+-------------------------
+Other commandline options
+-------------------------
+-t --allow-test-packages          Consider package versions marked test
+   --allow-unsupported-windows    Allow old, unsupported Windows versions
+-a --arch                         Architecture to install (x86_64 or x86)
+   --compact-os                   Compress installed files with Compact OS
+                                  (xpress4k, xpress8k, xpress16k, lzx)
+-o --delete-orphans               Remove orphaned packages
+-A --disable-buggy-antivirus      Disable known or suspected buggy anti virus
+                                  software packages during execution
+-I --include-source               Automatically install source for every package installed
+-i --ini-basename                 Use a different basename, e.g. "foo", instead of "setup"
+-U --keep-untrusted-keys          Use untrusted keys and retain all
+   --lang                         Specify GUI language langid
+-d --no-desktop                   Disable creation of desktop shortcut
+-r --no-replaceonreboot           Disable replacing in-use files on next reboot
+-N --no-startmenu                 Disable creation of start menu shortcut
+-X --no-verify                    Don't verify setup.ini signatures
+   --no-version-check             Suppress checking if a newer version of setup is available
+-w --no-warn-deprecated-windows   Don't warn about deprecated Windows versions
+   --no-write-registry            Don't write root installation directory to registry
+   --enable-old-keys              Enable old cygwin.com keys
+-O --only-site                    Do not download mirror list.  Only use sites specified with -s
+-p --proxy                        HTTP/FTP proxy (host:port)
+-Y --prune-install                Prune the installation to only the requested packages
+-K --pubkey                       URL or absolute path of extra public key file (RFC4880 format)
+-q --quiet-mode                   Unattended setup mode (unattended, noinput, hidden)
+-S --sexpr-pubkey                 Extra DSA public key in s-expr format
+-s --site                         Download site URL, path or UNC path
+   --symlink-type                 Symlink type (lnk, native, sys, wsl)
+-u --untrusted-keys               Use untrusted saved extra keys
+   --user-agent                   User agent string for HTTP requests
+-v --verbose                      Verbose output
+-V --version                      Show version
+-W --wait                         When elevating, wait for elevated child
+                                  process
+=========
+-1.1- ini
+=========
+The ini file seems to hold all the packages for each mirror.
+Each entry seems to start with an @.
+For example:
+	list all packages
+	grep '^@' $(find path-to-mirrors -name '*.ini') | sort | uniq
