@@ -159,6 +159,7 @@ Contents
 				-2.1.0.4.1- bitmap
 				-2.1.0.4.2- photo
 			-2.1.0.5- stipple
+			-2.1.0.6- indices
 		-2.1.1- generic options
 		-2.1.2- common options
 	-2.2- widgets
@@ -2614,6 +2615,18 @@ stipple: use something like pointilism to display partial fill.  Kind of like
 		caution
 
 
+=================
+-2.1.0.6- indices
+=================
+Various widgets support indices. (text, entry, etc)
+Typical values:
+	int: 0-based index (usually clipped into range)
+	end: last item or past the last item depending on whether you are
+		getting an item or inserting an item
+	insert: position before an insertion cursor.
+	@x,y: x,y pixel screen coordinates, usually refer to the closest valid position.
+	sel.first, sel.last: first/last of a selection
+
 =======================
 -2.1.1- generic options
 =======================
@@ -2628,18 +2641,18 @@ anchor
 	[n | ne | e | se | s | sw | w | nw | center]
 	where content is displayed within the array
 
-background|-bg
+background|bg
 	a background color
 
 
 bitmap
-borderwidth|-bd
+borderwidth|bd
 cursor
 compound
 disabledforeground
 exportselection
 font
-foreground|-fg
+foreground|fg
 highlightbackground
 highlightcolor
 highlightthickness
@@ -2776,6 +2789,86 @@ The 1/2/3 suffixed options indicate
 ==============
 -2.2.2- Canvas
 ==============
+Canvas creates "items" to display.  They can be used to create a
+'window' to enable "scrolling" of other widgets.
+
+-----------
+coordinates
+-----------
+see -2.1.0.3- screen distances
+Coordinates are given with (0,0) at topleft and (width,height) at bottom right.
+
+NOTE the origin of the canvas matches the widget to allow bindings (%x %y)
+to directly map into the coordinate space.  However, this means that borders
+(highlightthickness, borderwidth) must be taken into account.
+Generally, these should be set to 0 for best experience.
+
+
+Example:
+	create 200x200 image at (0,0), anchor='nw'
+	borderwidth = 50
+	displayed image is 150x150 (assuming the right/bottom border do not overlap
+	with the image, in which case they would cover the image as well.
+As a result, in general, it is usually best to just set border width to 0.
+
+-------------
+display order
+-------------
+Just like widgets, canvas items have a display order.
+HOWEVER "window" items must always be on top of other items.  The order is
+determined by a list of items which order them from back to front.
+
+--------
+Tags/ids
+--------
+Each item has a unique ID and can be given multiple tags.
+Tags MUST be non-integral.
+Default tags:
+	'all': every item
+	'current': the item under the mouse pointer
+
+When specifying tags/ids, they may be combined with logical operators:
+	&& || ^(xor) !
+For commands requiring a single item, if multiple items match the tagOrId,
+then default to the 1st one in the ordering list.
+
+-------
+indices
+-------
+See -2.1.0.6-
+exception:
+	polygon indices are modulo length rather than clipped.
+	point indices are truncated to the x coordinate (they are usually a list of alternating x,y)
+
+------
+dashes
+------
+list of alternating lengths of [drawn, not-drawn, ...]
+str of [.,-_ ]
+	each .,-_ represents a drawn segment followed by a transparent segment.
+	In testing, it seems that dashes are os-dependent.
+		wsl: the [.-_] are fairly predictable, but the , is not.
+		windows: none are particularly preditable.  regardless of .,-_, it seems
+		         there are only 2 dash patterns: short or long.
+	example:
+		WSL: predicts [.-_] well can't figure out the , logic.
+		def str2ints(s, width):
+			ints = []
+			for item in s:
+				if item == '.'
+					ints.append(2*width)
+				elif item == ','
+					ints.append(9*width)
+				elif item == '-'
+					ints.append(6*width)
+				elif item == '_'
+					ints.append(8*width)
+				else:
+					ints[-1] += 1 + width
+					continue
+				ints.append(4*width)
+			return ints
+
 =================
 -2.2.2.1- options
 =================
@@ -2817,6 +2910,23 @@ specific options
 	-yscrollincrement
 		screen distance, >0 = constrain scrolling to integral multiple of increment.
 		Othrewise, negative to allow unconstrained scrolling
+
+==================
+-2.2.2.2- commands
+==================
+____________________________
+addtag tag searchspec arg...
+	tag: the tag to add
+	searchspec: which item(s) to add tag to
+		above tagOrId: topmost relevant item
+		all: all items
+		below tagOrId: bottommost relevant item
+		closest x y [halo=0] [start]:
+			topmost item within halo of (x,y)
+			If start, then the topmost item under start
+		enclosed x1 y1 x2 y2: inside bbox
+		overlapping x1 y1 x2 y2: overlap with bbox
+		withtag tagOrId: all items with tagOrId
 
 
 ==============
