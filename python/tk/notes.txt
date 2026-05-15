@@ -17,119 +17,7 @@ Contents
 	-1.7- error handling
 		-1.7.1- try
 		-1.7.2- bgerror
-	-1.9- Commands
-		-1.9.1- after
-		-1.9.2- append
-		-1.9.3- apply
-		-1.9.4- array
-		-1.9.5- bgerror
-		-1.9.6- binary
-		-1.9.7- break
-		-1.9.8- catch
-		-1.9.9- cd
-		-1.9.10- chan
-		-1.9.11- clock
-		-1.9.12- close
-		-1.9.13- concat
-		-1.9.14- continue
-		-1.9.15- dde
-		-1.9.16- dict
-		-1.9.17- encoding
-		-1.9.18- env
-		-1.9.19- eof
-		-1.9.20- error
-		-1.9.21- eval
-		-1.9.22- exec
-		-1.9.23- exit
-		-1.9.24- expr
-		-1.9.25- fblocked
-		-1.9.26- fconfigure
-		-1.9.27- fcopy
-		-1.9.28- file
-		-1.9.29- fileevent
-		-1.9.30- filename
-		-1.9.31- flush
-		-1.9.32- for
-		-1.9.33- foreach
-		-1.9.34- format
-		-1.9.35- gets
-		-1.9.36- glob
-		-1.9.37- global
-		-1.9.38- history
-		-1.9.39- http
-		-1.9.40- if
-		-1.9.41- incr
-		-1.9.42- info
-		-1.9.43- interp
-		-1.9.44- join
-		-1.9.45- lappend
-		-1.9.46- lassign
-		-1.9.47- lindex
-		-1.9.48- linsert
-		-1.9.49- list
-		-1.9.50- llength
-		-1.9.51- lmap
-		-1.9.52- load
-		-1.9.53- lrange
-		-1.9.54- lrepeat
-		-1.9.55- lreplace
-		-1.9.56- lreverse
-		-1.9.57- lsearch
-		-1.9.58- lset
-		-1.9.59- lsort
-		-1.9.60- memory
-		-1.9.61- my
-		-1.9.62- namespace
-		-1.9.63- next
-		-1.9.64- nextto
-		-1.9.65- open
-		-1.9.66- package
-		-1.9.67- pid
-		-1.9.68- platform
-		-1.9.69- proc
-		-1.9.70- puts
-		-1.9.71- pwd
-		-1.9.72- read
-		-1.9.73- regexp
-		-1.9.74- registry
-		-1.9.75- regsub
-		-1.9.76- rename
-		-1.9.77- return
-		-1.9.78- safe
-		-1.9.79- scan
-		-1.9.80- seek
-		-1.9.81- self
-		-1.9.82- set
-		-1.9.83- socket
-		-1.9.84- source
-		-1.9.85- split
-		-1.9.86- string
-		-1.9.87- subst
-		-1.9.88- switch
-		-1.9.89- tailcall
-		-1.9.90- tell
-		-1.9.91- throw
-		-1.9.92- time
-		-1.9.93- timerate
-		-1.9.94- tm
-		-1.9.95- trace
-		-1.9.96- transchan
-		-1.9.97- try
-		-1.9.98- unknown
-		-1.9.99- unload
-		-1.9.100- unset
-		-1.9.101- update
-		-1.9.102- uplevel
-		-1.9.103- upvar
-		-1.9.104- variable
-		-1.9.105- vwait
-		-1.9.106- while
-		-1.9.107- yield
-		-1.9.108- yieldto
-		-1.9.109- zlib
-
-
-
+	-1.9- Other Commands
 		-1.9.0- eval
 		-1.9.1- expr
 		-1.9.2- puts
@@ -151,6 +39,116 @@ Contents
 		-1.9.12- catch
 		-1.9.13- return
 		-1.9.14- cd
+	-1.10- reference
+		-1.10.1- after
+		-1.10.2- append
+		-1.10.3- apply
+		-1.10.4- array
+		-1.10.5- bgerror
+		-1.10.6- binary
+		-1.10.7- break
+		-1.10.8- catch
+		-1.10.9- cd
+		-1.10.10- chan
+		-1.10.11- clock
+		-1.10.12- close
+		-1.10.13- concat
+		-1.10.14- continue
+		-1.10.15- dde
+		-1.10.16- dict
+		-1.10.17- encoding
+		-1.10.18- env
+		-1.10.19- eof
+		-1.10.20- error
+		-1.10.21- eval
+		-1.10.22- exec
+		-1.10.23- exit
+		-1.10.24- expr
+		-1.10.25- fblocked
+		-1.10.26- fconfigure
+		-1.10.27- fcopy
+		-1.10.28- file
+		-1.10.29- fileevent
+		-1.10.30- filename
+		-1.10.31- flush
+		-1.10.32- for
+		-1.10.33- foreach
+		-1.10.34- format
+		-1.10.35- gets
+		-1.10.36- glob
+		-1.10.37- global
+		-1.10.38- history
+		-1.10.39- http
+		-1.10.40- if
+		-1.10.41- incr
+		-1.10.42- info
+		-1.10.43- interp
+		-1.10.44- join
+		-1.10.45- lappend
+		-1.10.46- lassign
+		-1.10.47- lindex
+		-1.10.48- linsert
+		-1.10.49- list
+		-1.10.50- llength
+		-1.10.51- lmap
+		-1.10.52- load
+		-1.10.53- lrange
+		-1.10.54- lrepeat
+		-1.10.55- lreplace
+		-1.10.56- lreverse
+		-1.10.57- lsearch
+		-1.10.58- lset
+		-1.10.59- lsort
+		-1.10.60- memory
+		-1.10.61- my
+		-1.10.62- namespace
+		-1.10.63- next
+		-1.10.64- nextto
+		-1.10.65- open
+		-1.10.66- package
+		-1.10.67- pid
+		-1.10.68- platform
+		-1.10.69- proc
+		-1.10.70- puts
+		-1.10.71- pwd
+		-1.10.72- read
+		-1.10.73- regexp
+		-1.10.74- registry
+		-1.10.75- regsub
+		-1.10.76- rename
+		-1.10.77- return
+		-1.10.78- safe
+		-1.10.79- scan
+		-1.10.80- seek
+		-1.10.81- self
+		-1.10.82- set
+		-1.10.83- socket
+		-1.10.84- source
+		-1.10.85- split
+		-1.10.86- string
+		-1.10.87- subst
+		-1.10.88- switch
+		-1.10.89- tailcall
+		-1.10.90- tell
+		-1.10.91- throw
+		-1.10.92- time
+		-1.10.93- timerate
+		-1.10.94- tm
+		-1.10.95- trace
+		-1.10.96- transchan
+		-1.10.97- try
+		-1.10.98- unknown
+		-1.10.99- unload
+		-1.10.100- unset
+		-1.10.101- update
+		-1.10.102- uplevel
+		-1.10.103- upvar
+		-1.10.104- variable
+		-1.10.105- vwait
+		-1.10.106- while
+		-1.10.107- yield
+		-1.10.108- yieldto
+		-1.10.109- zlib
 -2- tk
 	-2.1- options
 		-2.1.0- values
@@ -162,8 +160,11 @@ Contents
 				-2.1.0.4.2- photo
 			-2.1.0.5- stipple
 		-2.1.1- generic options
-	-2.3- widgets
-		-2.3.1- Text
+		-2.1.2- common options
+	-2.2- widgets
+		-2.2.1- Text
+		-2.2.2- Canvas
+			-2.2.2.1- options
 	-2.3- commands
 		-2.3.1- bind
 			-2.3.1.1- modifiers
@@ -178,6 +179,7 @@ Contents
 		-3.0.2- eval
 	-3.1- images
 	-3.2- callbacks
+	-3.3- mainloop
 
 
 # -1- general
@@ -387,7 +389,7 @@ Create procedures with the `proc` command
 These are basically functions.
 
 see also:
-	-1.9.69- proc
+	-1.10.69- proc
 
 ===============
 -1.3- variables
@@ -416,9 +418,9 @@ explanation:
 	given as the value for the "a" argument. "b" still used its default value of 3.
 
 See also
-	-1.9.82- set
-	-1.9.104- variable
-	-1.9.100- unset
+	-1.10.82- set
+	-1.10.104- variable
+	-1.10.100- unset
 
 =========================
 -1.3.0- scopes/namespaces
@@ -450,7 +452,7 @@ Within a namespace, lookups are resolved:
 		then global.
 	namespace: current namespace only
 
-See -1.9.62- namespace
+See -1.10.62- namespace
 
 	NOTE1: tk.Tk.createcommand(...) can take a namespace-qualified  name.
 	NOTE2: namespace must exists for set to create variables in it.
@@ -461,7 +463,7 @@ global
 ------
 global vname ...
 	make a variable refer to global variable
-see -1.9.37- global
+see -1.10.37- global
 
 -----
 upvar
@@ -507,22 +509,22 @@ exceptions that take the variable name:
 	lset
 
 See:
-	-1.9.13- concat
-	-1.9.45- lappend
-	-1.9.46- lassign
-	-1.9.47- lindex
-	-1.9.48- linsert
-	-1.9.49- list
-	-1.9.50- llength
-	-1.9.51- lmap
-	-1.9.53- lrange
-	-1.9.54- lrepeat
-	-1.9.55- lreplace
-	-1.9.56- lreverse
-	-1.9.57- lsearch
-	-1.9.58- lset
-	-1.9.59- lsort
-	-1.9.85- split
+	-1.10.13- concat
+	-1.10.45- lappend
+	-1.10.46- lassign
+	-1.10.47- lindex
+	-1.10.48- linsert
+	-1.10.49- list
+	-1.10.50- llength
+	-1.10.51- lmap
+	-1.10.53- lrange
+	-1.10.54- lrepeat
+	-1.10.55- lreplace
+	-1.10.56- lreverse
+	-1.10.57- lsearch
+	-1.10.58- lset
+	-1.10.59- lsort
+	-1.10.85- split
 
 
 ==============
@@ -926,606 +928,6 @@ will not.  An exception inside this will cause the error to propagate.
 ====================
 -1.9- Other commands
 ====================
-=============
--1.9.1- after
-=============
-after tm
-	sleep for tm msecs, <0 treated as 0
-after tm script
-	do script after tm msecs
-	0 = immediately next
-	return an id
-after cancel id
-	cancel a scheduled after script.
-	If already run, does nothing.
-after idle script
-	run next time event loop is enterred.
-after info
-	All existing ids
-after info id
-	id must refer to an existing scheduled after.
-	"Must not have triggered yet or been cancelled."
-	Return a list of {script [idle|timer]}
-
-==============
--1.9.2- append
-==============
-=============
--1.9.3- apply
-=============
-=============
--1.9.4- array
-=============
-===============
--1.9.5- bgerror
-===============
-==============
--1.9.6- binary
-==============
-=============
--1.9.7- break
-=============
-=============
--1.9.8- catch
-=============
-==========
--1.9.9- cd
-==========
-=============
--1.9.10- chan
-=============
-==============
--1.9.11- clock
-==============
-==============
--1.9.12- close
-==============
-===============
--1.9.13- concat
-===============
-concat i1 i2 i3...
-	Concatenate strings joined by a single space.
-	NOTE: because lists are already strings of (quoted) items separated
-	by spaces, concat will combine lists into a single long list.
-
-=================
--1.9.14- continue
-=================
-============
--1.9.15- dde
-============
-=============
--1.9.16- dict
-=============
-=================
--1.9.17- encoding
-=================
-============
--1.9.18- env
-============
-============
--1.9.19- eof
-============
-==============
--1.9.20- error
-==============
-=============
--1.9.21- eval
-=============
-=============
--1.9.22- exec
-=============
-=============
--1.9.23- exit
-=============
-=============
--1.9.24- expr
-=============
-=================
--1.9.25- fblocked
-=================
-===================
--1.9.26- fconfigure
-===================
-==============
--1.9.27- fcopy
-==============
-=============
--1.9.28- file
-=============
-==================
--1.9.29- fileevent
-==================
-=================
--1.9.30- filename
-=================
-==============
--1.9.31- flush
-==============
-============
--1.9.32- for
-============
-================
--1.9.33- foreach
-================
-===============
--1.9.34- format
-===============
-=============
--1.9.35- gets
-=============
-=============
--1.9.36- glob
-=============
-===============
--1.9.37- global
-===============
-global vname ...
-	make a variable refer to global variable inside a proc.
-
-================
--1.9.38- history
-================
-=============
--1.9.39- http
-=============
-===========
--1.9.40- if
-===========
-=============
--1.9.41- incr
-=============
-=============
--1.9.42- info
-=============
-===============
--1.9.43- interp
-===============
-=============
--1.9.44- join
-=============
-
-================
--1.9.45- lappend
-================
-lappend varname i1 i2 i3...
-	NOTE1: varname, not lst as argument
-	NOTE2: lappend is list append, NOT left append
-
-================
--1.9.46- lassign
-================
-lassign lst [vnames...]
-	Assign each item in lst to each vname.
-	If more vnames than list items, set them to empty.
-	If more list items than vnames, return a list of unassigned items.
-
-===============
--1.9.47- lindex
-===============
-lindex lst idx1 idx2, ...
-	Get an indexed item in the (nested) list
-	get lst[idx1][idx2]...
-
-================
--1.9.48- linsert
-================
-linsert lst idx i1 i2 i3...
-	Insert items in to the idxth index.
-	if idx <=0, then put at beginning
-	if >= length, or 'end', then put at end
-
-=============
--1.9.49- list
-=============
-list i1 i2 i3...
-	Create a list with the given items.
-	Perform any necessary quoting etc.
-
-================
--1.9.50- llength
-================
-llength lst
-	Get the length of lst
-
-=============
--1.9.51- lmap
-=============
-lmap [vname1 lst1]... body
-
-Call body with each vname set to each value of their corresponding list.
-Shorter lists are extended with empty string.
-
-Return a list of each evaluation.
-
-=============
--1.9.52- load
-=============
-===============
--1.9.53- lrange
-===============
-lrange lst i1 i2
-	Like list slicing, both indices are included.
-
-================
--1.9.54- lrepeat
-================
-lrepeat count i1...
-Repeat the given items into a list.
-like python `lst * count`
-
-=================
--1.9.55- lreplace
-=================
-lreplace lst first last arg1...
-	like python slice assignment, except `last` index is inclusive.
-
-=================
--1.9.56- lreverse
-=================
-lreverse lst
-Reverse the list.
-
-================
--1.9.57- lsearch
-================
-lsearch ?opts? lst pat
-	Search for the index of item that matches pat.
-	-1 if no match
-	pat matches string matching
-	_______
-	general
-		-all        return list of all matching indices (or values if -inline), same order as in the list
-		-inline     return values instead of index, empty if no match
-		-not        Search for non-matches
-		-start idx  start from idx
-	______________
-	matching type:
-		-exact
-		-glob
-		-regexp
-		-sorted (already sorted, can use binary search, use -exact)
-	________
-	contents
-		These specify the sort order to allow -sorted
-			-ascii
-			-dictionary
-			-integer
-			-nocase
-			-real
-	______________
-	sorted options
-		-decreasing     Indicate list is sorted in decreasing order
-		-increasing     Indicate list is sorted in increasing order
-		-bisect         split the list in 2... last item <= or >= pattern depending on order
-		                -1 if the first list is empty.
-	______________
-	nested options
-		-index idx      Each list entry is a sublist, use the idxth item as the key.
-		-subindices     Return full index subpath instead of just the outer index.
-		                requires -index option.
-
-=============
--1.9.58- lset
-=============
-lset varname [indices...] value
-	If no indices same as `set varname value`
-	Error if any indices not in range
-	indices are for NESTED LIST index.
-	1 past the end can be used to append the value.
-
-==============
--1.9.59- lsort
-==============
-lsort ?opts? lst
-	return a sorted list
-	options:
-		-ascii      typical sorting
-		-dictionary case insensitive tiebreaker(same string dif case) and numeric sort
-		-integer    sort as integers
-		-real       sort as floats
-		-command    cmd, use cmd as the <=> function, -1, 0, 1 if <, ==, or >
-		-increasing normal increasing order
-		-decreasing reverse order
-		-indices    Return a list of indices instead of values (argsort)
-		-index idxs Like numpy fancy indexing [lst[idx] for idx in idxs]
-		-stride N   Group list into groups of size N and sort Use the 0th item per group
-		            or whatever idx is given by -index
-		-nocase     case insensitive search
-		-unique     remove dups
-
-===============
--1.9.60- memory
-===============
-===========
--1.9.61- my
-===========
-==================
--1.9.62- namespace
-==================
-Manage namespaces for commands/variables.
-
-Subcommands (unique abbreviation ok)
-
-__________________________________________________________
-namespace children [namespace=current_namespace [pattern]]
-Return a list of all fully qualified child namespaces of `namespace`
-matching `pattern` if given.
-
-_______________________
-namespace code <script>
-Convert script into a new script that always executs in current namespace.
-It does this by converting script into a `namespace inscope` command.
-(Useful because callbacks are usually called in global namespace.)
-
-_________________
-namespace current
-Return fully-qualified current namespace
-
-_______________________________
-namespace delete [namespace...]
-Recursively delete all given namespaces.  This removes all the procs,
-variables, and child namespaces under the given namespaces.
-
-_________________________________________
-namespace ensemble <subcommand> [arg ...]
-Create /manage an "ensemble" out of a namespace.
-TODO
-
-________________________________________
-namespace eval <namespace> arg [args...]
-Create namespace and any intermediate namespaces if not already exists
-and run args concatenated together as a single body.
-
-____________________________
-namespace exists <namespace>
-return bool whether namespace exists
-
-_______________________________________
-namespace export [-clear] [pattern ...]
-Add patterns to export list for the current namespace (so does not need to be defined.).
-commands that match any pattern (no :: allowed) become an "exported" command.  This is
-mainly useful for ensembles.  [-clear] clears the list of export patterns first.
-Otherwise, return the current list.
-
-______________________________
-namespace forget [pattern ...]
-Forget imported commands matching pattern (:: allowed) if given.  Globs only allowed
-in the command name, not in namespace name.
-
-_______________________________________
-namespace import [-force] [pattern ...]
-Import commands or query imported commands
-[-force] replace any existing commands with imported ones.
-
-________________________________________________
-namespace inscope <namespace> <script> [arg ...]
-Execute <script> in <namespace> scope.
-Similar to namespace eval except:
-1. extra args are appended as list elements.
-2. does NOT create a namespace if not exist.
-
---------------------------
-namespace origin <command>
-Get the fully qualified name of the command the imported <command> refers to.
-
-____________________________
-namespace parent [namespace]
-Return fully qualified parent namespace's name
-
-______________________________
-namespace path [namespaceList]
-set/get namespace "path" value used to search for commands.
-
-_____________________________
-namespace qualifiers <string>
-Kind of like dirname except namespace.
-
-_______________________
-namespace tail <string>
-Kind of like basename, except namespace.
-
-______________________________________________
-namespace upvar <namespace> [otherVar myVar]...
-Set variables in current proc to refer to variables in namespace::othervar
-
-__________________________
-namespace unknown [script]
-set or get the "unknown" script for handling unknown commands.
-
-_____________________________________________
-namespace which [-command|-variable] <name>
-Get the fully qualified <name>
--command/-variable:
-	treat name as a command or variable, default is command.
-
-
-=============
--1.9.63- next
-=============
-===============
--1.9.64- nextto
-===============
-=============
--1.9.65- open
-=============
-================
--1.9.66- package
-================
-============
--1.9.67- pid
-============
-=================
--1.9.68- platform
-=================
-=============
--1.9.69- proc
-=============
-proc procname {{arg1 [defaultvalue]} ...} {body}
-Create a procedure that takes the given arguments and calls the body.
-If no return, then the return value is the return value of the last command in the body.
-
-A special argument named "args" can be used to indicate "all remaining arguments"
-
-=============
--1.9.70- puts
-=============
-============
--1.9.71- pwd
-============
-=============
--1.9.72- read
-=============
-===============
--1.9.73- regexp
-===============
-=================
--1.9.74- registry
-=================
-===============
--1.9.75- regsub
-===============
-===============
--1.9.76- rename
-===============
-===============
--1.9.77- return
-===============
-=============
--1.9.78- safe
-=============
-=============
--1.9.79- scan
-=============
-=============
--1.9.80- seek
-=============
-=============
--1.9.81- self
-=============
-============
--1.9.82- set
-============
-set vname [value]
-
-If value is omitted, then return the variable value.
-Otherwise, set a variable. Create if not exist.
-
-Inside a proc:
-	set or create a local variable. This can overwrite an argument.
-
-Inside a namespace
-	Create a namespace variable
-
-See also
--1.9.104- variable
-
-===============
--1.9.83- socket
-===============
-===============
--1.9.84- source
-===============
-==============
--1.9.85- split
-==============
-split strlist ?splitchars?
-	like python str.split(splitchars), EXCEPT splitchar is a set
-	of characters to split on rather than a str to split on.
-
-===============
--1.9.86- string
-===============
-==============
--1.9.87- subst
-==============
-===============
--1.9.88- switch
-===============
-=================
--1.9.89- tailcall
-=================
-=============
--1.9.90- tell
-=============
-==============
--1.9.91- throw
-==============
-=============
--1.9.92- time
-=============
-=================
--1.9.93- timerate
-=================
-===========
--1.9.94- tm
-===========
-==============
--1.9.95- trace
-==============
-==================
--1.9.96- transchan
-==================
-============
--1.9.97- try
-============
-================
--1.9.98- unknown
-================
-===============
--1.9.99- unload
-===============
-===============
--1.9.100- unset
-===============
-================
--1.9.101- update
-================
-=================
--1.9.102- uplevel
-=================
-===============
--1.9.103- upvar
-===============
-==================
--1.9.104- variable
-==================
-variable vname [value]
-
-Create a variable with the given name.  If value is omitted, it is "left undefined".
-
-Inside a proc:
-	Create a variable in the corresponding namespace, similar to the `global` command
-
-Inside a namespace
-	Create/set a variable local to the namespace.
-
-see also
--1.9.82- set
-
-===============
--1.9.105- vwait
-===============
-===============
--1.9.106- while
-===============
-===============
--1.9.107- yield
-===============
-=================
--1.9.108- yieldto
-=================
-==============
--1.9.109- zlib
-==============
-
-
-
-
-
-
-
-
 ============
 -1.9.0- eval
 ============
@@ -2345,6 +1747,611 @@ Change working dir
 applies to al interps
 
 
+================
+-1.10- reference
+================
+=============
+-1.10.1- after
+=============
+after tm
+	sleep for tm msecs, <0 treated as 0
+after tm script
+	do script after tm msecs
+	0 = immediately next
+	return an id
+after cancel id
+	cancel a scheduled after script.
+	If already run, does nothing.
+after idle script
+	run next time event loop is enterred.
+after info
+	All existing ids
+after info id
+	id must refer to an existing scheduled after.
+	"Must not have triggered yet or been cancelled."
+	Return a list of {script [idle|timer]}
+
+==============
+-1.10.2- append
+==============
+=============
+-1.10.3- apply
+=============
+=============
+-1.10.4- array
+=============
+===============
+-1.10.5- bgerror
+===============
+==============
+-1.10.6- binary
+==============
+=============
+-1.10.7- break
+=============
+=============
+-1.10.8- catch
+=============
+==========
+-1.10.9- cd
+==========
+=============
+-1.10.10- chan
+=============
+==============
+-1.10.11- clock
+==============
+==============
+-1.10.12- close
+==============
+===============
+-1.10.13- concat
+===============
+concat i1 i2 i3...
+	Concatenate strings joined by a single space.
+	NOTE: because lists are already strings of (quoted) items separated
+	by spaces, concat will combine lists into a single long list.
+
+=================
+-1.10.14- continue
+=================
+============
+-1.10.15- dde
+============
+=============
+-1.10.16- dict
+=============
+=================
+-1.10.17- encoding
+=================
+============
+-1.10.18- env
+============
+============
+-1.10.19- eof
+============
+==============
+-1.10.20- error
+==============
+=============
+-1.10.21- eval
+=============
+=============
+-1.10.22- exec
+=============
+=============
+-1.10.23- exit
+=============
+=============
+-1.10.24- expr
+=============
+=================
+-1.10.25- fblocked
+=================
+===================
+-1.10.26- fconfigure
+===================
+==============
+-1.10.27- fcopy
+==============
+=============
+-1.10.28- file
+=============
+==================
+-1.10.29- fileevent
+==================
+=================
+-1.10.30- filename
+=================
+==============
+-1.10.31- flush
+==============
+============
+-1.10.32- for
+============
+================
+-1.10.33- foreach
+================
+===============
+-1.10.34- format
+===============
+=============
+-1.10.35- gets
+=============
+=============
+-1.10.36- glob
+=============
+===============
+-1.10.37- global
+===============
+global vname ...
+	make a variable refer to global variable inside a proc.
+
+================
+-1.10.38- history
+================
+=============
+-1.10.39- http
+=============
+===========
+-1.10.40- if
+===========
+=============
+-1.10.41- incr
+=============
+=============
+-1.10.42- info
+=============
+===============
+-1.10.43- interp
+===============
+=============
+-1.10.44- join
+=============
+
+================
+-1.10.45- lappend
+================
+lappend varname i1 i2 i3...
+	NOTE1: varname, not lst as argument
+	NOTE2: lappend is list append, NOT left append
+
+================
+-1.10.46- lassign
+================
+lassign lst [vnames...]
+	Assign each item in lst to each vname.
+	If more vnames than list items, set them to empty.
+	If more list items than vnames, return a list of unassigned items.
+
+===============
+-1.10.47- lindex
+===============
+lindex lst idx1 idx2, ...
+	Get an indexed item in the (nested) list
+	get lst[idx1][idx2]...
+
+================
+-1.10.48- linsert
+================
+linsert lst idx i1 i2 i3...
+	Insert items in to the idxth index.
+	if idx <=0, then put at beginning
+	if >= length, or 'end', then put at end
+
+=============
+-1.10.49- list
+=============
+list i1 i2 i3...
+	Create a list with the given items.
+	Perform any necessary quoting etc.
+
+================
+-1.10.50- llength
+================
+llength lst
+	Get the length of lst
+
+=============
+-1.10.51- lmap
+=============
+lmap [vname1 lst1]... body
+
+Call body with each vname set to each value of their corresponding list.
+Shorter lists are extended with empty string.
+
+Return a list of each evaluation.
+
+=============
+-1.10.52- load
+=============
+===============
+-1.10.53- lrange
+===============
+lrange lst i1 i2
+	Like list slicing, both indices are included.
+
+================
+-1.10.54- lrepeat
+================
+lrepeat count i1...
+Repeat the given items into a list.
+like python `lst * count`
+
+=================
+-1.10.55- lreplace
+=================
+lreplace lst first last arg1...
+	like python slice assignment, except `last` index is inclusive.
+
+=================
+-1.10.56- lreverse
+=================
+lreverse lst
+Reverse the list.
+
+================
+-1.10.57- lsearch
+================
+lsearch ?opts? lst pat
+	Search for the index of item that matches pat.
+	-1 if no match
+	pat matches string matching
+	_______
+	general
+		-all        return list of all matching indices (or values if -inline), same order as in the list
+		-inline     return values instead of index, empty if no match
+		-not        Search for non-matches
+		-start idx  start from idx
+	______________
+	matching type:
+		-exact
+		-glob
+		-regexp
+		-sorted (already sorted, can use binary search, use -exact)
+	________
+	contents
+		These specify the sort order to allow -sorted
+			-ascii
+			-dictionary
+			-integer
+			-nocase
+			-real
+	______________
+	sorted options
+		-decreasing     Indicate list is sorted in decreasing order
+		-increasing     Indicate list is sorted in increasing order
+		-bisect         split the list in 2... last item <= or >= pattern depending on order
+		                -1 if the first list is empty.
+	______________
+	nested options
+		-index idx      Each list entry is a sublist, use the idxth item as the key.
+		-subindices     Return full index subpath instead of just the outer index.
+		                requires -index option.
+
+=============
+-1.10.58- lset
+=============
+lset varname [indices...] value
+	If no indices same as `set varname value`
+	Error if any indices not in range
+	indices are for NESTED LIST index.
+	1 past the end can be used to append the value.
+
+==============
+-1.10.59- lsort
+==============
+lsort ?opts? lst
+	return a sorted list
+	options:
+		-ascii      typical sorting
+		-dictionary case insensitive tiebreaker(same string dif case) and numeric sort
+		-integer    sort as integers
+		-real       sort as floats
+		-command    cmd, use cmd as the <=> function, -1, 0, 1 if <, ==, or >
+		-increasing normal increasing order
+		-decreasing reverse order
+		-indices    Return a list of indices instead of values (argsort)
+		-index idxs Like numpy fancy indexing [lst[idx] for idx in idxs]
+		-stride N   Group list into groups of size N and sort Use the 0th item per group
+		            or whatever idx is given by -index
+		-nocase     case insensitive search
+		-unique     remove dups
+
+===============
+-1.10.60- memory
+===============
+===========
+-1.10.61- my
+===========
+==================
+-1.10.62- namespace
+==================
+Manage namespaces for commands/variables.
+
+Subcommands (unique abbreviation ok)
+
+__________________________________________________________
+namespace children [namespace=current_namespace [pattern]]
+Return a list of all fully qualified child namespaces of `namespace`
+matching `pattern` if given.
+
+_______________________
+namespace code <script>
+Convert script into a new script that always executs in current namespace.
+It does this by converting script into a `namespace inscope` command.
+(Useful because callbacks are usually called in global namespace.)
+
+_________________
+namespace current
+Return fully-qualified current namespace
+
+_______________________________
+namespace delete [namespace...]
+Recursively delete all given namespaces.  This removes all the procs,
+variables, and child namespaces under the given namespaces.
+
+_________________________________________
+namespace ensemble <subcommand> [arg ...]
+Create /manage an "ensemble" out of a namespace.
+TODO
+
+________________________________________
+namespace eval <namespace> arg [args...]
+Create namespace and any intermediate namespaces if not already exists
+and run args concatenated together as a single body.
+
+____________________________
+namespace exists <namespace>
+return bool whether namespace exists
+
+_______________________________________
+namespace export [-clear] [pattern ...]
+Add patterns to export list for the current namespace (so does not need to be defined.).
+commands that match any pattern (no :: allowed) become an "exported" command.  This is
+mainly useful for ensembles.  [-clear] clears the list of export patterns first.
+Otherwise, return the current list.
+
+______________________________
+namespace forget [pattern ...]
+Forget imported commands matching pattern (:: allowed) if given.  Globs only allowed
+in the command name, not in namespace name.
+
+_______________________________________
+namespace import [-force] [pattern ...]
+Import commands or query imported commands
+[-force] replace any existing commands with imported ones.
+
+________________________________________________
+namespace inscope <namespace> <script> [arg ...]
+Execute <script> in <namespace> scope.
+Similar to namespace eval except:
+1. extra args are appended as list elements.
+2. does NOT create a namespace if not exist.
+
+--------------------------
+namespace origin <command>
+Get the fully qualified name of the command the imported <command> refers to.
+
+____________________________
+namespace parent [namespace]
+Return fully qualified parent namespace's name
+
+______________________________
+namespace path [namespaceList]
+set/get namespace "path" value used to search for commands.
+
+_____________________________
+namespace qualifiers <string>
+Kind of like dirname except namespace.
+
+_______________________
+namespace tail <string>
+Kind of like basename, except namespace.
+
+______________________________________________
+namespace upvar <namespace> [otherVar myVar]...
+Set variables in current proc to refer to variables in namespace::othervar
+
+__________________________
+namespace unknown [script]
+set or get the "unknown" script for handling unknown commands.
+
+_____________________________________________
+namespace which [-command|-variable] <name>
+Get the fully qualified <name>
+-command/-variable:
+	treat name as a command or variable, default is command.
+
+
+=============
+-1.10.63- next
+=============
+===============
+-1.10.64- nextto
+===============
+=============
+-1.10.65- open
+=============
+================
+-1.10.66- package
+================
+============
+-1.10.67- pid
+============
+=================
+-1.10.68- platform
+=================
+=============
+-1.10.69- proc
+=============
+proc procname {{arg1 [defaultvalue]} ...} {body}
+Create a procedure that takes the given arguments and calls the body.
+If no return, then the return value is the return value of the last command in the body.
+
+A special argument named "args" can be used to indicate "all remaining arguments"
+
+=============
+-1.10.70- puts
+=============
+============
+-1.10.71- pwd
+============
+=============
+-1.10.72- read
+=============
+===============
+-1.10.73- regexp
+===============
+=================
+-1.10.74- registry
+=================
+===============
+-1.10.75- regsub
+===============
+===============
+-1.10.76- rename
+===============
+===============
+-1.10.77- return
+===============
+=============
+-1.10.78- safe
+=============
+=============
+-1.10.79- scan
+=============
+=============
+-1.10.80- seek
+=============
+=============
+-1.10.81- self
+=============
+============
+-1.10.82- set
+============
+set vname [value]
+
+If value is omitted, then return the variable value.
+Otherwise, set a variable. Create if not exist.
+
+Inside a proc:
+	set or create a local variable. This can overwrite an argument.
+
+Inside a namespace
+	Create a namespace variable
+
+See also
+-1.10.104- variable
+
+===============
+-1.10.83- socket
+===============
+===============
+-1.10.84- source
+===============
+==============
+-1.10.85- split
+==============
+split strlist ?splitchars?
+	like python str.split(splitchars), EXCEPT splitchar is a set
+	of characters to split on rather than a str to split on.
+
+===============
+-1.10.86- string
+===============
+==============
+-1.10.87- subst
+==============
+===============
+-1.10.88- switch
+===============
+=================
+-1.10.89- tailcall
+=================
+=============
+-1.10.90- tell
+=============
+==============
+-1.10.91- throw
+==============
+=============
+-1.10.92- time
+=============
+=================
+-1.10.93- timerate
+=================
+===========
+-1.10.94- tm
+===========
+==============
+-1.10.95- trace
+==============
+==================
+-1.10.96- transchan
+==================
+============
+-1.10.97- try
+============
+================
+-1.10.98- unknown
+================
+===============
+-1.10.99- unload
+===============
+===============
+-1.10.100- unset
+===============
+================
+-1.10.101- update
+================
+=================
+-1.10.102- uplevel
+=================
+===============
+-1.10.103- upvar
+===============
+==================
+-1.10.104- variable
+==================
+variable vname [value]
+
+Create a variable with the given name.  If value is omitted, it is "left undefined".
+
+Inside a proc:
+	Create a variable in the corresponding namespace, similar to the `global` command
+
+Inside a namespace
+	Create/set a variable local to the namespace.
+
+see also
+-1.10.82- set
+
+===============
+-1.10.105- vwait
+===============
+===============
+-1.10.106- while
+===============
+===============
+-1.10.107- yield
+===============
+=================
+-1.10.108- yieldto
+=================
+==============
+-1.10.109- zlib
+==============
+
+
+
+
+
+
+
+
+
+
 
 
 ======
@@ -2621,18 +2628,18 @@ anchor
 	[n | ne | e | se | s | sw | w | nw | center]
 	where content is displayed within the array
 
-background
+background|-bg
 	a background color
 
 
 bitmap
-borderwidth
+borderwidth|-bd
 cursor
 compound
 disabledforeground
 exportselection
 font
-foreground
+foreground|-fg
 highlightbackground
 highlightcolor
 highlightthickness
@@ -2662,6 +2669,23 @@ underline
 wraplength
 xscrollcommand
 yscrollcommand
+
+======================
+-2.1.2- common options
+======================
+These options are not listed as generic options,
+but many widgets seem to have these options
+
+-height
+	desired height (screen distance)
+-width
+	desired width (screen distance)
+-state
+	The current state of the widget.
+	Some possible values:
+		normal: can interact (click button, draw, etc)
+		disabled: ignore callbacks
+		hidden: not seen
 
 =============
 -2.2- widgets
@@ -2748,6 +2772,52 @@ The 1/2/3 suffixed options indicate
 	1: the first display line of a wrapped line
 	2: any non-first display line of a wrapped line
 	3: the last line of a wrapped line
+
+==============
+-2.2.2- Canvas
+==============
+=================
+-2.2.2.1- options
+=================
+_________________
+standard options:
+	-background
+	-borderwidth
+	-cursor
+	-highlightbackground
+	-highlightcolor
+	-highlightthickness
+	-insertbackground
+	-insertborderwidth
+	-insertofftime
+	-insertontime
+	-insertwidth
+	-relief
+	-selectbackground
+	-selectborderwidth
+	-selectforeground
+	-takefocus
+	-xscrollcommand
+	-yscrollcommand
+
+________________
+specific options
+	-closeenough
+		float (1.0), how close does cursor need to be considered "inside" the item.
+	-confine
+		bool (True), confine view within -scrollregion
+	-scrollregion
+		left, top, right, bottom region for scrolling.
+		(use bbox to get all-encompassing scroll region)
+	-height/-width
+	-state
+		This is a "default" state.  Each canvas item can have its own state.
+		normal|disabled|hidden
+	-xscrollincrement
+	-yscrollincrement
+		screen distance, >0 = constrain scrolling to integral multiple of increment.
+		Othrewise, negative to allow unconstrained scrolling
+
 
 ==============
 -2.3- commands
@@ -3471,10 +3541,10 @@ would call someotherfunc with corresponding args
 
 
 ===============
--3.3.- mainloop
+-3.3- mainloop
 ===============
 `mainloop(N)` runs the application until N tk interpreters remain.
-(see -1.9.4-) and defaults to 0.
+(see -1.9.3- interp) and defaults to 0.
 
 NOTE: tk.Tk() also creates a new interpreter so they count as well.
 
