@@ -415,15 +415,17 @@ endif
 " atend: move cursor to the end.
 " top: add above
 " bottom: add below
-function! s:FormatHeader(top, bottom, atend, handle_comments, noreplace)
-	if a:atend
-		call s:FormatHeader(a:top, a:bottom, v:false, a:handle_comments, a:noreplace)
-		if a:bottom
-			normal j$
-		endif
+function! s:FormatHeader(top, bottom, atend, handle_comments, noreplace, delete)
+	if a:atend && a:bottom && !a:delete
+		call s:FormatHeader(a:top, a:bottom, v:false, a:handle_comments, a:noreplace, a:delete)
+		normal j$
 		return
 	endif
-	let ch = nr2char(getchar())
+	if a:delete
+		let ch = ''
+	else
+		let ch = nr2char(getchar())
+	endif
 	let lineno = line('.')
 	let pattern = '\m^\([[:blank:]]*\)\(.*\)$'
 	let curline = matchlist(getline('.'), pattern)
@@ -455,59 +457,106 @@ function! s:FormatHeader(top, bottom, atend, handle_comments, noreplace)
 				if preline[1] == curline[1] && strlen(preline[2]) > 0
 					\ && match(preline[2], '\V\^' . escape(comm, '\') . escape(preline[2][-1:], '\') . '\*\$') >= 0
 					if ! a:bottom
-						call setline(lineno-1, wrapper)
+						if len(ch)
+							call setline(lineno-1, wrapper)
+						else
+							call deletebufline('', lineno-1)
+						endif
 						return
 					elseif nxtsep
-						call setline(lineno+1, wrapper)
-						call setline(lineno-1, wrapper)
+						if len(ch)
+							call setline(lineno+1, wrapper)
+							call setline(lineno-1, wrapper)
+						else
+							call deletebufline('', lineno+1)
+							call deletebufline('', lineno-1)
+						endif
 						return
 					endif
 				endif
 			endif
 		elseif a:bottom && nxtsep
-			call setline(lineno+1, wrapper)
+			if len(ch)
+				call setline(lineno+1, wrapper)
+			else
+				call deletebufline('', lineno+1)
+			endif
 			return
 		endif
 	endif
-	if a:bottom
-		call append(lineno, wrapper)
-	endif
-	if a:top
-		call append(lineno-1, wrapper)
+	if len(ch)
+		if a:bottom
+			call append(lineno, wrapper)
+		endif
+		if a:top
+			call append(lineno-1, wrapper)
+		endif
 	endif
 endfunction
 
 " Surround header (new delimiters)
 if maparg('<Leader>h', 'n') == ''
-	nnoremap <Leader>hh :call <SID>FormatHeader(1, 1, v:false, v:false, v:true)<CR>
-	nnoremap <Leader>HH :call <SID>FormatHeader(1, 1, v:false, v:true, v:true)<CR>
-	nnoremap <Leader>yy :call <SID>FormatHeader(1, 0, v:false, v:false, v:true)<CR>
-	nnoremap <Leader>YY :call <SID>FormatHeader(1, 0, v:false, v:true, v:true)<CR>
-	nnoremap <Leader>nn :call <SID>FormatHeader(0, 1, v:false, v:false, v:true)<CR>
-	nnoremap <Leader>NN :call <SID>FormatHeader(0, 1, v:false, v:true, v:true)<CR>
+	nnoremap <Leader>hh :call <SID>FormatHeader(1, 1, 0, 0, 1, 0)<CR>
+	nnoremap <Leader>HH :call <SID>FormatHeader(1, 1, 0, 1, 1, 0)<CR>
+	nnoremap <Leader>yy :call <SID>FormatHeader(1, 0, 0, 0, 1, 0)<CR>
+	nnoremap <Leader>YY :call <SID>FormatHeader(1, 0, 0, 1, 1, 0)<CR>
+	nnoremap <Leader>nn :call <SID>FormatHeader(0, 1, 0, 0, 1, 0)<CR>
+	nnoremap <Leader>NN :call <SID>FormatHeader(0, 1, 0, 1, 1, 0)<CR>
 
-	nnoremap <Leader>h :call <SID>FormatHeader(1, 1, v:false, v:false, v:false)<CR>
-	nnoremap <Leader>H :call <SID>FormatHeader(1, 1, v:false, v:true, v:false)<CR>
-	nnoremap <Leader>y :call <SID>FormatHeader(1, 0, v:false, v:false, v:false)<CR>
-	nnoremap <Leader>Y :call <SID>FormatHeader(1, 0, v:false, v:true, v:false)<CR>
-	nnoremap <Leader>n :call <SID>FormatHeader(0, 1, v:false, v:false, v:false)<CR>
-	nnoremap <Leader>N :call <SID>FormatHeader(0, 1, v:false, v:true, v:false)<CR>
+	nnoremap <Leader>h :call <SID>FormatHeader(1, 1, 0, 0, 0, 0)<CR>
+	nnoremap <Leader>H :call <SID>FormatHeader(1, 1, 0, 1, 0, 0)<CR>
+	nnoremap <Leader>y :call <SID>FormatHeader(1, 0, 0, 0, 0, 0)<CR>
+	nnoremap <Leader>Y :call <SID>FormatHeader(1, 0, 0, 1, 0, 0)<CR>
+	nnoremap <Leader>n :call <SID>FormatHeader(0, 1, 0, 0, 0, 0)<CR>
+	nnoremap <Leader>N :call <SID>FormatHeader(0, 1, 0, 1, 0, 0)<CR>
 endif
 
 if maparg('<Leader>h', 'i') == ''
-	inoremap <Leader>hh <C-O>:call <SID>FormatHeader(1, 1, v:true, v:false, v:true)<CR>
-	inoremap <Leader>HH <C-O>:call <SID>FormatHeader(1, 1, v:true, v:true, v:true)<CR>
-	inoremap <Leader>yy <C-O>:call <SID>FormatHeader(1, 0, v:true, v:false, v:true)<CR>
-	inoremap <Leader>YY <C-O>:call <SID>FormatHeader(1, 0, v:true, v:true, v:true)<CR>
-	inoremap <Leader>nn <C-O>:call <SID>FormatHeader(0, 1, v:true, v:false, v:true)<CR>
-	inoremap <Leader>NN <C-O>:call <SID>FormatHeader(0, 1, v:true, v:true, v:true)<CR>
+	inoremap <Leader>hh <C-O>:call <SID>FormatHeader(1, 1, 1, 0, 1, 0)<CR>
+	inoremap <Leader>HH <C-O>:call <SID>FormatHeader(1, 1, 1, 1, 1, 0)<CR>
+	inoremap <Leader>yy <C-O>:call <SID>FormatHeader(1, 0, 1, 0, 1, 0)<CR>
+	inoremap <Leader>YY <C-O>:call <SID>FormatHeader(1, 0, 1, 1, 1, 0)<CR>
+	inoremap <Leader>nn <C-O>:call <SID>FormatHeader(0, 1, 1, 0, 1, 0)<CR>
+	inoremap <Leader>NN <C-O>:call <SID>FormatHeader(0, 1, 1, 1, 1, 0)<CR>
 
-	inoremap <Leader>h <C-O>:call <SID>FormatHeader(1, 1, v:true, v:false, v:false)<CR>
-	inoremap <Leader>H <C-O>:call <SID>FormatHeader(1, 1, v:true, v:true, v:false)<CR>
-	inoremap <Leader>y <C-O>:call <SID>FormatHeader(1, 0, v:true, v:false, v:false)<CR>
-	inoremap <Leader>Y <C-O>:call <SID>FormatHeader(1, 0, v:true, v:true, v:false)<CR>
-	inoremap <Leader>n <C-O>:call <SID>FormatHeader(0, 1, v:true, v:false, v:false)<CR>
-	inoremap <Leader>N <C-O>:call <SID>FormatHeader(0, 1, v:true, v:true, v:false)<CR>
+	inoremap <Leader>h <C-O>:call <SID>FormatHeader(1, 1, 1, 0, 0, 0)<CR>
+	inoremap <Leader>H <C-O>:call <SID>FormatHeader(1, 1, 1, 1, 0, 0)<CR>
+	inoremap <Leader>y <C-O>:call <SID>FormatHeader(1, 0, 1, 0, 0, 0)<CR>
+	inoremap <Leader>Y <C-O>:call <SID>FormatHeader(1, 0, 1, 1, 0, 0)<CR>
+	inoremap <Leader>n <C-O>:call <SID>FormatHeader(0, 1, 1, 0, 0, 0)<CR>
+	inoremap <Leader>N <C-O>:call <SID>FormatHeader(0, 1, 1, 1, 0, 0)<CR>
+endif
+
+if maparg('<Leader>h<BS>', 'n') == ''
+	nnoremap <Leader>hh<BS> :call <SID>FormatHeader(1, 1, 0, 0, 1, 1)<CR>
+	nnoremap <Leader>HH<BS> :call <SID>FormatHeader(1, 1, 0, 1, 1, 1)<CR>
+	nnoremap <Leader>yy<BS> :call <SID>FormatHeader(1, 0, 0, 0, 1, 1)<CR>
+	nnoremap <Leader>YY<BS> :call <SID>FormatHeader(1, 0, 0, 1, 1, 1)<CR>
+	nnoremap <Leader>nn<BS> :call <SID>FormatHeader(0, 1, 0, 0, 1, 1)<CR>
+	nnoremap <Leader>NN<BS> :call <SID>FormatHeader(0, 1, 0, 1, 1, 1)<CR>
+
+	nnoremap <Leader>h<BS> :call <SID>FormatHeader(1, 1, 0, 0, 0, 1)<CR>
+	nnoremap <Leader>H<BS> :call <SID>FormatHeader(1, 1, 0, 1, 0, 1)<CR>
+	nnoremap <Leader>y<BS> :call <SID>FormatHeader(1, 0, 0, 0, 0, 1)<CR>
+	nnoremap <Leader>Y<BS> :call <SID>FormatHeader(1, 0, 0, 1, 0, 1)<CR>
+	nnoremap <Leader>n<BS> :call <SID>FormatHeader(0, 1, 0, 0, 0, 1)<CR>
+	nnoremap <Leader>N<BS> :call <SID>FormatHeader(0, 1, 0, 1, 0, 1)<CR>
+endif
+
+if maparg('<Leader>h<BS>', 'i', '') == ''
+	inoremap <Leader>hh<BS> <C-O>:call <SID>FormatHeader(1, 1, 0, 0, 1, 1)<CR>
+	inoremap <Leader>HH<BS> <C-O>:call <SID>FormatHeader(1, 1, 0, 1, 1, 1)<CR>
+	inoremap <Leader>yy<BS> <C-O>:call <SID>FormatHeader(1, 0, 0, 0, 1, 1)<CR>
+	inoremap <Leader>YY<BS> <C-O>:call <SID>FormatHeader(1, 0, 0, 1, 1, 1)<CR>
+	inoremap <Leader>nn<BS> <C-O>:call <SID>FormatHeader(0, 1, 0, 0, 1, 1)<CR>
+	inoremap <Leader>NN<BS> <C-O>:call <SID>FormatHeader(0, 1, 0, 1, 1, 1)<CR>
+
+	inoremap <Leader>h<BS> <C-O>:call <SID>FormatHeader(1, 1, 0, 0, 0, 1)<CR>
+	inoremap <Leader>H<BS> <C-O>:call <SID>FormatHeader(1, 1, 0, 1, 0, 1)<CR>
+	inoremap <Leader>y<BS> <C-O>:call <SID>FormatHeader(1, 0, 0, 0, 0, 1)<CR>
+	inoremap <Leader>Y<BS> <C-O>:call <SID>FormatHeader(1, 0, 0, 1, 0, 1)<CR>
+	inoremap <Leader>n<BS> <C-O>:call <SID>FormatHeader(0, 1, 0, 0, 0, 1)<CR>
+	inoremap <Leader>N<BS> <C-O>:call <SID>FormatHeader(0, 1, 0, 1, 0, 1)<CR>
 endif
 
 

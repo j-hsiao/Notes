@@ -57,6 +57,7 @@ contents:
 		-2.6.1- writing plugins
 		-2.6.2- :help docs
 		-2.6.3- autoload
+	-2.7- packages
 
 quick topics:
 	registers, macros       -1.5-
@@ -1574,6 +1575,7 @@ and command modes each with their own functionalities.
 			      a:000 = list containing extra args
 
 		max of 20 arguments
+		Access arguments with `a:` namespace.
 
 		lambdas:
 			{args... -> expr}
@@ -1767,3 +1769,20 @@ and command modes each with their own functionalities.
 			Vim checks files in 'runtimepath'/autoload.
 			autoload functions are [dirnames]#fname#funcname()
 			and need to be defined as fname#funcname()
+
+	==============
+	-2.7- packages
+	==============
+	Packages are collections of plugins.
+	They are placed into some dir in 'runtimepath' setting (usually ~/.vim)
+	runtimepath
+	They are organized as:
+		pack/<user organize dir name>/[start|opt]/<packagename>/[plugin|syntax|autoload]/*.vim
+
+		start: load these on vim startup
+		opt: require calling :packadd (pack-add) to load these
+
+		syntax: for filetype plugin
+		plugin: corresponds to ~/.vim/plugin, except for this package
+
+	It is common for packages to be a git repo.
