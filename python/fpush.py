@@ -1,3 +1,4 @@
+import os
 import io
 import re
 import socket
@@ -26,7 +27,7 @@ def localip(flags=('broadcast', 'multicast')):
             info[-1]['addrs']['inet6'] = mt.group('addr')
     return info
 
-def receive(out, host=None, port=0):
+def receive(out=None, host=None, port=0):
     L = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 
     if host is None:
@@ -51,13 +52,24 @@ def receive(out, host=None, port=0):
         print(L.getsockname())
         L.listen(1)
         s, a = L.accept()
-        buf = bytearray(io.DEFAULT_BUFFER_SIZE)
-        view = memoryview(buf)
-        with open(out, 'wb') as f:
-            amt = s.recv_into(buf)
-            while amt:
-                f.write(view[:amt])
-                amt = s.recv_into(buf)
+        try:
+            with s.makefile('rb') as sf:
+                fname = sf.readline().rstrip()
+                if not out:
+                    out = os.path.basename(fname.decode('utf-8', errors='replace'))
+                    print('output:', out)
+                    if not input('okay?').startswith('y'):
+                        print('cancelled')
+                        return
+                buf = bytearray(io.DEFAULT_BUFFER_SIZE)
+                view = memoryview(buf)
+                with open(out, 'wb') as f:
+                    amt = s.recv_into(buf)
+                    while amt:
+                        f.write(view[:amt])
+                        amt = s.recv_into(buf)
+        finally:
+            s.close()
     finally:
         L.close()
 
@@ -68,6 +80,7 @@ def send(fname, addr):
     s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     try:
         s.connect(addr)
+        s.sendall(fname.encode('utf-8') + b'\n')
         buf = bytearray(io.DEFAULT_BUFFER_SIZE)
         view = memoryview(buf)
         with open(fname, 'rb') as f:
@@ -81,7 +94,7 @@ def send(fname, addr):
 if __name__ == '__main__':
     import argparse
     p = argparse.ArgumentParser()
-    p.add_argument('src')
+    p.add_argument('src', nargs='?')
     p.add_argument('dst', nargs='?')
     args = p.parse_args()
     if args.dst:
