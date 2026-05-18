@@ -1,2 +1,11 @@
 journalctl
+	[-S|--since=|-U|--until=]
+		[YYYY-mm-dd] [HH:MM:SS]
+		yesterday
+		today
+		now
+		+-N hmsdw
+	-r|--reverse
+		newest at top
+
 dmesg
