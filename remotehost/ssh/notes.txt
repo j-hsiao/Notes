@@ -11,6 +11,13 @@ contents:
 	-3.2- authorized_keys
 -4- tools
 	-4.1- ssh-keygen
+		-4.1.1- options
+			-4.1.1.1- key creation
+			-4.1.1.2- key modification
+			-4.1.1.3- signing
+			-4.1.1.4- known_hosts
+			-4.1.1.5- KRL
+			-4.1.1.x- other options
 
 
 
@@ -569,3 +576,193 @@ so in general, you can just cat (append) into the corresponding authorized_keys 
 ================
 -4.1- ssh-keygen
 ================
+NOTE: KRL = Key Revocation List
+
+===============
+-4.1.1- options
+===============
+======================
+-4.1.1.1- key creation
+======================
+-t type
+	key type:
+		dsa
+		ecdsa
+		ecdsa-sk
+		ed25519
+		ed25519-sk
+		rsa
+	signature type (rsa):
+		ssh-rsa
+		rsa-sha2-256
+		rsa-sha2-512 (default)
+
+-b bits
+	rsa: > 1024, default 3072
+	DSA: ==1024
+	ECDSA: 256|384|521
+	No bit lengths:
+		ECDSA-SK
+		ED25519
+		ED25519-SK
+-Z cipher
+	Cipher to use for private key
+		3des-cbc
+		aes128-cbc
+		aes192-cbc
+		aes256-cbc
+		aes128-ctr
+		aes192-ctr
+		aes256-ctr (default)
+		aes128-gcm@openssh.com
+		aes256-gcm@openssh.com
+		chacha20-poly1305@openssh.com
+==========================
+-4.1.1.2- key modification
+==========================
+-f keyfile
+	When generating a key, this is the private key.
+	The public key will be keyfile.pub
+-p
+	change password
+-P old_passphrase
+-N new_passphrase
+-i
+	"import": read unencrypted private/public keyfile in -m format
+	and print openssh private/public key to stdout
+-e
+	"export": Print keyfile (pub or priv) in given format (-m)
+-m <format>
+	specify key generation format
+	create PEM instead
+	foramts:
+		RFC4716
+		PKCS8
+		PEM
+-C comment
+	add comment
+-c
+	change comment
+-y
+	read private openssh and print public key to stdout
+
+=================
+-4.1.1.3- signing
+=================
+-h
+	make a host cert instead of user cert
+-I
+	specify key identity when signing a public key
+-n principal1,principal2,...
+	Specify principals (user/hostnames) for cert
+-O option
+	options for action.  multiple -O for multiple options
+	CERTIFICATES
+		TODO: CERTIFICATES section options
+		hashalg=alg
+		print-pubkey
+		verify-time=timestamp
+	MODULI GENERATION
+	FIDO
+		application
+		challenge=path
+		device
+		no-touch-required
+		resident
+		user
+		verify-required
+		write-attestation=path
+-s ca_key
+-U
+	CA key is in a ssh-agent
+-V validity-interval
+	[start=now:]end
+	start:
+		always
+		YYYYMMDD[HHMM[SS]]
+		-N[smhdw]: see -3.1- time values
+	end:
+		forever
+		YYYYMMDD[HHMM[SS]]
+		+N[smhdw]: see -3.1- time values
+-Y command
+	find-principals
+		print -s principals found in -f file to stdou
+	match-principals
+		find principals matching -I key in the -f file
+	check-novalidate
+		Validate a ?signed? "message"
+		message: read from stdin
+		-n signature namespace
+		-s signature
+	sign
+		sign a file(s) or stdin with some key
+		-f: private key to use (if public key, search ssh-agent for the private key)
+		-n: signature namespace
+			example: "email", "file", generally should be "namespace@your.domain"
+	verify
+		verify a signature
+		-n signature namespace
+		-s file containing signature
+		-I signer
+		-f allowed signers
+		-r revoked keys
+-z serial
+	specify serial number for signing, prefix with + to increment
+
+=====================
+-4.1.1.4- known_hosts
+=====================
+-R [host][:port]
+	Removes all corresponding keys from known_hosts
+
+=============
+-4.1.1.5- KRL
+=============
+Key Revocation List
+-k
+	generate KRL file
+-Q
+	test if key revoked in a KRL
+-u
+	update KRL
+-z serial
+	serial = version number
+
+=======================
+-4.1.1.x- other options
+=======================
+-A
+	Generate host keys for each type (rsa dsa ecdsa ed25519)
+	that host key does not exist
+	?what does host key does not exist mean?
+-a rounds
+	hashing rounds to make verification slower (make bruteforce harder)
+-B
+	show bubbledabble digest
+-D pkcs11
+	download public keys
+-E fingerprint_hash
+	specify hash alg for fingerprints
+-F [hostname][:port]
+	Find hostname/port in known_hosts
+-g
+	Use generic DNS format for -r command
+-H
+	hash known_hosts file.  Move original to *.old
+-K
+	download resident keys from FIDO auth
+-L
+	print contents of one or more certs
+-l
+	show fingerprint of pub key
+-v
+	add ascii art
+-M generate
+-M screen
+-q
+	quiet
+-v verbose
+	repeat for more (max3)
+-w provider
+	path to library for FIDO

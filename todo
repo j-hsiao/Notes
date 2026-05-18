@@ -1,5 +1,5 @@
 * reorganize informacion
-* sshd configuration and setup
+* sshd configuration and setup: ssh-keygen -> CERTIFICATES section
 * convert vim plugins to package
 * ydo script
 * bash numeric completion
