@@ -38,7 +38,8 @@ contents
 -14- submodule
 -15- server
 -16- blame
--17- symbolic-ref
+-17- bisect
+-18- symbolic-ref
 
 
 ============
@@ -695,7 +696,7 @@ NOTE:
 	old/new can be used in place of good/bad, meaning still the same
 
 =================
--17- symbolic-ref
+-18- symbolic-ref
 =================
 git symoblic-ref REFNAME refs/heads/COMMIT
 
