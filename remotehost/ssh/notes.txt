@@ -1,157 +1,204 @@
 contents:
--1- ssh
+-1- ssh client
+	-1.0- options
 	-1.1- config
 	-1.2- keys
 	-1.3- forwarding
+	-1.4- ssh_known_hosts
 -2- scp
-
-=======
--1- ssh
-=======
-	ssh target command arg arg arg...
-
-	target:
-		[user@]host
-		ssh://[user@]host:port
-
-	Commands
-	========
-	NOTE: args will be appended to command separated by a space. This means that
-	the remote server RECEIVES A SINGLE STRING.  The string itself (or args)
-	must contain any necessary quoting.
-	Example1:
-		command: ssh target printf '"%s"\n' a b 'hello world'
-		result: anbnhellonworldn
-		explanation:
-			After joining the strings, what the remote would see is:
-			printf "%s"\n a b hello world
-			Because \n would just become n, and hello world does not contain
-			any quoting, the net result would be:
-			printf %sn a b hello world
-
-		Proper quoting (single str): ssh target 'printf "\"%s\"\\n" a b "hello world"'
-		Proper quoting (multi str): ssh target printf \''"%s"\n'\' a b \''hello world'\'
-
-	Alternatively, just have a script and then
-		ssh target <script
-
-	Permissions
-	===========
-	Permissions for relevant configuration files should be AT LEAST:
-	chmod 700 ~/.ssh/
-	chmod 644 public_key
-	chmod 644 ~/.ssh/config
-	chmod 600 private_key
-	chmod 600 authorized_keys
-
-	=============
-	-1.0- options
-	=============
-
-	-L (LOCALFORWARD)
-		Forward a connection from local machine to remote
-	-R (REMOTEFORWARD)
-		Forward a connection from remote machine to local
-	-i identityfile
-		Specify the identityfile to use.
-	-f
-		Go to background just before command.  This allows running
-		ssh in the background while also allowing password prompting etc.
-	-l loginname
-		Specify the login name. (alternative to user@host)
-	-p port
-		Specify the target port to ssh to. (alternative to ssh://[user@]host:port)
+-3- ssh server
+	-3.1- config
+	-3.2- authorized_keys
+-4- tools
+	-4.1- ssh-keygen
 
 
-	============
-	-1.1- config
-	============
 
-		config file paths
-			/etc/ssh/ssh_config
-			~/.ssh/config
-		syntax:
-			sequence of key value[s] pairs separated by whitespace
-			# comment
-			" a single argument with spaces"
-			Indentation is ignored.
-			Key value pairs apply to the most recent HOST patterns line.
-			For each option, the first match applies.  More specific options
-			should be at the top and general defaults at the bottom.
-			keys are case INSENSTIVE
+==============
+-1- ssh client
+==============
+ssh target command arg arg arg...
 
-			useful keys:
-				Host: patterns separated by whitespace (ORed together)
+target:
+	[user@]host
+	ssh://[user@]host:port
 
-				HostName: the actual host name to use (ip,
-					www.somewhere.com, etc)
+Commands
+========
+NOTE: args will be appended to command separated by a space. This means that
+the remote server RECEIVES A SINGLE STRING.  The string itself (or args)
+must contain any necessary quoting.
+Example1:
+	command: ssh target printf '"%s"\n' a b 'hello world'
+	result: anbnhellonworldn
+	explanation:
+		After joining the strings, what the remote would see is:
+		printf "%s"\n a b hello world
+		Because \n would just become n, and hello world does not contain
+		any quoting, the net result would be:
+		printf %sn a b hello world
 
-				IdentitiesOnly: [yes|no] only use the IdentityFile even if
-					ssh agent gives other identities
+	Proper quoting (single str): ssh target 'printf "\"%s\"\\n" a b "hello world"'
+	Proper quoting (multi str): ssh target printf \''"%s"\n'\' a b \''hello world'\'
 
-				IdentityFile: specify the private key file
-					The file name may use the tilde syntax to refer to a
-					user's home directory or one of the following escape
-					characters:
-						'%d' local user's home directory
-						'%u' local user name
-						'%l' local host name
-						'%h' remote host name
-						'%r' remote user name
-					Multiple files are allowed (tried in order)
+Alternatively, just redirect stdin
+	ssh target <script
+	ssh target "bash -s" <script
+	ssh target "bash -s" < <(printf '%q ' command line here)
 
-				LocalForward: port forwarding from local machine to remote machine.
-					2 arguments: [<bindaddr>:]port <hostname at remote>:port
-					put ipv6 addresses in [] or use <ipv6addr>/port
-					<bindaddr>: which interface to bind to. localhost = only local can use
-						empty or * = all interfaces
+Permissions
+===========
+Permissions for relevant configuration files should be AT LEAST:
+chmod 700 ~/.ssh/
+chmod 644 public_key
+chmod 644 ~/.ssh/config
+chmod 600 private_key
+chmod 600 authorized_keys
 
-				PasswordAuthentication [yes|no]
+=============
+-1.0- options
+=============
 
-				Port: port to connect to at remote
+-L (LOCALFORWARD)
+	Forward a connection from local machine to remote
+-R (REMOTEFORWARD)
+	Forward a connection from remote machine to local
+-i identityfile
+	Specify the identityfile to use.
+-f
+	Go to background just before command.  This allows running
+	ssh in the background while also allowing password prompting etc.
+-l loginname
+	Specify the login name. (alternative to user@host)
+-p port
+	Specify the target port to ssh to. (alternative to ssh://[user@]host:port)
 
-				RemoteForward: forward remote port to local same format as
-					LocalForward, except order is <remote addr> <local addr>
-					empty means loopback only
 
-				ServerAliveInterval: secs, send a keepalive message to
-					server asking for a response.
+============
+-1.1- config
+============
+-----------------
+config file paths
+-----------------
+	/etc/ssh/ssh_config
+	~/.ssh/config
 
-				TCPKeepAlive: [yes|no] send TCP keepalive messages, will dc if
-					network is down temporarily
+------
+values
+------
+%%    A literal ‘%’.
+%C    Hash of %l%h%p%r.
+%d    Local user's home directory.
+%f    The fingerprint of the server's host key.
+%H    The known_hosts hostname or address that is being searched for.
+%h    The remote hostname.
+%I    A string describing the reason for a KnownHostsCommand execution: either ADDRESS
+      when looking up a host by address (only when CheckHostIP is enabled), HOSTNAME when
+      searching by hostname, or ORDER when preparing the host key algorithm preference
+      list to use for the destination host.
+%i    The local user ID.
+%K    The base64 encoded host key.
+%k    The host key alias if specified, otherwise the original remote hostname given on the
+      command line.
+%L    The local hostname.
+%l    The local hostname, including the domain name.
+%n    The original remote hostname, as given on the command line.
+%p    The remote port.
+%r    The remote username.
+%T    The local tun(4) or tap(4) network interface assigned if tunnel forwarding was re‐
+      quested, or "NONE" otherwise.
+%t    The type of the server host key, e.g.  ssh-ed25519.
+%u    The local username.
 
-				User: specify the user to ssh as
 
-			patterns:
-				*: 0 or more chars
-				?: 1 character
-				!: negate the match
-				can have commma delimited for a "pattern-list"
-				(an AND)
+------
+syntax
+------
+	sequence of key value[s] pairs separated by whitespace
+	# comment
+	" a single argument with spaces"
+	Indentation is ignored.
+	Key value pairs apply to the most recent HOST patterns line.
+	For each option, the first match applies.  More specific options
+	should be at the top and general defaults at the bottom.
+	keys are case INSENSTIVE
 
-			For each option, the EARLIEST MATCH is used.
-			These configs would be equivalent for
-			hostnames `name`, `tame`, and `aim`
-			config1:
-				HOST name
-					USER myuser
-				HOST *e
-					USER bad
-					SERVERALIVEINTERVAL 69
-				HOST *
-					IDENTITIESONLY yes
+------------
+useful keys:
+------------
+	Host: patterns separated by whitespace (ORed together)
 
-			config2:
-				HOST name
-					USER myuser
-					SERVERALIVEINTERVAL 69
-					IDENTITIESONLY yes
-				HOST tame
-					USER bad
-					SERVERALIVEINTERVAL 69
-					IDENTITIESONLY yes
-				HOST aim
-					IDENTITIESONLY yes
+	HostName: the actual host name to use (ip,
+		www.somewhere.com, etc)
+
+	IdentitiesOnly: [yes|no] only use the IdentityFile even if
+		ssh agent gives other identities
+
+	IdentityFile: specify the private key file
+		The file name may use the tilde syntax to refer to a
+		user's home directory or one of the following escape
+		characters:
+			'%d' local user's home directory
+			'%u' local user name
+			'%l' local host name
+			'%h' remote host name
+			'%r' remote user name
+		Multiple files are allowed (tried in order)
+
+	LocalForward: port forwarding from local machine to remote machine.
+		2 arguments: [<bindaddr>:]port <hostname at remote>:port
+		put ipv6 addresses in [] or use <ipv6addr>/port
+		<bindaddr>: which interface to bind to. localhost = only local can use
+			empty or * = all interfaces
+
+	PasswordAuthentication [yes|no]
+
+	Port: port to connect to at remote
+
+	RemoteForward: forward remote port to local same format as
+		LocalForward, except order is <remote addr> <local addr>
+		empty means loopback only
+
+	ServerAliveInterval: secs, send a keepalive message to
+		server asking for a response.
+
+	TCPKeepAlive: [yes|no] send TCP keepalive messages, will dc if
+		network is down temporarily
+
+	User: specify the user to ssh as
+
+---------
+patterns:
+---------
+	*: 0 or more chars
+	?: 1 character
+	!: negate the match
+	can have commma delimited for a "pattern-list"
+	(an AND)
+
+For each option, the EARLIEST MATCH is used.
+These configs would be equivalent for
+hostnames `name`, `tame`, and `aim`
+config1:
+	HOST name
+		USER myuser
+	HOST *e
+		USER bad
+		SERVERALIVEINTERVAL 69
+	HOST *
+		IDENTITIESONLY yes
+
+config2:
+	HOST name
+		USER myuser
+		SERVERALIVEINTERVAL 69
+		IDENTITIESONLY yes
+	HOST tame
+		USER bad
+		SERVERALIVEINTERVAL 69
+		IDENTITIESONLY yes
+	HOST aim
+		IDENTITIESONLY yes
 
 	==========
 	-1.2- keys
@@ -169,38 +216,356 @@ contents:
 		change password
 			ssh-keygen -p -f privatekey
 
-	================
-	-1.3- forwarding
-	================
-	ssh can perform port forwarding via ssh tunneling
-	adds ssh security to the connection... (at least for
-	the segment between the 2 machines)
+================
+-1.3- forwarding
+================
+ssh can perform port forwarding via ssh tunneling
+adds ssh security to the connection... (at least for
+the segment between the 2 machines)
 
-	Forward from client to ssh host
-		ssh -L [<localhost>]:<localport>:<remotehost>:<remoteport>
-			bind a socket to <localhost>:<localport> which forwards data
-			to <remotehost>:<remoteport>
+Forward from client to ssh host
+	ssh -L [<localhost>]:<localport>:<remotehost>:<remoteport>
+		bind a socket to <localhost>:<localport> which forwards data
+		to <remotehost>:<remoteport>
 
-	Forward from ssh host to client
-		ssh -R [remotehost]:<remoteport>:<localhost>:<localport>
-			ssh to the remote machine, and create a socket bound to
-				<remotehost>:<remoteport> which forward traffic to
-				<localhost>:<localport>
+Forward from ssh host to client
+	ssh -R [remotehost]:<remoteport>:<localhost>:<localport>
+		ssh to the remote machine, and create a socket bound to
+			<remotehost>:<remoteport> which forward traffic to
+			<localhost>:<localport>
 
-	These would force you to create an ssh session and leave it open.
-	This is fine if you will be using the ssh session as well.
-	Alternatively, add the -f option and the command sleep 10 or
-	something similar.  This will cause the tunnel to open for the
-	specified sleep duration.  During this time, connect over the tunnel.
-	When the sleep finishes, the ssh will exit and the tunnel will last
-	as long as the connection lasts.
+These would force you to create an ssh session and leave it open.
+This is fine if you will be using the ssh session as well.
+Alternatively, add the -f option and the command sleep 10 or
+something similar.  This will cause the tunnel to open for the
+specified sleep duration.  During this time, connect over the tunnel.
+When the sleep finishes, the ssh will exit and the tunnel will last
+as long as the connection lasts.
+
+
+=====================
+-1.4- ssh_known_hosts
+=====================
+/etc/ssh/ssh_known_hosts
+~/.ssh/known_hosts
+
+Each line:
+	[marker] hostnames keytype b64key comment
+
+marker
+	[@cert-authority | @revoked]
+	Indicate the key is a CA or it is revoked, and should never connect to that host.
+hostnames
+	comma-separated list of hostname patterns
+	!: never accept this pattern (even if matched another pattern)
+	[host:port]
+	hashed:
+		|hashed-hostname
+		"Only 1 hashed hostname per line and no negation/wildcards allowed"
+keytype b64key comment
+	These can just be directly from the *.pub key of the host.
+
+ssh-keygen provides some basic known_hosts editing capabilties:
+	Convert hosts to hashed:
+	remove corresponding hosts:
 
 =======
 -2- scp
 =======
-	scp source files ... destination
-		format:
-			filepath (localhost)
-			[user@]host:hostpath_can_use_~
-		other notes:
-			-P instead of -p for port
+scp source files ... destination
+	format:
+		filepath (localhost)
+		[user@]host:hostpath_can_use_~
+	other notes:
+		-P instead of -p for port
+
+==============
+-3- ssh server
+==============
+Install with:
+	apt install openssh-server
+	pacman -S TODO
+
+The daemon is called `sshd`
+
+systemctl
+
+============
+-3.1- config
+============
+sshd config is located at
+/etc/ssh/sshd_config
+/etc/ssh/sshd_config.d/
+
+Each config file is a key-value pair per line, space-separated.
+lines STARTING with # are comments
+Quote with double-quotes
+
+------
+values
+------
+time:
+	Times can have a suffix
+	None|s|S: seconds
+	m|M: minutes
+	h|H: hours
+	d|D: days
+	w|W: weeks
+tokens:
+	%% a literal %
+	%F CA fingerprint
+	%f key/cert fingerprint
+	%h home directory
+	%i key ID in cert
+	%K b64 CA key
+	%k b64 key
+	%s serial number of cert
+	%T CA type
+	%t key type
+	%U $UID
+	%u $USER
+
+--------------
+Useful options
+--------------
+	----
+	auth
+	----
+	PasswordAuthentication yes|no
+	PermitEmptyPasswords yes|no
+	PermitRootLogin prohibit-password|yes|no
+	HostCertificate
+		public key
+	HostKey
+		private key
+	LoginGraceTime
+		Number of seconds user is allowed to take to log in.
+		0 = no limit, default = 120s
+	MaxAuthTries
+		default 6
+	TrustedUserCAKeys
+		file containing trusted CA keys.  Any key signed by one of these
+		CAs can be used to login using any of the given "principals" in the
+		key.
+
+	-----------
+	permissions
+	-----------
+	PermitListen [host:]port
+	PermitOpen host:port
+		ipv6 needs to be in square brackets.
+
+	---------
+	filtering
+	---------
+	DenyGroups pat1 pat2...
+		Deny matched groups. All others are allowed
+	AllowGroups pat1 pat2...
+		Only matched groups are allowed to ssh
+	DenyUsers pat1 pat2...
+		Deny matched users. all others are allowed
+		username
+		user@host
+	AllowUsers pat1 pat2...
+		Only matched users are allowed
+		username
+		user@host
+	NOTE: Deny* are matched before Allow*
+
+	-----
+	other
+	-----
+	Compression [yes|delayed|no]
+	ListenAddress <host|ip>[:port]
+	Port
+		Specify the port, default 22.
+	LogLevel
+	LogVerbose
+	ClientAliveInterval
+		seconds, 0 no interval
+	TCPKeepAlive yes|no
+
+-------------
+Other options
+-------------
+AcceptEnv "envvarname,envvarname,..."
+	Accept env vars from SendEnv/SetEnv, default None
+AddressFamily [*any|inet|inet6]
+AllowAgentForwarding [*yes|no]
+AllowStreamLocalForwarding
+AllowTcpForwarding
+AuthenticationMethods meth1 meth2...
+	space-separated comma-delimited lists
+	Authentication requires full completion of one of these lists in order.
+	Allowed values:
+		gssapi-with-mic
+		hostbased
+		keyboard-interactive
+		none (only if PermitEmptyPasswords is on and account has no password)
+		password
+		publickey
+	Examples:
+		publickey,password
+		publickey,keyboard-interactive
+		keyboard-interactive:[bsdauth|pam]
+			restrict keyboard to that ?"device"?
+	repeated 'publickey" requires unique public keys, no repeats allowed.
+AuthorizedKeysCommand
+	Specify a program to look up public keys.
+AuthorizedKeysCommandUser
+	user to run AuthorizedKeysCommand as.
+AuthorizedKeysFile f1 f2 f3...
+	absolute or relative to user home
+	examples:
+		.ssh/authorized_keys
+		.ssh/authorized_keys2
+AuthorizedPrincipalsCommand
+AuthorizedPrincipalsCommandUser
+AuthorizedPrincipasFile
+Banner
+CASignatureAlborithms
+ChrootDirectory dname
+	chroot to the given directory after auth.
+Ciphers
+DebianBanner
+DisableForwarding
+	disable x11, ssh-agent, tcp, streamlocal forwarding
+ExposeAuthInfo
+FingerprintHash
+ForceCommand
+GatewayPorts
+GSSAPIAuthentication
+GSSAPICleanupCredentials
+GSSAPIKeyExchange
+GSSAPIStrictAcceptorCheck
+GSSAPIStoreCredentialsOnRekey
+GSSAPIKexAlgorithms
+HostbasedAcceptedAlgorithms
+	comma-separated patterns
+	start with a -+ to add/remove rather than set.
+	^ to insert at beginning.
+	examples:
+		ssh-ed25519-cert-v01@openssh.com
+HostbasedAuthentication
+HostbasedUsesNameFromPacketOnly
+HostKeyAgent
+HostKeyAlgorithms
+IgnoreUserKnownHosts
+Include
+IPQoS
+KbdInteractiveAuthentication [yes|no]
+	Allow keyboard auth
+KerberosAuthentication
+KerberosGetAFSToken
+KerberosOrLocalPasswd
+KerberosTicketCleanup
+KexAlgorithms
+MACs
+Match
+MaxSessions
+MaxStartups
+ModuliFile
+PermitTTY
+PermitTunnel
+PermitUserEnvironment
+PermitUserRC
+PerSourceMaxStartups
+PerSourceNetBlockSize
+PidFile
+PrintLastLog
+PrintMotd
+PubkeyAcceptedAlgorithms
+PubkeyAuthOptions
+PubkeyAuthentication
+RekeyLimit
+SecurityKeyProvider
+SetEnv
+StreamLocalBindMask
+StreamLocalBindUnlink
+StrictModes
+Subsystem
+SyslogFacility
+UseDNS
+UsePAM
+VersionAddendum
+X11DisplayOffset
+X11Forwarding
+X11UseLocalHost
+XAuthLocation
+
+=====================
+-3.2- authorized_keys
+=====================
+These files are on the ssh server and allow that particular user to login
+using public/private key pairs.
+
+	~/.ssh/authorized_keys
+	~/.ssh/authorized_keys2
+
+lines STARTING with # are comments.
+Each line should be a space-separated sequence of:
+	[options...] keytype b64publickey comment
+-------
+options
+-------
+	from="pattern-list"
+		comma-separated list of patterns that host must be from.
+	permitlisten="[host:]port,[host:]port..."
+	permitopen="[host:]port,[host:]port..."
+		Explicitly specify which host/port is allowed
+		listen=-R, open=-L
+		ipv6 must be in square brackets
+	restrict
+		Pack these options together:
+			no-port-forwarding
+			no-agent-forwarding
+			no-X11-forwarding
+			no-pty
+			no-user-rc
+	[no-]agent-forwarding
+		specifies whether agent forwarding is allowed
+	[no-]port-forwarding
+		specify whether port forwarding is allowed
+	[no-]pty
+		Specify whether to give a pty
+	[no-]user-rc
+		Specify whether ~/.ssh/rc should be used
+	[no-]X11-forwarding
+		whether X11 forwarding is allowed
+	cert-authority
+		Specify that this is a CA to validate users.
+	command="command"
+		Use this command, ignore any user commands
+	environment="name=value"
+		Specify an environment variable.  PermitUserEnvironment must be on.  Repeatable
+	expiry-time="timespec"
+		This key is only accepted before "timespec"
+	no-touch-required
+		only for FIDO authenticator algs (sk-*)
+	verify-required
+		only for FIDO authenticator algs (sk-*)
+	tunnel="n"
+		Force a tun(4) device on server otherwise next available device
+		if requests a tunnel
+
+--------
+keytypes
+--------
+	sk-ecdsa-sha2-nistp256@openssh.com
+	ecdsa-sha2-nistp256
+	ecdsa-sha2-nistp384
+	ecdsa-sha2-nistp521
+	sk-ssh-ed25519@openssh.com
+	ssh-ed25519
+	ssh-dss
+	ssh-rsa
+
+NOTE: this means that this usually matches the format of *.pub file when generating a key.
+so in general, you can just cat (append) into the corresponding authorized_keys file
+
+=========
+-4- tools
+=========
+================
+-4.1- ssh-keygen
+================

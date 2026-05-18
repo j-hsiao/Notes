@@ -101,7 +101,11 @@ systemd service
 =============
 -2- systemctl
 =============
-	enable service:
-		systemctl enable service
-	start service:
-		systemctl start service
+systemctl command servicename
+commands:
+	enable
+	disable
+	start
+	stop
+	status
+	reload

@@ -1,5 +1,9 @@
-______________________________
 -1- SysVinit
+-2- service
+
+============
+-1- SysVinit
+============
 This is the old init system.
 This splits system initialization into separate run levels:
 
@@ -14,3 +18,28 @@ The `runlevel` prints the previous and current runlevel.
 On changes to the runlevel, corresponding scripts are run.
 /etc/rc.local
 ?between 1 and 2?
+
+===========
+-2- service
+===========
+service servicename command
+	Search for a script in /etc/init.d matching
+	servicename or a systemd unit.
+	(systemd takes priority)
+
+service --status-all
+	Run status on all service scripts found.
+	List simple status and service
+		+ running
+		- stopped
+		? no status command
+	(This only applies to sysV services.)
+
+NOTE:
+	service is now usually a wrapper around all
+	the service management frameworks:
+		sysV, systemd, etc
+
+	Example:
+		service ssh status
+		systemctl status sshd

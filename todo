@@ -1,4 +1,5 @@
 * reorganize informacion
+* sshd configuration and setup
 * convert vim plugins to package
 * ydo script
 * bash numeric completion
