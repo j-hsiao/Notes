@@ -18,6 +18,8 @@ contents:
 			-4.1.1.4- known_hosts
 			-4.1.1.5- KRL
 			-4.1.1.x- other options
+		-4.1.2- certificates
+		-4.1.3- KRL
 
 
 
@@ -674,7 +676,7 @@ NOTE: KRL = Key Revocation List
 		write-attestation=path
 -s ca_key
 -U
-	CA key is in a ssh-agent
+	CA key is in a ssh-agent (provide the public key to -s)
 -V validity-interval
 	[start=now:]end
 	start:
@@ -766,3 +768,73 @@ Key Revocation List
 	repeat for more (max3)
 -w provider
 	path to library for FIDO
+
+====================
+-4.1.2- certificates
+====================
+Certificates consist of
+* public key
+* identity info
+* 1 or more principal names (user/host)
+* options signed by a CA key
+
+Certificates can have different formats:
+	OpenSSH
+	X.509
+
+----------------
+Creating a cert:
+----------------
+ssh-keygen [-h] -s /path/to/ca_key -I key_id \
+	[-n user1,user2...|host1,host2...] \
+	[-V start:end] \
+	/path/to/key.pub
+result: /path/to/key-cert.pub
+
+-------
+options
+-------
+user options:
+	clear
+	critical:name=contents
+	extension:name=contents
+	force-command=command
+	[no|permit]-agent-forwarding
+	[no|permit]-port-forwarding
+	[no|permit]-pty
+	[no|permit]-user-rc
+	[no|permit]-x11-forwarding
+	no-touch-required
+	source-address=addrlist
+	verify-required
+
+no host cert options exist
+
+===========
+-4.1.3- KRL
+===========
+Binary files of revoked keys.
+ssh-key -k [krlspecfile|pubkey]...
+
+-------
+krlspec
+-------
+serial: serial_number-serial_number
+id: key_id
+key: public_key
+sha1: public_key
+sha256: public_key
+hash: fingerprint
+
+
+====================
+-4.1.4- verification
+====================
+When verifying signatures, use a file similar to authorized_keys
+principals options keytype b64key
+
+options comma-delimited list of options
+	cert-authority
+	namespaces=namespace-list
+	valid-after=YYYYMMDDHHMM[SS]
+	valid-before=YYYYMMDDHHMM[SS]
