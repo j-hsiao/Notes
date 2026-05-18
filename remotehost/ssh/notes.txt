@@ -1,4 +1,9 @@
 contents:
+-0- summary
+	-0.1- basic usage
+	-0.2- certification
+		-0.2.1- server
+		-0.2.2- user
 -1- ssh client
 	-1.0- options
 	-1.1- config
@@ -9,6 +14,60 @@ contents:
 -3- ssh server
 	-3.1- config
 	-3.2- authorized_keys
+
+===========
+-0- summary
+===========
+=================
+-0.1- basic usage
+=================
+1. Generate a keypair for a user.
+	ssh-keygen -t ed25519 -f outname
+2. Append public key into ssh server's /home/$USER/.ssh/authorized_keys
+3. user ssh $USER@server -i privatekey
+
+===================
+-0.2- certification
+===================
+Having a CA certify that user/host is who they say they are...
+1. Create a certificate authority keypair
+	ssh-keygen -t ed25519 -f output
+
+==============
+-0.2.1- server
+==============
+Server machine:
+	certify the server public key:
+		ssh-keygen -s ca_private_key -h -I a_name_for_the_cert -n hostname1,hostname2,... \
+			-V [validstart:]validend host_public_key
+	/etc/ssh/sshd_config.d/cert.conf:
+		HostCertificate path/to/host-cert.pub
+		HostKey /path/to/private/key
+
+	/etc/ssh/sshd_config has a line `Include sshd_config.d/*.conf` so the fname must end with .conf
+		or alternatively, put it directly into that config.
+	restart the server
+
+client machine:
+	trust the CA in step 1
+	{ printf '@cert-authority hostname,hostname,... '; cat CA_public_key; } >> ~/.ssh/known_hosts
+	see also -1.4-
+
+============
+-0.2.2- user
+============
+client machine:
+	certify the user public key: same as server certification step except:
+		1. leave the -h flag out
+		2. change hostnames to potential usernames
+	specify the identity cert when ssh into server:
+		1. have an identity-cert.pub file in the same dir as IdentityFile
+		2. add the `-o Certificatefile path-to-cert' to commandline
+		3. add `CertificateFile` option to ~/.ssh/config
+server machine:
+	trust CA certified user keys:
+		{ printf 'cert-authority '; cat CA_public_key; } >> /home/targetuser/.ssh/authorized_keys
+		see also -3.2-
 
 ==============
 -1- ssh client
@@ -80,32 +139,53 @@ config file paths
 	~/.ssh/config
 
 ------
-values
+tokens
 ------
-%%    A literal ‘%’.
-%C    Hash of %l%h%p%r.
-%d    Local user's home directory.
-%f    The fingerprint of the server's host key.
-%H    The known_hosts hostname or address that is being searched for.
-%h    The remote hostname.
-%I    A string describing the reason for a KnownHostsCommand execution: either ADDRESS
-      when looking up a host by address (only when CheckHostIP is enabled), HOSTNAME when
-      searching by hostname, or ORDER when preparing the host key algorithm preference
-      list to use for the destination host.
-%i    The local user ID.
-%K    The base64 encoded host key.
-%k    The host key alias if specified, otherwise the original remote hostname given on the
-      command line.
-%L    The local hostname.
-%l    The local hostname, including the domain name.
-%n    The original remote hostname, as given on the command line.
-%p    The remote port.
-%r    The remote username.
+group1:
+	%%    A literal ‘%’.
+	%C    Hash of %l%h%p%r.
+	%d    Local user's home directory.
+	%h    The remote hostname.
+	%i    The local user ID.
+	%k    The host key alias if specified, otherwise the original remote hostname given on the
+	      command line.
+	%L    The local hostname.
+	%l    The local hostname, including the domain name.
+	%n    The original remote hostname, as given on the command line.
+	%p    The remote port.
+	%r    The remote username.
+	%u    The local username.
+
+group2:
+	%f    The fingerprint of the server's host key.
+	%H    The known_hosts hostname or address that is being searched for.
+	%I    A string describing the reason for a KnownHostsCommand execution: either ADDRESS
+	      when looking up a host by address (only when CheckHostIP is enabled), HOSTNAME when
+	      searching by hostname, or ORDER when preparing the host key algorithm preference
+	      list to use for the destination host.
+	%K    The base64 encoded host key.
+	%t    The type of the server host key, e.g.  ssh-ed25519.
+
+group3:
 %T    The local tun(4) or tap(4) network interface assigned if tunnel forwarding was re‐
       quested, or "NONE" otherwise.
-%t    The type of the server host key, e.g.  ssh-ed25519.
-%u    The local username.
 
+options:
+	CertificateFile
+	ControlPath
+	IdentityAgent
+	IdentityFile
+	KnownHostsCommand     group 1
+	LocalForward,
+	Match exec
+	RemoteCommand
+	RemoteForward
+	UserKnownHostsFile
+
+	KnownHostsCommand     group1 + group2
+	Hostname              %% and %h
+	LocalCommand          all
+	ProxyCommand          %% %h %n %p %r
 
 ------
 syntax
@@ -122,46 +202,49 @@ syntax
 ------------
 useful keys:
 ------------
-	Host: patterns separated by whitespace (ORed together)
+Host: patterns separated by whitespace (ORed together)
 
-	HostName: the actual host name to use (ip,
-		www.somewhere.com, etc)
+HostName: the actual host name to use (ip,
+	www.somewhere.com, etc)
 
-	IdentitiesOnly: [yes|no] only use the IdentityFile even if
-		ssh agent gives other identities
+IdentitiesOnly: [yes|no] only use the IdentityFile even if
+	ssh agent gives other identities
 
-	IdentityFile: specify the private key file
-		The file name may use the tilde syntax to refer to a
-		user's home directory or one of the following escape
-		characters:
-			'%d' local user's home directory
-			'%u' local user name
-			'%l' local host name
-			'%h' remote host name
-			'%r' remote user name
-		Multiple files are allowed (tried in order)
+CertificateFile
+	A signed certificate file verifying user's id.
 
-	LocalForward: port forwarding from local machine to remote machine.
-		2 arguments: [<bindaddr>:]port <hostname at remote>:port
-		put ipv6 addresses in [] or use <ipv6addr>/port
-		<bindaddr>: which interface to bind to. localhost = only local can use
-			empty or * = all interfaces
+IdentityFile: specify the private key file
+	The file name may use the tilde syntax to refer to a
+	user's home directory or one of the following escape
+	characters:
+		'%d' local user's home directory
+		'%u' local user name
+		'%l' local host name
+		'%h' remote host name
+		'%r' remote user name
+	Multiple files are allowed (tried in order)
 
-	PasswordAuthentication [yes|no]
+LocalForward: port forwarding from local machine to remote machine.
+	2 arguments: [<bindaddr>:]port <hostname at remote>:port
+	put ipv6 addresses in [] or use <ipv6addr>/port
+	<bindaddr>: which interface to bind to. localhost = only local can use
+		empty or * = all interfaces
 
-	Port: port to connect to at remote
+PasswordAuthentication [yes|no]
 
-	RemoteForward: forward remote port to local same format as
-		LocalForward, except order is <remote addr> <local addr>
-		empty means loopback only
+Port: port to connect to at remote
 
-	ServerAliveInterval: secs, send a keepalive message to
-		server asking for a response.
+RemoteForward: forward remote port to local same format as
+	LocalForward, except order is <remote addr> <local addr>
+	empty means loopback only
 
-	TCPKeepAlive: [yes|no] send TCP keepalive messages, will dc if
-		network is down temporarily
+ServerAliveInterval: secs, send a keepalive message to
+	server asking for a response.
 
-	User: specify the user to ssh as
+TCPKeepAlive: [yes|no] send TCP keepalive messages, will dc if
+	network is down temporarily
+
+User: specify the user to ssh as
 
 ---------
 patterns:
@@ -419,7 +502,7 @@ AuthorizedPrincipalsCommand
 AuthorizedPrincipalsCommandUser
 AuthorizedPrincipasFile
 Banner
-CASignatureAlborithms
+CASignatureAlgorithms
 ChrootDirectory dname
 	chroot to the given directory after auth.
 Ciphers

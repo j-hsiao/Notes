@@ -7,6 +7,7 @@
 	-1.x- other options
 -2- certificates
 -3- KRL
+-4- verification
 
 ssh-keygen tool for ssh keys
 
@@ -134,17 +135,18 @@ they are NOT the same as the certificates created by openssl
 		-n signature namespace
 		-s signature
 	sign
-		sign a file(s) or stdin with some key
+		Produce "signature" files for each file in arguments.
 		-f: private key to use (if public key, search ssh-agent for the private key)
 		-n: signature namespace
 			example: "email", "file", generally should be "namespace@your.domain"
 	verify
-		verify a signature
-		-n signature namespace
-		-s file containing signature
-		-I signer
-		-f allowed signers
-		-r revoked keys
+		verify a signature and message.
+		stdin: the message file given to -Y sign
+		-n signature namespace match -Y sign
+		-s "signature" file produced by -Y sign
+		-I signer name: match name in allowed signers
+		-f allowed signers: see -4-
+		-r revoked keys file
 -z serial
 	specify serial number for signing, prefix with + to increment
 
@@ -153,6 +155,7 @@ they are NOT the same as the certificates created by openssl
 =================
 -R [host][:port]
 	Removes all corresponding keys from known_hosts
+-f ~/.ssh/known_hosts
 
 =========
 -1.5- KRL
@@ -270,11 +273,27 @@ hash: fingerprint
 ================
 -4- verification
 ================
-When verifying signatures, use a file similar to authorized_keys
-principals options keytype b64key
+ssh-keygen can "sign" a file and verify its contents.
 
-options comma-delimited list of options
-	cert-authority
-	namespaces=namespace-list
-	valid-after=YYYYMMDDHHMM[SS]
-	valid-before=YYYYMMDDHHMM[SS]
+-------
+signing
+-------
+	ssh-keygen -Y sign -f privatekey -n sigspace f1 f2 f3...
+	output is f1.sig f2.sig f3.sig ...
+
+---------
+verifying
+---------
+Create an "allowed signers" file:
+	principals options keytype b64key
+
+	principals: name of the signer
+
+	options: comma-delimited list of options
+		cert-authority
+		namespaces=namespace-list
+		valid-after=YYYYMMDDHHMM[SS]
+		valid-before=YYYYMMDDHHMM[SS]
+
+ssh-keygen -Y verify -n sigspace -s f1.sig -I principal -f allowed_signers < f1
+success if verified, else falied
