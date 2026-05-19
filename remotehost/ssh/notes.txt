@@ -132,6 +132,7 @@ chmod 600 authorized_keys
 ============
 -1.1- config
 ============
+man ssh_config
 -----------------
 config file paths
 -----------------
@@ -325,6 +326,7 @@ as long as the connection lasts.
 =====================
 -1.4- ssh_known_hosts
 =====================
+man sshd
 /etc/ssh/ssh_known_hosts
 ~/.ssh/known_hosts
 
@@ -372,6 +374,8 @@ systemctl
 ============
 -3.1- config
 ============
+man sshd_config
+
 sshd config is located at
 /etc/ssh/sshd_config
 /etc/ssh/sshd_config.d/
@@ -575,6 +579,7 @@ XAuthLocation
 =====================
 -3.2- authorized_keys
 =====================
+man sshd
 These files are on the ssh server and allow that particular user to login
 using public/private key pairs.
 
@@ -583,12 +588,14 @@ using public/private key pairs.
 
 lines STARTING with # are comments.
 Each line should be a space-separated sequence of:
-	[options...] keytype b64publickey comment
+	[option1,option2=,...] keytype b64publickey comment
 -------
 options
 -------
+Options are comma-delimited
 	from="pattern-list"
 		comma-separated list of patterns that host must be from.
+		(because options are comma-delimited, the quotes ARE REQUIRED)
 	permitlisten="[host:]port,[host:]port..."
 	permitopen="[host:]port,[host:]port..."
 		Explicitly specify which host/port is allowed
