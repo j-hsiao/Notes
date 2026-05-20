@@ -1,0 +1,121 @@
+-0- general
+-0.1- options
+-1- tables
+
+===========
+-0- general
+===========
+iptables are used to filter network packets.
+This can be used to modify or disallow etc.
+
+The commands are iptables and ip6tables
+
+terms:
+table: like a database table, contains chains.
+chain: list of rules which can match a set of packets.
+rules:
+	A rule consists of a "packet criteria" and a "target".
+	If a packet matches the criteria, then "target" specifies the next rule
+	Otherwise, check the next rule in the chain
+target
+	Can be:
+		user-defined chain
+		iptables-extensions
+		ACCEPT (allow)
+		DROP (disallow)
+		RETURN (stop this chain and resume at next rule in previous chain)
+
+=============
+-0.1- options
+=============
+[-t|--table] <table>
+
+================
+-0.1.1- commands
+================
+Only 1 command can be given.
+
+[-A|--append] chain rule
+	Add one or more rules to end of a chain.
+	Rules will be created for all combinations of source/dest
+
+[-C|--check] chain rule
+	check if rule exists (indicated by exit code)
+
+[-D|--delete] chain rule[num]
+	Delete the rule from the chain.  Num starts with 1.
+
+[-I|--insert] chain [num=1] rule
+	Insert rule into the chain.
+
+[-R|--replace] chain num rule
+	Replace rule in the chain
+
+[-L|--list] [chain=allchains]
+	list rules in the chain.
+	Recommended to use with -n argument (reduce many DNS lookups)
+	?"-Z is allowed"?
+
+[-S|--list-rules] [chain=allchains]
+	print all rules in selected chain
+	"like iptables-save"
+
+
+
+
+
+
+==========
+-1- tables
+==========
+There are 5 tables which might or might not be available
+------
+filter
+------
+The default table.
+builtin chains:
+	INPUT: to local socket
+	FORWARD: being routed through current machine (?eg mobile hotspot?)
+	OUTPUT: locally-generated packets
+
+---
+nat
+---
+used for new connections
+builtin chains:
+	PREROUTING
+		modify incoming packets
+	INPUT
+		modify incoming packets bound for localhost
+	OUTPUT
+		modify locally-generated packets (before routing)
+	POSTROUTING
+		modify locally-generated packets just before leaving
+
+------
+mangle
+------
+specialized packet modification
+builtins chains:
+	PREROUTING
+	OUTPUT
+	INPUT
+	FORWARD
+	POSTROUTING
+
+---
+raw
+---
+exemptions from connection tracking (NOTRACK target)
+builtin chains:
+	PREROUTING
+	OUTPUT
+
+--------
+security
+--------
+MAC (Mandatory Access Control) rules (SECMARK, CONNSECMARK)
+builtin chains:
+	INPUT
+	OUTPUT
+	FORWARD

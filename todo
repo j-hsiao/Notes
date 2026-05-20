@@ -1,13 +1,10 @@
 * reorganize informacion
 * firewall notes: ufw, iptables, nftables, ...
-* sshd configuration and setup: ssh-keygen -> CERTIFICATES section
 * convert vim plugins to package
-* ydo script
-* bash numeric completion
-  a. shparse
-  b. completion
+* vim format table: align items
 * vim modify alignment, [fF] ch,
   like normal mode [fF] except use previous line(s) position.
+* ydo script
 * cppy
   cpp reference <-> py borrowed reference
   cpp value     <-> py owned reference
