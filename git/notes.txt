@@ -70,324 +70,337 @@ result:
 =======
 -1-spec
 =======
-pathspecs
-	rules
-		paths match itself
-		scope is limited to directory up to the last slash
-		rest of pathspec = for pattern matching
+-----
+paths
+-----
+	paths match itself
+	scope is limited to directory up to the last slash
+	rest of pathspec = for pattern matching
 
 
-		examples:
-			d1/*.jpg
-				any .jpg under d1 directory tree
-				including:
-					d1/im1.jpg
-					d1/d2/im2.jpg
+examples:
+	d1/*.jpg
+		any .jpg under d1 directory tree
+		including:
+			d1/im1.jpg
+			d1/d2/im2.jpg
 
-		magic signature
-			short:
-				:sig:pathmatcher
-			long:
-				:(magic,words,comma,delimited)pathmatcher
+magic signature
+	short:
+		:sig:pathmatcher
+	long:
+		:(magic,words,comma,delimited)pathmatcher
 
-			terms:
-				top      (/), pathspec is from top of git tree
-				exclude  (^ or !), ignore paths
-				literal  treat * and ? as literal
-				icase    case insensitive
-
-
-		notes:
-			generally can add -- to delimit the start of pathspecs
-
-========
-refspecs
-========
-	format:
-		[+]<src>:<dst>
-
-		+: update even if not fast-forward
-		src: source file
-		dst: local file path
-	example:
-		git push origin master:refs/heads/master
-			push local master to origin master
-
-		git push origin :refs/heads/master
-			push nothing (delete) origin master
+	terms:
+		top      (/), pathspec is from top of git tree
+		exclude  (^ or !), ignore paths
+		literal  treat * and ? as literal
+		icase    case insensitive
 
 
-=====
+notes:
+	generally can add -- to delimit the start of pathspecs
+
+----
+refs
+----
+sub-paths inside `.git/refs`
+format:
+	[+]<src>:<dst>
+
+	+: update even if not fast-forward
+	src: source file
+	dst: local file path
+example:
+	git push origin master:refs/heads/master
+		push local master to origin master
+
+	git push origin :refs/heads/master
+		push nothing (delete) origin master
+
+
+-----
 other
-=====
-	tags:
-		refs/tags/<tagname>
-	heads:
-		refs/heads/<headname>
+-----
+tags:
+	refs/tags/<tagname>
+heads:
+	refs/heads/<headname>
 
-	relative:
-	  HEAD~n  (go back n commits)
-	  HEAD^n  (go to nth parent (if merge, multiple parents))
-
-
-
+relative:
+	HEAD~n  (go back n commits)
+	HEAD^n  (go to nth parent (if merge, multiple parents))
+	@: head
 
 ==========
 -2- basics
 ==========
-	======================
-	-2.1- reference syntax
-	======================
-		https://git-scm.com/docs/gitrevisions
-		<sha1>
-			the sha1 (eg. from git log) or unique leading substring
-		<refname>
-			These are under .git/refs
-			refs/tags/tag
-			refs/heads/branch
-			refs/remotes/remote/[branch|HEAD]
-		heads
-			HEAD              current commit
-			@                 ?Same as HEAD?
-			FETCH_HEAD        branch from which last fetch
-			ORIG_HEAD         HEAD before git merge, rebase, reset, etc
-			MERGE_HEAD        commits merged into current HEAD
-			REBASE_HEAD       current HEAD during a stopped rebase due to conflicts
-			REVERT_HEAD       revert target during git revert
-			CHERRY_PICK_HEAD  cherry-picking target during git cherry-pick
-			BISECT_HEAD       current commit to be tested during git bisect --no-checkout
-			AUTO_MERGE
-		[refname]@[{thing}]
-			refname:
-				defaults to HEAD if omitted, or current branch
-			thing:
-				date:
-					yesterday
-					N month N weeks N days N hour N second ago
-					YYYY-mm-dd HH:MM:SS
-				index:
-					indexth prior reference
-					If negative, indicate prior checked-out commit
-					?? what's the difference ??
-				[^n]*
-					n defaults to 1 if absent.
-					Take the nth parent (merges, have multiple parents)
-					example:
-					A^^2 -> take A's 1st parent, and then that's 2nd parent
-				~n
-					n defaults to 1 if absent
-					go back n generations, choosing the 1st parent
+======================
+-2.1- reference syntax
+======================
+https://git-scm.com/docs/gitrevisions
+<sha1>
+	the sha1 (eg. from git log) or unique leading substring
+<refname>
+	These are under .git/refs
+	refs/tags/tag
+	refs/heads/branch
+	refs/remotes/remote/[branch|HEAD]
+heads
+	HEAD              current commit
+	@                 ?Same as HEAD?
+	FETCH_HEAD        branch from which last fetch
+	ORIG_HEAD         HEAD before git merge, rebase, reset, etc
+	MERGE_HEAD        commits merged into current HEAD
+	REBASE_HEAD       current HEAD during a stopped rebase due to conflicts
+	REVERT_HEAD       revert target during git revert
+	CHERRY_PICK_HEAD  cherry-picking target during git cherry-pick
+	BISECT_HEAD       current commit to be tested during git bisect --no-checkout
+	AUTO_MERGE
 
-	=====================
-	-2.2- common commands
-	=====================
-		=============
-		-2.2.1- clone
-		=============
-			clone a repo
-				git clone uri
+@: HEAD
+[<ref>]@{date}
+	[<ref>] must have a log (.git/logs/...)
+	example values:
+		yesterday
+		N month N weeks N days N hour N second ago (must be quoted!)
+		YYYY-mm-dd HH:MM:SS
+	example: `git log @{3\ hours\ ago}
+[<ref>]@{index}
+	[<ref>] defaults to current branch
+	indexth prior value of [<ref>]
+	example: `git log @{1}`
+@{-index}
+	Indicate the nth prior checked-out commit (reflog)
+	example: `git log @{-1}`
+<ref>^[n]
+	n defaults to 1 if absent (first parent).
+	Take the nth parent of the given commit (merges have multiple parents)
+	This can be repeated.
+<ref>~[n]
+	n defaults to 1 if absent
+	go back n generations, choosing the 1st parent
+<ref>:<path>
+	refer to a specific object of that reference.
+	paths starting with . are relative to current dir.
+	example:
+		HEAD:./dname/fname
+=====================
+-2.2- common commands
+=====================
+=============
+-2.2.1- clone
+=============
+clone a repo
+	git clone uri
 
-			--bare: clone into a bare repo
-			--mirror: clone into a bare mirrored repo
+--bare: clone into a bare repo
+--mirror: clone into a bare mirrored repo
 
-			=========================
-			-2.2.1.1- bare vs mirror:
-			=========================
-			--mirror implies bare, but only --bare means that the result
-			is ?intended to be a fork?  It is INDEPENDENT from the initial remote.
-			As a result, git fetch, etc will REFUSE to track remote directories.
-			Instead, fetch will just pull the remote branches etc directly into the
-			local branches.  There will be no upstream branches.  To get upstream
-			branches, the initial origin remote must be removed and then added again
-			before origin remote branches will be tracked.
-			--mirror results in a bare repo but also sets up local branches to track
-			remote branches.
-		===========
-		-2.2.2- add
-		===========
-			add
-				git add <files>
-		==============
-		-2.2.3- commit
-		==============
-			commit
-				git commit -m 'message'
+=========================
+-2.2.1.1- bare vs mirror:
+=========================
+--mirror implies bare, but only --bare means that the result
+is ?intended to be a fork?  It is INDEPENDENT from the initial remote.
+As a result, git fetch, etc will REFUSE to track remote directories.
+Instead, fetch will just pull the remote branches etc directly into the
+local branches.  There will be no upstream branches.  To get upstream
+branches, the initial origin remote must be removed and then added again
+before origin remote branches will be tracked.
+--mirror results in a bare repo but also sets up local branches to track
+remote branches.
 
-				git commit --fixup <commit>
-					fix the commit and keep its message
-				git commit --squash <commit>
-					merge commits into a single commit and specify final message after merge with rebase -i
+===========
+-2.2.2- add
+===========
+git add <files>
 
-				protip:
-					use HEAD for commit
+==============
+-2.2.3- commit
+==============
+git commit -m 'message'
 
-		================
-		-2.2.4- checkout
-		================
-			checkout
-				git checkout [branchname]
-					checkout branch from repo (use git branch -a to see repo branches too)
-				git checkout -b [newbranch]
-					create/checkout branch
-				git checkout [branchname] -- [path-to-filename]
-					checkout file
-				git checkout --detach [target]
-					checkout the given commit, do not attack to any branches etc.
-		==============
-		-2.2.5- branch
-		==============
-			branch
-				git branch -a:
-					display all branches
-				git branch -d [name]
-					delete branch
-		============
-		-2.2.6- diff
-		============
-			diff
-				git diff -- [path-to-file]
-					difference between file current and since last stage
-					(so git reset if want to see dif since last commit)
-				git diff --cached [commit] [--] [path]
-					diff between staged changes for next commit and [commit] (defaults to head)
-				git diff commit -- path
-					dif between cur state and commit (not staged necessarily)
-				git diff commit commit -- path
-					dif between path for the two commits
-		==============
-		-2.2.7- reflog
-		==============
-			reflog:
-				shows hashes for previous commits/checkouts etc
-		=============
-		-2.2.8- reset
-		=============
-			reset:
-				(reset current branch (if applicable) to the ref)
-				NOTE: reflog may still point to commits so will not be able to prune
-				git reset --hard 'hash/string_thing'
-					reset all files to state from corresponding commit (delete files too)
-				git reset
-					unstage commits (keep files the same)
-		============
-		-2.2.9- pull
-		============
-			pull changes from repo (fetch & merge)
-				git pull [remote] [local]
-		=============
-		-2.2.10- push
-		=============
-			push changes to repo
-				git push <remote> <localbranch>[:remotebranch]
+git commit --fixup <commit>
+	fix the commit and keep its message
+git commit --squash <commit>
+	merge commits into a single commit and specify final message after merge with rebase -i
 
-				can leave localbranch blank to delete remotebranch.
+protip:
+	use HEAD for commit
 
-			NOTE1:
-				when pushing, the target branch must NOT be checked out
+================
+-2.2.4- checkout
+================
+git checkout [branchname]
+	checkout branch from repo (use git branch -a to see repo branches too)
+git checkout -b [newbranch]
+	create/checkout branch
+git checkout [branchname] -- [path-to-filename]
+	checkout file
+git checkout --detach [target]
+	checkout the given commit, do not attack to any branches etc.
 
-			NOTE2:
-				It is possible to push to a branch on the current repo
-				by using . as the remote
-					ex: git push . somebranch:otherbranch
-				This is only allowed if otherbranch is not checked out in accordance
-				to NOTE1 AND if the push would be a fast-forward.
-		============
-		-2.2.11- tag
-		============
-			there are 2 types of tags:
-				lightweight
-					(no -a, -s, -m options)
-				annotated
-					has a message and is a true git object
-			creation:
-				git tag -a <tagname> -m 'tag message/description' [sha]
-					if no sha, then use HEAD
-				(add -f to change tag commit if already exist)
-			deletion:
-				local:
-					git tag -d <tagname>
-				remote:
-					git push origin :tagname
-					git push origin :refs/tags/tagname
-					git push origin --delete <tagname>
-			display:
-				git tag
-				git tag -n
-				git tag -l "pattern*"
-			pull tags:
-				git fetch --tags
-			push tags:
-				git push origin --tags
-				git push origin <tagname>
+==============
+-2.2.5- branch
+==============
+git branch -a:
+	display all branches
+git branch -d [name]
+	delete branch
+
+============
+-2.2.6- diff
+============
+git diff -- [path-to-file]
+	difference between file current and since last stage
+	(so git reset if want to see dif since last commit)
+git diff --cached [commit] [--] [path]
+	diff between staged changes for next commit and [commit] (defaults to head)
+git diff commit -- path
+	dif between cur state and commit (not staged necessarily)
+git diff commit commit -- path
+	dif between path for the two commits
+
+==============
+-2.2.7- reflog
+==============
+shows hashes for previous commits/checkouts etc
+
+=============
+-2.2.8- reset
+=============
+reset current branch (if applicable) to the ref
+NOTE: reflog may still point to commits so will not be able to prune
+git reset --hard 'hash/string_thing'
+	reset all files to state from corresponding commit (delete files too)
+git reset
+	unstage commits (keep files the same)
+
+============
+-2.2.9- pull
+============
+pull changes from repo (fetch & merge)
+	git pull [remote] [local]
+
+=============
+-2.2.10- push
+=============
+push changes to repo
+git push <remote> <localbranch>[:remotebranch]
+
+
+NOTE1: can leave localbranch blank to delete remotebranch.
+NOTE2: when pushing, the target branch must NOT be checked out
+NOTE3: <remote> can be . to push to a (not-checked-out) branch in current repo
+	This would be the same as `git checkout branch` followed by `git merge` then
+	`git checkout previous` (must be fast-forward)
+
+============
+-2.2.11- tag
+============
+there are 2 types of tags:
+	lightweight
+		(no -a, -s, -m options)
+	annotated
+		has a message and is a true git object
+________
+creation
+	git tag -a <tagname> -m 'tag message/description' [sha]
+		if no sha, then use HEAD
+	(add -f to change tag commit if already exist)
+________
+deletion
+	local:
+		git tag -d <tagname>
+	remote:
+		git push origin :tagname
+		git push origin :refs/tags/tagname
+		git push origin --delete <tagname>
+_______
+display
+	git tag
+	git tag -n
+	git tag -l "pattern*"
+_________
+pull tags
+	git fetch --tags
+_________
+push tags
+	git push origin --tags
+	git push origin <tagname>
 
 ==========
 -3- rebase
 ==========
-	"reapply commits on top of another base tip"
+"reapply commits on top of another base tip"
 
-	git rebase [--onto commit] <upstream> [branch]
+git rebase [--onto commit] <upstream> [branch]
 
-		branch: git checkout branch if given before rebase
-		upstream: indicate the commits to transplant (from HEAD to intersection with upstream, does not the intersection)
+	branch: git checkout branch if given before rebase
+	upstream: indicate the commits to transplant (from HEAD to intersection with upstream, does not the intersection)
 
-			example:
-				if upstream == HEAD~2, then this indicates HEAD~1 and HEAD
-
-
-		onto: location to plop commits onto (defaults to upstream)
+		example:
+			if upstream == HEAD~2, then this indicates HEAD~1 and HEAD
 
 
+	onto: location to plop commits onto (defaults to upstream)
 
-	example:
-		first-----a-----b-------c master
-		 \
-		  d-----e feature
 
-		git checkout feature
-		git rebase master
 
-		first-----a-----b-------c master
-		                         \
-		                          d-----e feature
+example:
+	first-----a-----b-------c master
+	 \
+	  d-----e feature
 
-	if conflict, can git rebase --abort to cancel rebase
+	git checkout feature
+	git rebase master
 
-	interactive rebase
-		pick commits to rebase and fixup, squash, or pick
+	first-----a-----b-------c master
+	                         \
+	                          d-----e feature
+
+if conflict, can git rebase --abort to cancel rebase
+
+interactive rebase
+	pick commits to rebase and fixup, squash, or pick
 
 ===========
 -4- history
 ===========
-	-4.1- git reflog: history of what actually happened
-	            (includes reset, rebase, etc)
+================
+-4.1- git reflog
+================
+history of what actually happened (includes reset, rebase, etc)
 
-		expire: expire reflog entries (dangling commits will then be able to be pruned)
-			--expire-unreachable=<time>
-			--expire=<time>
-				(can use "now" for time)
+expire: expire reflog entries (dangling commits will then be able to be pruned)
+	--expire-unreachable=<time>
+	--expire=<time>
+		(can use "now" for time)
 
-			--all
-				(dunno bout this, but need this to cause reflogs to dangling commits to be removed)
+	--all
+		(dunno bout this, but need this to cause reflogs to dangling commits to be removed)
 
-	-4.2- git log: history traversing parent commits
-		general tips:
-			git log --all --decorate --oneline --graph
-				(adog)
+=============
+-4.2- git log
+=============
+history traversing parent commits
+general tips:
+	git log --all --decorate --oneline --graph
+		(adog)
 
-		options:
-			<paths>                           show commits that modified the <paths> given
-			--all                             use all /refs and HEAD
-			--decorate[=short|full|auto|no]   show ref names (branches, tags, etc), defaults to short
-			-<number> | -n <number>           limit to <number> commits
-			-[after|before]=<date>            after or before the date
-			--abbrev-commit                   show unique part of commit SHAs
-			--oneline                         same as --pretty=oneline --abbrev-commit
-			--graph                           draw graph
+options:
+	<paths>                           show commits that modified the <paths> given
+	--all                             use all /refs and HEAD
+	--decorate[=short|full|auto|no]   show ref names (branches, tags, etc), defaults to short
+	-<number> | -n <number>           limit to <number> commits
+	-[after|before]=<date>            after or before the date
+	--abbrev-commit                   show unique part of commit SHAs
+	--oneline                         same as --pretty=oneline --abbrev-commit
+	--graph                           draw graph
 
 =========
 -5- alias
 =========
-
 git config [--global | --local] alias.<aliascommand> "command and args"
 
 example:
@@ -397,63 +410,76 @@ example:
 =================
 -6- miscellaneous
 =================
-	-6.1- line endings
-		global:
-			git config core.autocrlf
-		per repo:
-			.gitattributes file (must be in root directory)
-		by file:
-			.git/info/attributes
+==================
+-6.1- line endings
+==================
+global:
+	git config core.autocrlf
+per repo:
+	.gitattributes file (must be in root directory)
+by file:
+	.git/info/attributes
 
-			pattern attr attr attr...
-			attr:
-				attrname: set the attr
-				-attrname: unset the attr
-				attrname=val: set to value
-				unspecified: not specified... (no matches or not in .gitattributes)
+	pattern attr attr attr...
+	attr:
+		attrname: set the attr
+		-attrname: unset the attr
+		attrname=val: set to value
+		unspecified: not specified... (no matches or not in .gitattributes)
 
-			later lines override previous lines
-			must be in repo root
-			example:
-				* text=auto
-				*.c text
-				*.h text
-				*.sln text eol=crlf
-				*.sh text eol=lf
-				*.png binary
-				*.jpg binary
+	later lines override previous lines
+	must be in repo root
+	example:
+		* text=auto
+		*.c text
+		*.h text
+		*.sln text eol=crlf
+		*.sh text eol=lf
+		*.png binary
+		*.jpg binary
 
-	-6.2- gitignore
-		.gitignore file per directory: all users will ignore
-		.git/info/exclude: exclude only for this checked-out repo
-		ignores matched files
+===============
+-6.2- gitignore
+===============
+.gitignore file per directory: all users will ignore
 
-		#: comment (can escape with \)
-		trailing spaces can be escaped with \ else ignored
-		! : negates pattern
-		/ at beginning or middle, then it is relative
-		otherwise, matches anything in subdirectories as well
-		end with /: directories only
-		*: anything except /
-		?: any single char ecxept /
-		[a-zA-Z] single char in range
-		**:
-			**/: in all directories
-			/**: everything inside dir (infinite depth)
-			a/**/b: any b under some ancestor a
-	=========
-	-6.3- ssh
-	=========
-	See remotehost/ssh/notes.txt for key generation, git prefers ed25519 type?
-	put .pub file contents onto git account
-	edit ${HOME}/.ssh/config
-	  HOST host-to-use-on-command-line
-	    HOSTNAME actual-host-name-eg-github.com
-	    USER git
-	    IDENTITYFILE path/to/private/key
-	    IDENTITIESONLY yes
-	git clone host-to-use-on-command-line:<git-user>/<reponame>.git
-	(uses ~/.ssh/config to choose private key)
+For each file, any .gitignore in some ancestral directory is checked.
+That is to say, multiple .gitignore files are allowed and will be checked
+one by one to the root git directory.
+
+.git/info/exclude: exclude only for this checked-out repo
+ignores matched files
+
+------
+syntax
+------
+#: comment (can escape with \)
+trailing spaces can be escaped with \ else ignored
+! : negates pattern
+/ at beginning or middle, then it is relative
+	otherwise, matches anything in descendent directories.
+end with /: directories only
+*: anything except /
+?: any single char ecxept /
+[a-zA-Z] single char in range
+**:
+	**/: in all directories
+	/**: everything inside dir (infinite depth)
+	a/**/b: any b under some ancestor a
+
+=========
+-6.3- ssh
+=========
+See remotehost/ssh/notes.txt for key generation, git prefers ed25519 type?
+put .pub file contents onto git account
+edit ${HOME}/.ssh/config
+  HOST host-to-use-on-command-line
+    HOSTNAME actual-host-name-eg-github.com
+    USER git
+    IDENTITYFILE path/to/private/key
+    IDENTITIESONLY yes
+git clone host-to-use-on-command-line:<git-user>/<reponame>.git
+(uses ~/.ssh/config to choose private key)
 
 
 ===============
@@ -513,6 +539,7 @@ saw a note that seems agreeable:
 	if release are always chronological, master branch is fine
 	if not, (ie 1.0.1 can come after 1.1.0), then tagging may be a better approach
 	or maybe separate release branches per version...
+
 =================
 -8- authorization
 =================
@@ -568,107 +595,123 @@ git config [--system | --global | --local] [-e | [--unset] <name> [value] | --li
 						git credential-cache exit: clear cache(close daemon)
 				store: store forever
 				manager-core: opensource builtin to git for windows
+
 ==========
 -10- stash
 ==========
-	git stash [push]
-		temporary save changes but no commits
-		useful options (requires push to be present, otherwise no args allowed (except -p)):
-			-u  include untracked files
-			-a  all
-			-m  message
-	git stash list:
-		show current stashes
-	git stash show:
-		show changes
-	git pop
-		pop a stash state and apply it
-	git stash apply
-		apply changes
-	git stash branch <branchname>
-		makes a branch identical to state when git stash was created
-	git stash clear
-		remove all stash entries
-	git stash create
-		create a stash entry
+git stash [push]
+	temporary save changes but no commits
+	useful options (requires push to be present, otherwise no args allowed (except -p)):
+		-u  include untracked files
+		-a  all
+		-m  message
+git stash list:
+	show current stashes
+git stash show:
+	show changes
+git pop
+	pop a stash state and apply it
+git stash apply
+	apply changes
+git stash branch <branchname>
+	makes a branch identical to state when git stash was created
+git stash clear
+	remove all stash entries
+git stash create
+	create a stash entry
+
 ==========
 -11- clean
 ==========
-	git clean
-		removes any untracked files (like build products etc)
+git clean removes any untracked files (like build products etc)
+display what would be cleaned
+	git clean -ndx
+do the cleaning:
+	git clean -idx
+
+options:
 	-d: also check untracked directories
 	-f: force (like rm -f)
 	-i: interactive (like rm -i)
 	-n|--dry-run: just list what would be removed
 	-x: include files that were .gitignored
 	-X: ONLY include files that were .gitignored
+
 =========
 -12- show
 =========
-	shows objects
-	show:
-		tag: tag message and obj
-		trees: names
-		blobs(files): contents
-			branch/commit:filepath
+shows objects
+show:
+	tag: tag message and obj
+	trees: names
+	blobs(files): contents
+		<branch/commit>:<filepath>
+		use ./ to make it relative to pwd
+
 ===========
 -13- remote
 ===========
-	show remotes
-	git remote set-url --push: add a separate push remote
-		(no command to separately set a pull url)
+show remotes
+git remote set-url --push: add a separate push remote
+	(no command to separately set a pull url)
+
+-v: be verbose (show all remotes and separate fetch/push info)
+
 ==============
 -14- submodule
 ==============
-	sub git directories.
-	git submodule [cmd]
-		add <repo> [path]
-		init [path]
-		deinit (--all| <path>)
-		update [path]
-			NOTE: for initial update on windows (git submodule init; git
-				submodule update) if the submodule requires a password, you need
-				to use git-bash or it will error saying permission denied.  An
-				alternative is to just git clone directly into the submodule dir
-				and then use absorbgitdirs
-		foreach <command>
-			available vars:
-				$name             name of submodule
-				$sm_path          path from root git dir
-				$displaypath      relative path
-				$sha1             sha1 of submodule
-				$toplevel         abs path to root git dir
-			command should be a single bash command line.
-			(even on windows, since it uses git-bash)
-			-q will prevent the "Entering $displaypath" message per submodule.
-		absorbgitdirs [path...]
-			move submodule .git directories into root git dir's .git/modules
-			and replace submodule .git with a file pointing to corresponding
+sub git directories.
+git submodule [cmd]
+	add <repo> [path]
+	init [path]
+	deinit (--all| <path>)
+	update [path]
+		NOTE: for initial update on windows (git submodule init; git
+			submodule update) if the submodule requires a password, you need
+			to use git-bash or it will error saying permission denied.  An
+			alternative is to just git clone directly into the submodule dir
+			and then use absorbgitdirs
+		--recursive
+	foreach <command>
+		available vars:
+			$name             name of submodule
+			$sm_path          path from root git dir
+			$displaypath      relative path
+			$sha1             sha1 of submodule
+			$toplevel         abs path to root git dir
+		command should be a single bash command line.
+		(even on windows, since it uses git-bash)
+		-q will prevent the "Entering $displaypath" message per submodule.
+	absorbgitdirs [path...]
+		move submodule .git directories into root git dir's .git/modules
+		and replace submodule .git with a file pointing to corresponding
 			dir.
+
 ===========
 -15- server
 ===========
-	simple serve git repos:
-		bare repo:
-			cd /root
-			git clone --bare <project>
-			cd <project>
-			git --bare update-server-info
-			mv hooks/post-update.sample .git/hooks/post-update
-			start a server at /root
+simple serve git repos:
+	bare repo:
+		cd /root
+		git clone --bare <project>
+		cd <project>
+		git --bare update-server-info
+		mv hooks/post-update.sample .git/hooks/post-update
+		start a server at /root
 
-		non-bare repo:
-			same steps as bare
-			except remove --bare tag
-			start server IN THE REPO DIR
-			you will need to pull .git and rename it.
-			eg:
-				git clone project
-				cd project
-				git update-server-info
-				cp .git/hooks/post-update.sample .git/hooks/post-update
-				py -m http.server
-				git clone http://localhost:8000/.git project
+	non-bare repo:
+		same steps as bare
+		except remove --bare tag
+		start server IN THE REPO DIR
+		you will need to pull .git and rename it.
+		eg:
+			git clone project
+			cd project
+			git update-server-info
+			cp .git/hooks/post-update.sample .git/hooks/post-update
+			py -m http.server
+			git clone http://localhost:8000/.git project
+
 ==========
 -16- blame
 ==========
