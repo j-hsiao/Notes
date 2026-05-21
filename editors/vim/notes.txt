@@ -1767,22 +1767,59 @@ and command modes each with their own functionalities.
 				and automatically loads whatever is needed from the autoload dir.
 
 			Vim checks files in 'runtimepath'/autoload.
-			autoload functions are [dirnames]#fname#funcname()
+			autoload functions are [dirnames#]#fname#funcname()
 			and need to be defined as fname#funcname()
 
-	==============
-	-2.7- packages
-	==============
-	Packages are collections of plugins.
-	They are placed into some dir in 'runtimepath' setting (usually ~/.vim)
-	runtimepath
-	They are organized as:
-		pack/<user organize dir name>/[start|opt]/<packagename>/[plugin|syntax|autoload]/*.vim
+			NOTE: autoload scripts are automatically single-load, even for failures.
+			ie: :
+			call auto#nonexistent()
+			-> tries to load */autoload/auto.vim
+			-> search for function auto#nonexistent()
+			-> does not exist = error
+			edit */autoload/auto.vim
+			define function auto#nonexistent()
+			call auto#nonexistent()
+			-> already loaded */autoload/auto.vim
+			-> does NOT see the newly defined function
+			-> manually source the script OR restart vim. ot see auto#nonexistent
 
-		start: load these on vim startup
-		opt: require calling :packadd (pack-add) to load these
+==============
+-2.7- packages
+==============
+Packages are collections of plugins.
+Scan all directories in 'packpath' for plugins under pack/*/start.
+In practice users generally install packages under ${VIMRUNTIME}/pack
 
-		syntax: for filetype plugin
-		plugin: corresponds to ~/.vim/plugin, except for this package
+A package should generally be structured to be placed into the pack dir:
 
-	It is common for packages to be a git repo.
+packagename/
+	start/
+		component/
+			...
+	opt/
+		component/
+		...
+
+The packagename should be unique.
+
+start/
+	load these on startup
+opt/
+	use :packadd (:h pack-add) to load these (optional components)
+
+The directory of each component is analogous to the ${VIMRUNTIME} directory,
+except specific for that component.
+
+So component could have:
+	plugin/
+		...
+	syntax/
+		...
+	autoload/
+		...
+	after/
+		ftplugin/
+			...
+
+It is common for a package to be a git repo so it can be easily updated
+with `git pull ...` although they can also be archives like *.zip etc.
