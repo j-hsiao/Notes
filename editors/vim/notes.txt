@@ -369,7 +369,7 @@ and command modes each with their own functionalities.
 			special marks:
 				.     last edit
 				[]    first/last line of last yanked/edited/pasted selection
-				<>    first/last line of visual selection
+				<>    first/last line of visual selection (eg. visual mode and then :)
 				'     before last jump
 				"     last position before file was closed
 				^     last position where insert mode was stopped (used by gi)
@@ -1330,7 +1330,7 @@ and command modes each with their own functionalities.
 			======
 				strings are null-terminated.
 				quotes used is similar to bash:
-					'' = literal, no expansions/escapes
+					'' = literal, no expansions/escapes (EXCEPT double-single quote => a single single quote)
 					"" = allow escapes etc.
 				special characters:
 					\NNN          up to 3-digit octal number
