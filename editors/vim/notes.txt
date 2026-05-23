@@ -1728,6 +1728,10 @@ and command modes each with their own functionalities.
 		-2.6.2- :help docs
 		==================
 			:h help-writing
+			The first line should be:
+				"plugin_name.txt"\tshort descr
+
+
 			put plugin in 'doc' dir somewhere in 'runtimepath'
 			run helptags command with doc dir (only need to run this once)
 			help file syntax: (:e $VIMRUNTIME/syntax/help.vim)
@@ -1738,8 +1742,8 @@ and command modes each with their own functionalities.
 				header~     create a column heading
 				===.*===    break section, optional name (at least 3 on either side)
 				---.*---    same as =
-				>           code block
-					codestuff
+				> [lang]    code block.  lang is optional
+				  codestuff
 				<
 				<key>       key notation
 				Note        highlighted words
