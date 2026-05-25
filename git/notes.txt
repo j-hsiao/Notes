@@ -18,7 +18,6 @@ contents
 		-2.2.9- pull
 		-2.2.10- push
 		-2.2.11- tag
-	-2.3- extra usage
 -3- rebase
 -4- history
 	-4.1- reflog
@@ -40,6 +39,11 @@ contents
 -16- blame
 -17- bisect
 -18- symbolic-ref
+-19- maintenance
+	-19.1- gc
+	-19.2- prune
+	-19.3- repack
+	-19.4- prune-packed
 
 
 ============
@@ -744,3 +748,39 @@ NOTE:
 git symoblic-ref REFNAME refs/heads/COMMIT
 
 REFNAME is usually HEAD to change the main branch of a repo
+
+================
+-19- maintenance
+================
+=========
+-19.1- gc
+=========
+garbage collection.  This can reduce repo size.
+--aggressive: spend more time to reduce size
+--prune=<date> don't gc anything newer than this date.
+	only matters if running git commands concurrently
+============
+-19.2- prune
+============
+prune unreachable objects
+-n|--dry-run
+
+=============
+-19.3- repack
+=============
+combine all unpacked objects into a pack.
+-d
+	delete redundant packs (git prune-packed)
+-a
+	pack everything into a single pack "Use with -d."
+	"cleans up objects that git prune leaves behind but git fsck --full --dangling shows as dangling"
+	NOTE: "fetching over dumb protocols must fetch entire pack"
+	so generally, not a good idea unless local only
+-A
+	same as -a unless -d, ?in which case unreachable objects inside a pack not immediately deleted?
+===================
+-19.4- prune-packed
+===================
+remove extra objects in a pack
+-n|--dry-run
+	only print what would happen
