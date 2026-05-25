@@ -1733,25 +1733,57 @@ and command modes each with their own functionalities.
 
 
 			put plugin in 'doc' dir somewhere in 'runtimepath'
-			run helptags command with doc dir (only need to run this once)
+			run :helptags command with doc dir (only need to run this once)
+			NOTE: the tags must be in a registered docs dir.
+				All :helptags does is create a `tags` file inside the given dir
+				containing files and tags.  If the tags is not in a docs dir
+				on one of the ?default? paths, then the tags file will never be found
+				and thus never used.
+
 			help file syntax: (:e $VIMRUNTIME/syntax/help.vim)
-				*tag*       a tag, searched when :h tag
+				*tag*       a tag, searched when :h tag no spaces allowed in tag (see notes below)
 				|link|      link to a tag
 				`:command`  link to a command
 				'option'    an option (:set)
 				header~     create a column heading
 				===.*===    break section, optional name (at least 3 on either side)
 				---.*---    same as =
-				> [lang]    code block.  lang is optional
-				  codestuff
-				<
+				>           code block > must be last character and < must be
+				  codestuff      first character.  A new line starting at leftmost
+				<                column also implicitly ends the codeblock.
 				<key>       key notation
+				{args}
 				Note        highlighted words
 				Notes
-				*Todo
-				*Error
+				(\t*)*Todo(\t*)
+				(\t*)*Error(\t*)
+
+			NOTE1:
+				I cannot seem to surround a word with single asterisk without spaces.
+				At best, probably just make it into a code block or a column header.
+				attempt     result
+				**stuff**   '**stuff**'
+				**stuff*    '*'`stuff`
+				*stuff**    '*stuff**'
+				\*stuff\*   '\'`stuff\`'*'
+				*stuff\*    `stuff\`
+				\*stuff*    '\'`stuff`
+
+			NOTE2:
+				Tags etc are only for display and detection by :helptags.
+				If you use <C-]>, it will still jump to the tag regardless.
+
+			NOTE3:
+				It seems help text generally prefer using tabs?
+
+			NOTE4:
+				To check how it would look, just set 'filetype' to help
+					`:se ft=help`
+				and `:se ft=text` to go back to text.
+
 			tag: :h <tag> will go to the tag
-			link: can use <C-]> to go to link
+			link: can use <C-]> to go to link, <C-t> to jump back
+				(or <C-o>, but <C-o> does not pop tags from the stack.)
 			format:
 				*plugin_name.txt*<Tab>description
 				...whatever descriptions etc...
