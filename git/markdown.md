@@ -78,6 +78,40 @@ header1|header2|header3|header4
 :-|-:|:-:|-
 item1|item2|item3|item4
 
+## Multiline and Nesting
+The default github markdown table style does not allow multiple lines
+in a single cell of a table nor nested tables.  However, github markdown
+does not take effect unless surrounded by empty lines.
+
+NOTE: Inside an HTML table, normal git syntax seems to be uninterpreted.
+As a result, codeblocks, etc are not parsed.
+```
+<br>: linebreak
+<table>: table
+<tr>: row
+<th>: header
+<td>: data
+```
+|header1|table|
+|-------|-----|
+|table1 | <table><tr><th>nesthead1</th><th>nesthead2</th><th>nesthead3</th></tr> <tr><td>value1 </td><td> value2 </td><td> value3</td></tr> </table> |
+
+<table>
+<tr><th>nesthead1</th><th>nesthead2</th><th>nesthead3</th></tr>
+<tr><td>value1 </td><td> value2 </td><td>
+
+```
+code block must be surrounded
+by at least 1 empty line on
+either side to be parsed
+```
+
+
+</td></tr> </table>
+
+
+
+
 # Extras (github specific?)
 ## References
 use @ and a name to reference to that github user
@@ -89,4 +123,3 @@ use @ and a name to reference to that github user
 
 reference issues/pull requests with #, then filter/autocomplete (github only)
 
-#
