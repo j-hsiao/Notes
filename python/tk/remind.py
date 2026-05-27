@@ -365,7 +365,7 @@ class Server(object):
                 if abs((now - target).total_seconds()) < 1:
                     formatted = ''.join([dtstr, '\n', '='*len(dtstr), '\n', message])
                 else:
-                    formatted = ''.join(['now: ', now.strftime(DATE_SHOW), ':\ntgt: ', dtstr, '\n', '='*len(dtstr+5), '\n', message])
+                    formatted = ''.join(['now: ', now.strftime(DATE_SHOW), ':\ntgt: ', dtstr, '\n', '='*(len(dtstr)+5), '\n', message])
                 self.showmessage(parent=self.tk, title='Reminder', message=formatted)
             with self.lock:
                 if self.running:
