@@ -367,6 +367,47 @@ time
 	--contiguous
 	--kerneltz
 
+conntrack
+	Track packet/connection state
+	--cstate state[,state...]
+		INVALID
+			no known connection
+		NEW
+			started a new connection
+		ESTABLISHED
+			has seen packets in both directions
+		RELATED
+			starting a new connected but associated with an existing connection.
+		UNTRACKED
+			not tracked at all
+		SNAT
+			a virtual state, if original source is different from reply addr
+		DNAT
+			virtual state, if original destination differs from reply source
+	--ctproto <l4proto>
+		layer-4 protocol to match (by number or name)
+	--ct[orig|repl][src|dst] address[/mask]
+		Match against original/reply source/destination address
+	--ct[orig|repl][src|dst]port port[:port]
+		Match against original/reply source/destination port(range)
+		port ranges require kernel > 2.6.38
+	--cstatus state[,state...]
+		NONE
+		EXPECTED
+			expected connection
+		SEEN_REPLY
+			seen packets in both directions
+		ASSURED
+			do not early-expire
+		CONFIRMED
+			connection is confirmed
+	--ctexpire tim[:time]
+	--ctdir [original|reply]
+		direction to match.
+
+state
+	~same~ as conntrack --cstate
+	except no SNAT or DNAT
 
 
 
@@ -399,7 +440,6 @@ connlimit
 	--connlimit-saddr
 	--connlimit-daddr
 connmark
-conntrack
 cpu
 dccp
 devgroup
@@ -433,7 +473,6 @@ realm
 rpfilter
 rt
 sctp
-state
 statistic
 	--mode [random|nth]
 	--probability n
@@ -462,13 +501,22 @@ example from:
 :OUTPUT ACCEPT [0:0]
 :LOGGING - [0:0]
 # Communicate with established connections tcp and udp
--A INPUT -p tcp -m tcp -m state --state ESTABLISHED -j ACCEPT
--A INPUT -p udp -m udp -m state --state ESTABLISHED -j ACCEPT
--A INPUT -p icmp -m icmp --icmp-type 8 -j ACCEPT
--A INPUT -p icmp -m icmp --icmp-type 0 -j ACCEPT
--A INPUT -i lo -j ACCEPT
--A INPUT -j LOGGING
--A LOGGING -m limit --limit 2/min -j LOG --log-prefix "IPTables Packet Dropped: " --log-level 7
--A LOGGING -j DROP
+1. -A INPUT -p tcp -m tcp -m state --state ESTABLISHED -j ACCEPT
+2. -A INPUT -p udp -m udp -m state --state ESTABLISHED -j ACCEPT
+3. -A INPUT -p icmp -m icmp --icmp-type 8 -j ACCEPT
+4. -A INPUT -p icmp -m icmp --icmp-type 0 -j ACCEPT
+5. -A INPUT -i lo -j ACCEPT
+6. -A INPUT -j LOGGING
+7. -A LOGGING -m limit --limit 2/min -j LOG --log-prefix "IPTables Packet Dropped: " --log-level 7
+8. -A LOGGING -j DROP
 COMMIT
 # Completed on Mon Nov 17 18:45:27 2014
+
+1. Established tcp connections are ok
+2. Established udp connections are ok
+3. Receive a ping is ok
+4. Receive a ping reply is ok
+5. Allow connections from localhost
+6. ?? man does not mention a LOGGING table.
+7. ??log at most 2 per minute of packet dropped??
+8. ??drop every other packet...??
