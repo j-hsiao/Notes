@@ -21,7 +21,10 @@ Otherwise they will be concatenated into a single line (with space).
 The only exception is a new header.
 
 # links/images:
-Syntax for a link is `[shown text](link)`
+The syntax for a link is `[shown text](link)`
+
+Add a `!` in front of the `[]` for the link to display it as an image.
+The `shown text` becomes the alt text, shown if image display failed.
 
 links can be urls or relative paths to the current md file:
 * ./something-in-same-dir-as-this-file or
