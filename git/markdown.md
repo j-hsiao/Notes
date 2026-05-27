@@ -59,6 +59,9 @@ note that the space after the `N. ` or `- ` or `* ` is required.
 use single backticks for in-line code
 use triple backticks for multi-line code (like python strs except backticks)
 add the language after the opening triple backticks for syntax highlighting
+NOTE codeblock backticks can be indented up to 3 spaces.  Afterwhich something
+weird happens and it seems like it is still interpreted as a codeblock
+BUT, the backticks also become part of the codeblock (displayed together with the code.)
 
 `some code`
 ```
@@ -70,6 +73,31 @@ code
 for text in 'hello world'.split():
 	print(text)
 ```
+
+ ```
+ 1-space
+ indentation
+ ```
+
+  ```
+  2-space
+  indentation
+  ```
+
+   ```
+   3-space
+   indentation
+   ```
+
+    ```
+    4-space
+    indentation
+    ```
+
+	```
+	1-tab
+	indentation
+	```
 
 # Tables
 use colons to specify alignment:
@@ -112,7 +140,8 @@ either side to be parsed
 
 </td></tr> </table>
 
-
+NOTE: HTML labels can be indented up to 3 spaces.  Using more or using a
+tab results in the html tags being un-parsed.
 
 
 # Extras (github specific?)
