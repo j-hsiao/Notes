@@ -1,6 +1,19 @@
+[Source](https://docs.github.com/en/get-started/writing-on-github/getting-started-with-writing-and-formatting-on-github/basic-writing-and-formatting-syntax)
+
+# Experimenting with markdown
+To experiment with markdown, I would recommend going to github.com.
+Open repo with write permissions and click `add file`.  You don't need
+to commit the file.  Here, you can edit markdown, then switch to preview
+to see what it would look like.  Switch back and forth experimenting.
+Finally, you can just `cancel changes` when done experimenting, or commit
+if that would be preferred.
+
 # Headers are prefixed with a \#.
 ## Subheaders are prefixed with more \#\# (max of 6 \#s).
 (NOTE: space after the \# is required)
+
+With multiple headers, a table of contents is automatically created
+(topright toc button).
 
 # Escaping
 Any markdown characters can be escaped with a `\`.
@@ -16,9 +29,12 @@ markdown characters in backticks don't need to be escaped.
 
 `*` and `_` are interchangeable, so `__` is also bold and `_` is also italics
 
-Newlines must be separated by an extra blank line.
-Otherwise they will be concatenated into a single line (with space).
-The only exception is a new header.
+<sub>`<sub>subscript</sub>`</sub>
+
+<sup>`<sup>superscript</sup>`</sup>
+
+<ins>`<ins>underlined</ins>`</ins>
+
 
 # links/images:
 The syntax for a link is `[shown text](link)`
@@ -47,7 +63,7 @@ http://plain_text_links_are_auto_linked
 
 # Lists:
 1. use N. item for numbered items, N is a number
-* use * or - for bullets
+* use * or - or + for bullets
 
 sub-items in lists must be indented to below the parent item:
 2 spaces if using \* or \-, and N spaces if using digits: 1.
@@ -57,11 +73,18 @@ note that the space after the `N. ` or `- ` or `* ` is required.
 
 # Code:
 use single backticks for in-line code
-use triple backticks for multi-line code (like python strs except backticks)
+use triple backticks for multi-line code ("fenced code block")
+Use 4-space indentation or single tab ("non-fenced code block")
+Use quadruple backticks to allow displaying triple backticks
 add the language after the opening triple backticks for syntax highlighting
-NOTE codeblock backticks can be indented up to 3 spaces.  Afterwhich something
-weird happens and it seems like it is still interpreted as a codeblock
-BUT, the backticks also become part of the codeblock (displayed together with the code.)
+
+To use codeblock inside a list, prefer fenced and indent the entire codeblock
+to the first non-space character after the bullet or numbering.
+
+To use codeblock inside an HTML table, surround the codeblock with blank lines.
+It can be indented up to 3 spaces for better reading, but once it reaches 4
+it becomes an "unfenced code block"
+
 
 `some code`
 ```
@@ -74,30 +97,25 @@ for text in 'hello world'.split():
 	print(text)
 ```
 
- ```
- 1-space
- indentation
- ```
-
-  ```
-  2-space
-  indentation
-  ```
-
-   ```
-   3-space
-   indentation
-   ```
-
-    ```
     4-space
     indentation
-    ```
 
-	```
 	1-tab
 	indentation
-	```
+
+Greater than 3 spaces LOOKS like a codeblock.
+In fact, the 4-space and tab indentation codeblocks
+look like they were merged into a single codeblock.
+
+# linebreaks
+1. Blank line (blank line will be rendered)
+2. Trailing 2 spaces.
+3. Trailing backslash.
+4. Trailing html <br/> tag
+Newlines must be separated by an extra blank line.
+Otherwise they will be concatenated into a single line (with space).
+The only exception is a new header.
+
 
 # Tables
 use colons to specify alignment:
