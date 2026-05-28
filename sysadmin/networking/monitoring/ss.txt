@@ -1,0 +1,116 @@
+
+-0- description
+-1- options
+
+===============
+-0- description
+===============
+ss: "another utility to investigate sockets"
+
+ss [options] [filter]
+
+Similar to netstat.
+"can display more tcp and state info than other tools"
+
+===========
+-1- options
+===========
+-h|--help
+-V|--version
+-H|--no-header
+-O|--oneline
+-n|--numeric
+	Don't resolve service names, show exact bandwidth values, no human readable
+-r|--resolve
+-a|--all
+	show all sockets (both listening and non-listening)
+-l|--listening
+	show listening sockets
+-o|--options
+	show timer info
+	timer:(<timer_name>,<expire_time>,<retrans>)
+	<timer_name>
+		the name of the timer, there are five kind of timer names:
+		on  :  means one of these timers: TCP retrans timer, TCP early retrans timer and
+		tail loss probe timer
+		keepalive: tcp keep alive timer
+		timewait: timewait stage timer
+		persist: zero window probe timer
+		unknown: none of the above timers
+	<expire_time>
+		how long time the timer will expire
+	<retrans>
+		how many times the retransmission occurred
+-e|--extended
+	uid:<uid_number> ino:<inode_number> sk:<cookie>
+	<uid_number>
+		the user id the socket belongs to
+	<inode_number>
+		the socket's inode number in VFS
+	<cookie>
+		an uuid of the socket
+-m|--memory
+	skmem:(r<rmem_alloc>,rb<rcv_buf>,t<wmem_alloc>,tb<snd_buf>,
+		f<fwd_alloc>,w<wmem_queued>,o<opt_mem>,
+		bl<back_log>,d<sock_drop>)
+-p|--processes
+-i|--info
+	internal tcp info
+--tos
+--cgroup
+-K|--kill
+-s|--summary
+-E|--events
+-Z|--context
+-z|--contexts
+-N|--net NSNAME
+-b|--bpf
+-4|--ipv4
+-6|--ipv6
+-0|--packet
+-t|--tcp
+-u|--udp
+-d|--dccp
+-w|--raw
+-x|--unix
+-S|--sctp
+--vsock
+--xdp
+--inet-sockopt
+-f|--family [unix|inet|inet6|link|netlink|vsock|xdp]
+-A|--query|--socket query
+	list comma-delim list of tables to dump
+	[all|inet|tcp|udp|raw|unix|packet|netlink|unix_dgram|unix_stream
+	|unix_seqpacket|packet_raw|packet_dgram|dccp|sctp|vsock_stream
+	|vsock_dgram|xdp]
+-D|--diag file
+-F|--filter file
+FILTER := [state state-filter] [expr]
+	state-filter:
+		"seq of keywords state and exclude followed by identifier of state"
+		identifiers: [established|syn-sent|syn-recv|fin-wait-1|fin-wait-2
+			|time-wait|closed|close-wait|last-ack|listening|closing]
+		all
+		connected
+		synchronized
+		bucket
+		big
+	expr
+		||&&!, && is assumed
+		{dst|src} [=] HOST
+		{[s|d]port} [OP] [FAMILY:]PORT
+		dev [[!]=] DEVICE
+		fwmark [[!]=] MASK
+		cgroup [[!]=] path
+		autobound
+
+	operators:
+		= == eq
+		!= ne neq
+		> gt
+		< lt
+		>= ge geq
+		<= le leq
+		! not
+		| || or
+		& && and
