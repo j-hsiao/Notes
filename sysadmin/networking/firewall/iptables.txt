@@ -7,8 +7,10 @@
 	-2.2- iptables-save
 	-2.3- iptables-restore
 	-2.4- iptables-extensions
-		-2.4.1- notable extensions
-		-2.4.2- other extensions
+		-2.4.1- match extensions
+			-2.4.1.1- notable extensions
+			-2.4.1.2- other extensions
+		-2.4.2- target extensions
 -3- best practices
 
 ===========
@@ -253,33 +255,32 @@ Load from a save file.
 =========================
 These are "extensions" used to match/filter packets/connections.
 
+========================
+-2.4.1- match extensions
+========================
 ==========================
--2.4.1- notable extensions
+-2.4.1.1- notable extensions
 ==========================
+--------
 addrtype
+--------
 	matches based on address type
-		UNSPEC
-		UNICSAT
-		LOCAL
-		BROADCAST
-		ANYCAST
-		MULTICAST
-		BLACKHOLE
-		UNREACHABLE
-		PROHIBIT
-		THROW
-		NAT
-		XRESOLVE
+		UNSPEC UNICSAT LOCAL BROADCAST ANYCAST MULTICAST
+		BLACKHOLE UNREACHABLE PROHIBIT THROW NAT XRESOLVE
 	--src-type
 	--dst-type
 	--limit-iface-in
 	--limit-iface-out
 
+-------
 comment
+-------
 	--comment <comment>
 	Add comments to any rules
 
+---------
 connbytes
+---------
 	Match based on number of transferred packets so far
 	--connbytes low[:high]
 		Specify range (or !range)
@@ -287,12 +288,27 @@ connbytes
 	--connbytes-mode [packets|bytes|avgpkt]
 		Specify units for connbytes
 
+----
+icmp
+icmp6
+-----
+	These are "ICMP commands"
+	ICMP 8 = ping
+	ICMP 0 = ping reply
+	--icmp-type [type[/code]|typename]
+	--icmpv6-type [type/code|typename]
+	These require the [ipv6-]icmp protocol argument.
+
+-------
 iprange
+-------
 	match range of ip addresses
 	--src-range from[-to]
 	--dst-range from[-to]
 
+---------
 multiport
+---------
 	Match source/destination ports
 	-p must be [tcp|udp|udplite|dccp|sctp]
 	--source-ports|--sports [port|port:port][,...]
@@ -300,10 +316,14 @@ multiport
 	--ports [port|port:port][,...]
 	up to 15 port allowed (a:b counts as 2 ports even though is a range.)
 
+-------
 pkttype
+-------
 	--pkt-type [!][unicast|boradcast|multicast]
 
+------
 recent
+------
 	Create list of ip addrs
 	"example: create a badguy list of people"
 	--name name
@@ -335,7 +355,9 @@ recent
 
 	Lists are stored in /proc/net/xt_recent/*
 
+---
 set
+---
 	Match ip sets defined by `ipset`
 	--match-set setname flag[,flag...]
 	--return-nomatch
@@ -343,20 +365,31 @@ set
 	--update-subcounters
 	--[packets|bytes]-[eq|lt|gt] value
 
+------
 socket
+------
 	?matches if there is a listening socket?
 	--transparent
 	--nowildcard
 	--restore-skmark
 
+---
 tcp
+---
 	--source-port|--sport port[:port]
 	--destination-port|--dport port[:port]
 	--tcp-flags mask comp
 	--syn
 	--tcp-option number
+---
+udp
+---
+	--source-port|--sport port[:port]
+	--destination-port|--dport port[:port]
 
+----
 time
+----
 	filter packet by time
 	--datestart YYYY[-MM[-DD[Thh[:mm[:ss]]]]]
 	--datestop YYYY[-MM[-DD[Thh[:mm[:ss]]]]]
@@ -367,7 +400,9 @@ time
 	--contiguous
 	--kerneltz
 
+---------
 conntrack
+---------
 	Track packet/connection state
 	--cstate state[,state...]
 		INVALID
@@ -404,16 +439,17 @@ conntrack
 	--ctexpire tim[:time]
 	--ctdir [original|reply]
 		direction to match.
-
+-----
 state
+-----
 	~same~ as conntrack --cstate
 	except no SNAT or DNAT
 
 
 
-========================
--2.4.2- other extensions
-========================
+==========================
+-2.4.1.2- other extensions
+==========================
 ah
 	authentication header
 	--ahspi spi[:spi]
@@ -453,8 +489,6 @@ hashlimit
 hbh
 helper
 hl
-icmp
-icmp6
 ipv6header
 ipvs
 length
@@ -483,8 +517,52 @@ statistic
 		starting number (nth mode)
 string
 tcpmss
+time
+tos
+ttl
+u32
 
-
+=========================
+-2.4.2- target extensions
+=========================
+AUDIT
+CHECKSUM
+CLASSIFY
+CLUSTERIP
+CONNMARK
+CONNSECMARK
+CT
+DNAT
+DNPT
+DSCP
+ECN
+HL
+HMARK
+IDLETIMER
+LED
+LOG
+MARK
+MASQUERADE
+NETMAP
+NFLOG
+NFQUEUE
+NOTRACK
+RATEEST
+REDIRECT
+REJECT
+SECMARK
+SET
+SNAT
+SNPT
+SYNPROXY
+TCPMSS
+TCPOPTSTRIP
+TEE
+TOS
+TPROXY
+TRACE
+TTL
+ULOG
 ==================
 -3- best practices
 ==================
@@ -520,3 +598,5 @@ COMMIT
 6. ?? man does not mention a LOGGING table.
 7. ??log at most 2 per minute of packet dropped??
 8. ??drop every other packet...??
+
+https://github.com/trimstray/iptables-essentials
