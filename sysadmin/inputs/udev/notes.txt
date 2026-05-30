@@ -1,0 +1,334 @@
+Keyboard
+
+-1- general
+	-1.1- udev rules
+		-1.1.1- action
+		-1.1.2- attrs
+		-1.1.3- env
+-2- udevadm
+	-2.1- info
+		-2.1.1-prefixes
+	-2.2- trigger
+	-2.3- settle
+	-2.4- control
+	-2.5- monitor
+	-2.6- test
+	-2.7- test-builtin
+	-2.8- verify
+	-2.9- cat
+	-2.10- wait
+	-2.11- lock
+-3- hardware database
+	-3.1- event devices
+-x- remapping
+
+
+=============
+-1- general
+=============
+udev detects events from peripherals and hot-plugging.
+Devices are generally located at /dev/input*
+
+Kernel module loading order is not preserved across boots...
+rely on
+../by-id/..: keyboard name
+../by-path/..: usb path
+../by-uuid/..: ??
+
+================
+-1.1- udev rules
+================
+rules files in order of precedence:
+1. admin rules: /etc/udev/rules.d/*.rules
+2. package rules: /usr/lib/udev/rules.d/*
+
+https://man.archlinux.org/man/udev.7
+https://www.reactivated.net/writing_udev_rules.html
+https://www.reactivated.net/writing_udev_rules.html#example-printer
+
+https://wiki.archlinux.org/title/Udev
+
+==============
+-1.1.1- action
+==============
+	[ACTION="add|remove|bind|unbind|change|offline|online|move"]
+		Action limits rule to when something happens
+
+	attributes:
+=============
+-1.1.2- attrs
+=============
+ATTR{...}=="" is for the device
+ATTRS{...}=="" is for parents
+
+---------------
+Find attributes
+---------------
+udevadm info -a -n /dev/video*
+udevadm has its own display program, but piping
+to less might be better.
+
+______________
+example output
+looking at device '/devices/pci0000:00/0000:00:04.1/usb3/3-2/3-2:1.0/video4linux/video2':
+	KERNEL=="video2"
+	SUBSYSTEM=="video4linux"
+	 ...
+looking at parent device '/devices/pci0000:00/0000:00:04.1/usb3/3-2/3-2:1.0':
+	KERNELS=="3-2:1.0"
+	SUBSYSTEMS=="usb"
+	...
+looking at parent device '/devices/pci0000:00/0000:00:04.1/usb3/3-2':
+	KERNELS=="3-2"
+	SUBSYSTEMS=="usb"
+	ATTRS{idVendor}=="05a9"
+	ATTRS{manufacturer}=="OmniVision Technologies, Inc."
+	ATTRS{removable}=="unknown"
+	ATTRS{idProduct}=="4519"
+	ATTRS{bDeviceClass}=="00"
+	ATTRS{product}=="USB Camera"
+===========
+-1.1.3- env
+===========
+ENV{property}=="..."
+get passed as environment variables to RUN rule component
+
+--------------------------
+find environment variables
+--------------------------
+udevadm monitor --property --udev
+?Then unplug?
+
+useful properties:
+	KEYBOARD_KEY_<hex_scan_code>
+		used to remap any keyboard scancode to any logical key by name
+	LIBINPUT_IGNORE_DEVICE
+
+============
+-1.1.4- tags
+============
+added/removed/compared with TAG[+|-|=]=...
+common tags:
+	systemd
+	seat
+	master-of-seat
+	uaccess
+	power-switch
+
+
+
+===========
+-2- udevadm
+===========
+
+==========
+-2.1- info
+==========
+
+-------
+options
+-------
+
+--attribute-walk
+	Walk up device tree, listing possible attributes in udev rules key
+	format.  "a rule to match, can be composed by the attributes of the
+	device and the attributes from one single parent device"
+
+-q|--query name|symlink|path|property|all
+
+--property=name1,name2,...
+	specify property name when --query=property
+
+--value
+	print only values, no property names.
+
+--name=path
+-p|--path=devpath
+	A /sys/device/... path or one of the
+	/sys/class/... symlinks
+
+-n --name=file
+	/dev/... path, probably best to use
+		/dev/.../by-id/
+		/dev/.../by-path/
+		/dev/.../by-uuid/
+
+-r|--root
+	print absolute paths in name/symlink query
+
+-a|--attribute-walk
+	walk up device tree and print all attributes.
+	by default in udevrules name=value format.
+
+-t|--tree
+	display a sysfs tree. (top-down)
+
+-x|--export
+	print output as key-value quoted values when
+	--query=property or --device-id-of-file=file
+
+-P|--export-prefix=name
+	add prefix to keyname of exported values
+	implies --export
+
+-d|--device-id-of-file=file
+	print major/minor numbers of device
+
+-e|--export-db
+	export content of udev database
+
+-c|--cleanup-db
+	cleanup the udev database
+
+-w|--wait-for-initialization <secs>
+	wait for seconds
+
+--[subsystem|attr|initialized]-[no]match
+--[tag|sysname|name|parent]-match
+--property-match [key=value]
+
+--json=[short|pretty|off]
+--no-pager
+
+===============
+-2.1.1-prefixes
+===============
+Displayed properties might have prefixes:
+
+P: /sys/ path
+M: /sys/ path basename
+R: device number
+J: device id
+U: kernel subsystem
+B: driver subsystem
+T: kernel device type within subsystem
+D: kernel device node major/minor
+I: network interface index
+N: kernel device node name
+L: device node symlink priority
+S: device node symlink
+Q: block device sequence number (DISKSEQ)
+V: attached driver
+E: device property
+
+=============
+-2.2- trigger
+=============
+request events from kernel
+
+============
+-2.3- settle
+============
+watch udev event queue until all events handled
+
+=============
+-2.4- control
+=============
+modify internal state of running udev daemon
+
+--reload
+	reload the rules
+
+=============
+-2.5- monitor
+=============
+listen for events
+
+==========
+-2.6- test
+==========
+simulate a udev event
+
+==================
+-2.7- test-builtin
+==================
+run built-in command with debug output
+
+============
+-2.8- verify
+============
+verify udev rules syntax and logic/meaning
+
+=========
+-2.9- cat
+=========
+show udev rules files or udev.conf
+
+===========
+-2.10- wait
+===========
+wait for devices/symlinks to be created/initialized.
+-t|--timeout secs
+--initialized=bool
+	check if sytsemd-udevd initialized devices, otherwise only
+	check if exist, but not necessarily initialized.
+	(use false if no udev rules for the device.)
+--removed
+	wait for device removal
+--settle
+	also wait for all queued events to be processed.
+
+===========
+-2.11- lock
+===========
+udevadm lock [options...] command...
+Run command with a lock on given devices
+-d|--device device
+-t|--timeout secs
+
+=====================
+-3- hardware database
+=====================
+Hardware database contains lists of device properties per device.
+Properties are assigned via "modalias" patterns.
+"this is commonly used to configure keyboard scancodes, mice dpi"...
+
+hardware database properties are sourced from *.hwdb files.
+/usr/lib/udev/hwdb.d/
+/run/udev/hwdb.d/
+/etc/udev/hwdb.d/
+
+===================
+-3.1- event devices
+===================
+usually keyboards, mice, game controllers, etc
+
+evdev, usually /dev/input/event*
+
+?modalias matches the device?
+modalias usually looks like: evdev:input:b<bus_id>v<vendor_id>p<product_id>e<version_id>-<input_modalias>
+
+Find the modalias with:
+	cat /sys/class/input/event*/device/modalias
+
+
+configs are formatted as:
+modalias
+	mapping
+	...
+
+---------
+keyboards
+---------
+scancode to keycode mapping is in
+	/usr/lib/udev/hwdb.d/60-keyboard.hwdb
+KEYBOARD_KEY_<scancode>=<keycode>
+	https://github.com/torvalds/linux/blob/master/include/uapi/linux/input-event-codes.h
+	https://wiki.archlinux.org/title/Udev#Keyboard_devices
+	https://github.com/systemd/systemd/blob/8df624bfdd658a68cf51825e30f60a39d34558da/hwdb.d/60-keyboard.hwdb#L60-L91
+	https://wiki.archlinux.org/title/Keyboard_input#Identifying_scancodes
+
+example:
+	evdev:input:b0003v32ACp0012e0111*
+	 KEYBOARD_KEY_70039=rightctrl # comments
+	 KEYBOARD_KEY_10082=reserved
+
+reserved = disabled
+unkonwn = "NoSymbol" key
+
+systemd-hwdb update
+
+=============
+-x- remapping
+=============
+https://github.com/Alekamerlin/keyboard-remap-guide
