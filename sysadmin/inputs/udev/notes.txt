@@ -313,7 +313,77 @@ keyboards
 scancode to keycode mapping is in
 	/usr/lib/udev/hwdb.d/60-keyboard.hwdb
 KEYBOARD_KEY_<scancode>=<keycode>
+
 	https://github.com/torvalds/linux/blob/master/include/uapi/linux/input-event-codes.h
+	In the header, variable names seem to be KEY_* all caps.
+	Generally the numbers are in order left to right, top to bottom
+	of a ?uk qwerty keyboard layout?
+
+______________
+keyboard KEY_*
+0       RESERVED
+1       ESC
+2-14    [1...0|MINUS|EQUAL|BACKSPACE]
+15-27   [TAB|QWERTYUIOP|LEFTBRACE|RIGHTBRACE]
+28      ENTER
+29      LEFTCTRL
+30-40   [ASDFGHJKL|SEMICOLON|APOSTROPHE]
+41      GRAVE
+42      LEFTSHIFT
+43      BACKSLASH
+44-54   [ZXCVBNM|COMMA|DOT|SLASH|RIGHTSHIFT]
+55-58   [KPASTERISK|LEFTALT|SPACE|CAPSLOCK]
+59-68   F[1-10]
+69-70   [NUMLOCK|SCROLLLOCK]
+71-74   KP[789|MINUS]
+75-78   KP[456|PLUS]
+79-83   KP[1230|DOT]
+85-86   ZENKAKUHANKAKU|102ND
+87-88   F11|F12
+89-94   RO|KATAKANA|HIRAGANA|HENKAN|KATAKANAHIRAGANA|MUHENKAN
+95-96   KPJPCOMMA|KPENTER
+97      RIGHTCTRL
+98      KPSLASH
+99      SYSRQ
+100     RIGHTALT
+101     LINEFEED
+102     HOME
+103     UP
+104     PAGEUP
+105-106 LEFT|RIGHT
+107     END
+108     DOWN
+109-111 PAGEDOWN|INSERT|DELETE
+112     MACRO
+113     MUTE
+114-115 VOLUMEDOWN|VOLUMEUP
+
+116     POWER /* SC System Power Down */
+117-118 KPEQUAL|KPPLUSMINUS
+119     PAUSE
+120     SCALE /* AL Compiz Scale (Expose) */
+121     KPCOMMA
+122-124 HANGEUL|HANJA|YEN
+#define KEY_HANGUEL KEY_HANGEUL /* swapped E and U)
+125-126 LEFTMETA|RIGHTMETA
+127     COMPOSE
+152     SCREENLOCK
+177-178 SCROLLUP|SCROLLDOWN
+179-180 KPLEFTPAREN|KPRIGHTPAREN
+183-194 F[13-24]
+240     UNKNOWN
+0x1d0-0x1e5 FN|FN_[ESC|F[1-12]|1|2|D\E|F|S|B|RIGHT_SHIFT]
+
+/* used by phones, remote controls, */
+/* and other keypads */
+0x209    NUMERIC_[0-9]
+
+____________________
+Mouse buttons: BTN_*
+0x110-0x114 [LEFT = MOUSE|RIGHT|MIDDLE|SIDE|EXTRA]
+0x115-0x116 [FORWARD|BACKWARD]
+
+
 	https://wiki.archlinux.org/title/Udev#Keyboard_devices
 	https://github.com/systemd/systemd/blob/8df624bfdd658a68cf51825e30f60a39d34558da/hwdb.d/60-keyboard.hwdb#L60-L91
 	https://wiki.archlinux.org/title/Keyboard_input#Identifying_scancodes
