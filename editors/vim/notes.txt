@@ -1260,6 +1260,14 @@ prefixes:
 		EXquote the escaped value
 	f-args
 		Take arguments as escaped strings to allow function calling.
+
+NOTE: commands are run in the scope of the script they were created in.
+As a result, putting something like "expand('<SID>')" whether as part of the
+command or as part of the argument will always resolve to the script the command
+was defined in.  If <SID> of the caller is required, it must be passed in
+separately, probably by using :exec so that the <SID> is evaluated in the caller
+scope before being passed to the command.
+
 ==============
 -1.4.x- others
 ==============
