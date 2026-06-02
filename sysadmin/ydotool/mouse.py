@@ -254,7 +254,7 @@ def run(args, ydotool):
             counts = range(args.count)
         else:
             counts = itertools.count()
-        for i in counts
+        for i in counts:
             eprint('reps:', reps)
             reps += 1
             for lno, line in enumerate(lines):
@@ -293,7 +293,7 @@ if __name__ == '__main__':
     p = argparse.ArgumentParser()
     p.add_argument('fname', help='macro file to run or record.')
     p.add_argument('-r', '--record', help='record a script.', action='store_true')
-    p.add_argument('-c', '--ocunt', type=int, default=0)
+    p.add_argument('-c', '--count', type=int, default=0)
     p.add_argument(
         '--repeat', default = '', help='repeat delay, SS, HH:MM, or HH:MM:SS (each can be float)'
     )
