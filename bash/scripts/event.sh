@@ -70,12 +70,33 @@ daystamps() # [start=0] [stop=start+7] [date=now]
 schedule_event_reminders() # timestamp=EPOCHSECONDS
 {
 	local fname="${1:-"${HOME}/.events"}"
-	[[ -f "${fname}" ]] || return
+	if ! [[ -f "${fname}" ]]
+	then
+		printf >"${fname}" '%s\n' \
+		'#!/bin/bash' \
+		'' \
+		'# events: repeating bash array of: base period time message' \
+		'# base: base timestamp (use daystamps to find base daily timestamps.)' \
+		'# period: periodicity of the event' \
+		'#         daily weekly biweekly onetime' \
+		'#         math expr' \
+		'#         -1: one time only' \
+		'# time: HH:MM' \
+		'# message: a single string message argument.' \
+		'local events=(' \
+		')'
+		return
+	fi
+	local daily=$((60*60*24))
+	local weekly=$((daily*7))
+	local biweekly=$((weekly*2))
+	local onetime=-1
+	local now="${EPOCHSECONDS}"
+
 	. "${fname}"
 	local cleanup=()
 	local pending=()
 	local i
-	local now="${1:-${EPOCHSECONDS}}"
 	for ((i=0; i<${#events[@]}; i+=4))
 	do
 		local remainder=$((now-events[i]))
@@ -89,7 +110,7 @@ schedule_event_reminders() # timestamp=EPOCHSECONDS
 			if ((remainder < "(1${time%%:*}-100)" * 60*60 + "(1${time##*:}-100)" * 60))
 			then
 				pending+=("${events[@]:i+2:2}")
-			elif ((events[i+1] < 0))
+			elif ((events[i+1] <= 0))
 			then
 				cleanup+=("${events[@]:i:i+4}")
 			fi
@@ -118,7 +139,7 @@ schedule_event_reminders() # timestamp=EPOCHSECONDS
 			local j
 			for ((j=0; j<"${#lines[@]}"; ++j))
 			do
-				if [[ "${lines[j]}" = *([[:blank:]])"${cleanup[i]}"*"${cleanup[i+2]}"* ]]
+				if [[ "${lines[j]}" = *([[:blank:]])"${cleanup[i]}"*"${cleanup[i+1]}"*"${cleanup[i+2]}"* ]]
 				then
 					candidates+=("${j}")
 				fi
