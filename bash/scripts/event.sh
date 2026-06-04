@@ -42,7 +42,7 @@ daystamps() # [start=0] [stop=start+7] [date=now]
 	stop="${stop:-start+7}"
 
 	local epochsec weekday year month day hour minute second
-	date '+%u %Y %m %d 1%H 1%M 1%S' -d "${now:-now}"
+	date '+base: %A %Y/%m/%d %H:%M:%S' -d "${now:-now}"
 	read epochsec weekday year month day hour minute second < <(date '+%s %u %Y %m %d 1%H 1%M 1%S' -d "${now:-now}")
 	local today=$((epochsec - ((hour-100)*60*60 + (minute-100)*60 + (second-100))))
 
@@ -56,15 +56,21 @@ daystamps() # [start=0] [stop=start+7] [date=now]
 		Sunday
 	)
 
-	for ((i=start; i<stop; ++i))
-	do
-		if ((datetime))
-		then
-			date '+%9A: %s : %Y-%m-%d %H:%M:%S' -d "@$((today + i*(24*60*60)))"
-		else
+	local i
+	if ((datetime))
+	then
+		local stamps=()
+		for ((i=start; i<stop; ++i))
+		do
+			stamps+=("@$((today + i*24*60*60))")
+		done
+		date '+%9A: %s : %Y-%m-%d %H:%M:%S %z' -f <(printf '%s\n' "${stamps[@]}")
+	else
+		for ((i=start; i<stop; ++i))
+		do
 			printf '%9s: %d\n' "${weekdays[(weekday + i - 1)%7]}" "$((today + i*(24*60*60)))"
-		fi
-	done
+		done
+	fi
 }
 
 schedule_event_reminders() # timestamp=EPOCHSECONDS
