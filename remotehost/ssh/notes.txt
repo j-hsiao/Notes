@@ -430,6 +430,9 @@ Useful options
 		file containing trusted CA keys.  Any key signed by one of these
 		CAs can be used to login using any of the given "principals" in the
 		key.
+	RevokedKeys
+		file of revoked public keys or none.  List of catted public keys
+		OR a krl
 
 	-----------
 	permissions

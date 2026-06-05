@@ -85,61 +85,68 @@ they are NOT the same as the certificates created by openssl
 =============
 -1.3- signing
 =============
--h
-	make a host cert instead of user cert
--I
-	an ID
-	creating a cert: a (human readable) name for the cert
-	match/verify: signer identity
+-I certname -s cakey [-hU] [-D pkcs11_provider] [-n principals] [-O option] [-V validity] [-z serial] files_to_sign...
+	-h
+		make a host cert instead of user cert
+	-I
+		an ID
+		creating a cert: a (human readable) name for the cert
+		match/verify: signer identity
 
--n principal1,principal2,...
-	Specify principals (user/hostnames) for cert
--O option
-	options for action.  multiple -O for multiple options
-	CERTIFICATES
-		TODO: CERTIFICATES section options
-		hashalg=alg
-		print-pubkey
-		verify-time=timestamp
-	MODULI GENERATION
-	FIDO
-		application
-		challenge=path
-		device
-		no-touch-required
-		resident
-		user
-		verify-required
-		write-attestation=path
--s ca_key
--U
-	CA key is in a ssh-agent (provide the public key to -s)
--V validity-interval
-	[start=now:]end
-	start:
-		always
-		YYYYMMDD[HHMM[SS]]
-		-N[smhdw]: see -3.1- time values
-	end:
-		forever
-		YYYYMMDD[HHMM[SS]]
-		+N[smhdw]: see -3.1- time values
+	-n principal1,principal2,...
+		Specify principals (user/hostnames) for cert
+	-O option
+		options for action.  multiple -O for multiple options
+		CERTIFICATES
+			TODO: CERTIFICATES section options
+			hashalg=alg
+			print-pubkey
+			verify-time=timestamp
+		MODULI GENERATION
+		FIDO
+			application
+			challenge=path
+			device
+			no-touch-required
+			resident
+			user
+			verify-required
+			write-attestation=path
+	-s ca_key
+	-U
+		CA key is in a ssh-agent (provide the public key to -s)
+	-V validity-interval
+		[start=now:]end
+		start:
+			always
+			YYYYMMDD[HHMM[SS]]
+			-N[smhdw]: seconds, minutes hours, days, weeks
+		end:
+			forever
+			YYYYMMDD[HHMM[SS]]
+			+N[smhdw]: seconds, minutes hours, days, weeks
+	-z serial
+		specify serial number for signing, prefix with + to increment
+
 -Y command
-	find-principals
+	-Y actions are all inter-related and should only be used with eachother's output
+	The "signing" here has nothing to do with the above "signing" of a public key to
+	create a certificate.  The "signing" here is creating a "signature file" to
+	certify something about a file (?like a public notary?)
+
+	find-principals [-O option] -s sigfile -f allowed_signers
 		print -s principals found in -f file to stdou
-	match-principals
+	match-principals -I signerid -f allowed_signers
 		find principals matching -I key in the -f file
-	check-novalidate
+	check-novalidate [-O option] -n namespace -s signature
 		Validate a ?signed? "message"
 		message: read from stdin
-		-n signature namespace
-		-s signature
-	sign
+	sign [-O option] -f key -n namespace file...
 		Produce "signature" files for each file in arguments.
 		-f: private key to use (if public key, search ssh-agent for the private key)
 		-n: signature namespace
 			example: "email", "file", generally should be "namespace@your.domain"
-	verify
+	verify [-O option] -f allowed_signers -I signerid -n namespace -s sigfile -r revoclist
 		verify a signature and message.
 		stdin: the message file given to -Y sign
 		-n signature namespace match -Y sign
@@ -147,8 +154,6 @@ they are NOT the same as the certificates created by openssl
 		-I signer name: match name in allowed signers
 		-f allowed signers: see -4-
 		-r revoked keys file
--z serial
-	specify serial number for signing, prefix with + to increment
 
 =================
 -1.4- known_hosts
@@ -161,14 +166,27 @@ they are NOT the same as the certificates created by openssl
 -1.5- KRL
 =========
 Key Revocation List
--k
-	generate KRL file
--Q
+
+-k [-u] -f krlfile [-s publickey] [-z version] sources
+	-k: generate a KRL file
+	-u: update instead of create a new one
+	-s: revoke keys by id or serial number (without requiring the complete original cert)
+	-z: specify a version for the krl
+
+	sources can be public keys OR  "KRL specification files" with format:
+		serial: serial[-serial]
+		id: id
+		key: pubkey
+		sha1: pubkey
+		sha256 pubkey
+		hash: fingerprint
+
+	From experimenting, using id to revoke a key
+	seems to fail..., -Q still shows it being okay
+
+-Q -l -f krlfile checkkey checkkey
 	test if key revoked in a KRL
--u
-	update KRL
--z serial
-	serial = version number
+	-l: show revoked info
 
 ===================
 -1.x- other options
