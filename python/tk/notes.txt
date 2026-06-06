@@ -166,6 +166,8 @@ Contents
 		-2.2.1- Text
 		-2.2.2- Canvas
 			-2.2.2.1- options
+			-2.2.2.2- items
+			-2.2.2.3- commands
 	-2.3- commands
 		-2.3.1- bind
 			-2.3.1.1- modifiers
@@ -2911,8 +2913,79 @@ specific options
 		screen distance, >0 = constrain scrolling to integral multiple of increment.
 		Othrewise, negative to allow unconstrained scrolling
 
+===============
+-2.2.2.2- items
+===============
+common options
+	-anchor anchorPos
+	-dash pattern
+	-activedash pattern
+	-disableddash pattern
+	-dashoffset offset
+	-fill color
+	-activefill color
+	-disabledfill color
+	-outline color
+	-activeoutline color
+	-disabledoutline color
+	-offset offset
+	-outlinestipple bitmap
+	-activeoutlinestipple bitmap
+	-disabledoutlinestipple bitmap
+	-outlineoffset offset
+	-stipple bitmap
+	-activestipple bitmap
+	-disabledstipple bitmap
+	-state state
+	-tags tagList
+	-width outlineWidth
+	-activewidth outlineWidth
+	-disabledwidth outlineWidth
+ARC ITEMS
+	-extent degrees
+	-start degrees
+	-style type
+BITMAP ITEMS
+	-background color
+	-activebackground color
+	-disabledbackground color
+	-bitmap bitmap
+	-activebitmap bitmap
+	-disabledbitmap bitmap
+	-foreground color
+	-activeforeground color
+	-disabledforeground color
+IMAGE ITEMS
+	-image name
+	-activeimage name
+	-disabledimage name
+LINE ITEMS
+	-arrow where
+	-arrowshape shape
+	-capstyle style
+	-joinstyle style
+	-smooth smoothMethod
+	-splinesteps number
+OVAL ITEMS
+POLYGON ITEMS
+	-joinstyle style
+	-smooth boolean
+	-splinesteps number
+RECTANGLE ITEMS
+TEXT ITEMS
+	-angle rotationDegrees
+	-font fontName
+	-justify how
+	-text string
+	-underline
+	-width lineLength
+WINDOW ITEMS
+	-height pixels
+	-width pixels
+	-window pathName
+
 ==================
--2.2.2.2- commands
+-2.2.2.3- commands
 ==================
 ____________________________
 addtag tag searchspec arg...
@@ -2927,6 +3000,16 @@ addtag tag searchspec arg...
 		enclosed x1 y1 x2 y2: inside bbox
 		overlapping x1 y1 x2 y2: overlap with bbox
 		withtag tagOrId: all items with tagOrId
+
+bbox tagOrId ...
+	Return {left top right bottom} bounding box that contains all named
+	items.
+
+bind tagOrId seq cmd
+	bind, except for the item.
+	all matching bindings are invoked.
+	'all' tag, bindtags, and then id bindings in order.
+	canvas bindings happen AFTER item bindings
 
 
 ==============
