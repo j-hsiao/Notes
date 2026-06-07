@@ -168,6 +168,10 @@ Contents
 			-2.2.2.1- options
 			-2.2.2.2- items
 			-2.2.2.3- commands
+				-2.2.2.3.1- coordinates
+				-2.2.2.3.2- modify
+				-2.2.2.3.3- select
+				-2.2.2.3.x- others
 	-2.3- commands
 		-2.3.1- bind
 			-2.3.1.1- modifiers
@@ -2987,8 +2991,39 @@ WINDOW ITEMS
 ==================
 -2.2.2.3- commands
 ==================
+canvaswidgetpathname command args...
+stacking order is back to front.
+
+____________________
+bind tagOrId seq cmd
+	bind, except for the item.
+	all matching bindings are invoked.
+	'all' tag, bindtags, and then id bindings in order.
+	canvas bindings happen AFTER item bindings
+
+=======================
+-2.2.2.3.1- coordinates
+=======================
+________________
+bbox tagOrId ...
+	Return {left top right bottom} bounding box that contains all named
+	items.
+_______________________________
+[canvasx|canvasy] coord [gridspacing]
+	canvas x/y coordinate given window x/y coordinate
+	(ex. if scrolled to a certain position)
+____________________
+coords tagOrId [x y ...]
+	query/modify coordinates of the (first matched) item
+	NOTE: rect, ovals, arcs always give ltrb order.
+	Units are always pixels
+==================
+-2.2.2.3.2- modify
+==================
 ____________________________
 addtag tag searchspec arg...
+dtag tagorid [target=tagorid]
+	add|delete tags
 	tag: the tag to add
 	searchspec: which item(s) to add tag to
 		above tagOrId: topmost relevant item
@@ -3000,17 +3035,85 @@ addtag tag searchspec arg...
 		enclosed x1 y1 x2 y2: inside bbox
 		overlapping x1 y1 x2 y2: overlap with bbox
 		withtag tagOrId: all items with tagOrId
+___________________________
+[dchars|rchars] tagorid first [last] [replacement]
+insert tagorid idx txt
+	delete|replace|insert characters|coordinates depending on item type.
+___________________________________________
+create type x y [x y...] [-option value...]
+delete tagorid...
+	Create/delete canvas item
+_________________________
+[lower|raise] tagorid rel
+	lower|raise tagorid in stacking order relative to rel
+__________________
+imove tagorid index x y
+move tagorid dx dy
+moveto tagorid x y
+	Move indexth coordinate of line|polygon to x,y
+	move first coordinate to x, y
+_________________________
+scale tagorid ox oy sx sy
+	Scale objects by sx,sy from ox,oy
+	NOTE: only moves single-coordinate objects like window items,
+	text, images
+_____________
+scan mark x1 y1
+scan dragto x2 y2 [gain=10]
+	move ((x2,y2) - (x1,y1))*gain
+__________________
+[xview|yview] moveto fraction
+[xview|yview] scroll number [units|pages]
+	fraction: set the fraction to left/top of the window
+	units: [x|y]scrollincrement
+	pages: width/height
 
-bbox tagOrId ...
-	Return {left top right bottom} bounding box that contains all named
-	items.
-
-bind tagOrId seq cmd
-	bind, except for the item.
-	all matching bindings are invoked.
-	'all' tag, bindtags, and then id bindings in order.
-	canvas bindings happen AFTER item bindings
-
+==================
+-2.2.2.3.x- others
+==================
+_______________
+gettags tagorid
+	Get tags of an item
+____________
+find spec ...
+	Find items matching spec (see addtag) in stacking order
+____________________________
+select action [tagorid args]
+	text item selection
+	action:
+		adjust tagorid index
+			Set the selection end closest to index as the mobile
+			selection and the opposite end as the anchor.
+		clear
+			clear theselection
+		from tagorid index
+			set the selection anchor
+		item
+			select item containing the selection
+		to tagorid index
+			set selection in chosen item.
+____________
+type tagorid
+	return type of the item
+___________
+cget option
+configure [option [value]] ...
+	get/set option for canvas
+_______________
+focus [tagorid]
+	Get current focus or set keyboard focus
+_____________________
+icursor tagorid index
+	set insertion cursor for text item
+___________________
+index tagorid index
+	Get the indexth item
+_______________________
+itemcget tagorid option
+itemconfigure tagorid [option value...]
+	get/set option for items
+_______________________
+postscript [opt val...]
 
 ==============
 -2.3- commands
