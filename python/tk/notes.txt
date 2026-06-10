@@ -167,6 +167,15 @@ Contents
 		-2.2.2- Canvas
 			-2.2.2.1- options
 			-2.2.2.2- items
+				-2.2.2.2.1- arc
+				-2.2.2.2.2- bitmap
+				-2.2.2.2.3- image
+				-2.2.2.2.4- line
+				-2.2.2.2.5- oval
+				-2.2.2.2.6- polygon
+				-2.2.2.2.7- rectangle
+				-2.2.2.2.8- text
+				-2.2.2.2.9- window
 			-2.2.2.3- commands
 				-2.2.2.3.1- coordinates
 				-2.2.2.3.2- modify
@@ -2945,11 +2954,25 @@ common options
 	-width outlineWidth
 	-activewidth outlineWidth
 	-disabledwidth outlineWidth
-ARC ITEMS
+
+===============
+-2.2.2.2.1- arc
+===============
+create arc l t r b ...
+	ltrb, bounding box containing an oval.
+extra options
 	-extent degrees
+		arclength
 	-start degrees
+		starting position, counter clockwise from x axis to the right
 	-style type
-BITMAP ITEMS
+
+==================
+-2.2.2.2.2- bitmap
+==================
+create bitmap x y ...
+	x,y: position by -anchor
+extra options
 	-background color
 	-activebackground color
 	-disabledbackground color
@@ -2959,34 +2982,78 @@ BITMAP ITEMS
 	-foreground color
 	-activeforeground color
 	-disabledforeground color
-IMAGE ITEMS
+
+=================
+-2.2.2.2.3- image
+=================
+create image x y ...
+	x, y: position by -anchor
+extra options
 	-image name
 	-activeimage name
 	-disabledimage name
-LINE ITEMS
-	-arrow where
-	-arrowshape shape
-	-capstyle style
-	-joinstyle style
-	-smooth smoothMethod
+
+================
+-2.2.2.2.4- line
+================
+create line x1 y1 x2 y2 ... xn yn ...
+	multiple connected line segments
+extra options:
+	-arrow [none|first|last|both]
+	-arrowshape {length diagonal width}
+	-capstyle [butt|projecting|round]
+	-joinstyle [bevel|miter|round]
+	-smooth [true|false|raw|bezier]
+		only true/raw are supported by default.
+		create "splines"
 	-splinesteps number
-OVAL ITEMS
-POLYGON ITEMS
+		when -smooth
+
+================
+-2.2.2.2.5- oval
+================
+create oval l t r b ...
+	oval inscribed in a rectangle
+	same as arc with -extent = 360?
+
+===================
+-2.2.2.2.6- polygon
+===================
+create polygon x1 y1 ... xn yn ...
+	same as line, except a closed shape
+extra options (same as -2.2.2.2.4- line)
 	-joinstyle style
 	-smooth boolean
 	-splinesteps number
-RECTANGLE ITEMS
-TEXT ITEMS
+
+=====================
+-2.2.2.2.7- rectangle
+=====================
+create rectangle l t r b ...
+
+================
+-2.2.2.2.8- text
+================
+create text x y ...
+extra options:
 	-angle rotationDegrees
 	-font fontName
-	-justify how
+	-justify [left|right|center]
 	-text string
 	-underline
 	-width lineLength
-WINDOW ITEMS
+		0 = break at newlines
+		else wrap
+
+==================
+-2.2.2.2.9- window
+==================
+create window x y
+extra options
 	-height pixels
 	-width pixels
 	-window pathName
+		the widget pathname
 
 ==================
 -2.2.2.3- commands
