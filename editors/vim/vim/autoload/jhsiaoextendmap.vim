@@ -30,7 +30,7 @@ function jhsiaoextendmap#ExtendMap(k, mode, extra, before)
 			return mpcmd . dct['lhs'] . ' ' . rhs . extra
 		endif
 	else
-		echo a:mode . 'noremap ' . a:k . ' ' . extra
-		return a:mode . 'noremap ' . a:k . ' ' . extra
+		echo a:mode . 'noremap ' . a:k . ' ' . a:extra
+		return a:mode . 'noremap ' . a:k . ' ' . a:extra
 	endif
 endfunction
