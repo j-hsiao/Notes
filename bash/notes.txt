@@ -1956,9 +1956,18 @@ https://www.gnu.org/software/bash/manual/html_node/Programmable-Completion-Built
 			1
 
 	RETURN
-		Whenever a function or sourced script returns.
+		Any return in the current scope.  (Inludes sourced scripts)
+		NOTE:
+			this includes sourced scripts since sourced scripts execute in the
+			current context.  You can source with some environment variable
+			set and only activate the trap if the env is not set.
+			example:
+				trap '((sourcing)) || dosomething' RETURN
+				sourcing=1 . somescript
+			Returning from somescript will not result in the trap being activated.
+
 		observations:
-			Any successful commands do not override the return code.
+			Any successful commands in the trap do not override the return code.
 			(except explicit return ${newcode})
 	EXIT
 		whenever the current bash process exits.
