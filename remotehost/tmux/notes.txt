@@ -674,6 +674,7 @@ resizep | resize-pane [-DLMRTUZ] [-t target-pane] [-x width] [-y height] [adjust
 	-T: trim lines
 selectp | select-pane [-DdeLlMmRUZ] [-T title] [-t target-pane]
 	-DLRU: move down/left/right/up
+	-mM: set/unset mark
 	-l: the last pane
 	-ed: enable/disable pane input
 	-T: change the title
