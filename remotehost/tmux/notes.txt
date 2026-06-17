@@ -689,9 +689,12 @@ splitw | split-window [-bdfhIvPZ] [-c start-directory] [-e environment]
 	-Z: keep zoom
 	cmd: run the command in the new pane, otherwise start a shell.
 swapp | swap-pane [-dDUZ] [-s src-pane] [-t dst-pane]
+	does NOT remove the mark
+	Move to src pane (marked pane location.)
 	-UD: numerical neighbor up/down
-	-d: don't change active pane
+	-d: don't change pane location (switch to the source pane)
 	-Z: keep zoom
+
 
 
 breakp | break-pane
@@ -759,7 +762,13 @@ respawnp | respawn-pane
 respawnw | respawn-window
 rotatew | rotate-window
 selectw | select-window
-swapw | swap-window
+swapw | swap-window -d [-swin] [-twin]
+	swap target and source window.
+	Maintain the current window location index. (-s window becomes active)
+		-s: default to marked window
+		-t: default to current window
+		-d: make -t the active window instead
+		    (BUT, experimentation, it seems like -d does nothing...)
 unlinkw | unlink-window
 
 ==============
