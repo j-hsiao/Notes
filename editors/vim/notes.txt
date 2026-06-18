@@ -340,7 +340,9 @@ There are also special motions that can be used after an operator (like d)
 =================
 C-f|C-d|C-e     down 1-screen|half-screen|1-line
 C-b|C-u|C-y     up 1-screen|half-screen|1-line
-z<t|z|b>        scroll current line to top|middle|bottom of screen
+z<t|z|b>        scroll current line to top|top|middle|bottom of screen
+z<<CR>|.|->     Same as t,z,b except move cursor to first non-blank
+zN<CR>          Set height to the given N count
 z[H|L]          scroll left|right half-screen
 z[h|l]          scroll left|right char
 z[s|e]          scroll current column to left|right of screen
