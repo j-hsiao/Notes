@@ -1,0 +1,15 @@
+https://wiki.videolan.org/UnixCompile#Compilation
+
+-1- installation
+
+================
+-1- installation
+================
+git clone https://code.videolan.org/videolan/vlc.git
+
+./boostrap
+./configure --prefix=/path/to/install/folder
+make
+make install
+make uninstall
+make clean
