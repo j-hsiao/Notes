@@ -1,6 +1,7 @@
 -1- installation
 	-1.1- installer
 	-1.2- manual
+-2- recovery
 
 https://wiki.archlinux.org/title/Installation_guide
 
@@ -164,3 +165,21 @@ gpg --verify archlinux-2025.08.01-x86_64.iso.sig archlinux-2025.08.01-x86_64.iso
 	things to check:
 	wifi
 	settings->region&language->language
+
+============
+-2- recovery
+============
+The target install device should be mounted to /mnt/archinstall
+archinstall = system partition
+archinstall/boot = the efi partition
+archinstall/home = home partition
+
+pacstrap root packages...
+install packages to the file system mounted at root.
+SIDENOTE:
+	pacman requires libicuuc 76*, but pacman -Ss shows libicuuc 78*
+	If you install 78, then pacman and many many things WILL fail.
+	Instead, boot up the live usb installation media.
+	Then just copy /usr/lib/libicuuc*76 to the target partition.
+	This seems to have fixed the installation without requiring
+	a full reinstall.
