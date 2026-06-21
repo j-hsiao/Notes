@@ -1,15 +1,58 @@
 -1- pulse
+	-1.1- pactl
 -2- pipewire
 
-------------------------------
+=========
 -1- pulse
-------------------------------
+=========
 pulse operates similar to X.
 There is a server, clients connect to server to play sound.
 
-------------------------------
+sinks: outputs (speakers)
+sources: inputs (microphone)
+
+---------------------
+Recording pulse audio
+---------------------
+paactl list short sources
+number  name    otherdata info stuff...
+
+name is probably something like
+alsa_[input|output].pci-XXXXX....analog-stero[.monitor]
+
+To record, pick one of the "output" ones
+
+===========
+-1.1- pactl
+===========
+pactl command args...
+
+Can use @DEFAULT_SINK@ @DEFAULT_SOURCE@ and @DEFAULT_MONITOR@
+
+list [short] [modules|sinks|sources|sink-inputs|source-outputs|clients|samples|cards|message-handlers]
+
+get-default-sink
+get-default-source
+
+set-default-sink [sink]
+set-default-source [source]
+
+
+
+------------------
+Set default source
+------------------
+pactl set-default-source SOURCE-NAME
+
+NOTE: get-default-source has a value, but
+ffmpeg -f pulse -i default keeps failing...
+
+
+pavucontrol (gui)
+
+============
 -2- pipewire
-------------------------------
+============
 pipewire is successor to pulse audio
 
 configs in
