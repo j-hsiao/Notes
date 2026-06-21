@@ -1,0 +1,35 @@
+-1- arch
+	-1.1- AUR
+
+========
+-1- arch
+========
+=========
+-1.1- AUR
+=========
+nvidia-580xx-dkms
+nvidia-580xx-utils
+nvidia-580xx-setting
+
+
+=======
+nouveau
+=======
+find /sys -name 'pwm1_enable'
+
+replace hwmon* with 'driver'
+readlink resulting path to check if it's nouveau
+
+pwm1_enable can be
+-1 not supported
+0 none
+1 manual
+2 auto
+
+pwm1 to the % (40=40%)
+
+/etc/modprobe.d
+/usr/lib/modprobe.d
+
+serach for "blacklist nouveau"
+turn it off to use nouveau

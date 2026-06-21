@@ -1,6 +1,9 @@
 -0- about
 -1- options
 -2- keys
+-3- config
+-4- AUR
+	-4.1- yay
 
 =========
 -0- about
@@ -48,3 +51,50 @@ To reset keys:
 
 refresh keys:
 	pacman-key --refresh-keys
+
+==========
+-3- config
+==========
+/etc/pacman.conf
+[options]
+IgnorePkg = globpatterns of packages to ignore
+
+=======
+-4- AUR
+=======
+
+steps:
+-------------------
+acquire the source:
+-------------------
+git clone https://aur.archlinux.org/package_name.git
+or download a snapshot on the aur page
+------
+verify
+------
+cd pkgname
+less PKGBUILD
+search for .sig/.asc etc
+-----
+build
+-----
+makepkg
+	-s/--syncdeps     install deps
+	-i/--install      install on success
+	-r/--rmdeps       uninstall deps (deps may be required for upgrade etc)
+-------
+install
+-------
+pacman -U name.pkg.tar.zst
+
+
+
+=========
+-4.1- yay
+=========
+yay is a package manager that handls pacman (core/extra)
+as well as the AUR.
+
+To use the aur
+git clone https://aur.archlinux.org/yay.git
+check, build etc
