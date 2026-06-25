@@ -5,15 +5,25 @@
 
 if [[ "${BASH_SOURCE[0]}" = "${0}" ]]
 then
-	src="${1%/}"
-	dst="${2:-${src##*/}}"
-	if mount "${src}" "${dst}" -o bind
-	then
-		trap 'trap - EXIT; umount "${dst}"' EXIT
-		echo "Mounted ${src} at ${dst}..."
-		printf "Press enter to cancel..."
-		read
-	fi
+	tbind()
+	{
+		local src="${1%/}"
+		local dst="${2:-${src##*/}}"
+		shift 2
+		if mount "${src}" "${dst}" -o bind
+		then
+			trap 'trap - RETURN; umount "${dst}"' RETURN
+			echo "Mounted ${src} at ${dst}..."
+			if (($#))
+			then
+				tbind "${@}"
+			else
+				printf "Press enter to cancel..."
+				read
+			fi
+		fi
+	}
+	tbind "${@}"
 else
 	if [[ "${BASH_SOURCE[0]}" = /* ]]
 	then
