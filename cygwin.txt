@@ -1,0 +1,137 @@
+-1- cygwin
+-2- mounts
+	-2.1- fstab
+	-2.2- settings
+-x- others
+	-x.1- setfacl
+
+==========
+-1- cygwin
+==========
+Cygwin provides a posix environment on window systems.  It mostly does this by
+wrapping windows apis with posix apis.
+
+==========
+-2- mounts
+==========
+Mounts are determined by /etc/fstab and use cygwin mount/umount.
+
+NOTE: cygwin mount/umount are not quite like unix mount commands.
+The purpose of these are to "mount" windows file systems into the cygwin
+environment:
+	mount windowspath cygwinpath
+
+mount with no arguments lists all the current mounts.
+
+===========
+-2.1- fstab
+===========
+/etc/fstab is used similarly to linux systems but the format is slightly different.
+
+Cygwin fstab has the format:
+	source destination type settings ignored ignored
+
+The last 2 ignored are just to mimic the linux fstab fields freq and passno
+
+type is almost always ignored.  It has 2 special values that are handled separately.
+1. cygdrive (usually mounted at /cygdrive)
+	none /cygdrive cygdrive binary,posix=0,user,noacl 0 0
+
+2. usertemp ()
+	none /tmp usertemp binary,posix=0 0 0
+
+	?This puts %TEMP% to /tmp?
+
+==============
+-2.2- settings
+==============
+[no]acl
+	By default, acl is on, which causes cygwin to use the existing file system's
+	ACLs to implement "real posix permissions" (usually NTFS).
+	However, the "real posix permissions" often does not actually match the file
+	system's ACLs format.  As a result, it can cause permission issues and
+	incompatibilities.  Turning ACL off however, will likely cause issues with
+	various cygwin tools that require permissions, but the resulting files will
+	have no issues on the windows side.
+
+	https://www.cygwin.com/cygwin-ug-net/ntsec.html
+	Cygwin has some permissions issues with windows default NTFS filesystem.
+
+	tldr is that windows permission bits are not quite compatible with posix
+	permission bits.  As a result, there are some incompatibilities.  Generally
+	speaking, just edit /etc/fstab and add 'noacl' to the /cygdrive mount.
+
+	Ex:
+	none /cygdrive cygdrive binary,posix=0,user,noacl 0 0
+
+	This results in cygwin just using normal windows permissions.
+auto
+	ignored
+binary
+	files default to binary mode
+bind
+	Mount a path elsewhere.
+	This takes a an absolute cygwin path and maps it to another cygwin path
+cygexec
+	treat all relevant files as cygwin executable
+dos
+	Treat the filesystem as dos (so filenames are dos-compatible)
+[not]exec
+	treat all files as executable (or not)
+ihash
+	always fake inode numbers rather than use fs inode numbers
+nosuid
+	not implemented
+nouser
+	mount is a system-wide mount
+override
+	force override of immutable mount point
+posix=0|1
+	switch on(1)/off(0) case sensitivity
+sparse
+	Only on NTFS, cygwin does not try to create sparse files.
+text
+	files default to CRLF endings
+user
+	mount is a user mount
+
+==========
+-x- others
+==========
+=============
+-x.1- setfacl
+=============
+setfacl [options...] files...
+Set the ACL settings for the given file
+	-b, --remove-all       remove all extended ACL entries
+	-x, --delete           delete one or more specified ACL entries
+	-f, --set-file         set ACL entries for FILE to ACL entries read
+	                       from ACL_FILE
+	-k, --remove-default   remove all default ACL entries
+	-m, --modify           modify one or more specified ACL entries
+	-n, --no-mask          don't recalculate the effective rights mask
+	    --mask             do recalculate the effective rights mask
+	-s, --set              set specified ACL entries on FILE
+	-V, --version          print version and exit
+	-h, --help             this help text
+
+perms have the format:
+	u[ser]::perm
+	u[ser]:uid:perm
+	g[roup]::perm
+	g[roup]:gid:perm
+	m[ask]:[:]perm
+	o[ther]:[:]perm
+
+perm can be [rwx-] or 0-7
+
+default entries have the form:
+	d[efault]:u[ser]:uid:perm
+	where uid can be user name or the $UID
+
+From simple testing,
+-b and -b -k seem to have no difference...???
+or is -k "default" the default:... permissions? whatever those are...
+
+Anyways, it seems like using -b -k still do not result in an
+identical permissions to simply creating a new file via explorer in windows.
