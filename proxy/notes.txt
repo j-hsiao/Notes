@@ -18,6 +18,35 @@ Machine A and B are on the same internal network
 Machine A can act as a proxy to machine B allowing machine B to access internet through
 machine A.
 
+Proxies generally have 2 types: http(s) and SOCKS
+================
+-0.1- http proxy
+================
+http://proxy.example.com:port
+
+An http proxy can be implemented in various ways:
+1. GET full_url HTTP/1.1
+This is the exact same as a normal http GET, except instead of only the path
+component, the entire url is given.
+
+2. CONNECT full_url HTTP/1.1
+This connects to the proxy server and requests a connection to full_url.
+After an intial response of
+HTTP/1.1 200 OK
+After this, any data sent on the same socket should be forwarded to the
+target and any data received by the server is forwarded to the client.
+
+
+=================
+-0.2- socks proxy
+=================
+socks[4|4a|5]://proxy.example.com:port
+
+In general, OS have a system-level proxy.  Otherwise, applications may have
+their own proxy settings.
+
+An easy way to start a socks proxy is using ssh with -D argument.
+
 
 ------------------------------
 -1- linux
