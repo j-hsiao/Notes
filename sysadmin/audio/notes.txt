@@ -1,6 +1,9 @@
 -1- pulse
 	-1.1- pactl
+		-1.1.1- modules
+			-1.1.1.1- device modules
 -2- pipewire
+	-2.1- modules
 
 =========
 -1- pulse
@@ -10,6 +13,20 @@ There is a server, clients connect to server to play sound.
 
 sinks: outputs (speakers)
 sources: inputs (microphone)
+
+Configs are at:
+	/etc/pulse/default.pa
+	~/.config/pulse/default.pa
+
+
+---------------------
+environment variables
+---------------------
+PULSE_SERVER server connection string
+PULSE_SINK name of sink to use
+PULSE_SOURCE name of source to use
+PULSE_BINARY path of pulseaudio exe
+PULSE_CLIENTCONFIG path for a config file
 
 ---------------------
 Recording pulse audio
@@ -21,6 +38,14 @@ name is probably something like
 alsa_[input|output].pci-XXXXX....analog-stero[.monitor]
 
 To record, pick one of the "output" ones
+
+----------------
+recording source
+----------------
+pactl load-module module-null-sink sink_name=myrecordingsourcename
+
+pactl load-module module-virtual-source source_name=my_record_source \
+	master=myrecordingsourcename.monitor
 
 ===========
 -1.1- pactl
@@ -50,6 +75,82 @@ ffmpeg -f pulse -i default keeps failing...
 
 pavucontrol (gui)
 
+---------------
+-1.1.1- modules
+---------------
+https://www.freedesktop.org/wiki/Software/PulseAudio/Documentation/User/Modules/
+https://docs.pipewire.org/page_pulse_modules.html
+
+man pipewire-pulse-modules
+
+pactl list modules [short]
+pactl load-module modulename [paramname=value...]
+
+------------------------
+-1.1.1.1- device modules
+------------------------
+All device modules have some common arguments:
+	sink_name source_name
+		[a-zA-Z0-9._]\{1,128}
+	format=s16
+	rate=44100
+	channels=2
+	channel_map: A list of comma-separated channel names. The currently
+		defined channel names are: left, right, mono, center, front-left,
+		front-right, front-center, rear-center, rear-left, rear-right, lfe,
+		subwoofer, front-left-of-center, front-right-of-center, side-left,
+		side-right, aux0, aux1 to aux15, top-center, top-front-left,
+		top-front-right, top-front-center, top-rear-left, top-rear-right,
+		top-rear-center, (Default depends on the number of channels and the
+		driver)
+	sink_properties,source_properties (0.9.16+)
+		additional properties
+		same as update-sink-proplist command after sink/source setup
+
+pulse modules:
+	module-pipe-sink
+	module-pipe-source
+	module-null-sink
+	module-alsa-[sink|source]
+	module-alsa-card
+	module-oss
+	module-solaris
+	module-waveout
+	module-combine
+	module-combine-sink
+	module-remap-sink
+	module-remap-source
+	module-tunnel-[source|sink]
+	module-tunnel-sink-new
+	module-tunnel-source-new
+	module-esound-sink
+pipewire pulse modules:
+	alsa [source|sink]
+	always sink
+	combine sink
+	device manager extension
+	device restore extension
+	echo cancel
+	gsettings
+	jackdbus detect
+	ladspa [sink|source]
+	loopback
+	pulseaudio tcp protocol
+	null sink
+	pipe [sink|source]
+	raop discover
+	remap [sink|source]
+	ROC sink [input]
+	ROC source
+	RTP [receiver|sender]
+	Simple TCP Protocol
+	Stream restore extension
+	Switch on Connect
+	Tunnel [Source|Sink]
+	Virtual [Source|Sink]
+	X11 Bell
+	Zeroconf [Discover|Publish]
+
 ============
 -2- pipewire
 ============
@@ -68,6 +169,85 @@ place in a file in ~/.config/pipewire/pipewire-pulse.conf.d/
 		]
 	}
 
+	pulse.cmd = [
+		{ cmd = "load-module" args = "module-null-sink sink_name=foo" flags = [ ] }
+	]
+
 Have environment variable:
 PULSE_SERVER=tcp:127.0.0.1:4713
 to use the pipewire-pulse server.
+
+=============
+-2.1- modules
+=============
+properties: same as pulse device modules
+
+man pipewire-pulse-modules
+
+Man pages prefix module name with pipewire-pulse-
+ex:
+	module-null-sink
+	man page = pipewire-pulse-module-null-sink
+
+--------------
+useful modules
+--------------
+pipewire-pulse-module-null-sink
+	sink_name
+	sink_properties
+	format
+	rate
+	channels
+	channel_map
+pipewire-pulse-module-virtual-sink
+	sink_name
+	sink_properties
+	master
+	channels
+	channel_map
+	use_volume_sharing yes/no
+	force_flat_volume yes/no
+pipewire-pulse-module-virtual-source
+	source_name
+	source_properties
+	master
+	uplink_sink
+	channels
+	channel_map
+	use_volume_sharing
+	force_flat_volume
+
+-------------
+other modules
+-------------
+pipewire-pulse-module-alsa-sink
+pipewire-pulse-module-alsa-source
+pipewire-pulse-module-always-sink
+pipewire-pulse-module-combine-sink
+pipewire-pulse-module-device-manager
+pipewire-pulse-module-device-restore
+pipewire-pulse-module-echo-cancel
+pipewire-pulse-module-jackdbus-detect
+pipewire-pulse-module-ladspa-sink
+pipewire-pulse-module-ladspa-source
+pipewire-pulse-module-loopback
+pipewire-pulse-module-native-protocol-tcp
+pipewire-pulse-module-pipe-source
+pipewire-pulse-module-pipe-sink
+pipewire-pulse-module-raop-discover
+pipewire-pulse-module-remap-sink
+pipewire-pulse-module-remap-source
+pipewire-pulse-module-roc-sink
+pipewire-pulse-module-roc-sink-input
+pipewire-pulse-module-roc-source
+pipewire-pulse-module-rtp-recv
+pipewire-pulse-module-rtp-send
+pipewire-pulse-module-simple-protocol-tcp
+pipewire-pulse-module-stream-restore
+pipewire-pulse-module-switch-on-connect
+pipewire-pulse-module-tunnel-sink
+pipewire-pulse-module-tunnel-source
+pipewire-pulse-module-x11-bell
+pipewire-pulse-module-zeroconf-discover
+pipewire-pulse-module-zeroconf-publish
+pipewire-pulse-module-gsettings
