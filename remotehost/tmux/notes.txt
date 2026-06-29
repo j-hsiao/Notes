@@ -995,6 +995,9 @@ ex:
 	#           List all paste buffers. (All items that have been copied in copy mode.)
 	-           Delete the most recently copied buffer of text.
 	=           Choose which buffer to paste interactively from a list.
+	            t/T/C-t toggle tagv/untag all/tag all
+	            d/D     delete current/tagged
+	            p/P     paste current/tagged
 	Page Up     Enter copy mode and scroll one page up.
 
 	copy/paste mode is how you would scroll up the buffer.
