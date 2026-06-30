@@ -7,6 +7,7 @@ contents
 	-0.5- quiet
 -1- variables
 	-1.1- setting variables
+		-1.1.1- newlines
 	-1.2- expanding variables
 		-1.2.1- Delayed expansion
 		-1.2.2- Parameter expansions
@@ -71,6 +72,8 @@ must be escaped.
 Comments are handled by the REM command.
 REM comment goes here...
 
+%= this is also a comment =%
+
 ===========
 -0.5- quiet
 ===========
@@ -90,10 +93,48 @@ variable.
 
 variable will be the value "  some expression etc"
 
+^ escapes the next value to be literal.
+
+================
+-1.1.1- newlines
+================
+To add a newline to a value, escape the newline at the end (^)
+and then add another newline to complete the command.
+
+Example:
+	set myvar=line1^
+
+
+nextline here
+Because \n escaping happens differently.
+The first \n gets escaped/cancelled/deleted by the ^.
+However, the next character is also a \n, so that gets escaped and
+becomes an "actual" \n.  The final \n completes the command.
+
 =========================
 -1.2- expanding variables
 =========================
 Variables are expanded using %varname%.  This happens AT THE TIME OF PARSING.
+Suppose LF variable has a single newline.  Then the line:
+	set something%LF%whatever
+gets parsed as:
+	set something
+	whatever
+
+However, the (unescaped) newline ends the set command so the whatever
+is completely lost.
+
+Likewise:
+	set variable=line1^
+
+line2
+
+the variable has the value "line1\nline2"
+However, `echo %variable%` gets parsed as:
+	echo line1
+	line2
+
+so only line1 gets echoed.
 
 Example:
 	set x=1         -> x is 1
@@ -106,6 +147,7 @@ Example:
 	The `echo %x%` is parsed as part of the parentheses expression.
 	This means that `set x=2` has not run yet.  As a result, It is
 	parsed as literally `echo 1` which is why it echos 1 instead of 2.
+
 
 
 =========================
@@ -176,6 +218,7 @@ IF [/I] str1 cmp str2 command
 
 	Comparisons are "generic", default to string comparison, but if both
 	strings are ints, switch to int comparison
+	/I means case insensitive
 
 IF CMDEXTVERSION number command
 IF DEFINED variable command
@@ -184,6 +227,11 @@ IF DEFINED variable command
 -3- for
 =======
 for is a command.  Use `for /?` for more info
+
+Each line is parsed (split with delims option) and assigned sequential to
+single-letter variables starting with %var.  Thus, there is a maximum 26
+variables for a single for command.  The variables are case sensitive and
+global, so there can be at most 52 variables (?if for was nested?)
 
 REMEMBER: because of special % meaning in batch script, any % must be escaped using %%.
 (see -0.3-)

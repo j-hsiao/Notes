@@ -7,6 +7,7 @@ powershell is one of the shells available by default on windows.
 -1- utilities
 	-1.0- -Command
 	-1.1- Start-Process
+-x- other
 
 ------------------------------
 -0- syntax
@@ -203,3 +204,8 @@ powershell is one of the shells available by default on windows.
 		-NoNewWindow|-nnw
 	example:
 		start py -Args "-c ""print('hello'); input()"""
+
+=========
+-x- other
+=========
+(Get-CimInstance Win32_OperatingSystem).LastBootUpTime
