@@ -27,20 +27,108 @@ mount with no arguments lists all the current mounts.
 -2.1- fstab
 ===========
 /etc/fstab is used similarly to linux systems but the format is slightly different.
+Cygwin simulates posix permissions using existing ACLs but the bit ordering will
+be different from windows which can cause issues.
+
+Automatic mount points:
+	C:/cygwin64 -> /
+	C:/cygwin64/bin -> /usr/bin
+	C:/cygwin64/lib -> /usr/lib
 
 Cygwin fstab has the format:
 	source destination type settings ignored ignored
+
+source is usually a windows-style path (ex. C:/...)
+	However, it can also be a cygwin-like path (result is like mount -o bind)
+destination must be a FULL posix path, testing with relative paths seems to result
+	in failure.  NOTE: these mounts are within the cygwin dll.  They are not visible
+	from windows.
+	Examples:
+		mount C:/somepath notexist
+			-> warning notexist does not exist AND failure "invalid argument"
+			   complete failure, does not result in a visible file.
+		mount C:/somepath ~/notexist
+			-> warning notexist does not exist
+			   succeeds in mounting, cygwin can see the ~/notexist, but windows cannot.
 
 The last 2 ignored are just to mimic the linux fstab fields freq and passno
 
 type is almost always ignored.  It has 2 special values that are handled separately.
 1. cygdrive (usually mounted at /cygdrive)
-	none /cygdrive cygdrive binary,posix=0,user,noacl 0 0
+	none /cygdrive cygdrive binary,posix=0,user 0 0
 
 2. usertemp ()
 	none /tmp usertemp binary,posix=0 0 0
-
 	?This puts %TEMP% to /tmp?
+
+-------
+options
+-------
+acl/noacl
+	Cygwin uses/ignores the filesystem's access control lists (ACLs) to
+	implement real POSIX permissions (default).
+  acl:This flag only affects filesystems supporting ACLs (NTFS, for instance) and
+		is ignored otherwise.
+	noacl: This behaviour is the default on FAT and FAT32.  The flag is
+		ignored on NFS filesystems.  Without acl, then assumptions must be made:
+			1. files ending with executable permissions are executable (.exe, .com, .lnk)
+			2. files starting with "#!", "MZ", or ":\n" are executable too (scripts?)
+			3. exec/noexec options set all files under the mountpoint as corresponding type.
+		Other files check the dos READONLY attr to determine whether the file is r or rw.
+	Note1
+		With acl, then
+			1. touch somefile
+			2. open windows explorer, check somefile options, security tab
+			3. "The permissions on somefile are incorrectly ordered, which may cause some entries to be ineffective."
+		Without acl, then there is no problem.
+	NOTE2:
+		It seems like whatever the /cygdrive mount options are, in home dir,
+		touch somefile doesn't seem to have this issue.
+auto
+	Ignored.
+binary
+	Files default to binary mode (default).
+bind
+	Allows to remount part of the file hierarchy somewhere else.
+	In contrast to other entries, the first field in the fstab
+	line specifies an absolute POSIX path.  This path is remounted
+	to the POSIX path specified as the second path.  The conversion
+	to a Win32 path is done on the fly.  Only the root path and
+	paths preceding the bind entry in the fstab file are used to
+	convert the POSIX path in the first field to an absolute Win32
+	path.  Note that symlinks are ignored while performing this path
+	conversion.
+cygexec
+	Treat all files below mount point as cygwin executables.
+dos
+	Always convert leading spaces and trailing dots and spaces to
+	characters in the UNICODE private use area.  This allows to use
+	broken filesystems which only allow DOS filenames, even if they
+	are not recognized as such by Cygwin.
+[no]exec
+	Treat all files below mount point as [not] executable.
+ihash
+	Always fake inode numbers rather than using the ones returned
+	by the filesystem.  This allows to use broken filesystems which
+	don't return unambiguous inode numbers, even if they are not
+	recognized as such by Cygwin.
+nosuid
+	No suid files are allowed (currently unimplemented).
+[no]user
+	Mount is a [system-wide|user] mount.
+override
+	Force the override of an immutable mount point (currently "/").
+posix=0|1
+	set case sensitivity of the file mounted filesystem.
+sparse
+	Switch on support for sparse files.  This option only makes
+	sense on NTFS and then only if you really need sparse files.
+	This flag is always silently enabled on SSD drives.
+	Cygwin does not try to create sparse files by default for
+	performance reasons.
+text
+	Files default to CRLF text mode line endings.
+
 
 ==============
 -2.2- settings
