@@ -41,6 +41,9 @@ autoclick() # count [unit=10]
 				if [[ "${1}" = @(0|[1-9]*([0-9])) ]]
 				then
 					count="${1}"
+				elif bash -c "count=\$((${1}))"
+				then
+					count=$(($1))
 				else
 					printf 'Bad count %s\n' "${1}"
 					return
