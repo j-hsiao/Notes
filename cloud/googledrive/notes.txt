@@ -1,0 +1,90 @@
+https://developers.google.com/workspace/drive/api/guides/manage-uploads
+
+-1- authorization
+-2- upload
+-2.1- simple
+-2.2- multipart
+-2.3- resumable
+-3- download
+
+=================
+-1- authorization
+=================
+==========
+-2- upload
+==========
+============
+-2.1- simple
+============
+small file (5mb)
+===============
+-2.2- multipart
+===============
+small file (5mb) + metadata
+
+
+===============
+-2.3- resumable
+===============
+___________________________________________________________________
+1. Send the initial request and retrieve the resumable session URI.
+
+	POST https://www.googleapis.com/upload/drive/v3/files?uploadType=resumable
+
+	headers:
+		_____________________
+		X-Upload-Content-Type
+			Optional. Set to the MIME type of the file data, which is transferred in
+			subsequent requests. If the MIME type of the data is not specified in the
+			metadata or through this header, the object is served as
+			application/octet-stream.
+		_______________________
+		X-Upload-Content-Length
+			Optional. Set to the number of bytes of file data, which is transferred in
+			subsequent requests.
+		____________
+		Content-Type
+			Required if you have metadata for the file. Set to
+			application/json; charset=UTF-8.
+		______________
+		Content-Length
+			Required unless you use chunked transfer encoding. Set to the number of
+			bytes in the body of this initial request.
+
+	response has a "Location" header
+	example:
+		HTTP/1.1 200 OK
+		Location: https://www.googleapis.com/upload/drive/v3/files?uploadType=resumable&upload_id=xa298sd_sdlkj2
+		Content-Length: 0
+
+	metadata goes in the request body, if any.
+____________________________________________
+2. Upload the data and monitor upload state.
+	PUT to the Location value (the resumable session uri)
+	set content-length, file contents in body.
+____________________________________________________________
+3. (optional) If the upload is disturbed, resume the upload.
+	a. get status:
+		PUT Locationuri
+		Content-Range: */totalbytes or */*
+		content-length: 0
+
+		response:
+		200 OK / 201 Created -> completed
+		404 not found -> session expired
+		308 resume incomplete -> must continue
+			Check the Range header for bytes received.
+			If absent, assume 0.
+			example:
+				bytes=0-42
+			note: byte range is 0-indexed and inclusive on both ends.
+
+	b. send data
+		PUT ...
+		Content-Range: bytes start-stop
+
+		send bytes, 0-indexed
+
+============
+-3- download
+============
