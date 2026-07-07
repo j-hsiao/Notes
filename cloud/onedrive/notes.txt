@@ -1,0 +1,153 @@
+microsoft onedrive
+
+https://github.com/OneDrive/onedrive-api-docs/blob/live/docs/TOC.md
+https://github.com/abraunegg/onedrive.git
+https://github.com/fkalis/bash-onedrive-upload
+https://learn.microsoft.com/en-us/entra/identity-platform/v2-oauth2-auth-code-flow
+
+-1- concepts
+-1.0- Addressing items
+-1.1- authorization
+-1.1.1- auth code
+-1.1.2- access token
+-1.2- uploading
+-1.2.1- simple item upload
+-1.2.2- resumable upload
+-1.2.3- multipart upload
+-1.2.4- upload from url preview
+-2- code_challenge
+
+
+
+============
+-1- concepts
+============
+======================
+-1.0- Addressing items
+======================
+2 parts:
+	* the resource
+	* the "facet"
+
+url components:
+	1. main url
+	2. toplevel resource (?user?), "me", if authenticated
+	3. drive to use
+		drive: default drive
+		drives/id: specify drive by id
+	4. resource
+		/root:path:
+		/special/documents:path:
+		/items/item-id
+
+		NOTE: make sure to urlencode the path.
+	6. facet
+		/content
+
+examples:
+	https://graph.microsoft.com/v1.0/me/drive/root:/Documents/MyFile.xlsx:/content
+	https://graph.microsoft.com/v1.0/me/drive/special/documents:MyFile.xlsx:/content
+	https://graph.microsoft.com/v1.0/me/drive/items/0123456789AB/content
+	https://graph.microsoft.com/v1.0/me/drives/AB0987654321/items/0123456789AB/content
+
+===================
+-1.1- authorization
+===================
+see cloud/oauth notes.
+
+Authorization typically follows the oauth flow.
+
+register an app with "microsoft identity platform"
+
+authcodes are generally valid for 1 minute.
+access tokens are generally valid for 1 hour.
+refresh tokens are generally valid for 1 day.
+
+tokens and codes are JWT
+tokens can be validated for more security
+NOTE: "public applications don't benefit from validation"
+      ?? "malicious user can intercept/edit keys for validation"
+When validating, it is recommended to check these values:
+	timestamps
+		iat ,nbf ,exp
+	audience: aud should match app id
+	nonce: the nonce during initial /authorize request.
+
+
+
+===============
+-1.2- uploading
+===============
+Each item has "streams" that represent different aspects of the file (ex. thumbnail)
+4 upload apis:
+
+==========================
+-1.2.1- simple item upload
+==========================
+Must be < 4mb
+(but another sources says < 250mb)
+
+permissions:
+	permission type           least               most
+	Delegated (work/school)   Files.ReadWrite     Files.ReadWrite.All, Sites.ReadWrite.All
+	Delegated (personal)      Files.ReadWrite     Files.ReadWrite.All
+	Application               Files.ReadWrite.All Sites.ReadWrite.All
+
+-------
+headers
+-------
+Authorization: "Bearer {token}"
+Content-Type "text/plain. Required"
+
+---------------
+Replace an item
+---------------
+PUT /drives/{drive-id}/items/{item-id}/content
+PUT /groups/{group-id}/drive/items/{item-id}/content
+PUT /me/drive/items/{item-id}/content
+PUT /sites/{site-id}/drive/items/{item-id}/content
+PUT /users/{user-id}/drive/items/{item-id}/content
+
+--------
+new file
+--------
+PUT /drives/{drive-id}/items/{parent-id}:/{filename}:/content
+PUT /groups/{group-id}/drive/items/{parent-id}:/{filename}:/content
+PUT /me/drive/items/{parent-id}:/{filename}:/content
+PUT /sites/{site-id}/drive/items/{parent-id}:/{filename}:/content
+PUT /users/{user-id}/drive/items/{parent-id}:/{filename}:/content
+
+
+-------
+resonse
+-------
+HTTP/1.1 201 Created
+Content-Type: application/json
+
+{
+  "id": "0123456789abc",
+  "name": "FileB.txt",
+  "size": 35,
+  "file": { }
+}
+
+========================
+-1.2.2- resumable upload
+========================
+
+========================
+-1.2.3- multipart upload
+========================
+
+===============================
+-1.2.4- upload from url preview
+===============================
+
+
+
+==================
+-2- code_challenge
+==================
+1. create some random bytes
+2. code_verifier = urlsafe_base64encode(randombytes).rstrip(b'=')
+3. code_challenge is: urlsafe_base64encode(hashlib.sha256(code_verifier).digest()).rstrip(b'=')

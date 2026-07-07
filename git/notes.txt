@@ -1,3 +1,9 @@
+Best practice when first connecting to github is:
+1. verify the fingerprints before accepting
+2. Add public keys to ~/.ssh/known_hosts
+github public keys are at:
+https://docs.github.com/en/authentication/keeping-your-account-and-data-secure/githubs-ssh-key-fingerprints
+
 --------
 contents
 --------

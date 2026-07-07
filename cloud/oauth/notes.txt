@@ -1,0 +1,329 @@
+-0- general
+-0.1- terms
+-1- google
+-2- microsoft
+-2.1- authcode
+-2.1.1- parameters
+-2.1.2- response
+-2.1.3- error codes
+-2.2- access token
+-2.2.1- parameters
+
+===========
+-0- general
+===========
+OAuth is a method for user to login and give an app access to their resources.
+The general steps are:
+1. user requests resource/site login
+2. Send user to authorization server
+3. user logs in
+4. User gets redirected to a redirection uri which the app usually controls
+5. The redirection uri gets the authorization code
+6. Use the code to get access token
+
+===========
+-0.1- terms
+===========
+authorization server: the server that users log into
+authorization code: a number (short lived) that can be used to get a token.
+access token: a medium-lived string used as a key for access to resources
+refresh token: a longer-lived string used to get more access tokens before expiration.
+
+
+==========
+-1- google
+==========
+Google provides libraries:
+
+google-api-python-client
+google-auth-oauthlib
+google-auth-httplib2
+
+It seems like google really pushes using their libraries because there seems to be
+completely 0 documentation on the actual request being sent...
+
+https://developers.google.com/identity/protocols/oauth2
+
+When saving the client secrets etc, a file with extra data is saved.
+Example: for web application:
+	{
+		"web":{
+			"client_id":"the client id from registering the app",
+			"project_id":"mytestproject-501700",
+			"auth_uri":"https://accounts.google.com/o/oauth2/auth",
+			"token_uri":"https://oauth2.googleapis.com/token",
+			"auth_provider_x509_cert_url":"https://www.googleapis.com/oauth2/v1/certs",
+			"client_secret":"the secret fromr egistering the app",
+			"redirect_uris":["http://localhost:8080"]
+		}
+	}
+
+=============
+-2- microsoft
+=============
+https://learn.microsoft.com/en-us/entra/identity-platform/v2-oauth2-auth-code-flow
+
+===============
+-2.1- auth code
+===============
+https://login.microsoftonline.com/{tenant}/oauth2[/v2.0]/authorize
+
+==================
+-2.1.1- parameters
+==================
+Parameters are provided via query string to the authorization uri.
+
+______
+tenant
+	required; the tenant to use: [common|organizations|consumers|tennant ids]
+	This is the first part of the endpoint in the
+	login.microsoft.com/{tenant}/... url
+	Generally use `common`
+_________
+client_id
+	required; the id for the registered application
+	can use d50ca740-c83f-4d1b-b616-12c519384f0c (abraunegg's onedrive app id...)
+_____________
+response_type
+	required; space-delimited string of [code|id_token|token]
+____________
+redirect_uri
+	required; The redirect uri to send info to. It MUST have been registered and
+	match exactly to a registered uri.
+	typical options:
+		https://login.microsoftonline.com/common/oauth2/nativeclient
+		http://localhost
+	It seems like after logging in from the browser, the user will be redirected
+	to this `redirect_uri` with extra query params containing the token or
+	something maybe...  Normally, the redirect_uri would be a link that the
+	application controls.  When the application receives a GET http request, it
+	knows that an authentication result is in the query strings. (or fragment
+	or post, depending on response_mode)
+_____
+scope
+	required; space-separated list of scopes. This seems to be X.permission
+	examples:
+		Files.ReadWrite[.All]
+		Sites.ReadWrite[.All]
+		offline_access
+		openid (required to get an id token)
+		profile
+		email
+_____________
+response_mode
+	recommended; The method to return response information.
+	query: return as ?name=value&name=value... query string, default if only getting code
+	fragment: return as #name=value&name=value..., default if getting id token
+	form_post: use POST method, ?generally the most recommended?
+
+	NOTE: fragment ?is safer? because it does not get sent to any servers, it
+	remains in the browser only.
+______
+prompt
+	optional
+	type of user interaction:
+	login: force login
+	none: try using single-login, return "interaction_required" error if fail
+	consent: triggers permission dialog
+	select_account: choose an account
+__________
+login_hint
+	optional; prespecify user/email, usually from `login_hint` JWT claim of previous sign-in
+___________
+domain_hint
+	optional; similar to login_hint, but use `tid` JWT claim of previous sign-in
+______________
+code_challenge
+	recommended; Client creates a "code_verifier" and sends a hash or some
+	transformation.  The server records the final result and the method.  Client
+	gets an access token, sending the original code_verifier as proof that the
+	client is the original source of the request (server transforms code_verifier
+	using the given method and it should match `code_challenge`)
+_____________________
+code_challenge_method
+	recommended; plain(default)|S256, method to encode `code_verifier`
+_____
+state
+	recommended; a value returned in the token response to prevent cross-site
+	request forgery attacks In the response, it should be identical to the initial
+	request.
+_____
+nonce
+	required for an id token, inside the returned `id_token` as claim in JWT
+
+================
+-2.1.2- response
+================
+code=authorization_code
+id_token=token
+	contains a special `c_hash` JWT claim which is a hash of `code`.
+state=state_from_parameters
+
+===================
+-2.1.3- error codes
+===================
+error=code
+	invalid_request
+	unauthorized_client
+	access_denied
+	unsupported_response_type
+	server_error
+	temporarily_unavailable
+	invalid_resource
+	login_required
+	interaction_required
+error_description=desc
+
+================
+-2.1.4- Examples
+================
+-------
+request
+-------
+// Line breaks for legibility only
+
+https://login.microsoftonline.com/{tenant}/oauth2/v2.0/authorize?
+client_id=00001111-aaaa-2222-bbbb-3333cccc4444
+&response_type=code%20id_token
+&redirect_uri=http%3A%2F%2Flocalhost%2Fmyapp%2F
+&response_mode=fragment
+&scope=openid%20offline_access%20https%3A%2F%2Fgraph.microsoft.com%2Fuser.read
+&state=12345
+&nonce=abcde
+&code_challenge=YTFjNjI1OWYzMzA3MTI4ZDY2Njg5M2RkNmVjNDE5YmEyZGRhOGYyM2IzNjdmZWFhMTQ1ODg3NDcxY2Nl
+&code_challenge_method=S256
+
+After successful login, user gets redirected to a url:
+
+success:
+	GET http://localhost?code=AwABAAAAvPM1KaPlrEqdFSBzjqfTGBCmLdgfSTLEMPGYuNHSUYBrq...&state=12345
+
+success with id_token
+	GET https://login.microsoftonline.com/common/oauth2/nativeclient#
+	code=AwABAAAAvPM1KaPlrEqdFSBzjqfTGBCmLdgfSTLEMPGYuNHSUYBrq...
+	&id_token=eYj...
+	&state=12345
+
+failure:
+	GET http://localhost?error=access_denied&error_description=the+user+canceled+the+authentication
+
+
+==================
+-2.2- access token
+==================
+POST to login.microsoftonline.com/{tenant}/oauth2[/v2.0]/token
+==================
+-2.2.1- parameters
+==================
+Parameters are given as application/x-www-form-urlencoded in the POST body.
+
+extra parameters:
+____
+code
+	the authorization code.
+__________
+grant_type
+	[authorization_code]
+_____________
+code_verifier
+	The original of the `code_challenge` from getting the auth code.
+_____________
+client_secret
+	Only for confidential apps.
+
+_____________________
+client_assertion_type
+	'urn:ietf:params:oauth:client-assertion-type:jwt-bearer' to use a cert
+________________
+client_assertion
+	JWT, signed with the registered cert for app-only mode.
+
+================
+-2.2.2- response
+================
+Response is json
+____________
+access_token
+	used for api
+__________
+token_type
+	`Bearer` only
+__________
+expires_in
+	duration til expiration in seconds
+_____
+scope
+	nonstandard, default value is to use whatever the authorization code says.
+_____________
+refresh_token
+	only if `offline_access` scope is requested.
+________
+id_token
+	only if `openid` scope was requested.
+
+==============
+-2.2.3- errors
+==============
+Errors are returned in json as well, same format as response, but with
+different keys.
+
+error
+	an error code
+	invalid_request
+	invalid_grant
+	unauthorized_client
+	invalid_client
+	unsupported_grant_type
+	invalid_resource
+	interaction_required
+	temporarily_unavailable
+	consent_required
+	invalid_scope
+error_description
+	description
+error_codes
+	list of STS-specific error codes for debugging
+timestamp
+	for debugging
+trace_id
+	for debugging
+correlation_id
+	for debugging
+
+================
+-2.2.4- examples
+================
+-------
+request
+-------
+POST /{tenant}/oauth2/v2.0/token HTTP/1.1
+Host: https://login.microsoftonline.com
+Content-Type: application/x-www-form-urlencoded
+
+client_id=11112222-bbbb-3333-cccc-4444dddd5555
+&scope=https%3A%2F%2Fgraph.microsoft.com%2Fmail.read
+&code=OAAABAAAAiL9Kn2Z27UubvWFPbm0gLWQJVzCTE9UkP3pSx1aXxUjq3n8b2JRLk4OxVXr...
+&redirect_uri=http%3A%2F%2Flocalhost%2Fmyapp%2F
+&grant_type=authorization_code
+&code_verifier=ThisIsntRandomButItNeedsToBe43CharactersLong
+
+--------
+response
+--------
+{
+	"access_token": "eyJ0eXAiOiJKV1QiLCJhbGciOiJSUzI1NiIsIng1dCI6Ik5HVEZ2ZEstZnl0aEV1Q...",
+	"token_type": "Bearer",
+	"expires_in": 3599,
+	"scope": "https%3A%2F%2Fgraph.microsoft.com%2Fmail.read",
+	"refresh_token": "AwABAAAAvPM1KaPlrEqdFSBzjqfTGAMxZGUTdM0t4B4...",
+	"id_token": "eyJ0eXAiOiJKV1QiLCJhbGciOiJub25lIn0.eyJhdWQiOiIyZDRkMTFhMi1mODE0LTQ2YTctOD..."
+}
+
+=============
+-2.3- refresh
+=============
+refresh requests are identical to getting access token with minor differences:
+1. use `refresh_token` instead of `code`
+2. no redirect_uri
+3. grant_type=`refresh_token`
+4. no code_verifier
