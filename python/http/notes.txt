@@ -9,6 +9,57 @@ Basic python http support
 ===========
 Import http with `from python import http`
 
+=============
+-0.1- summary
+=============
+1. use the defaul http server
+2. Subclass BaseHTTPRequestHandler
+	define do_* methods to implement the http methods.
+	Set class attr protocol_version to HTTP/1.X if want 1.0 or 1.1.
+
+	Useful instance attributes:
+		command: GET, POST, etc...
+		path: the http resource path, (will contain querystr)
+		request_version: (although docstring for BaseHTTPRequestHandler says it's just version)
+		close_connection: whether to close connection after return
+		headers: dictlike
+		request/connection: the socket
+		server: the HTTPServer or whatever class used to instantiate this instance.
+	useful instance methods:
+		send_error(code, message, explain)
+		send_response(code, msg) (also adds Host and Date headers)
+		send_response_only(code, msg)
+		send_header(name, val)
+		end_headers()
+		log_message(fmt, *args)
+
+	Other useful/related stuff:
+		urllib.parse.split(url) -> named tuple-like of (scheme, netloc, path, query, fragment)
+		urllib.parse.parse_qs(qstring) -> dict of query: [values]
+		urllib.parse.parse_qsl(qstring) -> list of pairs
+
+3. Instantiate a server with the address and handler class.
+4. either use the server methods to serve requests
+	or do polling independently and use handle_request
+	(?or _handle_request_noblock if applicable?)
+
+	NOTE: TCPServer implements a fileno() method so it can be used directly when polling.
+```
+from http.server import HTTPServer, BaseHTTPRequestHandler
+
+class MyHandler(BaseHTTPRequestHandler):
+	def do_*():
+		self.send_response(code, message)
+		self.send_header(key, value)
+		self.end_headers()
+		self.wfile.write(response)
+		self.connection_close = True/False
+
+server = HTTPServer((host, port), MyHandler)
+poll(server.socket)
+server.handle_request()
+```
+
 ==============
 -1- HTTPServer
 ==============
@@ -316,7 +367,7 @@ methods
 
 		NOTES
 		=====
-		may way to override this and use logging module instead.
+		may want to override this and use logging module instead.
 
 ================
 -3- observations
