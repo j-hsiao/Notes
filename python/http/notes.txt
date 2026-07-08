@@ -37,6 +37,8 @@ Import http with `from python import http`
 		urllib.parse.split(url) -> named tuple-like of (scheme, netloc, path, query, fragment)
 		urllib.parse.parse_qs(qstring) -> dict of query: [values]
 		urllib.parse.parse_qsl(qstring) -> list of pairs
+		urllib.parse.urlencode(qdict_or_tuple) -> querystring
+			(NOTE: if dict, then value is taken literally, for repeated query strings, must use seq of pair.)
 
 3. Instantiate a server with the address and handler class.
 4. either use the server methods to serve requests
