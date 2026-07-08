@@ -55,6 +55,7 @@ redirect_uri
 ==========
 -1- google
 ==========
+Register a client: https://console.developers.google.com
 https://developers.google.com/identity/protocols/oauth2/web-server#httprest_1
 
 Google provides libraries:
@@ -104,7 +105,7 @@ scope:
 There are 3 types of authorization:
 api key
 	access publicly available data
-	https://console.cloud.google.com/apis/credentials and create an api key
+	create an api key after creating a project
 	these only work for public data (ex. shared with everone)
 oauth client id
 	access user data
@@ -172,6 +173,10 @@ include_granted_scopes: if true, then new token also has any previously-granted 
 login_hint: email or sub identifier
 prompt: [none|consent|select_account], if omitted, only prompt on first request.
 
+These ones only appear under the desktop app section:
+code_challenge: urlsafe_b64encode_unpadded(sha256(code_verifier))
+code_challenge_method: plain|S256 (case sensitive!)
+
 ================
 -1.1.2- response
 ================
@@ -196,6 +201,7 @@ client_secret: from registering app
 code: from the query param
 grant_type: must be `authorization_code`
 redirect_uri: any of the configured urls
+code_verifier: urlsafe_base64_unpadded of a string (probably uuid)
 
 optional DPoP header
 
@@ -223,7 +229,7 @@ give `refresh_token` query string.
 ============
 -1.4- revoke
 ============
-https://oauth2.googleapis.com/revoke?token=the_token
+POST https://oauth2.googleapis.com/revoke?token=the_token
 
 revokes a token and corresponding refresh token, removing any granted scopes.
 
