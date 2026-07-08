@@ -22,67 +22,9 @@ the extension is in a separate `fileExtension` property
 =================
 -1- authorization
 =================
-Authentication:
-	Determine who is accessing apis.
-	user
-	app (via settings and credentials)
-
-authorization:
-	permission to do some action
-
-credential
-	a cert, user/password, etc
-
-scope:
-	? do they all start with https://www.googleapis.com/auth?
-	workspace app name, data, permissions
-	example:
-		https://www.googleapis.com/auth/drive.appdata
-
-
-There are 3 types of authorization:
-api key
-	access publicly available data
-	https://console.cloud.google.com/apis/credentials and create an api key
-	these only work for public data (ex. shared with everone)
-oauth client id
-	access user data
-	create a "client": a program that uses apis on behalf of client.
-		web application
-			register redirect urls
-			recommend save json.
-			"Note that client secrets aren't used for web applications"
-		desktop
-			save secret etc.
-service account
-	access ?app-private? data on behalf of users
-
------
-Steps
------
-1. create/register app with google cloud console and define required scopes etc.
-	Go to https://console.developers.google.com/auth/branding
-	create a project
-		if no organization must select external users
-		* app name
-		* user support email
-		* audience
-		* contact info
-		* if external:
-			- add a test user
-	Add scopes:
-		Data Access -> add/remove scopes
-		https://www.googleapis.com/auth/drive[[.appdata|.file|.photos.readonly]]
-
-2. authenticate
-3. request resources
-4. ask for user consent
-5. send approved request
-6. get access token
-7. access resources
-8. refresh if needed
-
-
+Google uses oauth 2.0
+There's no documentation on this besides "use the libraries"
+but from testing, it seems fairly similar to microsoft's methods.
 
 ==========
 -2- upload
