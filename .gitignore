@@ -8,3 +8,4 @@ build
 *.swp
 *.prof
 remotehost/ssh/keys
+cloud/**/*.json

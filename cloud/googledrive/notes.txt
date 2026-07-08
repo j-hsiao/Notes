@@ -15,9 +15,17 @@ https://developers.google.com/workspace/drive/api/guides/manage-uploads
 The base uri for resources is:
 https://www.googleapis.com/drive/v[2|3]
 
-shortcuts must have a MIME: application/vnd.google-apps.shortcut
 Files should be given a `name` with extension, but when getting the file,
 the extension is in a separate `fileExtension` property
+
+----------
+File types
+----------
+shortcut
+	MIME: application/vnd.google-apps.shortcut
+folder
+	MIME: application/vnd.google-apps.folder
+	metadata only
 
 =================
 -1- authorization
@@ -45,6 +53,26 @@ required scopes:
 -2.1- simple
 ============
 small file (5mb)
+
+POST https://www.googleapis.com/upload/drive/v3/files?uploadType=media
+
+file metadata seems to be at minimum:
+{
+  "kind": "drive#file",
+  "id": "some id",
+  "name": "Untitled",
+  "mimeType": "text/plain"
+}
+
+
+-------
+headers
+-------
+content-type
+content-length
+
+body: the file contents
+
 ===============
 -2.2- multipart
 ===============
