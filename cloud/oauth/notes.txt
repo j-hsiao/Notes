@@ -198,6 +198,8 @@ Content-Type: application/x-www-form-urlencoded
 ==================
 client_id: from registering app
 client_secret: from registering app
+	NOTE: docs say this is "optional", but in practice it seems like it is required
+	even if it is not used, regardless of the app type? (both installed and web)
 code: from the query param
 grant_type: must be `authorization_code`
 redirect_uri: any of the configured urls

@@ -129,59 +129,58 @@ def authorize(args):
         data = json.load(f)
     for apptype, settings in data.items():
         print(apptype)
-        if apptype == 'web':
-            pkce = PKCE(args.pkce)#
-            q = {'client_id': settings['client_id']}
-            q['response_type'] = 'code'
-            q['scope'] = ' '.join(args.scopes)
-            q['state'] = uuid.uuid4().hex
-            pkce.challenge(q)#
-            with LocalAuthServer() as server:
-                q['redirect_uri'] = 'http://localhost:{}'.format(server.port())
-                url = '?'.join([settings['auth_uri'], urlparse.urlencode(q)])
-                if webbrowser.open(url):
-                    server.timeout = 60
-                    server.handle_request()
-                    rawqs = server.qs()
-                else:
-                    print('go to this url to provide authorization:')
-                    print(url)
-                    rawqs = urlparse.urlsplit(
-                        input('redirect url after authentication> ')).query
-            if not rawqs:
-                print('Did not receive any authorization.')
-                return
-            req = [
-                ('client_id', settings['client_id']),
-                ('client_secret', settings['client_secret']),
-                ('grant_type', 'authorization_code'),
-                ('redirect_uri', q['redirect_uri']),
-            ]
-            pkce.verify(req)
-            add_auth_code(req, rawqs, q['state'])
-            response = requests.post(settings['token_uri'], data=req)
-            if response.status_code == 200:
-                try:
-                    result = response.json()
-                except Exception:
-                    print('Not json')
-                    print(response.content)
-                    return
-                else:
-                    if args.out:
-                        with open(args.out, 'wb') as f:
-                            f.write(response.content)
-                    return result
-            else:
-                print('Failed to get access token:', response)
-                try:
-                    jresponse = response.json()
-                except Exception:
-                    print(response.content)
-                else:
-                    print(json.dumps(jresponse, indent=4))
-        else:
+        if apptype not in ('web', 'installed'):
             print('  unsupported')
+        pkce = PKCE(args.pkce)#
+        q = {'client_id': settings['client_id']}
+        q['response_type'] = 'code'
+        q['scope'] = ' '.join(args.scopes)
+        q['state'] = uuid.uuid4().hex
+        pkce.challenge(q)#
+        with LocalAuthServer() as server:
+            q['redirect_uri'] = 'http://localhost:{}'.format(server.port())
+            url = '?'.join([settings['auth_uri'], urlparse.urlencode(q)])
+            if webbrowser.open(url):
+                server.timeout = 60
+                server.handle_request()
+                rawqs = server.qs()
+            else:
+                print('go to this url to provide authorization:')
+                print(url)
+                rawqs = urlparse.urlsplit(
+                    input('redirect url after authentication> ')).query
+        if not rawqs:
+            print('Did not receive any authorization.')
+            return
+        req = [
+            ('client_id', settings['client_id']),
+            ('client_secret', settings['client_secret']),
+            ('grant_type', 'authorization_code'),
+            ('redirect_uri', q['redirect_uri']),
+        ]
+        pkce.verify(req)
+        add_auth_code(req, rawqs, q['state'])
+        response = requests.post(settings['token_uri'], data=req)
+        if response.status_code == 200:
+            try:
+                result = response.json()
+            except Exception:
+                print('Not json')
+                print(response.content)
+                return
+            else:
+                if args.out:
+                    with open(args.out, 'wb') as f:
+                        f.write(response.content)
+                return result
+        else:
+            print('Failed to get access token:', response)
+            try:
+                jresponse = response.json()
+            except Exception:
+                print(response.content)
+            else:
+                print(json.dumps(jresponse, indent=4))
 
 if __name__ == '__main__':
     p = argparse.ArgumentParser(formatter_class=argparse.ArgumentDefaultsHelpFormatter)
