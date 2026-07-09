@@ -188,8 +188,11 @@ schedule_event_reminders() # timestamp=EPOCHSECONDS
 		fi
 	fi
 }
-if ! declare -f rem &>/dev/null
+if [[ "${BASH_SOURCE[0]}" = "${0}" ]]
 then
-	. "${BASH_SOURCE[0]%event.sh}remind.sh"
+	if ! declare -f rem &>/dev/null
+	then
+		. "${BASH_SOURCE[0]%event.sh}remind.sh"
+	fi
+	schedule_event_reminders "${@}"
 fi
-schedule_event_reminders "${@}"
