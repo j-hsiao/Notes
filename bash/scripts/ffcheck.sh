@@ -18,21 +18,32 @@ ffcheck() {
 			-q|--quiet) quiet=1;;
 			-p|--play) play=1;;
 			-h|--help)
-				local msg='usage: ffcheck [-q] [-v] [-p] [-h] [-l loglevel] fnames...
+				local msg='usage: ffcheck [-q] [-v] [-p] [-h] [-l loglevel] targets...
 				-q|--quiet: Only show files that had error/warning output.
 				-v|--verbose: print the stderr from the ffmpeg command.
 				-p|--play: Play the file with issues.
 				-h|--help: display this message
-				-l|--loglevel loglevel: Set the loglevel for ffmpeg'
+				-l|--loglevel loglevel: Set the loglevel for ffmpeg
+				targets: fname or dname(find all files under dname)'
 				echo "${msg//$'\t'}"
+				return
 				;;
 			-l|--loglevel) loglevel="$2"; shift;;
 			*)
-				fnames+=("${1}")
+				if [[ -d "${1}" ]]
+				then
+					readarray -d '' -t -O "${#fnames[@]}" fnames < <(find "${1}" -type f -print0)
+				else
+					fnames+=("${1}")
+				fi
 				;;
 		esac
 		shift
 	done
+	if ((!"${#fnames[@]}"))
+	then
+		readarray -d '' -t fnames < <(find . -type f -print0)
+	fi
 	local item
 	for item in "${fnames[@]}"
 	do
