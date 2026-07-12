@@ -1,0 +1,3 @@
+about:config
+	devtools.netmonitor.responseBodyLimit
+	default value is 1048576 (1 MiB)
