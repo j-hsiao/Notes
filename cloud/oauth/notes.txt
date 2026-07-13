@@ -49,8 +49,10 @@ refresh token
 	a longer-lived string used to get more access tokens before expiration.
 redirect_uri
 	After authorization, the server will redirect the browser to this uri.  In
-	general, this can be localhost ?in which case any port is allowed even if
-	not explicitly configured?  If NOT localhost, then port must be fixed.
+	general, this can be:
+	* localhost+ephemeral port
+		- google: just give localhost, all ports are automatically allowed
+	* some domain uri (that your app should control to receive the authorization)
 
 ==========
 -1- google

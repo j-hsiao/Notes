@@ -1,14 +1,23 @@
 """Google oauth2 access tokens."""
 import argparse
 import base64
+import contextlib
 import functools
 import hashlib
 from http.server import HTTPServer, BaseHTTPRequestHandler
 import json
 import requests
+import selectors
+import sys
 from urllib import parse as urlparse
 import uuid
 import webbrowser
+import tkinter as tk
+
+import platform
+if platform.system() == 'Windows':
+    import threading
+    import socket
 
 class PKCE(object):
     def __init__(self, method='S256'):
@@ -68,12 +77,12 @@ class Handler(BaseHTTPRequestHandler):
                 self.send_header('Connection', 'close')
                 self.send_header('Content-Type', 'text/plain')
                 self.end_headers()
-                self.wfile.write(b'authorized, you can close this tab.')
+                self.wfile.write(b'Authorization Successful! You can close this tab.')
                 return
             elif name == 'error':
                 self.send_error(401, None, 'authorization failed: {}'.format(path.query))
                 return
-        self.send_error(400, None, 'no recognized querystrings: {}'.format(path.query))
+        self.send_error(400, None, 'no recognized querystrings: {}'.format(self.path))
 
 class LocalAuthServer(HTTPServer):
     def __init__(self, address=('localhost', 0)):
@@ -87,7 +96,7 @@ class LocalAuthServer(HTTPServer):
         try:
             return self.__queryq[0]
         except IndexError:
-            return None
+            return ''
 
 
 def add_auth_code(req, rawqs, state=None):
@@ -137,18 +146,61 @@ def authorize(args):
         q['scope'] = ' '.join(args.scopes)
         q['state'] = uuid.uuid4().hex
         pkce.challenge(q)#
-        with LocalAuthServer() as server:
+        rawqs = None
+        with contextlib.ExitStack() as stack:
+            server = stack.enter_context(LocalAuthServer())
             q['redirect_uri'] = 'http://localhost:{}'.format(server.port())
-            url = '?'.join([settings['auth_uri'], urlparse.urlencode(q)])
-            if webbrowser.open(url):
-                server.timeout = 60
-                server.handle_request()
-                rawqs = server.qs()
+            url = '?'.join([
+                settings.get('auth_uri', 'https://accounts.google.com/o/oauth2/auth'),
+                urlparse.urlencode(q)])
+
+            # webbrowser.open returns a bool
+            # however, this bool is only whether the process started
+            # not whether it succeeded
+            # Example: call xdg-open successfully => return True
+            # even if there are no browsers to open the url (failed)
+            # so always just take both...
+            print('If browser fails, copy url, authorize, and paste redirected url:')
+            print(url)
+            print('redirected url: ', end='', flush=True)
+            r = tk.Tk()
+            r.withdraw()
+            r.call('clipboard', 'clear')
+            r.call('clipboard', 'append', url)
+            r.update()
+            stack.callback(r.destroy)
+            # It seems if browser is before tk, then the url never gets copied
+            # to the clipboard... not sure why
+            webbrowser.open(url)
+            sel = stack.enter_context(selectors.DefaultSelector())
+            sel.register(server, selectors.EVENT_READ)
+            stack.callback(sel.unregister, server)
+            if platform.system() == 'Windows':
+                r, w = socket.socketpair()
+                def check(sock):
+                    sock.sendall(input().encode('utf-8'))
+                t = threading.Thread(target=check, args=[w])
+                t.daemon = True
+                t.start()
+                f = r.makefile('r')
+                sel.register(r, selectors.EVENT_READ)
+                stack.callback(sel.unregister, r)
+                stack.callback(r.close)
+                stack.callback(w.close)
             else:
-                print('go to this url to provide authorization:')
-                print(url)
-                rawqs = urlparse.urlsplit(
-                    input('redirect url after authentication> ')).query
+                sel.register(sys.stdin, selectors.EVENT_READ)
+                stack.callback(sel.unregister, sys.stdin)
+                f = sys.stdin
+            while rawqs is None:
+                r.update()
+                for key, mask in sel.select(1):
+                    if key.fileobj is server:
+                        server.handle_request()
+                        rawqs = server.qs()
+                        iters = 60
+                    else:
+                        rawqs = urlparse.urlsplit(input()).query
+                        iters = 60
         if not rawqs:
             print('Did not receive any authorization.')
             return
@@ -160,7 +212,7 @@ def authorize(args):
         ]
         pkce.verify(req)
         add_auth_code(req, rawqs, q['state'])
-        response = requests.post(settings['token_uri'], data=req)
+        response = requests.post(settings.get('token_uri', 'https://oauth2.googleapis.com/token'), data=req)
         if response.status_code == 200:
             try:
                 result = response.json()
@@ -184,11 +236,11 @@ def authorize(args):
 
 if __name__ == '__main__':
     p = argparse.ArgumentParser(formatter_class=argparse.ArgumentDefaultsHelpFormatter)
-    p.add_argument('json', help='json file containing [client info|an access token to revoke].')
+    p.add_argument('json', help='json file containing saved google client json info, needs client_id, client_secret, optionally auth_uri, token_uri.')
     p.add_argument('-p', '--pkce', action='store_true', help='add pkce challenge and verifier fields.')
     p.add_argument('-s', '--scopes', nargs='*', default=['https://www.googleapis.com/auth/drive.file'], help='the desired scopes (permissions) to request.')
     p.add_argument('-o', '--out', help='output json access token file', default='accessgoogle.json')
-    p.add_argument('-r', '--revoke', action='store_true', help='`json` conatins an access token to revoke.')
+    p.add_argument('-r', '--revoke', action='store_true', help='revoke access token in `json`.  json should be --out of a previous run.')
     args = p.parse_args()
     if args.revoke:
         revoke(args.json)
