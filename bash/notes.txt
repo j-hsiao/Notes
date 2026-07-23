@@ -1307,8 +1307,13 @@ variables WILL BE CLEANED UP (unset)
 
 NOTE: to use NAME, the {} are required.
 NOTE: coprocs will be automatically waited on at certain points
-such as when a new command is run after it has exited, or at the end
-of a sourced script
+	such as when a new command is run after it has exited, or at the end
+	of a sourced script
+
+NOTE: Coproc might or might not have already exited.  When interacting
+	with the coproc's pipes, if they are already closed, bash might get a
+	SIGPIPE error.  This error will make bash exit.  As a result, when handling
+	coproc, it might be best to use some traps to ignore SIGPIPE.
 
 =========
 -1-regexp
