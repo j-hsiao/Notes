@@ -1,6 +1,8 @@
 https://developers.google.com/workspace/drive/api/guides/manage-uploads
 
--0- resources
+-0- general
+-0.1- resources
+-0.2- scopes
 -1- authorization
 -2- upload
 -2.0- create
@@ -9,9 +11,16 @@ https://developers.google.com/workspace/drive/api/guides/manage-uploads
 -2.3- resumable
 -3- download
 
-=============
--0- resources
-=============
+sidenotes:
+1. api seems to spout some bs about "files.list" method etc.
+	there are no "methods", just different query params etc.
+
+===========
+-0- general
+===========
+===============
+-0.1- resources
+===============
 The base uri for resources is:
 https://www.googleapis.com/drive/v[2|3]
 
@@ -21,11 +30,68 @@ the extension is in a separate `fileExtension` property
 ----------
 File types
 ----------
-shortcut
-	MIME: application/vnd.google-apps.shortcut
-folder
-	MIME: application/vnd.google-apps.folder
-	metadata only
+https://developers.google.com/workspace/drive/api/guides/mime-types
+Besides the typical mime types, google drive also supports these:
+
+"application/vnd.google-apps.*"
+* is replaced with:
+	audio
+	video
+	shortcut: google drive shortcut
+	folder: google drive folder
+	file: google drive file
+	spreadsheet: google sheets
+	document: google docs
+	presentation: google slides
+	vid: google vids
+
+
+--------
+metadata
+--------
+https://developers.google.com/workspace/drive/api/reference/rest/v3/files
+NOTE: "string int" means int as a string, ?because json only supports ints up 53 bits?
+
+_____________________
+list default metadata
+	kind: output only string "drive#file"
+	id: string id, can use "root" for MyDrive.
+	name: string name, retains the file extension, the "fileExtension" metadata
+	      is just splitext (but does not include the dot.)
+	mimeType: string mimetype
+	resourceKey: key for accessing item via shared link
+
+______________
+other metadata
+	driveId: readonly string id for shared drives
+	fileExtension: readonly string
+	size: string int
+	parents: list of parent ids, though only 1 parent is supported
+	         ? did they intend multiple parents = acts like a hard link?
+	         superceded by shortcuts?
+	shared: bool
+	shortcutDetails: {
+		targetId: string id of target
+		targetMimeType: output only string mimetype
+		targetResourceKey: output only
+	}
+
+
+============
+-0.2- scopes
+============
+google drive scopes look like:
+
+	https://www.googleapis.com/auth/*
+
+drive[.readonly]            Your entire drive.
+drive.metadata[.readonly]   File metadata (but not contents) of your drive
+drive.file                  Files created by this app.
+drive.appdata               "app configuration data"
+drive.apps.readonly         View your Google Drive apps??
+drive.meet.readonly         Google Meet files
+drive.photos.readonly       Google photos
+drive.scripts               Modify your Google Apps Script scripts' behavior
 
 =================
 -1- authorization
@@ -132,7 +198,11 @@ ____________________________________________________________
 			Check the Range header for bytes received.
 			If absent, assume 0.
 			example:
-				bytes=0-42
+				start-: start to implicit end
+				start-stop: a range
+				-stop, from the end
+				start-stop, start-stop,...: multi range
+
 			note: byte range is 0-indexed and inclusive on both ends.
 
 	b. send data
@@ -144,3 +214,128 @@ ____________________________________________________________
 ============
 -3- download
 ============
+GET https://www.googleapis.com/drive/v3/files
+
+------------------
+general parameters
+------------------
+fields: list of fields to use
+	default: kind,id,name,mimeType,resourceKey
+	comma separated list
+	use slash for nesting
+	name(fields)
+		? not very clear, does this mean
+		for every object in the "name" attribute of the returned
+		json object, use the requested fields?
+	* for all fields
+fileId: id of file to get, omit to list files instead.
+alt:
+	media: include file contents in body
+	otherwise, return a "files" resource
+acknowledgeAbuse:
+	true: acknowledge risk of malware or ?abusive? files
+
+----------------
+query parameters
+----------------
+q: Search for specific values:
+	([not] term operator values) [[and|or] ...]
+
+	terms: a file field
+		https://developers.google.com/workspace/drive/api/guides/ref-search-terms#file-properties
+		lhs
+			name contains|[!]=
+			fullText contains      searches name, description, indexableText
+			mimeType contains|[!]=
+			modifiedTime <!=>
+			viewedByMeTime <!=>
+			trashed [!]= true|false
+			starred [!]= true|false
+			sharedWithMe [!]= true|false
+			createdTime <!=>
+			properties has
+			appProperties has
+			visibility [!]=
+			shortcutDetails.targetId [!]=
+
+			hidden [!]= true|false
+			memberCount <!=> num
+			organizerCount <!=> number
+			orgUnitId [!]=
+		rhs
+			in parents
+			in owners
+			in writers
+			in readers
+
+	operator: condition
+		https://developers.google.com/workspace/drive/api/guides/ref-search-terms#operators
+		[!]=
+		<[=] >[=]
+		contains
+			name: prefix only
+			fullText: anywhere, underscores treated as spaces
+		in
+		and
+		or
+		not
+		has
+	values: values to use
+		'single-quoted string, escape \\ and single-quote'
+			if spaces in the string, then it should be double-quoted:
+			'"a string with spaces"'
+		'YYYY-mm-ddTHH:MM:SS+/-HH:MM'
+		single-quoted string, (backslash to escape backslash or single quotes)
+		true|false
+		a field
+
+	examples:
+		mimeType = 'application/vnd.google-apps.folder'
+		'someid' in parents
+		'some@email' in owners
+		'some@email' in writers
+		sharedWithMe and name contains 'hello'
+
+------------------
+listing parameters
+------------------
+corpora: [user|domain|drive|allDrives]
+driveId: id of ?shared? drive
+includeItemsFromAllDrives: bool, include shared and MyDrive
+orderBy: comma-delimited list of sort order criteria:
+	[createdTime|folder|modifiedByMeTime|modifiedTime
+	|name|name_natural|quotaBytesUsed|recency|sharedWithMeTime
+	|starred|viewedByMeTime]
+	Add 'desc' to sort descending instead of ascending.
+	ex: '?orderBy=folder,modifiedTime desc,name'
+pageSize: max number of items, max 1000, default 100
+pageToken: string, get next page of a previous list command
+q: string, query for filtering file results
+spaces: string, comma-delimited list of spaces to query within the corpora
+	[drive|appDataFolder]
+supportsAllDrives: bool
+includePermissionsForView: string, 'published'
+includeLabels: string, comma-separated list of labels to put in labelInfo
+
+
+
+
+listing response:
+	{
+		"files": [
+			{objfile}
+		],
+		"nextPageToken": string,
+		"kind": "drive#fileList",
+		"incompleteSearch": bool
+	}
+
+scopes: one of:
+	https://www.googleapis.com/auth/drive
+	https://www.googleapis.com/auth/drive.appdata
+	https://www.googleapis.com/auth/drive.file
+	https://www.googleapis.com/auth/drive.meet.readonly
+	https://www.googleapis.com/auth/drive.metadata
+	https://www.googleapis.com/auth/drive.metadata.readonly
+	https://www.googleapis.com/auth/drive.photos.readonly
+	https://www.googleapis.com/auth/drive.readonly
