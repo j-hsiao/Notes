@@ -12,6 +12,8 @@
 |1.4.2  finite stream
 |1.4.3  merge samples
 |2  covariance
+|3  proportions
+|4  chi2
 |x  miscellaneous
 
 
@@ -451,6 +453,110 @@ E((x-E(x))(y-E(y)))
 NOTE similar to variance formula simplification...
 
 
+
+==============
+|3 proportions
+==============
+probability p
+total observations n
+
+expected values: np
+
+1 proportion t test:
+(p - p0) / sqrt((p(1-p))/n)
+
+
+random variable is 0 or 1, (true/False)
+
+expect np 1s and n(1-p) 0s
+mean = p
+np = sum(x)
+
+x=0 => x**2 = 0
+x=1 => x**2 = 1
+
+sum(x**2) == sum(x)
+
+variance = sum(((xi-m)**2)/n)
+= (1/n) (sum(xi**2 -2xim + m**2))
+= (1/n) (sum(xi**2) -2msum(xi) + sum(m**2))
+= (1/n) (np         -2mnp      + n(m**2))
+= (1/n) (np         -2pnp      + n(p**2))
+= (1/n) (np         -2n(p**2)  + n(p**2))
+= (1/n) (np         -n(p**2))
+= (1/n)n p(1-p)
+
+
+therefore, for a single measurement,
+mean = p, variance = p(1-p)
+
+For sum of N measurements,
+mean = Np, variance = Np(1-p)
+
+========
+|4 chi2
+========
+https://en.wikipedia.org/wiki/Chi-squared_distribution
+The sum of squares of independent standard normal random variables
+
+https://en.wikipedia.org/wiki/Chi-squared_test
+
+----------------------------------------------------
+Chi-squared test for variance in a normal population
+----------------------------------------------------
+https://www.itl.nist.gov/div898/handbook/eda/section3/eda358.htm
+
+for any random variable x, (x-mean) / sigma becomes a standard normal random variable.
+Therefore, for N random variables (in this case, *independent* measurements of same population),
+
+T = sum(((x-mean)/sigma)**2)
+    *note* that sum((x-mean)**2)/(n-1) = variance and sigma is a "constant"
+  = (1/sigma**2) * (n-1)*variance
+  = (1/sigma**2) * (n-1)*(s**2)
+  = (n-1)(s/sigma)**2
+
+---------------------
+categorical variables
+---------------------
+Categorical variables seem to combine the chi2 curve
+(sum of squares of independent random variable)
+with binomial variable with some probability.
+
+for each variable
+mean = np
+variance = np(1-p)
+s = sqrt(v)
+
+Convert each category to standard normal variable: ((x-m)/s)
+take sum of squares:
+sum(((x-m)/s)**2) = sum(((x-m)**2)/v)
+
+but the formula given by the wiki is:
+	sum(((x-m)**2)/m)
+
+but v = m(1-p)
+?where did the (1-p) go?
+
+	----------------------
+	formula simplification
+	----------------------
+	let:
+		k: number of categories
+		pi: probability of category i
+		xi: number of observations for category i
+		n: sum(xi) = total number of observations
+		mi: n*pi = expected number of observations for category i
+
+	Then the chi squared statistic is:
+		sum((xi - mi)**2 / mi)
+		 = sum((xi-mi)(xi-mi) / mi)
+		 = sum((xi**2 - 2ximi + mi**2) / mi)
+		 = sum(xi**2/mi) + sum(-2ximi + mi**2) / mi
+		 = sum(xi**2/mi) + sum(-2xi + mi)
+		 = sum(xi**2/mi) + sum(-2xi + mi)
+		 = sum(xi**2/mi) + -2n + n
+		 = sum(xi**2/mi) + -n
+	This should follow chi squared distribution with k-1 degrees of freedom
 
 =================
 |x miscellaneous
