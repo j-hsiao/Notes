@@ -1,22 +1,23 @@
--1- mean/var
-	-1.0- Alternative variance formulas
-	-1.1- mean properties
-		-1.1.1- scaled values
-		-1.1.2- sum of values
-	-1.2- variance properties
-		-1.2.1- scaled values
-		-1.2.2- sum of values
-	-1.3- sample mean mean/var
-	-1.4- streamed calcs
-		-1.4.1- infinite stream
-		-1.4.2- finite stream
-		-1.4.3- merge samples
--10- miscellaneous
+|1  mean/var
+|1.0  Alternative variance formulas
+|1.1  mean properties
+|1.1.1  scaled values
+|1.1.2  sum of values
+|1.2  variance properties
+|1.2.1  scaled values
+|1.2.2  sum of values
+|1.3  sample mean mean/var
+|1.4  streamed calcs
+|1.4.1  infinite stream
+|1.4.2  finite stream
+|1.4.3  merge samples
+|2  covariance
+|x  miscellaneous
 
 
-------------------------------
--1- mean/var
-------------------------------
+============
+|1 mean/var
+============
 population statistics:
 	population mean = sum of population / population size
 	population variance = (sum of (population - population mean)**2) / population size
@@ -46,397 +47,414 @@ from a population.  Each will have its own mean/variance.  According to the
 Central Limit Theorem, even if the population is not normally distributed, the
 distribution of the sample means (if sample size is large enough) is (at least approximately).
 
-	------------------------------
-	-1.0- Alternative variance formulas
-	------------------------------
-	D*V(N) = sum(x(i)**2)/N - N*X(N)**2
+===================================
+|1.0 Alternative variance formulas
+===================================
+D*V(N) = sum(x(i)**2)/N - N*X(N)**2
 
-	derivation:
-		D(N)*V(N) = sum((X(N) - x(n))**2)
-		          = sum(X(N)**2 - 2 * X(N) * x(i) + x(i)**2)     # Expand the squaring:
-		          = N*X(N)**2 sum(-2 * X(N) * x(i) + x(i)**2)    # X(N) is constant with regards to i:
-		          = N*X(N)**2 + sum(-2*X(N)*x(i)) + Q(N)         # sums are associative
-		          = N*X(N)**2 + -2*X(N)*S(N) + Q(N)
-		          = N*X(N)**2 + -2*X(N)*S(N)*N/N + Q(N)
-		          = N*X(N)**2 + -2N*X(N)*X(N) + Q(N)
-		          = N*X(N)**2 + -2N*X(N)**2 + Q(N)
-		          = -N*X(N)**2 + Q(N)
-		          = Q(N) - N*X(N)**2
-		          = Q(N) - N*(S(N)/N)**2
-		          = Q(N) - (S(N)**2)/N
+derivation:
+	D(N)*V(N) = sum((X(N) - x(n))**2)
+	          = sum(X(N)**2 - 2 * X(N) * x(i) + x(i)**2)     # Expand the squaring:
+	          = N*X(N)**2 sum(-2 * X(N) * x(i) + x(i)**2)    # X(N) is constant with regards to i:
+	          = N*X(N)**2 + sum(-2*X(N)*x(i)) + Q(N)         # sums are associative
+	          = N*X(N)**2 + -2*X(N)*S(N) + Q(N)
+	          = N*X(N)**2 + -2*X(N)*S(N)*N/N + Q(N)
+	          = N*X(N)**2 + -2N*X(N)*X(N) + Q(N)
+	          = N*X(N)**2 + -2N*X(N)**2 + Q(N)
+	          = -N*X(N)**2 + Q(N)
+	          = Q(N) - N*X(N)**2
+	          = Q(N) - N*(S(N)/N)**2
+	          = Q(N) - (S(N)**2)/N
 
-	(sum(i)sum(j)(xi-xj)**2) / (2N*(N-1))
-		This formulation is the average squared difference between any 2 values:
-		n*n differences
-		or n*(n-1) unique differences where i != j
-			n values where i == j, so n*n - n = n*(n-1)
-		where's the 2 come from? not sure... maybe because mean is in the middle?
-		(n-1 is the bessel's correction)
+(sum(i)sum(j)(xi-xj)**2) / (2N*(N-1))
+	This formulation is the average squared difference between any 2 values:
+	n*n differences
+	or n*(n-1) unique differences where i != j
+		n values where i == j, so n*n - n = n*(n-1)
+	where's the 2 come from? not sure... maybe because mean is in the middle?
+	(n-1 is the bessel's correction)
 
-	https://www.probabilisticworld.com/alternative-variance-formulas-derivation/
+https://www.probabilisticworld.com/alternative-variance-formulas-derivation/
 
-	I saw another formula:
-		sum_i(sum_j((xi-X)(xj-X)))/(2N**2)
+I saw another formula:
+	sum_i(sum_j((xi-X)(xj-X)))/(2N**2)
 
-	------------------------------
-	-1.1- mean properties
-	------------------------------
-		X = (x1 + x2 + x3...) / N
-		------------------------------
-		-1.1.1- scaled values
-		------------------------------
-		Considered scaled values: x-> Sx, S is a scalar constant.
-		mean = (Sx1 + Sx2 + Sx3 ...) / N
-		     = (S(x1 + x2 + x3...)) / N
-		     = S * oldmean
+=====================
+|1.1 mean properties
+=====================
+X = (x1 + x2 + x3...) / N
+=====================
+|1.1.1 scaled values
+=====================
+Considered scaled values: x-> Sx, S is a scalar constant.
+mean = (Sx1 + Sx2 + Sx3 ...) / N
+     = (S(x1 + x2 + x3...)) / N
+     = S * oldmean
 
-		Conclusion: mean of scaled is scaled mean.
-		------------------------------
-		-1.1.2- sum of values
-		------------------------------
-		Consider mean of the sum of 2 values, taken from 2 populations.
-		xi = ai + bi
-		mean = (x1 + x2 + x3...) / N
-		     = ((a1 + b1) + (a2 + b2) + ...) / N
-		     = ((a1 + a2...) + (b1 + b2...)) / N
-		     = (a1 + a2...)/N + (b1 + b2...) / N
-		     = Xa + Xb
+Conclusion: mean of scaled is scaled mean.
+=====================
+|1.1.2 sum of values
+=====================
+Consider mean of the sum of 2 values, taken from 2 populations.
+xi = ai + bi
+mean = (x1 + x2 + x3...) / N
+     = ((a1 + b1) + (a2 + b2) + ...) / N
+     = ((a1 + a2...) + (b1 + b2...)) / N
+     = (a1 + a2...)/N + (b1 + b2...) / N
+     = Xa + Xb
 
-		Conclusion: mean of sum is sum of mean
-	------------------------------
-	-1.2- variance properties
-	------------------------------
-	Sum of random variables:
-		------------------------------
-		-1.2.1- scaled values
-		------------------------------
-		X has variance V
-		What is the variance of SX where S is a constant?
-		x1 -> Sx1, x2 -> Sx2...  X -> SX
+Conclusion: mean of sum is sum of mean
+=========================
+|1.2 variance properties
+=========================
+Sum of random variables:
+=====================
+|1.2.1 scaled values
+=====================
+X has variance V
+What is the variance of SX where S is a constant?
+x1 -> Sx1, x2 -> Sx2...  X -> SX
 
-		VD = (Sxi - SX)**2
-		   = (S(xi-X))**2
-		   = (S**2)(xi-X)**2
-		   = (S**2)(VD unscaled)
+VD = (Sxi - SX)**2
+   = (S(xi-X))**2
+   = (S**2)(xi-X)**2
+   = (S**2)(VD unscaled)
 
-		Conclusion: Variance of scaled variable is scaled by the squared scale.
+Conclusion: Variance of scaled variable is scaled by the squared scale.
 
-		------------------------------
-		-1.2.2- sum of values
-		------------------------------
-		x = a+b
+=====================
+|1.2.2 sum of values
+=====================
+x = a+b
 
-		DV = (xi-X)**2
-		   = (a+b - A - B)**2
-		   = ((a-A) + (b-B))**2
-		   = (a-A)**2 + (b-B)**2 + 2(a-A)(b-B)
-		   = DV(a) + DV(b) + Dcov(a,b)
-		
-		cov(a,b) can't really be removed for samples, generally not going to be exactly 0.
-		However, if a and b are uncorrelated variables, then the true cov(a,b) is 0 (even
-		if the sample cov(a,b) is not).
+DV = (xi-X)**2
+   = (a+b - A - B)**2
+   = ((a-A) + (b-B))**2
+   = (a-A)**2 + (b-B)**2 + 2(a-A)(b-B)
+   = DV(a) + DV(b) + Dcov(a,b)
 
-		Conclusion: Sum of uncorrelated variables is the sum of variance.
+cov(a,b) can't really be removed for samples, generally not going to be exactly 0.
+However, if a and b are uncorrelated variables, then the true cov(a,b) is 0 (even
+if the sample cov(a,b) is not).
 
-	------------------------------
-	-1.3- sample mean mean/var
-	------------------------------
-	For testing, usually you want to see whether the sample mean would be very different
-	from expected.  The mean of sample depends on the sample that was chosen, so the
-	mean of sample is also a random variable.  Central Limit Theorem indicates that if the
-	samplesize is sufficiently large, then this (sample mean random variable) is approximately
-	normal.
+Conclusion: Sum of uncorrelated variables is the sum of variance.
 
-	Each value in the sample can be viewed as a random variable that happens to be
-	from the same population (same mean and variance)
+==========================
+|1.3 sample mean mean/var
+==========================
+For testing, usually you want to see whether the sample mean would be very different
+from expected.  The mean of sample depends on the sample that was chosen, so the
+mean of sample is also a random variable.  Central Limit Theorem indicates that if the
+samplesize is sufficiently large, then this (sample mean random variable) is approximately
+normal.
 
-	1. mean of the (mean of samples of size N)
-		x = (x1 + x2 + ...) / N
-		mean of sum is sum of means (-1.1.2-)
-			mean of (x1 + ...) is (X1 + ...) = NX
-		Mean of scaled is scale of the mean. (-1.1.1-)
-			mean of (x1+...)/N is (NX) / N = X
+Each value in the sample can be viewed as a random variable that happens to be
+from the same population (same mean and variance)
 
-		Conclusion: Mean of (mean of samples) is the mean of the population.
+1. mean of the (mean of samples of size N)
+	x = (x1 + x2 + ...) / N
+	mean of sum is sum of means (|1.1.2)
+		mean of (x1 + ...) is (X1 + ...) = NX
+	Mean of scaled is scale of the mean. (|1.1.1)
+		mean of (x1+...)/N is (NX) / N = X
 
-	2. variance of the (mean of samples of size N)
-		x = (x1 + x2 + ...) / N
+	Conclusion: Mean of (mean of samples) is the mean of the population.
 
-		variance of sum is sum of variance (-1.2.2-)
-			variance of (x1 + x2...) is (V1 + V2...) = NV
-		variance of scaled is squared scale of variance (-1.2.1-)
-			variance of (x1 + x2...)/N is (NV) / (N**2) = V / N
+2. variance of the (mean of samples of size N)
+	x = (x1 + x2 + ...) / N
 
-		Conclusion: Variance of (mean of samples) is (variance of population / samplesize)
+	variance of sum is sum of variance (|1.2.2)
+		variance of (x1 + x2...) is (V1 + V2...) = NV
+	variance of scaled is squared scale of variance (|1.2.1)
+		variance of (x1 + x2...)/N is (NV) / (N**2) = V / N
 
-	sidenote:
-		This is where the ttest equation for sd / sqrt(N) comes from:
-			variance of (mean of samples) = V/N
-			SD of (mean of samples):
-				sqrt(V/N)
-				= sqrt(V) / sqrt(N)
-				= sd / sqrt(N)
+	Conclusion: Variance of (mean of samples) is (variance of population / samplesize)
 
-	------------------------------
-	-1.4- streamed calcs
-	------------------------------
-	Sometimes measurements would be "streamed".
-	The samples can grow infinitely or remain finite.
+sidenote:
+	This is where the ttest equation for sd / sqrt(N) comes from:
+		variance of (mean of samples) = V/N
+		SD of (mean of samples):
+			sqrt(V/N)
+			= sqrt(V) / sqrt(N)
+			= sd / sqrt(N)
 
-	x(i) is the ith value
-	X(i) is the ith mean
-	V(i) is the ith variance
-	S(i) is the sum of x(0) to x(i)
-	Q(i) is the sum of x(0)**2 to x(i)**2
-	D(N) is N or N-1 for the variance formula.
+====================
+|1.4 streamed calcs
+====================
+Sometimes measurements would be "streamed".
+The samples can grow infinitely or remain finite.
 
-		------------------------------
-		-1.4.1- infinite stream
-		------------------------------
-		These calculations are for calculating mean/variance for all
-		values seen from the start of measurement.
-		(welford's algorithm)
+x(i) is the ith value
+X(i) is the ith mean
+V(i) is the ith variance
+S(i) is the sum of x(0) to x(i)
+Q(i) is the sum of x(0)**2 to x(i)**2
+D(N) is N or N-1 for the variance formula.
 
-		Initialization:
-			For the first value x(0), mean X(0) is x(0) and variance is 0.
-		Update:
-			let M = N-1
-			let i indicate from 0 to M or N
-			For a new value x(N):
-				mean:
-					X(M) = S(M) / M
-					X(N) = S(N) / N
-					     = (S(M) + x(N))/N
-					     = (X(M)*M + x(N))/N
-					     = (X(M)*M + (X(M) - X(M)) + x(N))/N
-					     = (X(M)*N - X(M) + x(N))/N
-					     = X(M) + (x(N) - X(M))/N
+=======================
+|1.4.1 infinite stream
+=======================
+These calculations are for calculating mean/variance for all
+values seen from the start of measurement.
+(welford's algorithm)
 
-				variance:
-					V(M) = sum((X(M) - x(i))**2) / D
-					D(M)*V(M) = Q(M) - M*X(M)**2
-					D(N)*V(N) = Q(N) - N*X(N)**2
-					          = Q(M) + x(N)**2 - N*X(N)**2                                  # Separate the x(N)**2 term from sum
-					          = D(M)*V(M) + M*X(M)**2 + x(N)**2 - N*X(N)**2                 # substitute D*V(M) equation
-					          = D(M)*V(M) + S(M)*X(M) + x(N)**2 - S(N)*X(N)                 # substitute D*V(M) equation
-					          = D(M)*V(M) + S(M)*X(M) + x(N)**2 - (S(M)+x(N))*X(N)          # substitute D*V(M) equation
-					          = D(M)*V(M) + S(M)*X(M) + x(N)**2 - S(M)*X(N) - x(N)*X(N)     # substitute D*V(M) equation
-					          = D(M)*V(M) + x(N)*(x(N) - X(N)) + S(M)*X(M) - S(M)*X(N)      # regroup
-					          = D(M)*V(M) + x(N)*(x(N) - X(N)) + S(M)*(S(M)/M-S(N)/N)
-					          = D(M)*V(M) + x(N)*(x(N) - X(N)) + S(M)*(N*S(M) - M*S(N))/NM
-					          = D(M)*V(M) + x(N)*(x(N) - X(N)) + X(M)*(N*S(M) - M*S(N))/N
-					          = D(M)*V(M) + x(N)*(x(N) - X(N)) + X(M)*(N*(S(N) - x(N)) - M*S(N))/N
-					          = D(M)*V(M) + x(N)*(x(N) - X(N)) + X(M)*(N*S(N) - N*x(N) - M*S(N))/N
-					          = D(M)*V(M) + x(N)*(x(N) - X(N)) + X(M)*(S(N) - N*x(N))/N
-					          = D(M)*V(M) + x(N)*(x(N) - X(N)) + X(M)*(X(N) - x(N))
-					          = D(M)*V(M) + x(N)*(x(N) - X(N)) - X(M)*(x(N) - X(N))
-					          = D(M)*V(M) + (x(N) - X(M))*(x(N) - X(N))
+Initialization:
+	For the first value x(0), mean X(0) is x(0) and variance is 0.
+Update:
+	let M = N-1
+	let i indicate from 0 to M or N
+	For a new value x(N):
+		mean:
+			X(M) = S(M) / M
+			X(N) = S(N) / N
+			     = (S(M) + x(N))/N
+			     = (X(M)*M + x(N))/N
+			     = (X(M)*M + (X(M) - X(M)) + x(N))/N
+			     = (X(M)*N - X(M) + x(N))/N
+			     = X(M) + (x(N) - X(M))/N
 
-			According to wiki, D*V(N) is the better value to track and is more
-			numerically stable.
+		variance:
+			V(M) = sum((X(M) - x(i))**2) / D
+			D(M)*V(M) = Q(M) - M*X(M)**2
+			D(N)*V(N) = Q(N) - N*X(N)**2
+			          = Q(M) + x(N)**2 - N*X(N)**2                                  # Separate the x(N)**2 term from sum
+			          = D(M)*V(M) + M*X(M)**2 + x(N)**2 - N*X(N)**2                 # substitute D*V(M) equation
+			          = D(M)*V(M) + S(M)*X(M) + x(N)**2 - S(N)*X(N)                 # substitute D*V(M) equation
+			          = D(M)*V(M) + S(M)*X(M) + x(N)**2 - (S(M)+x(N))*X(N)          # substitute D*V(M) equation
+			          = D(M)*V(M) + S(M)*X(M) + x(N)**2 - S(M)*X(N) - x(N)*X(N)     # substitute D*V(M) equation
+			          = D(M)*V(M) + x(N)*(x(N) - X(N)) + S(M)*X(M) - S(M)*X(N)      # regroup
+			          = D(M)*V(M) + x(N)*(x(N) - X(N)) + S(M)*(S(M)/M-S(N)/N)
+			          = D(M)*V(M) + x(N)*(x(N) - X(N)) + S(M)*(N*S(M) - M*S(N))/NM
+			          = D(M)*V(M) + x(N)*(x(N) - X(N)) + X(M)*(N*S(M) - M*S(N))/N
+			          = D(M)*V(M) + x(N)*(x(N) - X(N)) + X(M)*(N*(S(N) - x(N)) - M*S(N))/N
+			          = D(M)*V(M) + x(N)*(x(N) - X(N)) + X(M)*(N*S(N) - N*x(N) - M*S(N))/N
+			          = D(M)*V(M) + x(N)*(x(N) - X(N)) + X(M)*(S(N) - N*x(N))/N
+			          = D(M)*V(M) + x(N)*(x(N) - X(N)) + X(M)*(X(N) - x(N))
+			          = D(M)*V(M) + x(N)*(x(N) - X(N)) - X(M)*(x(N) - X(N))
+			          = D(M)*V(M) + (x(N) - X(M))*(x(N) - X(N))
 
-			If you can store more variables,
-			maybe storing S(N) and Q(N) would be best?
-			mean: S(N) / N
-			variance: (Q(N) - S(N)*X(N))/D(N)
+	According to wiki, D*V(N) is the better value to track and is more
+	numerically stable.
 
-			S(N) and Q(N) are easier to update with new values.
+	If you can store more variables,
+	maybe storing S(N) and Q(N) would be best?
+	mean: S(N) / N
+	variance: (Q(N) - S(N)*X(N))/D(N)
 
-			analysis:
-				welford updates:
-					state: 2mul 1add 2sub 1 div
-					var:
-				stable updates
-					state: 1add 2sub 1mul
-					var: 1div
-				sum/sumsq:
-					state: 2add 1mul
-					var: 1sub 1mul 1div
+	S(N) and Q(N) are easier to update with new values.
 
-				best state update: sum/sumsq
-				best net calcs: stable updates
+	analysis:
+		welford updates:
+			state: 2mul 1add 2sub 1 div
+			var:
+		stable updates
+			state: 1add 2sub 1mul
+			var: 1div
+		sum/sumsq:
+			state: 2add 1mul
+			var: 1sub 1mul 1div
 
-		------------------------------
-		-1.4.2- finite stream
-		------------------------------
-		Sometimes, only the stats for the most recent N items are desired.
-		The most recent N values must be stored. (deque, circular buffer, etc)
+		best state update: sum/sumsq
+		best net calcs: stable updates
 
-		Initialization: i < N
-			1. Use infinite stream calculations.  This requires checking that i < N
-			   and then switching calculations.
-			2. Initialize the entire buffer with the first value.
-			   This means the first i stats will be approximated, but no need to check
-			   whether the buffer has reached N, and can just always use the same
-			   calculations.
+=====================
+|1.4.2 finite stream
+=====================
+Sometimes, only the stats for the most recent N items are desired.
+The most recent N values must be stored. (deque, circular buffer, etc)
 
-		update
-			n = new
-			o = old
+Initialization: i < N
+	1. Use infinite stream calculations.  This requires checking that i < N
+	   and then switching calculations.
+	2. Initialize the entire buffer with the first value.
+	   This means the first i stats will be approximated, but no need to check
+	   whether the buffer has reached N, and can just always use the same
+	   calculations.
 
-			X(n) = (X(o) * N - x(o) + x(n)) / N
-			     = X(o) + (x(n) - x(o))/N
+update
+	n = new
+	o = old
 
-			DV(n) = Q(n) - N*X(n)**2
-			      = Q(o) - x(o)**2 + x(n)**2 - N*(X(o) + (x(n)-x(o))/N)**2
-			      = Q(o) - x(o)**2 + x(n)**2 - N*(X(o)**2 + 2*X(o)(x(n)-x(o))/N + ((x(n)-x(o))/N)**2)
-			      = Q(o) - N*X(o)**2 - x(o)**2 + x(n)**2 - 2*X(o)(x(n)-x(o)) - ((x(n)-x(o))**2)/N
-			      = DV(o) + (x(n) + x(o))*(x(n) - x(o)) - 2X(o)(x(n) - x(o)) - ((x(n) - x(o))**2) / N
-			      = DV(o) + (x(n) - x(o)) * (x(n) + x(o) - 2X(o) - (x(n) - x(o))/N)
-			      = DV(o) + (x(n) - x(o)) * (x(n) + x(o) - 2X(o) - X(n) + X(o))
-			      = DV(o) + (x(n) - x(o)) * (x(n) + x(o) - X(o) - X(n))
+	X(n) = (X(o) * N - x(o) + x(n)) / N
+	     = X(o) + (x(n) - x(o))/N
 
-			analysis:
-				sum/sumsq:
-					state: 2add 2mul 2sub
-					var: 1sub 1mul 1div
-				stable altwel:
-					state: 2add 1mul 3sub
-					var: 1div
-				altwel
-					state: 2add 2mul 3sub 1div
-					var:
+	DV(n) = Q(n) - N*X(n)**2
+	      = Q(o) - x(o)**2 + x(n)**2 - N*(X(o) + (x(n)-x(o))/N)**2
+	      = Q(o) - x(o)**2 + x(n)**2 - N*(X(o)**2 + 2*X(o)(x(n)-x(o))/N + ((x(n)-x(o))/N)**2)
+	      = Q(o) - N*X(o)**2 - x(o)**2 + x(n)**2 - 2*X(o)(x(n)-x(o)) - ((x(n)-x(o))**2)/N
+	      = DV(o) + (x(n) + x(o))*(x(n) - x(o)) - 2X(o)(x(n) - x(o)) - ((x(n) - x(o))**2) / N
+	      = DV(o) + (x(n) - x(o)) * (x(n) + x(o) - 2X(o) - (x(n) - x(o))/N)
+	      = DV(o) + (x(n) - x(o)) * (x(n) + x(o) - 2X(o) - X(n) + X(o))
+	      = DV(o) + (x(n) - x(o)) * (x(n) + x(o) - X(o) - X(n))
 
-				best state update: tied
-				best net calcs: stable
+	analysis:
+		sum/sumsq:
+			state: 2add 2mul 2sub
+			var: 1sub 1mul 1div
+		stable altwel:
+			state: 2add 1mul 3sub
+			var: 1div
+		altwel
+			state: 2add 2mul 3sub 1div
+			var:
 
-		------------------------------
-		-1.4.3- merge samples
-		------------------------------
-		xi = ith value of combined samples
-		xij = jth value of ith sample set
-		Xi = mean of ith sampleset
-		Vi = variance of ith sampleset
-		Ci = size of ith sampleset
-		Di = Ci - dof of ith sampleset
-		Q_v(...) = squared sum over variable v
-		S_i(...) = sum over variable v
+		best state update: tied
+		best net calcs: stable
 
-		corresponding without i refers to values for the combined dataset.
-		For the merged mean, we have:
-			X = S_i(xi) / C
-		This also applies per sample:
-			Xi = S_j(xij) / Ci
+=====================
+|1.4.3 merge samples
+=====================
+xi = ith value of combined samples
+xij = jth value of ith sample set
+Xi = mean of ith sampleset
+Vi = variance of ith sampleset
+Ci = size of ith sampleset
+Di = Ci - dof of ith sampleset
+Q_v(...) = squared sum over variable v
+S_i(...) = sum over variable v
 
-		S_i(xi) = S_i(S_j(xij)) / C
-		        = S_i(CiXi) / C
+corresponding without i refers to values for the combined dataset.
+For the merged mean, we have:
+	X = S_i(xi) / C
+This also applies per sample:
+	Xi = S_j(xij) / Ci
 
-		From -1.0- we have:
-			DV = Q_i(xi) - CX**2
-		This also applies to each sample set of data that we want to merge...
-			DiVi = Q_j(xij) - Ci(Xi)**2
+S_i(xi) = S_i(S_j(xij)) / C
+        = S_i(CiXi) / C
 
-		Q_i(xi)
-			Looking at the Q_i(xi) term, we have:
-				Q_i(xi) = x00**2 + x01**2 + x02**2... + x10**2 + x11**2 + ...
-				        = S_i(Q_j(xij))
-			Also, from individual variance formulas, we have:
-				DiVi + Ci(Xi)**2 = Q_j(xij)
-			Thus, we have:
-				Q_i(xi) = S_i(DiVi + Ci(Xi)**2)
+From |1.0 we have:
+	DV = Q_i(xi) - CX**2
+This also applies to each sample set of data that we want to merge...
+	DiVi = Q_j(xij) - Ci(Xi)**2
 
-		Thus, the overal equation is, in terms of the Di, Vi, Ci, Xi:
-			DV = S_i(DiVi + CiXi**2) - C(S_i(CiXi)/C)**2
-			DV = S_i(DiVi + CiXi**2) - (S_i(CiXi)**2)/C
+Q_i(xi)
+	Looking at the Q_i(xi) term, we have:
+		Q_i(xi) = x00**2 + x01**2 + x02**2... + x10**2 + x11**2 + ...
+		        = S_i(Q_j(xij))
+	Also, from individual variance formulas, we have:
+		DiVi + Ci(Xi)**2 = Q_j(xij)
+	Thus, we have:
+		Q_i(xi) = S_i(DiVi + Ci(Xi)**2)
 
-			DV = (D1V1 + D2V2 ...) + (C1X1**2 + C2X2**2 ...) - ((C1X1 + C2X2...)**2) / (C1+C2...)
+Thus, the overal equation is, in terms of the Di, Vi, Ci, Xi:
+	DV = S_i(DiVi + CiXi**2) - C(S_i(CiXi)/C)**2
+	DV = S_i(DiVi + CiXi**2) - (S_i(CiXi)**2)/C
 
-		Not sure about numerical stability but...
-		CiXi**2 term probably has similar magnitude to CX**2 so the latter
-		portion should maybe be calculated using the combined mean instead of
-		each individual mean? not sure about magnitude sof DiVi
+	DV = (D1V1 + D2V2 ...) + (C1X1**2 + C2X2**2 ...) - ((C1X1 + C2X2...)**2) / (C1+C2...)
 
-		------------------------------
-		old calcs
-		------------------------------
-		Realized they aren't really necessary, but keep it to remember...
-			xN(i): ith value of Nth sample
-			S(...): sume
-			Q(...): sum of squares
-			D: degrees of freedom
-			XN: mean of Nth sample
-			CN: count of Nth sample
-			VN: variance of Nth sample
-			DN: Degrees of freedom of Nth sample
+Not sure about numerical stability but...
+CiXi**2 term probably has similar magnitude to CX**2 so the latter
+portion should maybe be calculated using the combined mean instead of
+each individual mean? not sure about magnitude sof DiVi
 
-			X: overall mean
-			V: overall variance
+---------
+old calcs
+---------
+Realized they aren't really necessary, but keep it to remember...
+	xN(i): ith value of Nth sample
+	S(...): sume
+	Q(...): sum of squares
+	D: degrees of freedom
+	XN: mean of Nth sample
+	CN: count of Nth sample
+	VN: variance of Nth sample
+	DN: Degrees of freedom of Nth sample
 
-			Consider 2 samples...
-			X = (x1(i)... + x2(i)...) / (C1+C2)
-			  = (X1C1 + X2C2) / (C1+C2)
-			  = (X1C1 + X2C2) / C
+	X: overall mean
+	V: overall variance
 
-			VD = Q(x) - (S(x)**2)/C
-			   = Q(x) - C*(X**2)
+	Consider 2 samples...
+	X = (x1(i)... + x2(i)...) / (C1+C2)
+	  = (X1C1 + X2C2) / (C1+C2)
+	  = (X1C1 + X2C2) / C
 
-			VD = Q(x1(i),... x2(i)) - (C1+C2)(X**2)
-			   = (V1D1 + C1(X1**2)) + (V2D2 + C2(X2**2)) - C*(X**2)
-			   = V1D1 + V2D2 + C1(X1**2) + C2(X2**2) - C*(X**2)
-			   = V1D1 + V2D2 + C1(X1**2) + C2(X2**2) - C*((X1C1 + X2C2)/C)**2
-			   = V1D1 + V2D2 + (C*C1*(X1**2))/C + (C*C2*(X2**2))/C - (X1C1 + X2C2)**2 / C
-			   = V1D1 + V2D2 + (C*C1*(X1**2) + C*C2*(X2**2) - (X1C1 + X2C2)**2) / C
-			   = V1D1 + V2D2 + (C*C1*(X1**2) + C*C2*(X2**2) - ((X1C1)**2 + 2X1X2C1C2 + (X2C2)**2)) / C
-			   = V1D1 + V2D2 + ((C1+C2)*C1*(X1**2) + (C1+C2)*C2*(X2**2) - (X1C1)**2 - 2X1X2C1C2 - (X2C2)**2) / C
-			   = V1D1 + V2D2 + ((X1C1)**2 + (C1C2)(X1**2) + (C1C2)(X2**2) + (X2C2)**2 - (X1C1)**2 - (X2C2)**2 - 2X1X2C1C2) / C
-			   = V1D1 + V2D2 + ((C1C2)(X1**2) + (C1C2)(X2**2) - 2X1X2(C1C2)) / C
-			   = V1D1 + V2D2 + ((C1C2)(X1**2 + X2**2 - 2X1X2))/C
-			   = V1D1 + V2D2 + ((C1C2)(X1 - X2)**2)/C
+	VD = Q(x) - (S(x)**2)/C
+	   = Q(x) - C*(X**2)
 
-			------------------------------
-			check same as welfords if second sample is 1 value.
-			------------------------------
-			verify, if one sample has size 1, then it should decay to welford algorithm...
-			Take set2 to be a single new value.
-				C2 = 1
-				X2 = xnew
+	VD = Q(x1(i),... x2(i)) - (C1+C2)(X**2)
+	   = (V1D1 + C1(X1**2)) + (V2D2 + C2(X2**2)) - C*(X**2)
+	   = V1D1 + V2D2 + C1(X1**2) + C2(X2**2) - C*(X**2)
+	   = V1D1 + V2D2 + C1(X1**2) + C2(X2**2) - C*((X1C1 + X2C2)/C)**2
+	   = V1D1 + V2D2 + (C*C1*(X1**2))/C + (C*C2*(X2**2))/C - (X1C1 + X2C2)**2 / C
+	   = V1D1 + V2D2 + (C*C1*(X1**2) + C*C2*(X2**2) - (X1C1 + X2C2)**2) / C
+	   = V1D1 + V2D2 + (C*C1*(X1**2) + C*C2*(X2**2) - ((X1C1)**2 + 2X1X2C1C2 + (X2C2)**2)) / C
+	   = V1D1 + V2D2 + ((C1+C2)*C1*(X1**2) + (C1+C2)*C2*(X2**2) - (X1C1)**2 - 2X1X2C1C2 - (X2C2)**2) / C
+	   = V1D1 + V2D2 + ((X1C1)**2 + (C1C2)(X1**2) + (C1C2)(X2**2) + (X2C2)**2 - (X1C1)**2 - (X2C2)**2 - 2X1X2C1C2) / C
+	   = V1D1 + V2D2 + ((C1C2)(X1**2) + (C1C2)(X2**2) - 2X1X2(C1C2)) / C
+	   = V1D1 + V2D2 + ((C1C2)(X1**2 + X2**2 - 2X1X2))/C
+	   = V1D1 + V2D2 + ((C1C2)(X1 - X2)**2)/C
 
-			X = (C1X1 + xnew) / (C1+1)
-			  = (C1X1 + xnew + X1 - X1) / (C1+1)
-			  = ((C1+1)(X1) + (xnew - X1))/(C1+1)
-			  = X1 + (xnew - X1)/(C1+1)
+	---------------------------------------------------
+	check same as welfords if second sample is 1 value.
+	---------------------------------------------------
+	verify, if one sample has size 1, then it should decay to welford algorithm...
+	Take set2 to be a single new value.
+		C2 = 1
+		X2 = xnew
 
-			VD = V1D1 + V2D2 + ((C1C2)(X1 - X2)**2)/C
-			   = V1D1 + V2D2 + ((C1C2)(X2 - X1)**2)/C
-			   = V1D1 + 0    + (C1)(xnew - X1)**2 / (C1+1)
-			   = V1D1 + 0    + (C1)(xnew - X1)(xnew - X1) / C1+1
-			   = V1D1 + 0    + (C1xnew - C1X1)(xnew - X1) / C1+1
-			   = V1D1 + 0    + (xnew - X1) * (C1xnew + xnew - C1X1 - xnew)/C1+1
-			   = V1D1 + 0    + (xnew - X1) * ((C1+1)xnew - (C1X1 + xnew))/C1+1
-			   = V1D1 + 0    + (xnew - X1) * (xnew - (C1X1 + xnew)/C1+1)
-			   = V1D1 + 0    + (xnew - X1) * (xnew - X)
+	X = (C1X1 + xnew) / (C1+1)
+	  = (C1X1 + xnew + X1 - X1) / (C1+1)
+	  = ((C1+1)(X1) + (xnew - X1))/(C1+1)
+	  = X1 + (xnew - X1)/(C1+1)
 
-			------------------------------
-			Add a 3rd sample
-			------------------------------
-			Using the original equations:
-			X = (X1C1 + X2C2) / C
-			VD = V1D1 + V2D2 + ((C1C2)(X1 - X2)**2)/C
+	VD = V1D1 + V2D2 + ((C1C2)(X1 - X2)**2)/C
+	   = V1D1 + V2D2 + ((C1C2)(X2 - X1)**2)/C
+	   = V1D1 + 0    + (C1)(xnew - X1)**2 / (C1+1)
+	   = V1D1 + 0    + (C1)(xnew - X1)(xnew - X1) / C1+1
+	   = V1D1 + 0    + (C1xnew - C1X1)(xnew - X1) / C1+1
+	   = V1D1 + 0    + (xnew - X1) * (C1xnew + xnew - C1X1 - xnew)/C1+1
+	   = V1D1 + 0    + (xnew - X1) * ((C1+1)xnew - (C1X1 + xnew))/C1+1
+	   = V1D1 + 0    + (xnew - X1) * (xnew - (C1X1 + xnew)/C1+1)
+	   = V1D1 + 0    + (xnew - X1) * (xnew - X)
 
-			BUT here, "sample1" is sample1 + sample2, and "sample2" is sample3.
+	----------------
+	Add a 3rd sample
+	----------------
+	Using the original equations:
+	X = (X1C1 + X2C2) / C
+	VD = V1D1 + V2D2 + ((C1C2)(X1 - X2)**2)/C
 
-			X = (((X1C1 + X2C2) / (C1+C2))(C1+C2) + X3C3) / (C1+C2+C3)
-			X = (X1C1 + X2C2  + X3C3) / (C1+C2+C3)
+	BUT here, "sample1" is sample1 + sample2, and "sample2" is sample3.
 
-			VD = (V1*D1 + V2*D2 + ((C1*C2)*(X1 - X2)**2)/(C1+C2)) + V3*D3 + (((C1+C2)*C3)*(((X1*C1 + X2*C2) / (C1+C2)) - X3)**2)/(C1+C2+C3)
-			   = V1*D1 + V2*D2 + V3*D3 + ((C1*C2)*(X1 - X2)**2)/(C1+C2) + (((C1+C2)*C3)*(((X1*C1 + X2*C2) / (C1+C2)) - X3)**2)/(C1+C2+C3)
-			   = V1*D1 + V2*D2 + V3*D3 + (C1+C2+C3)*((C1*C2)*(X1 - X2)**2)/((C1+C2)*(C1+C2+C3)) + (C1+C2)*(((C1+C2)*C3)*(((X1*C1 + X2*C2) / (C1+C2)) - X3)**2)/((C1+C2+C3)*(C1+C2)) # common denom
-			   = V1*D1 + V2*D2 + V3*D3 + ((C1+C2+C3)*((C1*C2)*(X1 - X2)**2) + (C1+C2)*(((C1+C2)*C3)*(((X1*C1 + X2*C2) / (C1+C2)) - X3)**2)) / ((C1+C2+C3)*(C1+C2))
-			   = V1*D1 + V2*D2 + V3*D3 + ((C1+C2+C3)*(C1*C2)*(X1 - X2)**2 + (C3)*((C1+C2)*(((X1*C1 + X2*C2) / (C1+C2)) - X3))**2)/((C1+C2+C3)*(C1+C2))
-			   = V1*D1 + V2*D2 + V3*D3 + ((C1+C2+C3)*(C1*C2)*(X1 - X2)**2 + (C3)*(X1*C1 + X2*C2 - (C1+C2)*X3)**2)/((C1+C2+C3)*(C1+C2))
-			   = V1*D1 + V2*D2 + V3*D3 + ((C1+C2+C3)*(C1*C2)*(X1**2 -2*X1*X2 + X2**2) + (C3)*((C1*X1)**2 + (C2*X2)**2 + ((C1+C2)*X3)**2 + 2*C1*C2*X1*X2 - 2*C1*(C1+C2)*X1*X3 - 2*C2*(C1+C2)*X2*X3))/((C1+C2+C3)*(C1+C2))
-			   = V1*D1 + V2*D2 + V3*D3 + (((C1+C2+C3)*(C1*C2) + C3*C1*C1)*(X1**2) + ((C1+C2+C3)*(C1*C2) + C3*C2*C2)*(X2**2) + C3*((C1+C2)*X3)**2 + 2*(C1*C2*C3 - (C1+C2+C3)*(C1*C2))*X1*X2 - 2*C1*C3*(C1+C2)*X1*X3 - 2*C3*C2*(C1+C2)*X2*X3) / ((C1+C2+C3)*(C1+C2))
-			   = V1*D1 + V2*D2 + V3*D3 + (((C1+C2+C3)*(C1*C2) + C3*C1*C1)*(X1**2) + ((C1+C2+C3)*(C1*C2) + C3*C2*C2)*(X2**2) + C3*((C1+C2)*X3)**2 - 2*((C1*C2)*(C1+C2))*X1*X2 - 2*C1*C3*(C1+C2)*X1*X3 - 2*C3*C2*(C1+C2)*X2*X3) / ((C1+C2+C3)*(C1+C2))
-			   = V1*D1 + V2*D2 + V3*D3 + (C1*(C2 + C3)*(X1**2) + C2*(C1 + C3)*(X2**2) + C3*(C1 + C2)*(X3**2) - 2*(C1*C2)*X1*X2 - 2*C1*C3*X1*X3 - 2*C3*C2*X2*X3) / (C1+C2+C3)
-			   = V1*D1 + V2*D2 + V3*D3 + (C1*(C2+C3)*(X1**2) + C2*(C1+C3)*(X2**2) + C3*(C1+C2)*(X3**2) - 2*(C1*C2)*X1*X2 - 2*(C1*C3)*X1*X3 - 2*(C2*C3)*X2*X3) / (C1+C2+C3)
-			   = V1*D1 + V2*D2 + V3*D3 + (C1*(C1+C2+C3)*(X1**2) + C2*(C1+C2+C3)*(X2**2) + C3*(C1+C2+C3)*(X3**2) - (C1*X1)**2 - (C2*X2)**2 - (C3*X3)**2 - 2*(C1*C2)*X1*X2 - 2*(C1*C3)*X1*X3 - 2*(C2*C3)*X2*X3) / (C1+C2+C3)
-			   = V1*D1 + V2*D2 + V3*D3 + ((C1+C2+C3)(C1*X1**2 + C2*X2**2 + C3*X3**2) - (C1*X1 + C2*X2 + C3*X3)**2) / (C1+C2+C3)
-			   = V1*D1 + V2*D2 + V3*D3 + (C1*X1**2 + C2*X2**2 + C3*X3**2) - ((C1*X1 + C2*X2 + C3*X3)**2) / (C1+C2+C3)
+	X = (((X1C1 + X2C2) / (C1+C2))(C1+C2) + X3C3) / (C1+C2+C3)
+	X = (X1C1 + X2C2  + X3C3) / (C1+C2+C3)
+
+	VD = (V1*D1 + V2*D2 + ((C1*C2)*(X1 - X2)**2)/(C1+C2)) + V3*D3 + (((C1+C2)*C3)*(((X1*C1 + X2*C2) / (C1+C2)) - X3)**2)/(C1+C2+C3)
+	   = V1*D1 + V2*D2 + V3*D3 + ((C1*C2)*(X1 - X2)**2)/(C1+C2) + (((C1+C2)*C3)*(((X1*C1 + X2*C2) / (C1+C2)) - X3)**2)/(C1+C2+C3)
+	   = V1*D1 + V2*D2 + V3*D3 + (C1+C2+C3)*((C1*C2)*(X1 - X2)**2)/((C1+C2)*(C1+C2+C3)) + (C1+C2)*(((C1+C2)*C3)*(((X1*C1 + X2*C2) / (C1+C2)) - X3)**2)/((C1+C2+C3)*(C1+C2)) # common denom
+	   = V1*D1 + V2*D2 + V3*D3 + ((C1+C2+C3)*((C1*C2)*(X1 - X2)**2) + (C1+C2)*(((C1+C2)*C3)*(((X1*C1 + X2*C2) / (C1+C2)) - X3)**2)) / ((C1+C2+C3)*(C1+C2))
+	   = V1*D1 + V2*D2 + V3*D3 + ((C1+C2+C3)*(C1*C2)*(X1 - X2)**2 + (C3)*((C1+C2)*(((X1*C1 + X2*C2) / (C1+C2)) - X3))**2)/((C1+C2+C3)*(C1+C2))
+	   = V1*D1 + V2*D2 + V3*D3 + ((C1+C2+C3)*(C1*C2)*(X1 - X2)**2 + (C3)*(X1*C1 + X2*C2 - (C1+C2)*X3)**2)/((C1+C2+C3)*(C1+C2))
+	   = V1*D1 + V2*D2 + V3*D3 + ((C1+C2+C3)*(C1*C2)*(X1**2 -2*X1*X2 + X2**2) + (C3)*((C1*X1)**2 + (C2*X2)**2 + ((C1+C2)*X3)**2 + 2*C1*C2*X1*X2 - 2*C1*(C1+C2)*X1*X3 - 2*C2*(C1+C2)*X2*X3))/((C1+C2+C3)*(C1+C2))
+	   = V1*D1 + V2*D2 + V3*D3 + (((C1+C2+C3)*(C1*C2) + C3*C1*C1)*(X1**2) + ((C1+C2+C3)*(C1*C2) + C3*C2*C2)*(X2**2) + C3*((C1+C2)*X3)**2 + 2*(C1*C2*C3 - (C1+C2+C3)*(C1*C2))*X1*X2 - 2*C1*C3*(C1+C2)*X1*X3 - 2*C3*C2*(C1+C2)*X2*X3) / ((C1+C2+C3)*(C1+C2))
+	   = V1*D1 + V2*D2 + V3*D3 + (((C1+C2+C3)*(C1*C2) + C3*C1*C1)*(X1**2) + ((C1+C2+C3)*(C1*C2) + C3*C2*C2)*(X2**2) + C3*((C1+C2)*X3)**2 - 2*((C1*C2)*(C1+C2))*X1*X2 - 2*C1*C3*(C1+C2)*X1*X3 - 2*C3*C2*(C1+C2)*X2*X3) / ((C1+C2+C3)*(C1+C2))
+	   = V1*D1 + V2*D2 + V3*D3 + (C1*(C2 + C3)*(X1**2) + C2*(C1 + C3)*(X2**2) + C3*(C1 + C2)*(X3**2) - 2*(C1*C2)*X1*X2 - 2*C1*C3*X1*X3 - 2*C3*C2*X2*X3) / (C1+C2+C3)
+	   = V1*D1 + V2*D2 + V3*D3 + (C1*(C2+C3)*(X1**2) + C2*(C1+C3)*(X2**2) + C3*(C1+C2)*(X3**2) - 2*(C1*C2)*X1*X2 - 2*(C1*C3)*X1*X3 - 2*(C2*C3)*X2*X3) / (C1+C2+C3)
+	   = V1*D1 + V2*D2 + V3*D3 + (C1*(C1+C2+C3)*(X1**2) + C2*(C1+C2+C3)*(X2**2) + C3*(C1+C2+C3)*(X3**2) - (C1*X1)**2 - (C2*X2)**2 - (C3*X3)**2 - 2*(C1*C2)*X1*X2 - 2*(C1*C3)*X1*X3 - 2*(C2*C3)*X2*X3) / (C1+C2+C3)
+	   = V1*D1 + V2*D2 + V3*D3 + ((C1+C2+C3)(C1*X1**2 + C2*X2**2 + C3*X3**2) - (C1*X1 + C2*X2 + C3*X3)**2) / (C1+C2+C3)
+	   = V1*D1 + V2*D2 + V3*D3 + (C1*X1**2 + C2*X2**2 + C3*X3**2) - ((C1*X1 + C2*X2 + C3*X3)**2) / (C1+C2+C3)
+
+==============
+|2 covariance
+==============
+expectation of product of differences from their expectation.
+
+* if x > average => y > average and x < average => y < average, then cov > 0
+* if x > average => y < average and x < average => y > average, then cov < 0
+* if x <> average => unrelated to y <> average, then cov = 0
+
+E((x-E(x))(y-E(y)))
+ = E(xy - E(x)y - xE(y) + E(x)E(y))
+ = E(xy) - E(x)E(y) - E(x)E(y) + E(x)E(y)
+ = E(xy) - E(x)E(y)
+
+NOTE similar to variance formula simplification...
 
 
-------------------------------
--10- miscellaneous
-------------------------------
+
+=================
+|x miscellaneous
+=================
 independent implies uncorrelated
 uncorrelated does NOT imply independent...
 
