@@ -135,25 +135,27 @@ class Request(object):
                 sock.sendall(b'exiting\n')
                 return 'exit'
             elif command == 'list':
-                server.reminders.sort()
-                with sock.makefile('w') as wf:
-                    print('Current time: ', datetime.datetime.now(), file=wf)
-                    print('Scheduled reminders:', file=wf)
-                    for i, (target, message) in enumerate(server.reminders):
-                        print(f'{i}: {target.strftime(DATE_SHOW)}: {message}', file=wf)
+                with server.lock:
+                    server.reminders.sort()
+                    with sock.makefile('w') as wf:
+                        print('Current time: ', datetime.datetime.now(), file=wf)
+                        print('Scheduled reminders:', file=wf)
+                        for i, (target, message) in enumerate(server.reminders):
+                            print(f'{i}: {target.strftime(DATE_SHOW)}: {message}', file=wf)
             elif command == 'cancel':
                 buf, fds, _ = yield from readtil(sock, buf, remainder.nbytes)
                 out = 0
                 cancels = set(map(int, fds.tobytes().split()))
-                with sock.makefile('w') as wf:
-                    for i, item in enumerate(server.reminders):
-                        if i in cancels:
-                            print(f'Canceled {item[0].strftime(DATE_SHOW)}: {item[1]}', file=wf)
-                        else:
-                            server.reminders[out] = item
-                            out += 1
-                del server.reminders[out:]
-                heapq.heapify(server.reminders)
+                with server.lock:
+                    with sock.makefile('w') as wf:
+                        for i, item in enumerate(server.reminders):
+                            if i in cancels:
+                                print(f'Canceled {item[0].strftime(DATE_SHOW)}: {item[1]}', file=wf)
+                            else:
+                                server.reminders[out] = item
+                                out += 1
+                    del server.reminders[out:]
+                    heapq.heapify(server.reminders)
             else:
                 try:
                     target = datetime.datetime.strptime(command, DATE_FMT)
@@ -161,15 +163,16 @@ class Request(object):
                     message = codecs.decode(message, 'utf-8')
                     entry = (target, message)
                     with sock.makefile('w') as wf:
-                        if entry in server.reminders:
-                            print('Reminder already scheduled.', file=wf)
-                            print('  time:', target.strftime(DATE_SHOW), file=wf)
-                            print('  mesg:', message, file=wf)
-                        else:
-                            heapq.heappush(server.reminders, entry)
-                            print(datetime.datetime.now().strftime(DATE_SHOW), 'Scheduled reminder:', file=wf)
-                            print('  time:', target.strftime(DATE_SHOW), file=wf)
-                            print('  mesg:', message, file=wf)
+                        with server.lock:
+                            if entry in server.reminders:
+                                print('Reminder already scheduled.', file=wf)
+                                print('  time:', target.strftime(DATE_SHOW), file=wf)
+                                print('  mesg:', message, file=wf)
+                            else:
+                                heapq.heappush(server.reminders, entry)
+                                print(datetime.datetime.now().strftime(DATE_SHOW), 'Scheduled reminder:', file=wf)
+                                print('  time:', target.strftime(DATE_SHOW), file=wf)
+                                print('  mesg:', message, file=wf)
                 except Exception:
                     sock.sendall(traceback.format_exc().encode('utf-8'))
         finally:
@@ -244,6 +247,8 @@ class Server(object):
         self.reminders = []
         self.ready = collections.deque()
         self.running = True
+        self.tkshown = threading.Event()
+        self.tkshown.set()
         self.destroyed = False
 
         self.tk = tk.Tk()
@@ -265,11 +270,15 @@ class Server(object):
         self.tk.grid_columnconfigure(0, weight=1)
         self.tk.grid_rowconfigure(0, weight=1)
         self.tk.eval('namespace eval remind { variable finish }')
-        self.tk.bind(args.sequence, 'set remind::showinfo::done 1')
+        self.tk.bind(args.sequence, 'set remind::showinfo::done 1; set remind::showinfo::snooze 0')
+        for i in range(1,10):
+            self.tk.bind('<Control-KeyPress-{}>'.format(i), 'set remind::showinfo::done 1; set remind::showinfo::snooze "%K"')
+
         self.tk.call('wm', 'resizable', self.tk, 0, 0)
         self.tk.eval('''
             namespace eval remind::showinfo {
                 variable done 1
+                variable snooze 0
                 proc keep_window_at_center {win} {
                     variable targetx [expr ([winfo screenwidth $win]-[winfo width $win])/2]
                     variable targety [expr ([winfo screenheight $win]-[winfo height $win])/2]
@@ -350,23 +359,34 @@ class Server(object):
         """Display popups sequentially."""
         self.notifying.set(True)
         try:
-            self.tk.deiconify()
-            while 1:
-                with self.lock:
-                    if not self.running:
-                        break
-                    if self.ready:
-                        target, message = self.ready.popleft()
+            try:
+                self.tk.deiconify()
+                while 1:
+                    with self.lock:
+                        if not self.running:
+                            break
+                        if self.ready:
+                            target, message = self.ready.popleft()
+                        else:
+                            break
+                    now = datetime.datetime.now()
+                    parts = []
+                    dtstr = target.strftime(DATE_SHOW)
+                    if abs((now - target).total_seconds()) < 1:
+                        formatted = ''.join([dtstr, '\n', '='*len(dtstr), '\n', message])
                     else:
-                        break
-                now = datetime.datetime.now()
-                parts = []
-                dtstr = target.strftime(DATE_SHOW)
-                if abs((now - target).total_seconds()) < 1:
-                    formatted = ''.join([dtstr, '\n', '='*len(dtstr), '\n', message])
-                else:
-                    formatted = ''.join(['now: ', now.strftime(DATE_SHOW), ':\ntgt: ', dtstr, '\n', '='*(len(dtstr)+5), '\n', message])
-                self.showmessage(parent=self.tk, title='Reminder', message=formatted)
+                        formatted = ''.join(['now: ', now.strftime(DATE_SHOW), ':\ntgt: ', dtstr, '\n', '='*(len(dtstr)+5), '\n', message])
+                    self.showmessage(parent=self.tk, title='Reminder', message=formatted)
+                    snoozed = self.tk.call('expr', '${remind::showinfo::snooze}')
+                    if snoozed:
+                        later = datetime.datetime.now() + datetime.timedelta(minutes=snoozed)
+                        with self.lock:
+                            if self.running:
+                                heapq.heappush(self.reminders, (later, message))
+                            else:
+                                print('no longer running but snoozed')
+            finally:
+                self.tkshown.set()
             with self.lock:
                 if self.running:
                     return
@@ -447,18 +467,22 @@ class Server(object):
                             continue
                     now = datetime.datetime.now()
                     nready = []
-                    while self.reminders and self.reminders[0][0] < now:
-                        nready.append(heapq.heappop(self.reminders))
+                    with self.lock:
+                        while self.reminders and self.reminders[0][0] < now:
+                            nready.append(heapq.heappop(self.reminders))
                     if nready:
                         with self.lock:
                             self.ready.extend(nready)
+                        self.tkshown.clear()
                         self.tk.event_generate('<<CheckNotifications>>', when='tail')
-                    if self.reminders:
-                        wait = min(60, max(0, (self.reminders[0][0] - now).total_seconds()))
-                    elif self.persist or startup:
-                        wait = None
-                    else:
-                        return
+                    self.tkshown.wait()
+                    with self.lock:
+                        if self.reminders:
+                            wait = min(60, max(0, (self.reminders[0][0] - now).total_seconds()))
+                        elif self.persist or startup:
+                            wait = None
+                        else:
+                            return
             finally:
                 waiting.clear()
         except Exception:
