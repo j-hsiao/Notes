@@ -5,6 +5,16 @@
 * vim modify alignment, [fF] ch,
   like normal mode [fF] except use previous line(s) position.
 * ydo script
+  macro: keep a fullscreen topmost tk window to capture mouse/keyboard.
+  Use -alpha to see through to desktop/other apps.
+  On keyboard/mouse events, record.
+  After a period of inactivity or a flush keybind:
+    withdraw the window
+    replay the flushed event sequence
+      if mouse motion: ensure topmost, and some alg to move mouse to coordinates
+        regardless of mouse acceleration etc.
+      if mouse click or keyboard: ensure withdrawn and then click/keypress
+    pop up window again.
 * cppy
   cpp reference <-> py borrowed reference
   cpp value     <-> py owned reference
