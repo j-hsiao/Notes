@@ -1,6 +1,7 @@
 contents:
 -0- summary
 	-0.1- basic usage
+		-0.1.1- extra usage
 	-0.2- certification
 		-0.2.1- server
 		-0.2.2- user
@@ -25,6 +26,13 @@ contents:
 	ssh-keygen -t ed25519 -f outname
 2. Append public key into ssh server's /home/$USER/.ssh/authorized_keys
 3. user ssh $USER@server -i privatekey
+
+===================
+-0.1.1- extra usage
+===================
+quit ssh session: return ~ .
+	pressing keys in sequence will kill an ssh session even if it is hung.
+
 
 ===================
 -0.2- certification

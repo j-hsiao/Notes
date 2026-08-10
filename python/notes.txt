@@ -20,6 +20,9 @@ interpreter:
 pip install -e = install as links to the source code
 	(can edit source code and import without having to reinstall)
 
+check syntax:
+	py -m py_compile script
+
 Tkinter
 blah
 
