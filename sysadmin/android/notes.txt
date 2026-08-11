@@ -1,0 +1,3 @@
+Android when plugged in for file transfer,
+gnome:
+	mounted at "${XDG_RUNTIME_DIR}/gvfs"/*
