@@ -252,33 +252,13 @@ class Server(object):
         self.destroyed = False
 
         self.tk = tk.Tk()
-        self.widgets = [
-            tk.Text(
-                self.tk, font=args.font,
-                width=args.shape[0], height=args.shape[1],
-            ),
-            tk.Scrollbar(self.tk, orient='vertical')
-        ]
-        self.widgets[0].configure(
-            yscrollcommand=self.widgets[1].set,
-            selectforeground=self.widgets[0].cget('foreground'),
-            selectbackground=self.widgets[0].cget('background'),
-            )
-        self.widgets[1].configure(command=self.widgets[0].yview)
-        self.widgets[0].grid(row=0, column=0, sticky='nsew')
-        self.widgets[1].grid(row=0, column=1, sticky='nsew')
-        self.tk.grid_columnconfigure(0, weight=1)
-        self.tk.grid_rowconfigure(0, weight=1)
-        self.tk.eval('namespace eval remind { variable finish }')
-        self.tk.bind(args.sequence, 'set remind::showinfo::done 1; set remind::showinfo::snooze 0')
-        for i in range(1,10):
-            self.tk.bind('<Control-KeyPress-{}>'.format(i), 'set remind::showinfo::done 1; set remind::showinfo::snooze "%K"')
-
         self.tk.call('wm', 'resizable', self.tk, 0, 0)
         self.tk.eval('''
             namespace eval remind::showinfo {
                 variable done 1
-                variable snooze 0
+                variable snooze ""
+                variable press_ctrl 0
+                variable release_ctrl 0
                 proc keep_window_at_center {win} {
                     variable targetx [expr ([winfo screenwidth $win]-[winfo width $win])/2]
                     variable targety [expr ([winfo screenheight $win]-[winfo height $win])/2]
@@ -287,10 +267,56 @@ class Server(object):
                     }
                 }
             }''')
+        self.widgets = [
+            tk.Text(
+                self.tk, font=args.font,
+                width=args.shape[0], height=args.shape[1],
+            ),
+            tk.Scrollbar(self.tk, orient='vertical'),
+            tk.Frame(self.tk),
+        ]
+        self.widgets.extend([
+            tk.Label(self.widgets[2], text='control+snooze duration'),
+            tk.Entry(self.widgets[2], textvariable='remind::showinfo::snooze', state='disabled'),
+        ])
+        self.widgets[0].configure(
+            yscrollcommand=self.widgets[1].set,
+            selectforeground=self.widgets[0].cget('foreground'),
+            selectbackground=self.widgets[0].cget('background'),
+            )
+        self.widgets[1].configure(command=self.widgets[0].yview)
+        self.widgets[0].grid(row=0, column=0, sticky='nsew')
+        self.widgets[1].grid(row=0, column=1, sticky='nsew')
+
+        self.widgets[2].grid(row=1, column=0, columnspan=2, sticky='nsew')
+        self.widgets[3].grid(row=0, column=0, sticky='nsew')
+        self.widgets[4].grid(row=0, column=1, sticky='nsew')
+        self.widgets[4].configure(
+            disabledforeground=self.widgets[4].cget('foreground'),
+            disabledbackground=self.widgets[4].cget('background'),
+        )
+
+        self.tk.grid_columnconfigure(0, weight=1)
+        self.tk.grid_rowconfigure(0, weight=1)
+        self.tk.eval('namespace eval remind { variable finish }')
+        self.tk.bind(args.sequence, 'set remind::showinfo::done 1; set remind::showinfo::snooze ""')
+
+        for side in 'LR':
+            self.tk.bind(
+                '<KeyPress-Control_{}>'.format(side),
+                'set remind::showinfo::press_ctrl %#; if {${remind::showinfo::release_ctrl} != %#} {set remind::showinfo::snooze ""}'
+            )
+            self.tk.bind(
+                '<KeyRelease-Control_{}>'.format(side),
+                'set remind::showinfo::release_ctrl %#; update; if {${remind::showinfo::press_ctrl} != %# && [string length "${remind::showinfo::snooze}"]} {set remind::showinfo::done 1}'
+            )
+        for i in range(10):
+            self.tk.bind('<Control-KeyPress-{}>'.format(i), 'set remind::showinfo::snooze "${remind::showinfo::snooze}%K"')
+        self.tk.bind('<Control-KeyPress-BackSpace>', 'set remind::showinfo::snooze [string range "${remind::showinfo::snooze}" 0 end-1]')
+
         self.tk.bind('<Configure>', f'remind::showinfo::keep_window_at_center {self.tk}')
         self.tk.createcommand('remind::showinfo::endit', self.stop)
         self.tk.bind('<Destroy>', 'remind::showinfo::endit %W')
-
 
         self.tk.update_idletasks() # On windows, without this, every window loses focus.
         self.tk.withdraw()
@@ -378,6 +404,7 @@ class Server(object):
                         formatted = ''.join(['now: ', now.strftime(DATE_SHOW), ':\ntgt: ', dtstr, '\n', '='*(len(dtstr)+5), '\n', message])
                     self.showmessage(parent=self.tk, title='Reminder', message=formatted)
                     snoozed = self.tk.call('expr', '${remind::showinfo::snooze}')
+                    self.tk.call('set', 'remind::showinfo::snooze', '')
                     if snoozed:
                         later = datetime.datetime.now() + datetime.timedelta(minutes=snoozed)
                         with self.lock:
