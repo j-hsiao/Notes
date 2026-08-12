@@ -568,9 +568,16 @@ _________________
 string length str
 __________________
 string index str i
+	Get the character at index i.
+	The index can be: int, end, or end-int
+	examples:
+		string index "mystr" end -> r
+		string index "mystr" end-1 -> t
 ___________________________
 string range str first last
+	Slice a string.
 	both indices are inclusive
+	Indexing is the same as `string index ...`
 ____________________
 string compare s1 s2
 	Returns -1, 0, 1
