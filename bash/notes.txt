@@ -52,6 +52,7 @@ contents
 	-0.11- process management
 		-0.11.1- background
 		-0.11.2- coproc
+	-0.12- conditionals
 -1- regexp
 -2- completion
 -3- ps1 (prompt)
@@ -1314,6 +1315,37 @@ NOTE: Coproc might or might not have already exited.  When interacting
 	with the coproc's pipes, if they are already closed, bash might get a
 	SIGPIPE error.  This error will make bash exit.  As a result, when handling
 	coproc, it might be best to use some traps to ignore SIGPIPE.
+
+===================
+-0.12- conditionals
+===================
+while list; do list; done
+if list; then list; [elif list; then list; ... [else list]] done
+for item in expansion-to-words; do list; done
+for ((init;cond;incr)); do list; done
+
+Each "list" is a semicolon or newline delimited sequence of commands.
+The value is the last command.
+NOTE:
+	the distinction between "command" and "list" matters if the exit
+	code of the statements matters.
+	Example:
+		while read -t 1 something
+		do
+		done
+	If the while loop is "successful", exit code is 0
+	EVEN IF the read failed.
+	To determine whether the read failed because timeout or eof,
+	the read's exit code is required which gets clobbered by the
+	while exit code.
+	Therefore, if the exit code is required, something like:
+		while read -t 1 something; ((!(readcode=$?)))
+		do
+		done
+
+	After the read, the exit code is assigned to `readcode`.
+	If readcode is arithmetically truthy, then there was an error
+	so use the ! for the evaluation to be the proper fail/success.
 
 =========
 -1-regexp
