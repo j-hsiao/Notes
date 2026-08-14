@@ -1,16 +1,18 @@
 contents
 -0- general
-	-0.1- setlocal
-	-0.2- quoting
-	-0.3- batchfile
-	-0.4- comments
-	-0.5- quiet
+-0.1- setlocal
+-0.2- quoting
+-0.3- batchfile
+-0.4- comments
+-0.5- quiet
 -1- variables
-	-1.1- setting variables
-		-1.1.1- newlines
-	-1.2- expanding variables
-		-1.2.1- Delayed expansion
-		-1.2.2- Parameter expansions
+-1.1- setting variables
+-1.1.1- newlines
+-1.2- expanding variables
+-1.2.1- Delayed expansion
+-1.2.2- Parameter expansions
+-1.3- special variables
+-1.4- 0-padded ints
 -2- if
 -3- for
 -x- other commands
@@ -94,6 +96,19 @@ variable.
 variable will be the value "  some expression etc"
 
 ^ escapes the next value to be literal.
+
+set /a sets variable after evaluating as an arithmetic expression.
+supported operators:
+	( )
+	! ~ -
+	* / %
+	+ -
+	<< >>
+	&
+	^
+	|
+	= *= /= %= += -= &= ^= |= <<= >>=
+	,
 
 ================
 -1.1.1- newlines
@@ -181,6 +196,18 @@ Special variables require enabled extensions
 	%CMDEXTVERSION%
 	%CMDCMDLINE%
 	%HIGHESTNUMANODENUMBER%
+
+===================
+-1.4- 0-padded ints
+===================
+Batch does not seem to have any good way of removing leading 0s.
+The best bet seems to be
+set /a 2 * 1%var% - 2%var%
+
+This forces all expansions to be non-zero-padded and is
+independent of the length of the var.
+
+
 
 ======
 -2- if
