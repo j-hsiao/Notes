@@ -1316,6 +1316,10 @@ NOTE: Coproc might or might not have already exited.  When interacting
 	SIGPIPE error.  This error will make bash exit.  As a result, when handling
 	coproc, it might be best to use some traps to ignore SIGPIPE.
 
+NOTE: the PID returned by ${NAME_PID} is actually the PID of a bash subshell
+created to run the target command(s).  Use exec to replace that subshell
+with the target command.
+
 ===================
 -0.12- conditionals
 ===================
