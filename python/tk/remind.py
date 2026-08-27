@@ -192,44 +192,49 @@ class Listener(object):
             waiting.add(Request(s, server))
             yield True
 
-
-
-_TIMEPAT = re.compile(r'^(?:(?=.*[ -])(?:(?=.*-.*-)(?P<year>\d+)?-)?(?:(?P<month>\d+)?-)?(?P<day>\d+)? ?)?(?:(?P<hours>\d+(?:\.\d+)?)?:)?(?P<minutes>\d+(?:\.\d+)?)?(?::(?P<seconds>\d+(?:\.\d+)?)?)?$')
-def parse_time(timespec, delay=False):
+UNIT = ('year', 'month', 'day', 'hour', 'minute', 'second')
+UNITS = [unit+'s' for unit in UNIT]
+def parse_time(timespec, delay=False, now=None):
     """Convert a time string into a target time.
 
+    timespec: str, the time specification
+    delay: bool, timespec is a delay from "now."
+
     If the time has already passed and am, then assume pm was desired.
+    timespec is split by a space in 2 halves parsed separately.
+    ymd separated by - or /
+    y/m/d,  m/d,  d
+    hms is separated by :
+    H:M:S, H:M, M
+    Leading omitted values are taken from datetime.datetime.now()
     """
-    m = _TIMEPAT.match(timespec)
-    if not m:
-        raise ValueError(f'bad time: {timespec}')
-    times = list(m.groups())
-    assert len(times) == 6
-    now = datetime.datetime.now()
-    deltas = ('days', 'hours', 'minutes', 'seconds')
+    if now is None:
+        now = datetime.datetime.now()
+    parts = timespec.split()
+    if len(parts) < 2:
+        parts = (['']*(2-len(parts))) + parts
+    ymd = parts[0].replace('-', '/').split('/')[:3]
+    hms = parts[1].split(':')[:3]
+    parsed = {}
+    units = UNITS if delay else UNIT
+    for grouping in [
+        zip(units[:3][-len(ymd):], ymd),
+        zip(units[3:][int(len(hms)==1):], hms)
+    ]:
+        for key, val in grouping:
+            if val.strip():
+                parsed[key] = float(val)
     if delay:
-        if any(times[:2]):
-            raise ValueError('Delay only supports day, hour, minute, second.')
-        info = dict(zip(deltas, [float(i) if i else 0 for i in times[2:]]))
-        return now + datetime.timedelta(**info)
+        return now + datetime.timedelta(**parsed)
     else:
-        found = 0
-        extra = {}
-        for i in range(len(times)):
-            if times[i]:
-                found = 1
-                if i >= 2:
-                    f = float(times[i])
-                    times[i] = int(f)
-                    extra[deltas[i-2]] = f-times[i]
-                else:
-                    times[i] = int(times[i])
-            else:
-                times[i] = int(i < 3) if found else now.timetuple()[i]
-        target = datetime.datetime(*times) + datetime.timedelta(**extra)
-        if target < now and (now - target).total_seconds() < 12*60*60:
-            target += datetime.timedelta(hours=12)
-        return target
+        for unit, val in zip(UNIT, now.timetuple()):
+            if unit in parsed:
+                break
+            parsed[unit] = val
+        ret = datetime.datetime(**{k: int(v) for k,v in parsed.items()})
+        if ret < now and ret.hour < 12:
+            return ret + datetime.timedelta(hours=12)
+        return ret
 
 class Server(object):
     def __init__(self, args):
@@ -258,7 +263,6 @@ class Server(object):
                 variable done 1
                 variable snooze ""
                 variable press_ctrl 0
-                variable release_ctrl 0
                 proc keep_window_at_center {win} {
                     variable targetx [expr ([winfo screenwidth $win]-[winfo width $win])/2]
                     variable targety [expr ([winfo screenheight $win]-[winfo height $win])/2]
@@ -299,20 +303,21 @@ class Server(object):
         self.tk.grid_columnconfigure(0, weight=1)
         self.tk.grid_rowconfigure(0, weight=1)
         self.tk.eval('namespace eval remind { variable finish }')
-        self.tk.bind(args.sequence, 'set remind::showinfo::done 1; set remind::showinfo::snooze ""')
-
-        for side in 'LR':
-            self.tk.bind(
-                '<KeyPress-Control_{}>'.format(side),
-                'set remind::showinfo::press_ctrl %#; if {${remind::showinfo::release_ctrl} != %#} {set remind::showinfo::snooze ""}'
-            )
-            self.tk.bind(
-                '<KeyRelease-Control_{}>'.format(side),
-                'set remind::showinfo::release_ctrl %#; update; if {${remind::showinfo::press_ctrl} != %# && [string length "${remind::showinfo::snooze}"]} {set remind::showinfo::done 1}'
-            )
+        self.tk.bind(
+            args.sequence,
+            'set remind::showinfo::done 1; set remind::showinfo::snooze ""')
+        self.tk.bind('<Return>', 'if {[string length "${remind::showinfo::snooze}"]} {set remind::showinfo::done 1}')
         for i in range(10):
-            self.tk.bind('<Control-KeyPress-{}>'.format(i), 'set remind::showinfo::snooze "${remind::showinfo::snooze}%K"')
-        self.tk.bind('<Control-KeyPress-BackSpace>', 'set remind::showinfo::snooze [string range "${remind::showinfo::snooze}" 0 end-1]')
+            self.tk.bind(
+                '<KeyPress-{}>'.format(i),
+                'set remind::showinfo::snooze "${remind::showinfo::snooze}%K"')
+        for k in ('semicolon:', 'colon:', 'period.'):
+            self.tk.bind(
+                '<KeyPress-{}>'.format(k[:-1]),
+                'set remind::showinfo::snooze "${{remind::showinfo::snooze}}{}"'.format(k[-1:]))
+        self.tk.bind(
+            '<KeyPress-BackSpace>',
+            'set remind::showinfo::snooze [string range "${remind::showinfo::snooze}" 0 end-1]')
 
         self.tk.bind('<Configure>', f'remind::showinfo::keep_window_at_center {self.tk}')
         self.tk.createcommand('remind::showinfo::endit', self.stop)
@@ -334,6 +339,8 @@ class Server(object):
             if not self.running:
                 return
             self.running = False
+            if not self.reminders:
+                return
         s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         try:
             s.connect(('localhost', self.port))
@@ -403,15 +410,34 @@ class Server(object):
                     else:
                         formatted = ''.join(['now: ', now.strftime(DATE_SHOW), ':\ntgt: ', dtstr, '\n', '='*(len(dtstr)+5), '\n', message])
                     self.showmessage(parent=self.tk, title='Reminder', message=formatted)
-                    snoozed = self.tk.call('expr', '${remind::showinfo::snooze}')
-                    self.tk.call('set', 'remind::showinfo::snooze', '')
-                    if snoozed:
-                        later = datetime.datetime.now() + datetime.timedelta(minutes=snoozed)
+                    while 1:
                         with self.lock:
-                            if self.running:
-                                heapq.heappush(self.reminders, (later, message))
-                            else:
-                                print('no longer running but snoozed')
+                            if not self.running:
+                                break
+                        try:
+                            snoozed = self.tk.eval('expr {${remind::showinfo::snooze}}')
+                            self.tk.call('set', 'remind::showinfo::snooze', '')
+                            if snoozed:
+                                now = datetime.datetime.now()
+                                later = parse_time(snoozed, True, now=now)
+                                if later < now:
+                                    break
+                                else:
+                                    with self.lock:
+                                        if self.running:
+                                            heapq.heappush(self.reminders, (later, message))
+                                        else:
+                                            # should never reach here...
+                                            self.showmessage(
+                                                parent=self.tk, title='error',
+                                                message = 'No longer running but snoozed'
+                                            )
+                        except Exception:
+                            self.showmessage(
+                                parent=self.tk, title='Reminder',
+                                message='\n'.join([formatted, traceback.format_exc()]))
+                        else:
+                            break
             finally:
                 self.tkshown.set()
             with self.lock:
@@ -479,6 +505,7 @@ class Server(object):
                 waiting.add(Listener(L, waiting, self))
                 running = True
                 while running:
+                    self.eprint('Waiting for clients')
                     for item in select.select(waiting, (), (), wait)[0]:
                         self.eprint('stepping', item)
                         try:
@@ -502,10 +529,11 @@ class Server(object):
                             self.ready.extend(nready)
                         self.tkshown.clear()
                         self.tk.event_generate('<<CheckNotifications>>', when='tail')
-                    self.tkshown.wait()
                     with self.lock:
                         if self.reminders:
                             wait = min(60, max(0, (self.reminders[0][0] - now).total_seconds()))
+                        elif not self.tkshown.is_set():
+                            wait = 1
                         elif self.persist or startup:
                             wait = None
                         else:
@@ -763,7 +791,7 @@ if __name__ == '__main__':
 
     if args.check:
         print('now:', datetime.datetime.now().strftime(DATE_FMT))
-        print('tgt:', parse_time(args.cmd, args.delay).strftime(DATE_FMT))
+        print('tgt:', parse_time(args.cmd[0], args.delay).strftime(DATE_FMT))
     elif args.server:
         Server(args).run()
     else:
