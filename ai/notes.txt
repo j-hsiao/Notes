@@ -1,0 +1,71 @@
+-1-  models
+-1.1-  gemma
+-2-  frameworks
+-2.1-  ollama
+-2.1.1-  python
+
+============
+-1-  general
+============
+
+============
+-1.1-  gemma
+============
+https://dev.to/sempre_libera_f511ef67c1f/running-gemma-3-locally-a-step-by-step-guide-1p9
+use ollama |2.1|
+
+===============
+-2-  frameworks
+===============
+frameworks run the models...
+
+=============
+-2.1-  ollama
+=============
+curl -fsSL https://ollama.com/install.sh | sh
+ollama --version
+ollama pull modelname
+ollama run modelname
+
+model names:
+	gemma3:[1b|4b|12b|27b][-it-qat]
+
+rest api: port 11434
+
+curl http://localhost:11434/api/generate -d '{
+	"model": "gemma3:4b",
+	"prompt": "Explain the concept of recursion with a simple example",
+	"stream": false
+}'
+curl http://localhost:11434/api/chat -d '{
+	"model": "gemma3:4b",
+	"messages": [
+		{"role": "user", "content": "What are the benefits of using Gemma 3 over other language models?"}
+	],
+	"stream": false
+}'
+
+===============
+-2.1.1-  python
+===============
+pip install ollama
+
+import ollama
+
+# Simple text generation
+response = ollama.generate(
+	model='gemma3:4b',
+	prompt='Create a simple web scraper in Python using requests and BeautifulSoup'
+)
+print(response['response'])
+
+# Conversational interface
+chat_response = ollama.chat(
+	model='gemma3:4b',
+	messages=[
+		{'role': 'system', 'content': 'description of what this model should be doing. "you are ..."'}
+		{'role': 'user', 'content': 'What the user asks of the model'}
+	]
+)
+print(chat_response['message']['content'])
+
