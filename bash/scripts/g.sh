@@ -37,6 +37,15 @@ g()
 	local root="${PWD}"
 	local remote
 	remote="$(git remote get-url origin)" || return
+	if [[ "${remote}" == localhost:* ]]
+	then
+		${verbose} echo "localhost ssh remote ${remote}"
+		remote="${remote#localhost:}"
+		if [[ ! -d "${remote}" && -d "${HOME}/${remote}" ]]
+		then
+			remote="${HOME}/${remote}"
+		fi
+	fi
 	while [[ -d "${remote}" ]]
 	do
 		${verbose} echo "${PWD} -> ${remote}" >&2
@@ -45,6 +54,15 @@ g()
 		if nxt="$(git remote get-url origin 2>/dev/null)"
 		then
 			remote="${nxt}"
+			if [[ "${remote}" == localhost:* ]]
+			then
+				${verbose} echo "localhost ssh remote ${remote}"
+				remote="${remote#localhost:}"
+				if [[ ! -d "${remote}" && -d "${HOME}/${remote}" ]]
+				then
+					remote="${HOME}/${remote}"
+				fi
+			fi
 		else
 			remote="${PWD}"
 			${verbose} echo "Current dir: ${PWD}" >&2
