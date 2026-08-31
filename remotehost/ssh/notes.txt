@@ -45,12 +45,22 @@ Having a CA certify that user/host is who they say they are...
 -0.2.1- server
 ==============
 Server machine:
-	certify the server public key:
-		ssh-keygen -s ca_private_key -h -I a_name_for_the_cert -n hostname1,hostname2,... \
-			-V [validstart:]validend host_public_key
-	/etc/ssh/sshd_config.d/cert.conf:
-		HostCertificate path/to/host-cert.pub
-		HostKey /path/to/private/key
+	1. certify the server public key:
+		ssh-keygen \
+			-s ca_private_key \
+			-h \
+			-I a_name_for_the_cert \
+			-n hostname1,hostname2,... \
+			-V [validstart:]validend \
+			host_public_key
+
+	2. Edit ssh server configuration
+		/etc/ssh/sshd_config.d/cert.conf
+			HostCertificate path/to/host-cert.pub
+			HostKey /path/to/private/key
+		Recommended optional keys:
+			TrustedUserCAKeys none|/path/to/file/of/trusted/ca/public/keys/one/per/line
+			(NOTE: this means the public key can be used directly if only 1 key.)
 
 	/etc/ssh/sshd_config has a line `Include sshd_config.d/*.conf` so the fname must end with .conf
 		or alternatively, put it directly into that config.
@@ -58,8 +68,15 @@ Server machine:
 
 client machine:
 	trust the CA in step 1
-	{ printf '@cert-authority hostname,hostname,... '; cat CA_public_key; } >> ~/.ssh/known_hosts
-	see also -1.4-
+		Add a line to ~/.ssh/known_hosts
+		@cert-authority hostname,hostname,... cat_ca_public_key_here
+
+		Example hostnames comma-delimted list
+			localhost,127.0.0.1,::1
+
+		example:
+			{ printf '@cert-authority hostname,hostname,... '; cat CA_public_key; } >> ~/.ssh/known_hosts
+		see also -1.4-
 
 ============
 -0.2.2- user
@@ -73,7 +90,9 @@ client machine:
 		2. add the `-o Certificatefile path-to-cert' to commandline
 		3. add `CertificateFile` option to ~/.ssh/config
 server machine:
-	trust CA certified user keys:
+	Add the user's CA ~/.ssh/authorized_keys:
+		cert-authority[,from="source_ips_comma-delimited_list"] cat_ca_public_key_here
+
 		{ printf 'cert-authority '; cat CA_public_key; } >> /home/targetuser/.ssh/authorized_keys
 		see also -3.2-
 
