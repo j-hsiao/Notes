@@ -142,6 +142,8 @@ class Request(object):
                         print('Scheduled reminders:', file=wf)
                         for i, (target, message) in enumerate(server.reminders):
                             print(f'{i}: {target.strftime(DATE_SHOW)}: {message}', file=wf)
+            elif command == 'wake':
+                pass
             elif command == 'cancel':
                 buf, fds, _ = yield from readtil(sock, buf, remainder.nbytes)
                 out = 0
@@ -348,8 +350,11 @@ class Server(object):
                 print('exit', file=wf)
                 wf.flush()
             s.shutdown(socket.SHUT_WR)
+            s.settimeout(1)
             while s.recv(4096):
                 pass
+        except socket.timeout:
+            pass
         finally:
             s.close()
 
@@ -420,7 +425,7 @@ class Server(object):
                             if snoozed:
                                 now = datetime.datetime.now()
                                 later = parse_time(snoozed, True, now=now)
-                                if later < now:
+                                if later <= now:
                                     break
                                 else:
                                     with self.lock:
@@ -441,8 +446,23 @@ class Server(object):
             finally:
                 self.tkshown.set()
             with self.lock:
-                if self.running:
-                    return
+                running = self.running
+            if running:
+                s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+                try:
+                    s.connect(('localhost', self.port))
+                    s.sendall(b'wake\n')
+                    s.shutdown(socket.SHUT_WR)
+                    s.settimeout(1)
+                    while s.recv(4096):
+                        pass
+                except socket.timeout:
+                    pass
+                except Exception:
+                    traceback.print_exc()
+                finally:
+                    s.close()
+                return
             if self.reminders or self.ready:
                 with io.StringIO() as messagebuf:
                     self.reminders.sort()
@@ -532,9 +552,7 @@ class Server(object):
                     with self.lock:
                         if self.reminders:
                             wait = min(60, max(0, (self.reminders[0][0] - now).total_seconds()))
-                        elif not self.tkshown.is_set():
-                            wait = 1
-                        elif self.persist or startup:
+                        elif not self.tkshown.is_set() or len(waiting) > 1 or self.persist or startup:
                             wait = None
                         else:
                             return
@@ -690,6 +708,7 @@ COMMANDS = {
     'cancel': '',
     'check': 'list',
     'ls': 'list',
+    'wake': '',
 }
 def send_command(args, retrying=False):
     """Send client command to server. Start server if it is down."""
