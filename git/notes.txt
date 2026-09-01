@@ -8,7 +8,7 @@ https://docs.github.com/en/authentication/keeping-your-account-and-data-secure/g
 contents
 --------
 -0- workflow
--1- spec
+-1- refspec
 -2- basics
 	-2.1- reference syntax
 	-2.2- common commands
@@ -77,16 +77,18 @@ result:
 2. dev retains all the actual history
 
 
-=======
--1-spec
-=======
+===========
+-1- refspec
+===========
+man gitrevisions
+
+Refer to a revision/commit/object.
 -----
 paths
 -----
 	paths match itself
 	scope is limited to directory up to the last slash
 	rest of pathspec = for pattern matching
-
 
 examples:
 	d1/*.jpg
@@ -106,7 +108,6 @@ magic signature
 		exclude  (^ or !), ignore paths
 		literal  treat * and ? as literal
 		icase    case insensitive
-
 
 notes:
 	generally can add -- to delimit the start of pathspecs
@@ -128,19 +129,21 @@ example:
 	git push origin :refs/heads/master
 		push nothing (delete) origin master
 
+tags: refs/tags/<tagname>
+heads: refs/heads/<headname>
+@: HEAD
 
------
-other
------
-tags:
-	refs/tags/<tagname>
-heads:
-	refs/heads/<headname>
+==================
+Relative revisions
+==================
+<rev>~n  (go back n commits (always choosing 1st parent))
+<rev>^n  (go to nth parent (if merge, multiple parents), 0 = itself)
+<rev>^{/regexp} search for regexp starting at <rev> going older
+:/regexp: youngest commit with message matching regexp
+<rev>:<path>
 
-relative:
-	HEAD~n  (go back n commits)
-	HEAD^n  (go to nth parent (if merge, multiple parents))
-	@: head
+	NOTE: for regexp must be a single token (escape or quote it)
+
 
 ==========
 -2- basics
