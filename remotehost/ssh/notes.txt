@@ -1,5 +1,6 @@
 contents:
 -0- summary
+	-0.0- authorization
 	-0.1- basic usage
 		-0.1.1- extra usage
 	-0.2- certification
@@ -19,6 +20,81 @@ contents:
 ===========
 -0- summary
 ===========
+===================
+-0.0- authorization
+===================
+Keys are authorized/revoked from different sources.
+
+1. Server configuration:
+	TrustedUserCAKeys: list of ca public keys
+	RevokedKeys: list of revoked login keys
+		(tested putting the ca pub key here, didn't do any revoking)
+	NOTE: if the trustedusercakeys or revokedkeys files are edited, there is no
+		need to restart.  Restart is only needed if the actual config file was
+		changed.
+2. user configuration:
+	authorized_keys
+		cert-authority
+		normalkey
+		normalkey, but from=""
+
+General observation: if any check is seen as "ok",
+then ssh is ok even if other checks fail.
+Except for the server-config level revokedkeys
+conclusion:
+	if key not in RevokedKeys \
+			and any([
+				ca in TrustedUserCAKeys,
+				ca in cert-authority:authorized_keys,
+				key in authorized_keys]):
+		allow
+	else:
+		disallow
+
+
+Testing
+RevokedKeys
+| TrustedUserCAKeys
+| | authorized_keys:cert-authority
+| | | authorized_keys
+| | | | authorized_keys:from=""
+| | | | | ssh was allowed?
+| | | | | |
+n n n n n 0
+n n n n y 0
+n n n y n 1
+n n n y y 1   (line order did not matter)
+n n y n n 1
+n n y n y 1
+n n y y n 1
+n n y y y 1
+n y n n n 1
+n y n n y 1
+n y n y n 1
+n y n y y 1
+n y y n n 1
+n y y n y 1
+n y y y n 1
+n y y y y 1
+y n n n n 0
+y n n n y 0
+y n n y n 0
+y n n y y 0
+y n y n n 0
+y n y n y 0
+y n y y n 0
+y n y y y 0
+y y n n n 0
+y y n n y 0
+y y n y n 0
+y y n y y 0
+y y y n n 0
+y y y n y 0
+y y y y n 0
+y y y y y 0
+
+
+
 =================
 -0.1- basic usage
 =================
@@ -54,20 +130,20 @@ Server machine:
 			-V [validstart:]validend \
 			host_public_key
 
+		start/end:
+			YYYYMMDD[HHMMSS] | +/-N[smhdw]
+
 	2. Edit ssh server configuration
 		/etc/ssh/sshd_config.d/cert.conf
 			HostCertificate path/to/host-cert.pub
 			HostKey /path/to/private/key
-		Recommended optional keys:
-			TrustedUserCAKeys none|/path/to/file/of/trusted/ca/public/keys/one/per/line
-			(NOTE: this means the public key can be used directly if only 1 key.)
 
 	/etc/ssh/sshd_config has a line `Include sshd_config.d/*.conf` so the fname must end with .conf
 		or alternatively, put it directly into that config.
 	restart the server
 
-client machine:
-	trust the CA in step 1
+client machines:
+	trust the CA in step 1 so ssh to the server does not warn "cannot verify..." etc
 		Add a line to ~/.ssh/known_hosts
 		@cert-authority hostname,hostname,... cat_ca_public_key_here
 
@@ -95,6 +171,11 @@ server machine:
 
 		{ printf 'cert-authority '; cat CA_public_key; } >> /home/targetuser/.ssh/authorized_keys
 		see also -3.2-
+
+	OR
+		in /etc/ssh/sshd_config[.d/*.conf]:
+		add TrustedUserCAKeys /path/to/a/file
+		and add the CA public key to that file.
 
 ==============
 -1- ssh client
