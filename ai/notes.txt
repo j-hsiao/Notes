@@ -1,12 +1,28 @@
+========
+contents
+========
 -1-  models
 -1.1-  gemma
 -2-  frameworks
 -2.1-  ollama
+-2.1.0-  api
+-2.1.0.1-  /api/generate
+-2.1.0.2-  /api/chat
+-2.1.0.3-  /api/embed
+-2.1.0.4-  /api/tags
+-2.1.0.5-  /api/ps
+-2.1.0.6-  /api/show
+-2.1.0.7-  /api/create
+-2.1.0.8-  /api/copy
+-2.1.0.9-  /api/pull
+-2.1.0.10-  /api/push
+-2.1.0.11-  /api/delete
+-2.1.0.12-  /api/version
 -2.1.1-  python
 
-============
--1-  general
-============
+===========
+-1-  models
+===========
 
 ============
 -1.1-  gemma
@@ -44,6 +60,392 @@ curl http://localhost:11434/api/chat -d '{
 	],
 	"stream": false
 }'
+
+============
+-2.1.0-  api
+============
+https://docs.ollama.com/api/introduction
+
+Ollama is structured as server/client.  The server runs the models.
+Clients connect to the server and send requests.
+
+The server provides REST APIs for clients to use on port 11434 by default.
+Generally requests and responses are in json format (or concatenated json)
+
+______________________
+General request fields
+{
+	"model": "name of the model to use"
+	"stream": true/false (false: response = application/json | true: response = application/x-ndjson)
+	"options": {
+		"seed": int,
+		"temperature": float, 0=norandom, 1=highrandom
+		"top_k": int
+		"top_p": float, cum prob for "nucleus sampling"
+		"min_p": float, min prob thresh for token selection
+		"stop": "stop sequence that will halt generation"
+		"num_ctx": int, length of context (tokens)
+		"num_predict": int, num tokens to generate
+	},
+	"logprobs": bool, return log probs of output tokens?
+	"top_logprobs": int: number of likely tokens
+	"format": "json" or json schema object,
+	"think": true/false | "high|medium|low|max"
+	"keep_alive": "model-keep-alive duration, ex: 5m, 0"
+}
+
+_______________________
+General response fields
+{
+	"model": "name of model that was used."
+	"created_at": "YYYY-mm-ddTHH:MM:SS.ffffffZ"
+	"done": true/false,
+	"done_reason": "stop",
+	"context": [sequence, of, ints],
+
+	"total_duration"      : int | nanoseconds to generate
+	"load_duration"       : int | nanoseconds to load model
+	"prompt_eval_count"   : int | number of prompt input tokens
+	"prompt_eval_duration": int | nanoseconds to eval prompt
+	"eval_count"          : int | number of output tokens
+	"eval_duration"       : int | nanoseconds to output tokens
+
+	"error": "error message"
+	         NOTE: if "stream" and error occurs, then one of the newline-delimited json objects
+	         will have the "error" field.
+
+	"thinking": "thinking string",
+	"logprobs": [
+		{
+			"token": "<string>",
+			"logprob": 123,
+			"bytes": [
+				123
+			],
+			"top_logprobs": [
+				{
+					"token": "<string>",
+					"logprob": 123,
+					"bytes": [
+						123
+					]
+				}
+			]
+		}
+	]
+}
+
+
+____________
+status codes
+200: ok, success
+400: bad request (missing params or invalid json)
+404: model not found
+429: rate limit exceeded
+500: internal server error
+502: bad gateway (can't reach cloud model)
+
+
+========================
+-2.1.0.1-  /api/generate
+========================
+POST a prompt to get a response.
+__________________
+request parameters
+{
+	"prompt": "initial text",
+	"suffix": "text between prompt and response",
+	"images": [b64string,...]
+	"system": "system prompt"
+	"raw": true/false: raw response w/o prompt templating
+}
+
+___________________
+response parameters
+{
+	"response": "",
+}
+
+====================
+-2.1.0.2-  /api/chat
+====================
+POST current chat to get next line
+________
+request
+{
+	"messages" [
+		{
+			"role": "system|user|assistant|tool",
+			"content": "text",
+			"images": [b64 images,...],
+			"tool_calls": [
+				{
+					"function": {
+						"name": "string name",
+						"description": "description",
+						"arguments": {
+						}
+					}
+				}
+			],
+		},
+		...
+	],
+	"tools": [
+		{
+			"type": "function" "str enum for the type, always function",
+			"function": {
+				"name": "tool name",
+				"parameters": {
+					"JSON Schema for function parameters"
+				}
+				"description": "description str"
+			}
+		}
+	],
+}
+
+________
+response
+{
+"message": {
+		"role": "assistant",
+		"content": "<string>",
+		"thinking": "<string>",
+		"tool_calls": [
+			{
+				"function": {
+					"name": "<string>",
+					"description": "<string>",
+					"arguments": {}
+				}
+			}
+		],
+		"images": [
+			"<string>"
+		]
+	},
+}
+
+=====================
+-2.1.0.3-  /api/embed
+=====================
+POST strings to embed
+_______
+request
+{
+	"input": "" | ["", "", ...]
+	"truncate": true/false,
+	"dimensions": int,
+}
+________
+response
+{
+	"embeddings": [
+		[dim1, dim2, dim3, ...],
+		...
+	]
+}
+
+====================
+-2.1.0.4-  /api/tags
+====================
+GET model information
+________
+response
+{
+	"models": [
+		{
+			"name": "gemma4",
+			"model": "gemma4",
+			"modified_at": "2025-10-03T23:34:03.409490317-07:00",
+			"size": 9608350245,
+			"digest": "c6eb396dbd5992bbe3f5cdb947e8bbc0ee413d7c17e2beaae69f5d569cf982eb",
+			"details": {
+				"format": "gguf",
+				"family": "gemma4",
+				"families": [
+					"gemma4"
+				],
+				"parameter_size": "8.0B",
+				"quantization_level": "Q4_K_M"
+			}
+		}
+	]
+}
+{
+	"models": [
+		{
+			"name": "gemma3:4b-it-qat",
+			"model": "gemma3:4b-it-qat",
+			"modified_at": "2026-09-01T13:59:40.273730452+08:00",
+			"size": 4006630865,
+			"digest": "d01ad0579247579135cd4d4b156cab36613d1936ccfd9b81e4be6f4ef05416fe",
+			"details": {
+				"parent_model": "/Users/pdevine/.ollama/models/blobs/sha256-529850705c0884a283b87d3b261d36ee30821e16f0310962ba977b456ad3b8cd",
+				"format": "gguf",
+				"family": "gemma3",
+				"families": [
+					"gemma3"
+				],
+				"parameter_size": "4.3B",
+				"quantization_level": "Q4_0"
+			},
+			"capabilities": [
+				"completion"
+			]
+		},
+		{
+			"name": "gemma3:1b-it-qat",
+			"model": "gemma3:1b-it-qat",
+			"modified_at": "2026-09-01T11:19:21.044219138+08:00",
+			"size": 1003539988,
+			"digest": "b491bd3989c65bf74267bfb9e7d5fd0bf7b6548bc12f91a98df3c56865ce2f80",
+			"details": {
+				"parent_model": "/Users/pdevine/.ollama/models/blobs/sha256-57c9b4a897df8d1ba26a152eb7b98e8dc743e21a5d5492f8183270565b84932b",
+				"format": "gguf",
+				"family": "gemma3",
+				"families": [
+					"gemma3"
+				],
+				"parameter_size": "999.89M",
+				"quantization_level": "Q4_0"
+			},
+			"capabilities": [
+				"completion"
+			]
+		}
+	]
+}
+
+==================
+-2.1.0.5-  /api/ps
+==================
+GET List running models
+
+{
+	"models": [
+		{
+			"name": "gemma3:4b-it-qat",
+			"model": "gemma3:4b-it-qat",
+			"size": 4446014816,
+			"digest": "d01ad0579247579135cd4d4b156cab36613d1936ccfd9b81e4be6f4ef05416fe",
+			"details": {
+				"parent_model": "",
+				"format": "gguf",
+				"family": "gemma3",
+				"families": [
+					"gemma3"
+				],
+				"parameter_size": "4.3B",
+				"quantization_level": "Q4_0"
+			},
+			"expires_at": "2026-09-02T15:20:02.117523423+08:00",
+			"size_vram": 1631909314,
+			"context_length": 4096
+		}
+	]
+}
+
+====================
+-2.1.0.6-  /api/show
+====================
+POST model to show details about
+_______
+request
+{
+	"verbose": true/false
+}
+________
+response
+{
+	"parameters":
+	"license":
+	"capabilities": [
+		"completion"|"vision", ...
+	],
+	"modified_at": "YYYY-mm-ddTHH:MM:SS.ff-HH:MM",
+	"details": {
+		...
+	}
+}
+
+======================
+-2.1.0.7-  /api/create
+======================
+POST "Create" a new model
+(really morelike save a model state with a
+preloaded systemprompt or chat history...)
+_______
+request
+{
+	"model": "name of model to create",
+	"from": "name of original model",
+	"template": "prompt template for model",
+	"renderer": "name of renderer for model",
+	"parser": "name of parser for model",
+	"license": "license for model",
+	"system": "embedded system prompt for the model",
+	"parameters": {...}
+	"messages": [
+		{
+			"role": "system|user|assistant|tool",
+			"content": "text",
+			"images": [b64 images,...],
+			"tool_calls": [
+				{
+					"function": {
+						"name": "string name",
+						"description": "description",
+						"arguments": {
+						}
+					}
+				}
+			],
+		},
+	],
+	"quantize": "q4_K_M|q8_0, ...???",
+	"stream": true/false
+}
+
+________
+response
+{
+	"status": "success"
+}
+
+====================
+-2.1.0.8-  /api/copy
+====================
+POST copy a ?local? model ?locally?
+{
+	"source": "model to copy from",
+	"destination": "model to copy to"
+}
+====================
+-2.1.0.9-  /api/pull
+====================
+POST pull a model
+{
+	"model": "modelname"
+	"insecure": true/false
+	"stream": true/false
+}
+=====================
+-2.1.0.10-  /api/push
+=====================
+POST publish a model
+
+=======================
+-2.1.0.11-  /api/delete
+=======================
+DELETE a model
+{"model": "to delete"}
+
+========================
+-2.1.0.12-  /api/version
+========================
+GET current server version.
 
 ===============
 -2.1.1-  python
