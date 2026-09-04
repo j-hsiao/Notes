@@ -23,6 +23,7 @@ contents:
 	C-g           cancel
 	C-x C-f [fn]  open a filename fn
 	C-x C-s       save file
+	C-x C-c       exit emacs
 ------------------------------
 -1- cursor movement
 	command       description

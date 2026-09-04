@@ -1,0 +1,34 @@
+-0- general
+
+============
+-0-  general
+============
+Generally, nano has bindings listed at the bottom.  However, these are
+not all of the bindings that can be used.
+
+In general, nano seems to take some emacs-like bindings:
+
+movement:
+  C-[np] next/previous line
+  C-[fb] forward/back one character
+  C-[ae] beg/end of line
+  C-d    delete to right
+
+However, it has some other bindings that are not emacs-like at all
+  C-x    exit nano
+  C-k    cut the current line or selection
+  C-u    paste the cut line
+  C-[wq] search forward/backward
+  M-[wq] next/previous match
+  C-t    Run a terminal command and insert the output. (also needed to suspend with C-z)
+  C-j    justify the paragraph (fit to some predetermined column width)
+  C-/    jump to a line and maybe a column
+  M-A    set mark (for text selection)
+  M-6    copy the marked selection
+  M-[ue] undo/redo
+  C-o    Open the save menu
+    C-/ jump to a directory
+    C-c cancel
+    C-t ?browse? aside from seeing what exists, there doesn't seem to be a use
+        for this. It doesn't seem to change directories etc, after exiting
+        browsing entering name saves to original dir.
