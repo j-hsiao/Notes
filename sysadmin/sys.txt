@@ -1,0 +1,35 @@
+-0-  general
+
+============
+-0-  general
+============
+/sys contains "kernel" objects, ?generally linked to hardware?
+
+==============
+-1-  /sys/class
+==============
+
+===================
+-1.1-  power_supply
+===================
+/sys/class/power_supply/*
+examples:
+	$ ls /sys/class/power_supply/*
+	/sys/class/power_supply/AC1:
+	device  extensions  hwmon1  online  power  subsystem  type  uevent  wakeup6
+
+	/sys/class/power_supply/BAT1:
+	alarm           energy_full_design  power          technology
+	capacity        energy_now          power_now      type
+	capacity_level  extensions          present        uevent
+	cycle_count     hwmon0              serial_number  voltage_min_design
+	device          manufacturer        status         voltage_now
+	energy_full     model_name          subsystem
+
+status:
+	Charging
+	Not Charging
+	Discharging
+
+/sys/class/power_supply/BAT0/charge_start_threshold
+/sys/class/power_supply/BAT0/charge_stop_threshold
