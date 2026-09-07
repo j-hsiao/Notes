@@ -1262,6 +1262,25 @@ contents
 =========================
 -0.11- process management
 =========================
+jobs are referred:
+	%jobnumber
+	%command_name_prefix (must uniquely match)
+	%?commandline_text_matching_anywhere (must uniquely match)
+	%% or %+  ("current job")
+	%- ("previous job")
+
+NOTE:
+	"+/-" are not actually current/previous, but rather what
+	fg/bg will act upon.
+	Generally they will be placed on jobs that were suspended and then
+	moved to the background or something like that
+	even if there are newer jobs.
+
+The best way to match a job with a number is probably to
+use jobs -l combined with $! to get the pid of the job
+and then use some matching to calculate what the job number is.
+
+
 ==================
 -0.11.0- buffering
 ==================
@@ -1305,20 +1324,31 @@ variables WILL BE CLEANED UP (unset)
 
 (run coproc.sh to observe behavior)
 
+Coproc can be disowned.  After disowning
 
-NOTE: to use NAME, the {} are required.
-NOTE: coprocs will be automatically waited on at certain points
+================
+Multiple Coprocs
+================
+Multiple coprocs are allowed.  However, when creating multiple coprocs,
+there will be a warning saying the previous one still exists.
+Furthermore, the NAME and NAME_PID variables for the old coproc WILL NOT
+be auto-cleaned.
+
+
+=====
+notes
+=====
+1. to use NAME, the {} on the body are required.
+2. coprocs will be automatically waited on at certain points
 	such as when a new command is run after it has exited, or at the end
 	of a sourced script
-
-NOTE: Coproc might or might not have already exited.  When interacting
+3. Coproc might or might not have already exited.  When interacting
 	with the coproc's pipes, if they are already closed, bash might get a
-	SIGPIPE error.  This error will make bash exit.  As a result, when handling
-	coproc, it might be best to use some traps to ignore SIGPIPE.
+	SIGPIPE error.  This error will make bash exit.  Add traps to ignore SIGPIPE.
+4. the PID returned by ${NAME_PID} is actually the PID of a bash subshell
+	created to run the target command(s).  Use exec to replace that subshell
+	with the target command.
 
-NOTE: the PID returned by ${NAME_PID} is actually the PID of a bash subshell
-created to run the target command(s).  Use exec to replace that subshell
-with the target command.
 
 ===================
 -0.12- conditionals
