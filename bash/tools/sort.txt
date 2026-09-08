@@ -1,0 +1,78 @@
+-0-  general
+-1-  options
+-1.1-  ordering
+-1.2-  other
+-2-  other options
+
+============
+-0-  general
+============
+Sort input or files.
+sort [file]...
+
+No files, use stdin
+
+============
+-1-  options
+============
+===============
+-1.1-  ordering
+===============
+-b  --ignore-leading-blanks
+-d  --dictionary-order
+-f  --ignore-case
+-g  --general-numeric-sort (floats)
+-i  --ignore-nonprinting
+-M  --month-sort (JAN < FEB <...< DEC)
+-h  --human-numeric-sort (1k 1m etc)
+-n  --numeric-sort (ints)
+-R  --random-sort (shuffle)
+--random-source=file
+-r  --reverse
+--sort=[general-numeric (-g) human-numeric (-h), month (-m), numeric (-n), random (-R), version (-V)]
+-V  --version-sort
+
+============
+-1.2-  other
+============
+------
+useful
+------
+-k --key=keydef
+	sort on key
+	keydef is start[,stop]
+	where each item is F[.C[OPTS]]
+	F = field
+	C = char
+	OPTS = bdfgiMhnRrV options
+
+	stop defaults to the line end of line
+
+-c --check --check=diagnose-first
+	check sorted, print first bad line if any
+-s --stable
+-t --field-separator=sep
+-u --unique
+-z --zero-terminated
+	use nul instead of newline to split entries.
+
+
+-----
+other
+-----
+--batch-size=nmerge
+-C --check=quiet --check=silent
+	check sorted, no print
+--compress-program=prog
+--debug
+--files0-from=F
+  Read nul-terminated filenames from F or stdin
+-m --merge
+	??merge already sorted files; do not sort??
+-o --output=file
+	disable last-resort comparison
+-S --buffer-size
+-T --temporary-directory=dir
+--parallel=N
+--help
+--version
