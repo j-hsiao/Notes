@@ -1,0 +1,21 @@
+====
+arch
+====
+aur, 2 git packages
+
+https://aur.archlinux.org/nvidia-580xx-settings.git
+https://aur.archlinux.org/nvidia-580xx-utils.git
+
+creates packages
+
+nvidia-580xx-settings/libxnvctrl-580xx-580.159.04-1-x86_64.pkg.tar.zst
+nvidia-580xx-settings/libxnvctrl-580xx-580.178.04-1-x86_64.pkg.tar.zst
+nvidia-580xx-settings/nvidia-580xx-settings-580.159.04-1-x86_64.pkg.tar.zst
+nvidia-580xx-settings/nvidia-580xx-settings-580.178.04-1-x86_64.pkg.tar.zst
+nvidia-580xx-settings/nvidia-580xx-settings-debug-580.159.04-1-x86_64.pkg.tar.zst
+nvidia-580xx-settings/nvidia-580xx-settings-debug-580.178.04-1-x86_64.pkg.tar.zst
+nvidia-580xx-utils/nvidia-580xx-dkms-580.178.04-1-x86_64.pkg.tar.zst
+nvidia-580xx-utils/nvidia-580xx-utils-580.178.04-1-x86_64.pkg.tar.zst
+nvidia-580xx-utils/opencl-nvidia-580xx-580.178.04-1-x86_64.pkg.tar.zst
+
+pacman -U *.zst, exclude the *debug* ones
