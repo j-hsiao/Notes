@@ -75,6 +75,8 @@ contents
 -6- builtins
 	-6.1- printf
 	-6.2- trap
+	-6.3- export
+	-6.4- declare/local
 
 ===========
 -0- general
@@ -2095,3 +2097,118 @@ https://www.gnu.org/software/bash/manual/html_node/Programmable-Completion-Built
 		This achieves untouched traps for caller while interrupting executing on error.
 		the only possible issue would be if the environment variable already
 		exists... but it could be explicitly cleared or something if this is a concern
+
+============
+-6.3- export
+============
+Export marks a variable for export.  This means that child processes
+will be able to see the variable in their environment.  Note that it
+specifically marks the existing variable.  If one does not exist, then
+it will be created.
+
+If a local variable exists, then it will be used in place of the global
+variable.
+
+---------
+example1:
+---------
+myfun() {
+	export myvar
+	local myvar=localvar
+	bash -c 'declare -p myvar'
+}
+myvar=globalvar
+bash -c 'declare -p myvar'
+myfun
+bash -c 'declare -p myvar'
+
+result
+------
+bash: line 1: declare: myvar: not found
+declare -x myvar="localvar"
+declare -x myvar="globalvar"
+
+explanation
+-----------
+Initially, myvar is not exported.  It is not seen by the child process.
+In myfun, the global myvar gets exported.  The child proc inside the
+func sees the local myvar.
+After myfun, the child proc sees the global myvar.
+
+---------
+example2:
+---------
+myfun() {
+	local myvar=localvar
+	export myvar
+	bash -c 'declare -p myvar'
+}
+myvar=globalvar
+bash -c 'declare -p myvar'
+myfun
+bash -c 'declare -p myvar'
+
+result
+------
+bash: line 1: declare: myvar: not found
+declare -x myvar="localvar"
+bash: line 1: declare: myvar: not found
+
+explanation
+-----------
+Initially, myvar is not exported.  It is not seen by the child process.
+In myfun, the LOCAL myvar gets exported.  The child proc inside the
+func sees the local myvar.
+After myfun, the local myvar is gone.  As a result, there is no exported
+myvar variable.  The child process does not get a myvar env var.
+
+===================
+-6.4- declare/local
+===================
+local is declare except can only be called while inside a function.
+
+It seems declare -g forces a global variable.  It doesn't just bypass
+the "create a local variable if in a function".
+
+---------
+example 1
+---------
+fun1() {
+	local myvar=fun1
+	echo "fun1 before $(declare -p myvar)"
+	fun2
+	echo "fun1 after $(declare -p myvar)"
+}
+
+fun2() {
+	declare -g myvar
+	echo "fun2 before $(declare -p myvar)"
+	myvar=fun2set
+	echo "fun2 after $(declare -p myvar)"
+}
+echo "outer before $(declare -p myvar)"
+fun1
+echo "outer after $(declare -p myvar)"
+
+	------
+	result
+	------
+	bash: line 14: declare: myvar: not found
+	outer before
+	fun1 before declare -- myvar="fun1"
+	fun2 before declare -- myvar="fun1"
+	fun2 after declare -- myvar="fun2set"
+	fun1 after declare -- myvar="fun2set"
+	outer after declare -- myvar
+
+	-----------
+	Explanation
+	-----------
+	outer before is as expected, no variable exists.
+	fun1 before sees its local myvar
+	fun2 declares myvar
+	fun2 before sees fun1's local myvar
+	fun2 sets fun1's local myvar
+	fun2 after still sees fun1's local myvar
+	fun1 still sees its own local myvar
+	outer sees the globally set myvar
