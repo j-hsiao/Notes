@@ -33,6 +33,7 @@ contents:
 		-3.1.3- window
 		-3.1.4- pane
 	-3.2- statusline
+-x- tricks
 
 ===========
 -0- general
@@ -882,7 +883,8 @@ run-shell [-bC] [-d delay] [-t target-pane] [shell-command]
 	expansions can be used.
 command-prompt [-1ikNTW] [-I inputs] [-p prompts] [-t target-client] [template]
 	Execute a tmux command with user input
-	-I: comma-separated list of initial text per prompt
+	-I: comma-separated list of initial (pre-filled) text per prompt
+	    The text must be manually deleted to be replaced.
 	-p: comma-separated list of prompts
 	template: the command to run per input
 		the first %% is replaced with the 1st response
@@ -893,7 +895,9 @@ command-prompt [-1ikNTW] [-I inputs] [-p prompts] [-t target-client] [template]
 		%%2 sometimes expands to the month??
 			 after corresponding %% are consumed?
 	-1: 1 keypress only, no control-key allowed
-	-k: -1 but translate it to name, control-key also allowed
+	-k: Similar to -1 but translate it to name, control-key also allowed
+	    In testing only 1 prompt is allowed.  Trying to use multiple prompts
+	    will cancel it and maybe put the current window in a weird state.
 	-N: numbers only
 	-i: execute for each input
 	-TW: response should be a target/window (affects tab completion choices)
@@ -1355,3 +1359,24 @@ windows may be flagged with a symbol:
 	~ monitored and quiet
 	M contains marked pane
 	Z contains zoomed pane
+
+==========
+-x- tricks
+==========
+------------------
+replicate a table:
+------------------
+run-shell 'tmux list-keys -T table | sed 's/-T table/-T newtable/' | tmux source-file -'
+
+It looks as if
+	run-shell "$(tmux list-keys -T table | sed ...)"
+SHOULD work, but IT DOES NOT.  I guess run-shell probably does some kind
+of extra parsing maybe? not sure...  However, source-file seems to work.
+
+-------------------------
+session-specific bindings
+-------------------------
+Tables and bindings seem to be server-level.
+However, there is the session-level option key-table. Changing this can
+make the session effectively have its own table by setting key-table to
+that specific table.
