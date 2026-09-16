@@ -880,6 +880,23 @@ run-shell [-bC] [-d delay] [-t target-pane] [shell-command]
 	This means that commands can be run with formatting.  For example, normally,
 	bind-key does not use any format expansion.  However, by using run-shell,
 	expansions can be used.
+command-prompt [-1ikNTW] [-I inputs] [-p prompts] [-t target-client] [template]
+	Execute a tmux command with user input
+	-I: comma-separated list of initial text per prompt
+	-p: comma-separated list of prompts
+	template: the command to run per input
+		the first %% is replaced with the 1st response
+			?in reality Each successive %% is replaced with the corresponding input?
+		%N replaces the Nth response
+		%%% escapes quotes for first response
+		%%1 sometimes expands to the day??
+		%%2 sometimes expands to the month??
+			 after corresponding %% are consumed?
+	-1: 1 keypress only, no control-key allowed
+	-k: -1 but translate it to name, control-key also allowed
+	-N: numbers only
+	-i: execute for each input
+	-TW: response should be a target/window (affects tab completion choices)
 
 
 confirm-before [-p prompt] [-t target-client] command
