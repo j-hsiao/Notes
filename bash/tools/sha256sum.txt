@@ -1,0 +1,33 @@
+Calculate checksums
+-1-  usage
+
+==========
+-1-  usage
+==========
+-----------
+basic usage
+-----------
+sha256sum [-b|--binary|-t|--text] [-c|--check] [-z|--zero] ...
+
+If no arguments or -, then read file from stdin.
+
+Not sure what the dif between binary/text mode is...
+does it do some kind of \n vs \r\n replacements?
+
+-z: null-terminate lines instead of newline.
+
+output is:
+	checksum [*] path
+where * if ?explicitly? binary mode, else nothing
+
+-c: input file is a previous output.
+Checks each file and the corresponding checksum.
+
+---------------------
+check-time only flags
+---------------------
+--quiet: only print incorrect checksums
+--ignore-missing
+--status: no printing at all, return code only
+--strict
+-w|--warn
