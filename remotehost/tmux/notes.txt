@@ -6,6 +6,7 @@ contents:
 		-0.3.1- variables
 		-0.3.2- command substitution
 		-0.3.3- style
+	-0.4- quoting
 -1- commands
 	-1.1- Common flags/args
 	-1.2- info
@@ -457,7 +458,30 @@ contents:
 				range=left|right|window|X
 				norange
 
+=============
+-0.4- quoting
+=============
+tmux strings seem like they can be concatenated similar to bash
+Generally speaking, for nested commands, such as run-shell, form the
+inner-most command first and always assume it will be single-quoted
+To convert text to single-quote string, replace every single
+single-quote with '\'' and then surround with single quotes.
+Because the no-expansion rule applies to both bash and tmux, generally
+this can be applied multiple times for multi-layered nesting.
 
+vim:
+:%s/'/'\\''/g
+
+NOTE just doing this substitution can result in empty strings.
+Singlequotes without a backslash are always boundaries of the top-level
+string.  As a result, 2 consecutive non-backslashed single quotes
+can be eliminated.
+
+vim:
+:%s/\%([^\\]\@<=\)''/\1/g
+
+In experience, bash scripts directly seems to have some strange issues.
+In practice, it seems it is better to run-shell 'bash -c quotedscript'
 
 
 ============

@@ -1,6 +1,9 @@
 * reorganize informacion
 * firewall notes: ufw, iptables, nftables, ...
 * convert vim plugins to package
+* vim single-quote a highlighted region
+  replace all ' with '\'' and then surround region in single quotes
+  remove all empty single-quote strings (vim: delete all instances of \%([^\\]\@<=\)'' )
 * vim format table: align items
 * vim modify alignment, [fF] ch,
   like normal mode [fF] except use previous line(s) position.
