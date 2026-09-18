@@ -12,14 +12,14 @@ _check() # <chars> [prefix]
 	do
 		if ! tmux list-keys -T"${table}" "${2}${1:i:1}" &>/dev/null
 		then
-			printf "${1:i:1}"
+			printf '%s' "${1:i:1}"
 		fi
 	done
 	echo
 }
 
 check() {
-	table=prefix
+	local table=
 	while (("${#}"))
 	do
 		case "${1}" in
@@ -30,14 +30,22 @@ check() {
 			-T*)
 				table="${1:1}"
 				;;
+			-h|--help)
+				echo "${BASH_SOURCE[0]} [-T tablename]"
+				return
+				;;
 			*)
-				echo "Unrecognized argument: ${1}"
-				return 1
+				((${#table})) && { echo "unknown arg ${table}"; return; }
+				table="${1}"
+				;;
 		esac
 		shift
 	done
+	table="${table:-prefix}"
+	echo "Checking table: ${table}"
+	printf '%s\n' '------------------------------'
 
-	alpha=abcdefghijklmnopqrstuvwxyz
+	local alpha=abcdefghijklmnopqrstuvwxyz
 	printf 'Unused lower : '
 	_check "${alpha}"
 	printf 'Unused C-lower : '
