@@ -1,250 +1,407 @@
-contents:
--0- sources
--1- distribution
-	-1.1- point to point
-	-1.2- collective comm
-	-1.3- groups
-	-1.4- single to multi
--2- pytorch blitz
-	-2.1- tensors
-	-2.2- autograd
-	-2.3- networks
-	-2.4- datasets/training
--3- others
-	-3.1- torch.no_grad
-	-3.2- saving/loading
-	-3.3- train/eval modes
-______________________________
--0- sources
-	https://seba-1511.github.io/tutorials/intermediate/dist_tuto.html
-	https://pytorch.org/docs/stable/distributed.html
-	https://seba-1511.github.io/tutorials/beginner/blitz/tensor_tutorial.html
+-0- general
+-0.1- tensors
+-0.1.1- attributes
+-0.1.2- methods
+-0.1.3- operations
+-0.1.4- numpy
+-0.2- devices
+-0.x- conventions
+-1- models
+-1.1- methods
+-1.2- Predefined modules
+-1.3- saving/loading
+-2- functionals
+-2.1- losses
+-3- optimizers
+-4- data
+-5- training
+-6- distributed
 
-______________________________
--1- distribution
-	torch.distributed
+===========
+-0- general
+===========
+https://docs.pytorch.org/tutorials/beginner/basics/quickstart_tutorial.html
+https://seba-1511.github.io/tutorials/intermediate/dist_tuto.html
+https://pytorch.org/docs/stable/distributed.html
+https://seba-1511.github.io/tutorials/beginner/blitz/tensor_tutorial.html
 
-	init_process_group(
-	        backend, init_method,
-	        timeout, **kwargs)
-		backend:
-			a str or backend
-			mpi, gloo, nccl
-		init_method:
-			url for initialization
-			tcp://ip:port
-		world_size: # of procs
-		rank: rank of proc
-		timeout: seconds, for gloo
-		group_name: group name for file to avoid
-		            collisions when init_method is a
-		            shared fs
+torch.no_grad() context manager for inference
 
-		connects all procs to each other (fully connected graph)
+=============
+-0.1- tensors
+=============
+Tensors are just n-dimensional arrays of data on some device (usually cpu or gpu)
+numpy ndarrays are like torch tensors (except cpu only)
 
-	torch.nn.parallel.DistributedDataParallel(
-	        model, device_ids, output_device,
-	        dim, broadcast_buffers, process_group,
-	        bucket_cap_mb, check_reduction):
-		wrap a model to become distributed
-		model: the torch model
-		device_ids: list of device ids
-		output_device: same as device_ids[0]?
-		others: can be ignored?
+torch.tensor() can generally be used like np.array()
+
+==================
+-0.1.1- attributes
+==================
+shape
+dtype
+device
+requires_grad
+
+===============
+-0.1.2- methods
+===============
+cpu()
+numpy()
+cuda()
+to()
+backwards(...)
+
+==================
+-0.1.3- operations
+==================
++-*/@, ...
+
+torch.(op)[_]
+Inplace operations end with underscore
+
+=============
+-0.1.4- numpy
+=============
+from numpy
+	torch.from_numpy() (view)
+	torch.tensor(numpyarray) (copy)
+to numpy (must be on cpu)
+	x.numpy() (a view)
+	x.cpu().numpy()
 
 
-	torch.cuda.set_device(i):
-		set the gpu to use
+=============
+-0.2- devices
+=============
+torch.accelerator.is_available()
+torch.accelerator.current_accelerator()
+torch.cuda.is_available()
 
-	______________________________
-	-1.1- point to point
-	1 proc to another
-	data transfer: send, recv, isend, irecv
-		dist.send(tensor = tensor, dst = worldRank)
-		dist.recv(tensor = tensor, src = worldRank)
-		(isend, irecv are non-blocking and return an object
-		that can be wait()ed on
+Devices can be represented by str with format 'type:ordinal'
+examples:
+	cpu:1
+	cuda:0
 
-	______________________________
-	-1.2- collective comm
-	scatter    : list items scattered to respective proc
-	gather     : from all procs to this proc into a list
-	reduce     : from all procs to this proc, opped together
-	All-reduce : from all procs to all procs,opped together
-	broadcast  : same item to all procs
-	all-gather : everyone gets a list of everyone's item
+=================
+-0.x- conventions
+=================
+import torch
+from torch.nn import functional as F
 
-	reduce ops:
-		torch.distributed.reduce_op
-			SUM
-			PRODUCT
-			MAX
-			MIN
 
-	______________________________
-	-1.3- groups
-	group: subset of processes
+==========
+-1- models
+==========
+torch.nn
+torch.nn.functional
 
-	newgroup = dist.new_group(list_of_proc_ranks)
+Models fall under the general umbrella of a torch.nn.Module.
 
-	______________________________
-	-1.4- single to multi
+Modules are usually just classes that have torch.nn.Parameter attrs
+(or other torch.nn.Modules) and inherit from torch.nn.Module.
+
+=============
+-1.1- methods
+=============
+parameters() gives the "learnable parameters"
+
+eval(): Turn randomness layers off (ex. dropout, batch norm, etc)
+
+train(mode=bool):
+	TODO
+
+to(device) immediate inputs and outputs must be on device too.
+
+children(): generator of ?functions? can be passed to nn.Sequential to replicate the model?
+
+state_dict(): return the state dict, an ordered dict
+
+	`torch.nn.Parameter`s are probably detected via __setattr__(self, name, val)
+	The state_dict keys are determined by the name of the attr.
+
+	class MyModule(nn.Module):
+	    def __init__(self):
+	        super(MyModule, self).__init__()
+	        self.c1 = nn.Conv2d(3, 2, 5)
+	        self.c2 = nn.Conv2d(2, 2, 3)
+
+	    def forward(self, inp):
+	        return self.c2(inp(self.c1(inp)))
+
+	an nn.Conv2d.state_dict() has 'weight' and 'bias'
+	MyModule.state_dict() has 'c1.weight', 'c1.bias', 'c2.weight', 'c2.bias'
+
+zero_grad(): Set gradient to zero before a training iteration (prefer optimizer.zero_grad())
+backward(): calc backprop gradients
+
+
+========================
+-1.2- Predefined modules
+========================
+nn.Sequential(*Modules)
+	run each module sequentially.
+
+nn.Conv2d
+	inchans=i, outchans=i, ksize=i|(i,i), stride=i|(i,i), padding=s|i|(i,i),
+	dilation=i|(i,i), dilation=i|(i,i), groups=i, bias=b,
+	padding_mode='zeros|reflect|replicate|circular',
+	device=None,dtype=None
+
+	In summary, this is just `outchans` conv kernels of shape (`inchans`, *ksize)
+	for each kernel in params:
+	conv2d(input, kernel[i]) -> output channel[i]
+
+nn.Linear (linear transform, aka matrix multiply)
+	inchans=i, outchans=i, bias=b, device=None, dtype=None
+
+	linear transform (matmul) out = x @ A.T + b
+	If input is viewed as row vectors, then
+	A is an inchans x outchans matrix array
+	b is an inchans array.
+
+
+other models in torchvision.models
+
+====================
+-1.3- saving/loading
+====================
+torch.save(module.state_dict(), path)
+net = Net()
+net.load_state_dict(torch.load(path, weights_only=True))
+
+
+===============
+-2- functionals
+===============
+Functionals just modules without any internal "parameters".
+
+examples:
+	relu
+	max_pool2d
+
+Sidenotes:
+	"fully-connected" layer can be mimicked by flattening
+	and using a nn.Linear
+
+============
+-2.1- losses
+============
+"losses" are just errors difference between desired and reality.
+Why called loss instead of error?
+
+torch.nn.*Loss
+
+examples:
+	AdaptiveLogSoftmaxWithLoss
+	BCELoss
+	BCEWithLogitsLoss
+	CTCLoss
+	CosineEmbeddingLoss
+	CrossEntropyLoss
+	GaussianNLLLoss
+	HingeEmbeddingLoss
+	HuberLoss
+	KLDivLoss
+	L1Loss
+	LinearCrossEntropyLoss
+	MSELoss
+	MarginRankingLoss
+	MultiLabelMarginLoss
+	MultiLabelSoftMarginLoss
+	MultiMarginLoss
+	NLLLoss
+	PoissonNLLLoss
+	SmoothL1Loss
+	SoftMarginLoss
+	TripletMarginLoss
+	TripletMarginWithDistanceLoss
+
+==============
+-3- optimizers
+==============
+Optimizers basically run a variant of the loop:
+	learning_rate = 0.01
+	loss = calcloss()
+	loss.backwards()
+	with torch.no_grad():
+	for f in net.parameters():
+	    f -= f.grad * learning_rate
+
+Wrapped in torch.optim:
+	ASGD
+	Adadelta
+	Adafactor
+	Adagrad
+	Adam
+	AdamW
+	Adamax
+	LBFGS
+	Muon
+	NAdam
+	Optimizer
+	RAdam
+	RMSprop
+	Rprop
+	SGD
+	SparseAdam
+
+========
+-4- data
+========
+torchvision has various data loaders to load common (vision) datasets.
+They return a float PIL Image [0-1]
+Usually these loaders use a "Transform" to take data to prepare
+and output the prepared data.
+
+torchvision.datasets
+torch.utils.data.DataLoader
+
+Example:
+	from torchvision.transforms import v2
+	transform = v2.Compose([
+		v2.ToImage(),
+		v2.ToDtype(torch.float32, scale=True),
+		v2.Normalize((.5,.5,.5), (.5,.5,.5)),
+	])
+
+	dataset = torchvision.datasets.CIFAR10(
+		root='./data', train=True, download=True, transform=transform)
+	loader = torch.utils.data.DataLoader(
+		dataset, batch_size=batch_size, shuffle=True, num_works=2)
+
+* BUT if data loading really was an issue, wouldn't you just preprocess and
+	save the preprocessed input data and train on that?
+
+============
+-5- training
+============
+Training involves running functions to calculate results,
+calculate an error, and then running a backward step to calculate
+derivatives, then an optimizer to perform updates.
+Example:
+
+```
+import torch
+from torchvision.models import resnet18, ResNet18_Weights
+model = resnet18(weights=ResNet18_Weights.DEFAULT)
+data = torch.rand(1, 3, 64, 64)
+labels = torch.rand(1, 1000)
+prediction = model(data)
+loss = (prediction - labels).sum()
+loss.backward()
+
+optim = torch.optim.SBD(model.parameters(), lr=1e-2, momentum=0.9)
+optim.step()
+```
+
+NOTE: if the tensor is NOT a scalar, then gradient is required,
+which should just be (torch.ones(tensor.shape)) ???
+
+NOTE: optim.zero_grad() before the first backward() and after
+every step.  Optimizers with momentum will store the momentum in
+their own separate buffers.
+
+```
+for epoch in epochs:
+	for data, label in dataloader:
 		optimizer.zero_grad()
-		inputs-> inputs.cuda(gpu) #(to use gpu)
-		out = model(inputs)
-		loss = efunc(out, target)
+		result = model(data)
+		loss = LossFunc(result, label)
 		loss.backward()
-		# !new step here!
-		average_gradients(model)
 		optimizer.step()
+```
 
-		def average_gradients(model):
-		    size = float(dist.get_world_size())
-		    for param in model.parameters():
-		        dist.all_reduce(
-		            param.grad.data, op = dist.reduce_op.SUM)
-		        param.grad.data /= size
+================
+-6- distribution
+================
+torch.distributed
+
+init_process_group(
+        backend, init_method,
+        timeout, **kwargs)
+	backend:
+		a str or backend
+		mpi, gloo, nccl
+	init_method:
+		url for initialization
+		tcp://ip:port
+	world_size: # of procs
+	rank: rank of proc
+	timeout: seconds, for gloo
+	group_name: group name for file to avoid
+	            collisions when init_method is a
+	            shared fs
+
+	connects all procs to each other (fully connected graph)
+
+torch.nn.parallel.DistributedDataParallel(
+        model, device_ids, output_device,
+        dim, broadcast_buffers, process_group,
+        bucket_cap_mb, check_reduction):
+	wrap a model to become distributed
+	model: the torch model
+	device_ids: list of device ids
+	output_device: same as device_ids[0]?
+	others: can be ignored?
 
 
-______________________________
--2- pytorch blitz
-	goals:
-		faster numpy by using gpus
-		deep learning
-	______________________________
-	-2.1- tensors
-		ndarray counterpart
-		ex:
-			import torch
-			torch.Tensor(5,3)   | np.empty(5,3)
-			x = torch.rand(5,3) | x = np.random.rand(5,3)
-			x.size()            | x.shape
-			(x.shape works too)
-		ex:
-			x = torch.rand(5,3)         | x = np.random.rand(5,3)
-			y = torch.rand(5,3)         | y = np.random.rand(5,3)
-			z1 = x+y                    | z1 = x + y
-			z2 = torch.add(x,y)         | z2 = np.sum((x,y), axis = 0)
-			z3 = torch.Tensor(5,3)      | z3 = np.empty(5,3)
-			torch.add(x,y,out = z3)     | np.sum((x,y), axis = 0, out = z3)
-			y.add_(x)                   | y += x
-		note:
-			inplace operations always end with an _
+torch.cuda.set_device(i):
+	set the gpu to use
 
-		same indexing method
-		convert to numpy:
-			x = torch.rand(5,3)
-			asnp = x.numpy()
-			y = torch.from_numpy(asnp)
+====================
+-6.1- point to point
+====================
+1 proc to another
+data transfer: send, recv, isend, irecv
+	dist.send(tensor = tensor, dst = worldRank)
+	dist.recv(tensor = tensor, src = worldRank)
+	(isend, irecv are non-blocking and return an object
+	that can be wait()ed on
 
-		CUDA tensors
-			x = torch.rand(5,3)
-			x = x.cuda()
-			y = x.cuda()
-			x + y
-	______________________________
-	-2.2- autograd
-		autograd.Variable
-			wraps a tensor
-			keeps track of operations on tensor
-			call .backward() to calc all gradients
-		var.data = tensor
-		var.grad = gradient
+=====================
+-6.2- collective comm
+=====================
+scatter    : list items scattered to respective proc
+gather     : from all procs to this proc into a list
+reduce     : from all procs to this proc, opped together
+All-reduce : from all procs to all procs,opped together
+broadcast  : same item to all procs
+all-gather : everyone gets a list of everyone's item
 
-		vars have a grad_fn value (which function made the gradient)
-		example:
-			from torch import autograd
-			x = autograd.Variable(
-			    torch.rand(5,3), requires_grad = 1)
-			y = x + 2
-			z = y * y * 3
-			out = z.mean()
-			out.backward(torch.ones(out.shape))
-			x.grad
-		NOTE:
-			gradients are accumulated (summed)
-			so between calls, the gradients
-			should all be zeroed
-	______________________________
-	-2.3- networks
-		torch.nn
-		output = net.forward(input)
-		example:
-			import torch
-			from torch.autograd import Variable
-			from torch import nn
-			from torch.nn import functional as F
+reduce ops:
+	torch.distributed.reduce_op
+		SUM
+		PRODUCT
+		MAX
+		MIN
 
-			class Net(nn.Module):
-			  def __init__(self):
-			    super(Net, self).__init__()
-			    # kernel
-			    self.conv1 = nn.Conv2d(1, 6, 5)
-			    self.conv2 = nn.Conv2d(6, 16, 5)
-			    # an affine operation: y = Wx + b
-			    self.fc1 = nn.Linear(16 * 5 * 5, 120)
-			    self.fc2 = nn.Linear(120, 84)
-			    self.fc3 = nn.Linear(84, 10)
+============
+-6.3- groups
+============
+group: subset of processes
 
-			  def forward(self, x):
-			    '''
-			    x: an autograd.Variable
-			    returns: an autograd.Variable
-			    '''
-			    # Max pooling over a (2, 2) window
-			    x = F.max_pool2d(F.relu(self.conv1(x)), (2, 2))
-			    # If the size is a square you can only specify a single number
-			    x = F.max_pool2d(F.relu(self.conv2(x)), 2)
-			    x = x.view(-1, self.num_flat_features(x))
-			    x = F.relu(self.fc1(x))
-			    x = F.relu(self.fc2(x))
-			    x = self.fc3(x)
-			    return x
+newgroup = dist.new_group(list_of_proc_ranks)
 
-			  def num_flat_features(self, x):
-			    size = x.size()[1:]  # all dimensions except the batch dimension
-			    num_features = 1
-			    for s in size:
-			      num_features *= s
-			    return num_features
-		net.parameters(): return list of learnable parameters
-		net.zero_grad(): zero gradients to allow backward() call
-		single items should be batched as well
-			(input.unsqueeze(0))
-		______________________________
-		loss
-			measure of error between output and target_output
-		______________________________
-		updates
-			use torch.optim.update_func(net.parameters(), lr = learning_rate)
-			example:
-				import torch.optim as optim
+=====================
+-6.4- single to multi
+=====================
+optimizer.zero_grad()
+inputs-> inputs.cuda(gpu) #(to use gpu)
+out = model(inputs)
+loss = efunc(out, target)
+loss.backward()
+# !new step here!
+average_gradients(model)
+optimizer.step()
 
-				# create your optimizer
-				optimizer = optim.SGD(net.parameters(), lr=0.01)
+def average_gradients(model):
+    size = float(dist.get_world_size())
+    for param in model.parameters():
+        dist.all_reduce(
+            param.grad.data, op = dist.reduce_op.SUM)
+        param.grad.data /= size
 
-				# in your training loop:
-				optimizer.zero_grad()   # zero the gradient buffers
-				output = net(input)
-				loss = criterion(output, target)
-				loss.backward()
-				optimizer.step()    # Does the update
-	______________________________
-	-2.4- datasets/training
-		torchvision: for image datasets
-		torchvision:
-			give PIL images from 0. to 1.
-		torchvision.transforms
-			functions given to transforms.Compose
-			to determine how to preprocess the inputs
-		torch.utils.data.DataLoader
-			DataLoader(
-			    dataset, batch_size = x,
-			    shuffle = x, num_workers = x)
-		to use GPU:
-			model.cuda()
-			input.cuda()
-			labels.cuda()
 
 ______________________________
 -3- others
@@ -256,10 +413,6 @@ ______________________________
 
 			with torch.no_grad():
 			    do stuff and no gradient calculations
-	-3.2- saving/loading
-		torch.save(model.state_dict(), PATH)
-		model.load_state_dict(torch.load(PATH))
-		# turn off dropout etc (inference mode)
 	-3.3- train/eval modes
 		model.eval()
 		model.train(mode = True)
