@@ -480,6 +480,9 @@ can be eliminated.
 vim:
 :%s/\%([^\\]\@<=\)''/\1/g
 
+NOTE: In testing, even though run-shell $SHELL gives /bin/bash,
+$0 gives sh, ?which means bash features are off?  To use bash features,
+must use bash -c
 In experience, bash scripts directly seems to have some strange issues.
 In practice, it seems it is better to run-shell 'bash -c quotedscript'
 
@@ -920,12 +923,25 @@ command-prompt [-1ikNTW] [-I inputs] [-p prompts] [-t target-client] [template]
 			 after corresponding %% are consumed?
 	-1: 1 keypress only, no control-key allowed
 	-k: Similar to -1 but translate it to name, control-key also allowed
-	    In testing only 1 prompt is allowed.  Trying to use multiple prompts
-	    will cancel it and maybe put the current window in a weird state.
+		NOTE In testing only 1 prompt is allowed.  Trying to use multiple prompts
+		will cancel it and maybe put the current window in a weird state.
+		Better to nest any remaining command-prompt commands in the template
+		command.  NOTE that command-prompt does not have any kind of escapes
+		for adding a literal % into the template command.  As a result, the command
+		must manually split the % from any number for a nested command-prompt command
+		Example:
+			bad:
+				command-prompt -k -p k1 'send-key %1; command-prompt -k -p k2 "send-key %1"'
+			good:
+				command-prompt -k -p k1 'send-key %1; command-prompt -k -p k2 "send-key %""1"'
+
+			In the bad example, the %1 afterwards gets replaced as well before the second
+			command-prompt runs  In the good example, because there is not a literal
+			%1, it does not get replaced immediately.  Only after the command is run and
+			the strings are parsed, does it become a %1 for the 2nd commandprompt to replace.
 	-N: numbers only
 	-i: execute for each input
 	-TW: response should be a target/window (affects tab completion choices)
-
 
 confirm-before [-p prompt] [-t target-client] command
 	confirm before executing command
