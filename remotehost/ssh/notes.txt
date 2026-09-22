@@ -313,25 +313,45 @@ useful keys:
 ------------
 Host: patterns separated by whitespace (ORed together)
 
+Match: add extra matching conditions.  This continues until the next Host or Match.
+	The arguments are of the form [!][keyword] [args...]
+	a ! negates the keyword match.
+	keywords:
+		all
+		canonical: After hostname has been canonicalized (?CanonicalizeHostname option?)
+		final: at the very end
+		exec [commandline]: ?single-str? commandline, success if command succeeds.
+		host: target host, specified by Hostname or CanonicalizeHostname
+		originalhost: original host as on commandline
+		user: target username on remote host
+		localuser: the user initiating the ssh.
+
+CertificateFile
+	A signed certificate file verifying user's id.
+
+Compression [yes|no]
+	Use compression
+
+ForwardX11 [yes|no]
+ForwardX11Timeout [time]
+	0 = no timeout
+ForwardX11Trusted [yes|no]
+
 HostName: the actual host name to use (ip,
 	www.somewhere.com, etc)
 
 IdentitiesOnly: [yes|no] only use the IdentityFile even if
 	ssh agent gives other identities
 
-CertificateFile
-	A signed certificate file verifying user's id.
-
 IdentityFile: specify the private key file
 	The file name may use the tilde syntax to refer to a
-	user's home directory or one of the following escape
-	characters:
-		'%d' local user's home directory
-		'%u' local user name
-		'%l' local host name
-		'%h' remote host name
-		'%r' remote user name
-	Multiple files are allowed (tried in order)
+	user's home directory. Tokens are allowed.
+	Multiple files are allowed (tried in order, specify by multiple
+	IdentityFile directives)
+
+PermitLocalCommand [yes|no]
+LocalCommand
+	Run the command locally after connecting.
 
 LocalForward: port forwarding from local machine to remote machine.
 	2 arguments: [<bindaddr>:]port <hostname at remote>:port
@@ -342,6 +362,24 @@ LocalForward: port forwarding from local machine to remote machine.
 PasswordAuthentication [yes|no]
 
 Port: port to connect to at remote
+
+ProxyCommand
+ProxyJump [user@]host[:port],[...]
+	comma-delimited list of proxies.
+	Connect to user@host:port before connecting to target
+
+RemoteCommand
+	Specifies a command to run after sshing to remote host.
+	Tip: Set this to `tmux -S "${XDG_RUNTIME_DIR}/tmux-%u-%r" -f ... new -A`
+	This way, whenever you ssh, tmux is auto-started using a ?unique? socket
+	so your tmux won't interfere with anyone else's tmux.
+	The new -A means attach if possible else start a new tmux session.
+
+RequestTTY [yes|no|force|auto]
+	no: never
+	yes: when stdin is a tty
+	force: always
+auto: for login session
 
 RemoteForward: forward remote port to local same format as
 	LocalForward, except order is <remote addr> <local addr>
