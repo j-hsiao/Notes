@@ -55,6 +55,12 @@ contents:
 	Session
 		A collection of windows.
 
+	Session Group
+		A group of sessions that share all the same windows, panes, etc.
+		The only difference is they can have different session-level options
+		and different active window.  If they have the same active window,
+		then they will always share the same active pane.
+
 	Window
 		a "space" that takes the entire "screen"
 		The terminal can only display a single window at a time.
@@ -646,6 +652,13 @@ attach | attach-session [-dErx] [-c working-directory] [-f flags] [-t target-ses
 new | new-session [-AdDEPX] [-c start-directory] [-e environment]
 	[-f flags] [-F format] [-n window-name] [-s session-name]
 	[-t group-name] [-x width] [-y height] [shell-command]
+	-A: attach-session if name already exists, else new session
+		NOTE: this also means if session name not given, then a new session is created
+		and if no session name is given, behave like tmux `attach-session`
+		-D: `attach-session -d`.  Detach other clients.
+		-X: `attach-session -x`.: send sighup
+	-s: session name
+	-t: session group name
 source | source-file [-Fnqv] path ...
 	Source a file.
 	-F: path is a FORMAT
