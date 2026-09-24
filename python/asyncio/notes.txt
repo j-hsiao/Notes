@@ -362,6 +362,11 @@ Writers provide the async api for writing data.  Write data, then await drain() 
 
 StreamWriter(transport, protocol, reader, loop)
 	NOTE: every argument is required.
+	reader can be None
+	The purpose of reader is if it represents a bidirectional pipe of some type, then
+	the reader can check the reader if there were any errors while draining.
+	(in 3.10, drain(), just checks if reader.exception() is not None, raise it before draining.)
+
 write(data)
 writelines(data)
 close()
@@ -493,7 +498,7 @@ Wrapping a writer
 ```
 loop = asyncio.get_event_loop()
 tp, pt = await loop.connect_write_pipe(asyncio.streams.FlowControlMixin, sys.stdout)
-writer = asyncio.streams.StreamWriter(tp, pt, reader loop)
+writer = asyncio.streams.StreamWriter(tp, pt, reader, loop)
 ```
 
 NOTES:
