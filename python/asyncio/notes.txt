@@ -5,35 +5,38 @@ asynchronous tasks etc + event loops
 coroutines
 
 -0- definitions
-	-0.1- syntax
-	-0.2- interrupts
+-0.1- syntax
+-0.2- interrupts
 -1- high-level api
-	-1.1- runners
-	-1.2- coroutines/tasks
-		-1.2.1- tasks
-		-1.2.2- multitasking
-		-1.2.3- shield
-		-1.2.4- timeouts
-		-1.2.5- threads
-	-1.3- streams
-		-1.3.1- readers
-		-1.3.2- writers
-		-1.3.3- stream protocols
-		-1.3.x- example
-	-1.4- synchronization
-	-1.5- subprocesses
-	-1.6- queues
-	-1.7- exceptions
-	-1.8- call graph introspection
+-1.1- runners
+-1.2- coroutines/tasks
+-1.2.1- tasks
+-1.2.2- multitasking
+-1.2.3- shield
+-1.2.4- timeouts
+-1.2.5- threads
+-1.3- streams
+-1.3.1- readers
+-1.3.2- writers
+-1.3.3- stream protocols
+-1.3.4- server
+-1.3.x- example
+-1.3.x.1- stdio
+-1.3.x.2- server
+-1.4- synchronization
+-1.5- subprocesses
+-1.6- queues
+-1.7- exceptions
+-1.8- call graph introspection
 -2- low level apis
-	-2.1- event loops
-		-2.1.x1- fds
-		-2.1.x2- pipes
-	-2.2- futures
-	-2.3- transports/protocols
-	-2.4- policies
-	-2.5- platform support
-	-2.6- extending
+-2.1- event loops
+-2.1.x1- fds
+-2.1.x2- pipes
+-2.2- futures
+-2.3- transports/protocols
+-2.4- policies
+-2.5- platform support
+-2.6- extending
 -3- other asyncio methods
 
 
@@ -338,13 +341,19 @@ Then the data becomes available via the async read* methods.
 
 StreamReader(limit=65536, loop=None)
 	NOTE: arguments are all optional
+
+async __anext__()
 async read(n=-1)
 async readline()
 async readexactly(n)
 async readuntil(sep)
+
+__aiter__()
 feed_eof()
 feed_data(self, data)
 at_eof()
+set_exception(exc)
+set_transport(tport)
 
 ===============
 -1.3.2- writers
@@ -392,8 +401,77 @@ reader provided as an argument.
 
 StreamReaderProtocol(reader, connectcb=None, loop=None)
 
+==============
+-1.3.4- server
+==============
+https://docs.python.org/3/library/asyncio-eventloop.html#asyncio.Server
+
+close()
+async wait_closed()
+async __aenter__/__aexit__
+
+sockets
+	list of asyncio.trsock.TransportSocket:
+		__enter__/__exit__
+		accept()
+		bind(...)
+		close()
+		connect(...)
+		connect_ex(...)
+		detach()
+		dup()
+		fileno()
+		get_inheritable()
+		getpeername()
+		getsockbyname()
+		getsockname()
+		getsockopt(...)
+		gettimeout()
+		ioctl(...)
+		listen(...)
+		makefile()
+		recv(...)
+		recv_into(...)
+		recvfrom(...)
+		recvfrom_into(...)
+		recvmsg(...)
+		recvmsg_into(...)
+		send(...)
+		sendall(...)
+		sendfile(...)
+		sendmsg(...)
+		sendmsgaaflg(...)
+		sendto(...)
+		set_inheritable(...)
+		setblocking(flag)
+		setsockopt(...)
+		settimeout(tm)
+		share(pid)
+		shutdown(how)
+
+-----
+3.13+
+-----
+close_clients()
+abort_clients()
+
+----
+3.7+
+----
+get_loop()
+async start_serving()
+async serve_forever()
+	Cancellation of serve_forever closes the server
+is_serving()
+
+
+
+
 ===============
 -1.3.x- example
+===============
+===============
+-1.3.x.1- stdio
 ===============
 ------------------
 Wrapping an reader
@@ -426,6 +504,22 @@ NOTES:
 	which WILL close the corresponding fd.  No way to "detach" like io.BufferedWriter.
 
 https://stackoverflow.com/questions/64303607/python-asyncio-how-to-read-stdin-and-write-to-stdout
+
+================
+-1.3.x.2- server
+================
+async def on_connect(reader, writer):
+	...
+async with await asyncio.start_server(on_connect, ...) as server:
+	for socket in server.sockets:
+		print(socket.getsockname())
+	await server.serve_forever()
+
+NOTE:
+keyboard interrupts are usually on the `asyncio.run()` call, not on the
+serve_forever() call.
+serve_forever is async so its ?usually? "not running".  Instead it would just
+get cancelled on keyboard interrupt.
 
 
 =====================
