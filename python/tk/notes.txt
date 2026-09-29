@@ -925,6 +925,10 @@ trap pattern varlist script
 	TCL ...
 		some internal tcl error
 
+varlist:
+	[message_varname [options_varname]]
+	store the corresponding values into the provided variables if present and valid variable names.
+
 examples:
 	try {
 		...
