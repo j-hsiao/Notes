@@ -26,5 +26,11 @@ ssh() {
 				fi
 		esac
 	done
-	command ssh "${args[@]}" ${termarg} 'tmux -S "${XDG_RUNTIME_DIR:-${HOME}}'"/.tmux-${USER}"'" new -A'
+	# Want to attach to unattached session or new session if none.
+	# Existing flags only prefer rather than require unattached.
+	# Also, aiforge uses old tmux missing some flags.
+	local script='sock="${XDG_RUNTIME_DIR:-${HOME}}'"/.tmux-${USER}"'"
+	session="$(tmux -S "${sock}" ls | grep -v '\''(attached)'\'')"
+	[ -n "${session}" ] && tmux -S "${sock}" a -t "${session%%:*}" || tmux -S "${sock}" new'
+	command ssh "${args[@]}" ${termarg} "${script}"
 }
