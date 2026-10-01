@@ -119,6 +119,8 @@ C-x/M-x
 Format arguments are for commands that take -F flag.
 These are typically a sequence of characters starting with a #.
 
+NOTE: formats are expanded AFTER string parsing but ${envvar} are expanded AT TIME of expansion
+
 The string can contain these values:
 =================
 -0.3.1- variables
@@ -233,9 +235,14 @@ d
 	a #{} expr will just be expanded used as-is,
 	as if no b/d command was used.
 q/opts
-	quoted, arg MUST BE A VARIABLE NAME
+	shell-quoted, arg MUST BE A VARIABLE NAME
 	opts:
 		h escape hash characters
+	NOTE:
+		This is NOT TMUX quoting. ONLY shell-quoting tmux syntax is very
+		similar to shell syntax but trying to use this to nest commands kept
+		causing a syntax error.  Only replacing single quote with '\'' and
+		then surrounding the overall with single quote seems to work.
 E
 	expand twice
 T
@@ -564,13 +571,14 @@ diff from bash
 	commands separated by a ; is more like bash &&
 	Line continuation is allowed everywhere except in {}
 
-	?substitutions are only inside double quotes? double quotes are like merging fo bash "" and $'' syntax?
+	?substitutions are only inside double quotes? double quotes are like merging of bash "" and $'' syntax?
 		Get environment variable with $env_var
 		~user is replaced with their home dir, defaulting to current user
 		\uXXXX \uXXXXXXXX for hex unicode
 		\e \r \n \t  for esc, carriage return, newline, tab
 		\ooo for octal
 		\C literal C character for any beside above mentioned ones.
+
 
 =======================
 -1.1- Common flags/args

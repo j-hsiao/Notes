@@ -33,8 +33,14 @@ checks=(
 	'#{q:HOME}'
 	'#{q:#{l:whatever goodbye}}'
 	'#{q:whatever goodbye}'
+	'#{MYVAR}'
+	'#{d:MYVAR}'
+	'#{b:MYVAR}'
+	'#{q:#{d:MYVAR}}'
+	'#{q:#{b:MYVAR}}'
 )
 
+tmux setenv MYVAR '/a/path with spaces'
 for exp in "${checks[@]}"
 do
 	printf '%s: ' "${exp}"
