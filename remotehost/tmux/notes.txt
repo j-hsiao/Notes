@@ -1,468 +1,501 @@
 contents:
 -0- general
-	-0.1- terminology
-	-0.2- options
-	-0.3- format
-		-0.3.1- variables
-		-0.3.2- command substitution
-		-0.3.3- style
-	-0.4- quoting
+-0.0- observations
+-0.1- terminology
+-0.2- options
+-0.3- format
+-0.3.1- variables
+-0.3.1.1- branching
+-0.3.1.2- general commands
+-0.3.1.2.1- Binary commands
+-0.3.1.2.2- unary commands
+-0.3.1.3- builtin variables
+-0.3.2- command substitution
+-0.3.3- style
+-0.4- quoting
 -1- commands
-	-1.1- Common flags/args
-	-1.2- info
-	-1.3- sessions
-	-1.4- windows/panes
-	-1.5- bindings
-	-1.6- settings
-	-1.7- hooks
-	-1.8- env
-	-1.9- other
+-1.1- Common flags/args
+-1.2- info
+-1.3- sessions
+-1.4- windows/panes
+-1.5- bindings
+-1.6- settings
+-1.7- hooks
+-1.8- env
+-1.9- other
 -2- keybindings
-	-2.0- observations
-	-2.1- general
-	-2.2- copy/paste
-	-2.3- windows
-	-2.4- panes
-	-2.5- sessions
-	-2.6- renaming
-	-2.7- mouse
-	-2.8- multi-key bindings
+-2.0- observations
+-2.1- general
+-2.2- copy/paste
+-2.3- windows
+-2.4- panes
+-2.5- sessions
+-2.6- renaming
+-2.7- mouse
+-2.8- multi-key bindings
 -3- config
-	-3.1- settings
-		-3.1.1- server
-		-3.1.2- session
-		-3.1.3- window
-		-3.1.4- pane
-	-3.2- statusline
+-3.1- settings
+-3.1.1- server
+-3.1.2- session
+-3.1.3- window
+-3.1.4- pane
+-3.2- statusline
 -x- tricks
 
 ===========
 -0- general
 ===========
-	==================
-	-0.0- observations
-	==================
-	typing in vim, esc to exit insert mode, then <pre> ends up in a raw <pre> being
-		sent. It is not interpreted as the tmux <pre> key...
+==================
+-0.0- observations
+==================
+typing in vim, esc to exit insert mode, then <pre> ends up in a raw <pre> being
+	sent. It is not interpreted as the tmux <pre> key...
 
-	tmux vim colors are messed up, but if `set default-terminal screen-256color`
-		then vim colors are ok.  Without this, the cygwin colors still work,
-		but the wsl colors do not.
+tmux vim colors are messed up, but if `set default-terminal screen-256color`
+	then vim colors are ok.  Without this, the cygwin colors still work,
+	but the wsl colors do not.
 
-	=================
-	-0.1- terminology
-	=================
-	Session
-		A collection of windows.
+=================
+-0.1- terminology
+=================
+Session
+	A collection of windows.
 
-	Session Group
-		A group of sessions that share all the same windows, panes, etc.
-		The only difference is they can have different session-level options
-		and different active window.  If they have the same active window,
-		then they will always share the same active pane.
+Session Group
+	A group of sessions that share all the same windows, panes, etc.
+	The only difference is they can have different session-level options
+	and different active window.  If they have the same active window,
+	then they will always share the same active pane.
 
-	Window
-		a "space" that takes the entire "screen"
-		The terminal can only display a single window at a time.
+Window
+	a "space" that takes the entire "screen"
+	The terminal can only display a single window at a time.
 
-	Pane
-		A splitting of a "Window"
+Pane
+	A splitting of a "Window"
 
-	Key sequence
-		A sequence of keys that generally activate a command
-		binding.  Key sequences will be separated by a space.
-		A dash will indicate combination with a modifier key.
-		Example: "C-b [" means press control+b and then [.
+Key sequence
+	A sequence of keys that generally activate a command
+	binding.  Key sequences will be separated by a space.
+	A dash will indicate combination with a modifier key.
+	Example: "C-b [" means press control+b and then [.
 
-	Prefix key
-		All tmux keybindings are prefixed with the "prefix key".
-		In these notes, the prefix key will be omitted unless otherwise
-		stated referred to as <pre>
+Prefix key
+	All tmux keybindings are prefixed with the "prefix key".
+	In these notes, the prefix key will be omitted unless otherwise
+	stated referred to as <pre>
 
-	C-x/M-x
-		C-x means press Control + the x character.
-		M-x means either pressing alt + x, or pressing Esc followed by x.
-		Both seem to activate the M-x bindings.
+C-x/M-x
+	C-x means press Control + the x character.
+	M-x means either pressing alt + x, or pressing Esc followed by x.
+	Both seem to activate the M-x bindings.
 
-	=============
-	-0.2- options
-	=============
-	-2
-		support 256 colors
-	-C
-		start in control mode
-	-c cmd
-		start with a shell running the cmd
-	-D
-		do not start as a daemon
-	-N
-		no server
-	-f altconfigfile
-	-T comma-delim-client_features
-	-u
-		always use utf-8, ignore LC_*
-	-v
-		verbose logging
-	-V
-		version info
-	-L sockname
-	-S sockpath
-	============
-	-0.3- format
-	============
-	Format arguments are for commands that take -F flag.
-	These are typically a sequence of characters starting with a #.
+=============
+-0.2- options
+=============
+-2
+	support 256 colors
+-C
+	start in control mode
+-c cmd
+	start with a shell running the cmd
+-D
+	do not start as a daemon
+-N
+	no server
+-f altconfigfile
+-T comma-delim-client_features
+-u
+	always use utf-8, ignore LC_*
+-v
+	verbose logging
+-V
+	version info
+-L sockname
+-S sockpath
+============
+-0.3- format
+============
+Format arguments are for commands that take -F flag.
+These are typically a sequence of characters starting with a #.
 
-	The string can contain these values:
-		=================
-		-0.3.1- variables
-		=================
-		#{varname}
-		#{optname}
+The string can contain these values:
+=================
+-0.3.1- variables
+=================
+Variables can be created with:
+	name=value
+		set global env var
+	%hidden name=value
+		set global hidden variable
+	setenv [-hgFru] [-t session] name value
+		set value
+		-h: hidden
+		-g: global
+		-F: expand format
+		-r: remove
+		-u: unset
 
-		_________________________
-		#S where S is short alias
-		_______________
-		#{?expr,yes,no}
-			expr:
-				boolean-only variable name
-				boolean #{} expression.
-			ex:
-				status allows off, on, 2, 3, 4..., so status DOES NOT WORK
-				in this format expansion.  CANNOT use another #{} format as
-				the variable
-			example:
-				#{?#{==:0,0},a,b} -> a
-				#{?#{==:0,1},a,b} -> b
+#{varname}
+#{optname}
+#Shortalias
 
-		========
-		commands
-		========
-		Other commands take the form of:
-			#{cmd:arg1[,arg2...]}
+# can be used to escape #,}  a literal #
 
-		where cmd is often
-			command/opt1/opt2/...
-			OR command|opt1|opt2...
+===================
+-0.3.1.1- branching
+===================
+#{?expr,yes,no}
+expr:
+	boolean-only variable name
+	boolean #{} expression
+		0 or empty string = no
+		anything else = yes (ex. 00, off, etc)
+		ex:
+			status allows off, on, 2, 3, 4..., so status DOES NOT WORK
+			in this format expansion.  CANNOT use another #{} format as
+			the variable
+yes/no: literal or #{} expansion
 
-		For binary commands, arguments are usually a format string.
-		For unary commands, arguments are usually a variable name OR a #{} expression.
-			_______________
-			Binary commands
-				<!=>: direct string comparison
-					ex: #{==:string1,string2}
+example:
+	#{?#{==:0,0},a,b} -> a
+	#{?#{==:0,1},a,b} -> b
 
-				m[/r][/i]: string matching
-					/r: use regex instead of globbing
-					/i: ignore case
+==========================
+-0.3.1.2- general commands
+==========================
+#{cmd:arg1[,arg2...]}
 
-				||&&: and/or
-					these must be binary, extra arguments will be considered as
-					part of the 2nd argument.
+where cmd is often
+	command/opt1/opt2/...
+	OR command|opt1|opt2...
 
-				e|op[|f[|D]]: math expression
-					+-*% <!=> (NOTE: %% is needed if strftime expanded)
+and arg is often a variable name or #{}
+For unary commands, a #{} as argument might be expanded plainly
+if noted that it MUST be a variable name.
 
+For binary commands, arguments are usually a format string.
+For unary commands, arguments are usually a variable name OR a #{} expression.
 
-				math operators:
-				e|op[|f[|D]]:v1,v2
-					math expr
-					NOTE: use | instead of / (?because / is division?)
-					op: +-*/% and <!=> (need to %% if also strftimed)
-					opts:
-						f: use float
-						D: evaluate to D digits
-					example:
-						#{e|/|f|5:32,3}
+===========================
+-0.3.1.2.1- Binary commands
+===========================
+#{<!=>:s1,s2}
+	direct string literal or #{} comparison
+	ex: #{==:string1,string2}
 
-			unary cmd
-				C/opts:
-					search for regexp, evaluate to lineno if found else empty
-				a
-					Convert number to ascii
-				=N
-				=/N/repl
-					Truncate a variable (MUST BE A VARIABLE NAME)
-					N: size limit of N chars.  If negative, then take chars from the end
-					repl: replace the truncated text.
-				pN
-				p/N
-					Pad a variable (MUST BE A VARIABLE NAME)
-					N: Pad to this size, >0 pads left, <0 pads right
-				n
-					calculate the length (bytes)
-				w
-					calculate the length (display)
-				t/opts
-					convert time to string
-					opts:
-						f/strformat: format with strftime, need to escape %%
-						p: shorter
-				b
-					basename, MUST BE A VARIABLE NAME
-				d
-					dirname, arg MUST BE A VARIABLE NAME
-				q/opts
-					quoted, arg MUST BE A VARIABLE NAME
-					opts:
-						h escape hash characters
-				E
-					expand twice
-				T
-					same as E ?but also expand strftime specifiers?
-				S
-				W
-				P
-					loop over each session/window/pane, insert the format once for each.
-					If multiple args, 2nd is used for current window or active pane.
-				N/opts
-					check if name exists
-					w: window (default)
-					s: session
-				s/pat/repl/:
-					arg MUST BE A VARIABLE NAME
-					regex substitution
-					opt: i: ignorecase
-				l
-					literal, do not expand
-		##  escape the #,}
-		#,  escape the #,}
-		#}  escape the #,}
+#{m[/r][/i]:pattern,string}
+	string matching (fnmatch)
+	/r: use regex instead of globbing
+	/i: ignore case
 
-		==================
-		-0.3.1.1- examples
-		==================
-		toggle status on/off:
-		bind b "set -F status \"#{s/0/off:#{s/1/on:#{==:#{status},off}}}\""
-		Explanation:
-			#{==:#{status},on}
-				check if status is on, this becomes 1 if off, 0 if on
-				(check if off because off is the only value for off, on, 2, 3, 4,... are all "on")
-			#{s/1/on:...} If off, then replace with on
-			#{s/0/off:...} If on, then replace with off.
+||&&: and/or
+	these MUST be BINARY, extra arguments will be considered as
+	part of the 2nd argument.
 
-	variables:
-		Variable name          Alias    Replaced with
-		active_window_index             Index of active window in session
-		alternate_on                    1 if pane is in alternate screen
-		alternate_saved_x               Saved cursor X in alternate screen
-		alternate_saved_y               Saved cursor Y in alternate screen
-		buffer_created                  Time buffer created
-		buffer_name                     Name of buffer
-		buffer_sample                   Sample of start of buffer
-		buffer_size                     Size of the specified buffer in bytes
-		client_activity                 Time client last had activity
-		client_cell_height              Height of each client cell in pixels
-		client_cell_width               Width of each client cell in pixels
-		client_control_mode             1 if client is in control mode
-		client_created                  Time client created
-		client_discarded                Bytes discarded when client behind
-		client_flags                    List of client flags
-		client_height                   Height of client
-		client_key_table                Current key table
-		client_last_session             Name of the client's last session
-		client_name                     Name of client
-		client_pid                      PID of client process
-		client_prefix                   1 if prefix key has been pressed
-		client_readonly                 1 if client is readonly
-		client_session                  Name of the client's session
-		client_termfeatures             Terminal features of client, if any
-		client_termname                 Terminal name of client
-		client_termtype                 Terminal type of client, if available
-		client_tty                      Pseudo terminal of client
-		client_utf8                     1 if client supports UTF-8
-		client_width                    Width of client
-		client_written                  Bytes written to client
-		command                         Name of command in use, if any
-		command_list_alias              Command alias if listing commands
-		command_list_name               Command name if listing commands
-		command_list_usage              Command usage if listing commands
-		config_files                    List of configuration files loaded
-		copy_cursor_line                Line the cursor is on in copy mode
-		copy_cursor_word                Word under cursor in copy mode
-		copy_cursor_x                   Cursor X position in copy mode
-		copy_cursor_y                   Cursor Y position in copy mode
-		current_file                    Current configuration file
-		cursor_character                Character at cursor in pane
-		cursor_flag                     Pane cursor flag
-		cursor_x                        Cursor X position in pane
-		cursor_y                        Cursor Y position in pane
-		history_bytes                   Number of bytes in window history
-		history_limit                   Maximum window history lines
-		history_size                    Size of history in lines
-		hook                            Name of running hook, if any
-		hook_pane                       ID of pane where hook was run, if any
-		hook_session                    ID of session where hook was run, if any
-		hook_session_name               Name of session where hook was run, if any
-		hook_window                     ID of window where hook was run, if any
-		hook_window_name                Name of window where hook was run, if any
-		host                   #H       Hostname of local host
-		host_short             #h       Hostname of local host (no domain name)
-		insert_flag                     Pane insert flag
-		keypad_cursor_flag              Pane keypad cursor flag
-		keypad_flag                     Pane keypad flag
-		last_window_index               Index of last window in session
-		line                            Line number in the list
-		mouse_all_flag                  Pane mouse all flag
-		mouse_any_flag                  Pane mouse any flag
-		mouse_button_flag               Pane mouse button flag
-		mouse_line                      Line under mouse, if any
-		mouse_sgr_flag                  Pane mouse SGR flag
-		mouse_standard_flag             Pane mouse standard flag
-		mouse_utf8_flag                 Pane mouse UTF-8 flag
-		mouse_word                      Word under mouse, if any
-		mouse_x                         Mouse X position, if any
-		mouse_y                         Mouse Y position, if any
-		origin_flag                     Pane origin flag
-		pane_active                     1 if active pane
-		pane_at_bottom                  1 if pane is at the bottom of window
-		pane_at_left                    1 if pane is at the left of window
-		pane_at_right                   1 if pane is at the right of window
-		pane_at_top                     1 if pane is at the top of window
-		pane_bg                         Pane background colour
-		pane_bottom                     Bottom of pane
-		pane_current_command            Current command if available
-		pane_current_path               Current path if available
-		pane_dead                       1 if pane is dead
-		pane_dead_status                Exit status of process in dead pane
-		pane_fg                         Pane foreground colour
-		pane_format                     1 if format is for a pane
-		pane_height                     Height of pane
-		pane_id                #D       Unique pane ID
-		pane_in_mode                    1 if pane is in a mode
-		pane_index             #P       Index of pane
-		pane_input_off                  1 if input to pane is disabled
-		pane_last                       1 if last pane
-		pane_left                       Left of pane
-		pane_marked                     1 if this is the marked pane
-		pane_marked_set                 1 if a marked pane is set
-		pane_mode                       Name of pane mode, if any
-		pane_path                       Path of pane (can be set by application)
-		pane_pid                        PID of first process in pane
-		pane_pipe                       1 if pane is being piped
-		pane_right                      Right of pane
-		pane_search_string              Last search string in copy mode
-		pane_start_command              Command pane started with
-		pane_synchronized               1 if pane is synchronized
-		pane_tabs                       Pane tab positions
-		pane_title             #T       Title of pane (can be set by application)
-		pane_top                        Top of pane
-		pane_tty                        Pseudo terminal of pane
-		pane_width                      Width of pane
-		pid                             Server PID
-		rectangle_toggle                1 if rectangle selection is activated
-		scroll_position                 Scroll position in copy mode
-		scroll_region_lower             Bottom of scroll region in pane
-		scroll_region_upper             Top of scroll region in pane
-		search_match                    Search match if any
-		search_present                  1 if search started in copy mode
-		selection_active                1 if selection started and changes with the cursor in copy mode
-		selection_end_x                 X position of the end of the selection
-		selection_end_y                 Y position of the end of the selection
-		selection_present               1 if selection started in copy mode
-		selection_start_x               X position of the start of the selection
-		selection_start_y               Y position of the start of the selection
-		session_activity                Time of session last activity
-		session_alerts                  List of window indexes with alerts
-		session_attached                Number of clients session is attached to
-		session_attached_list           List of clients session is attached to
-		session_created                 Time session created
-		session_format                  1 if format is for a session
-		session_group                   Name of session group
-		session_group_attached          Number of clients sessions in group are attached to
-		session_group_attached_list     List of clients sessions in group are attached to
-		session_group_list              List of sessions in group
-		session_group_many_attached     1 if multiple clients attached to sessions in group
-		session_group_size              Size of session group
-		session_grouped                 1 if session in a group
-		session_id                      Unique session ID
-		session_last_attached           Time session last attached
-		session_many_attached           1 if multiple clients attached
-		session_marked                  1 if this session contains the marked pane
-		session_name           #S       Name of session
-		session_path                    Working directory of session
-		session_stack                   Window indexes in most recent order
-		session_windows                 Number of windows in session
-		socket_path                     Server socket path
-		start_time                      Server start time
-		version                         Server version
-		window_active                   1 if window active
-		window_active_clients           Number of clients viewing this window
-		window_active_clients_list      List of clients viewing this window
-		window_active_sessions          Number of sessions on which this window is active
-		window_active_sessions_list     List of sessions on which this window is active
-		window_activity                 Time of window last activity
-		window_activity_flag            1 if window has activity
-		window_bell_flag                1 if window has bell
-		window_bigger                   1 if window is larger than client
-		window_cell_height              Height of each cell in pixels
-		window_cell_width               Width of each cell in pixels
-		window_end_flag                 1 if window has the highest index
-		window_flags           #F       Window flags with # escaped as ##
-		window_raw_flags                Window flags with nothing escaped
-		window_format                   1 if format is for a window
-		window_height                   Height of window
-		window_id                       Unique window ID
-		window_index           #I       Index of window
-		window_last_flag                1 if window is the last used
-		window_layout                   Window layout description, ignoring zoomed window panes
-		window_linked                   1 if window is linked across sessions
-		window_linked_sessions          Number of sessions this window is linked to
-		window_linked_sessions_list     List of sessions this window is linked to
-		window_marked_flag              1 if window contains the marked pane
-		window_name            #W       Name of window
-		window_offset_x                 X offset into window if larger than client
-		window_offset_y                 Y offset into window if larger than client
-		window_panes                    Number of panes in window
-		window_silence_flag             1 if window has silence alert
-		window_stack_index              Index in session most recent stack
-		window_start_flag               1 if window has the lowest index
-		window_visible_layout           Window layout description, respecting zoomed window panes
-		window_width                    Width of window
-		window_zoomed_flag              1 if window is zoomed
-		wrap_flag                       Pane wrap flag
-		============================
-		-0.3.2- command substitution
-		============================
-		#(command)
-		NOTE: unlike bash, command substitution in tmux only uses the LATEST line.
-		where latest means temporally latest.  On the first invocation, there have
-		been no lines.  It would very likely be substituted as "<'command arg...' not ready>"
-		However, any formatting afterwards would then update to whatever the latest line
-		is.  Even if you use display-message -d 0 ..., the formatting happens before
-		waiting for keypress, so it will still end up as "not ready".
+#{e|op[|f[|D]]:a,b} math expression
+	op: +-*% <!=> (NOTE: %% is needed if strftime expanded)
+	NOTE: use | instead of / (?because / is division?)
+	f: use float
+	D: evaluate to D digits
+	example:
+		#{e|/|f|5:32,3}
 
-		==============
-		-0.3.3- styles
-		==============
-		#[stylename]
-		#[opt1 opt2 opt3]
-		#[opt1,opt2,opt3]
+==========================
+-0.3.1.2.2- unary commands
+==========================
+C/opts:
+	search for regexp, evaluate to lineno if found else empty
+a
+	Convert number (ascii decimal code) to ascii
+	like python `chr()`
+=N
+=/N/repl
+	Truncate a variable or #{} to length N
+	N: size limit of N chars.  If negative, then take chars from the end
+	repl: replace the truncated text.
+pN
+p/N
+	Pad a variable or #{} to length N
+	N: Pad to this size, >0 pads left, <0 pads right
+n
+w
+	calculate the length in bytes / display cols
+t/opts
+	convert time to string
+	opts:
+		f/strformat: format with strftime, need to escape %%
+		p: shorter
+b
+d
+	basename or dirname
+	arg MUST be a variable name.
+	a #{} expr will just be expanded used as-is,
+	as if no b/d command was used.
+q/opts
+	quoted, arg MUST BE A VARIABLE NAME
+	opts:
+		h escape hash characters
+E
+	expand twice
+T
+	same as E ?but also expand strftime specifiers?
+S
+W
+P
+	loop over each session/window/pane, insert the format once for each.
+	If multiple args, 2nd is used for current window or active pane.
+N/opts
+	check if name exists
+	w: window (default)
+	s: session
+s/pat/repl/:
+	arg MUST BE A VARIABLE NAME
+	NOTE: because Format strings are expanded AFTER the string
+	has been parsed, backslashes may need to be double-backslashed
+	if the string is a double-quote string.
+	regex substitution
+	opt: i: ignorecase
+l
+	literal, do not expand
 
-			stylenames:
-				default
+==================
+-0.3.1.1- examples
+==================
+toggle status on/off:
+bind b "set -F status \"#{s/0/off:#{s/1/on:#{==:#{status},off}}}\""
+Explanation:
+	#{==:#{status},on}
+		check if status is on, this becomes 1 if off, 0 if on
+		(check if off because off is the only value for off, on, 2, 3, 4,... are all "on")
+	#{s/1/on:...} If off, then replace with on
+	#{s/0/off:...} If on, then replace with off.
 
-			options:
-				fg=color
-					name      black|red|green|yellow|blue|magenta|cyan|white
-					bright*   * is one of the above
-					dark*     NOTE not in man page, but seems to work.
-					colourN   N = 0-255 for 256 colors
-					default   for the default colour
-					terminal  for the terminal default colour
-					#ffffff   rgb
-				bg=color
-				none
-				acs bright/bold dim underscore blink reverse hidden italics
-				overline strikethrough double-underscore, curly-underscore,
-				dotted-underscore, dashed-underscore
-				align=left|centre|right
-				filll=color
-				list=on|focus|left-marker|right-marker
-				nolist
-				push-default|pop-default
-				range=left|right|window|X
-				norange
+===========================
+-0.3.1.3- builtin variables
+===========================
+Variable name          Alias    Replaced with
+active_window_index             Index of active window in session
+alternate_on                    1 if pane is in alternate screen
+alternate_saved_x               Saved cursor X in alternate screen
+alternate_saved_y               Saved cursor Y in alternate screen
+buffer_created                  Time buffer created
+buffer_name                     Name of buffer
+buffer_sample                   Sample of start of buffer
+buffer_size                     Size of the specified buffer in bytes
+client_activity                 Time client last had activity
+client_cell_height              Height of each client cell in pixels
+client_cell_width               Width of each client cell in pixels
+client_control_mode             1 if client is in control mode
+client_created                  Time client created
+client_discarded                Bytes discarded when client behind
+client_flags                    List of client flags
+client_height                   Height of client
+client_key_table                Current key table
+client_last_session             Name of the client's last session
+client_name                     Name of client
+client_pid                      PID of client process
+client_prefix                   1 if prefix key has been pressed
+client_readonly                 1 if client is readonly
+client_session                  Name of the client's session
+client_termfeatures             Terminal features of client, if any
+client_termname                 Terminal name of client
+client_termtype                 Terminal type of client, if available
+client_tty                      Pseudo terminal of client
+client_utf8                     1 if client supports UTF-8
+client_width                    Width of client
+client_written                  Bytes written to client
+command                         Name of command in use, if any
+command_list_alias              Command alias if listing commands
+command_list_name               Command name if listing commands
+command_list_usage              Command usage if listing commands
+config_files                    List of configuration files loaded
+copy_cursor_line                Line the cursor is on in copy mode
+copy_cursor_word                Word under cursor in copy mode
+copy_cursor_x                   Cursor X position in copy mode
+copy_cursor_y                   Cursor Y position in copy mode
+current_file                    Current configuration file
+cursor_character                Character at cursor in pane
+cursor_flag                     Pane cursor flag
+cursor_x                        Cursor X position in pane
+cursor_y                        Cursor Y position in pane
+history_bytes                   Number of bytes in window history
+history_limit                   Maximum window history lines
+history_size                    Size of history in lines
+hook                            Name of running hook, if any
+hook_pane                       ID of pane where hook was run, if any
+hook_session                    ID of session where hook was run, if any
+hook_session_name               Name of session where hook was run, if any
+hook_window                     ID of window where hook was run, if any
+hook_window_name                Name of window where hook was run, if any
+host                   #H       Hostname of local host
+host_short             #h       Hostname of local host (no domain name)
+insert_flag                     Pane insert flag
+keypad_cursor_flag              Pane keypad cursor flag
+keypad_flag                     Pane keypad flag
+last_window_index               Index of last window in session
+line                            Line number in the list
+mouse_all_flag                  Pane mouse all flag
+mouse_any_flag                  Pane mouse any flag
+mouse_button_flag               Pane mouse button flag
+mouse_line                      Line under mouse, if any
+mouse_sgr_flag                  Pane mouse SGR flag
+mouse_standard_flag             Pane mouse standard flag
+mouse_utf8_flag                 Pane mouse UTF-8 flag
+mouse_word                      Word under mouse, if any
+mouse_x                         Mouse X position, if any
+mouse_y                         Mouse Y position, if any
+origin_flag                     Pane origin flag
+pane_active                     1 if active pane
+pane_at_bottom                  1 if pane is at the bottom of window
+pane_at_left                    1 if pane is at the left of window
+pane_at_right                   1 if pane is at the right of window
+pane_at_top                     1 if pane is at the top of window
+pane_bg                         Pane background colour
+pane_bottom                     Bottom of pane
+pane_current_command            Current command if available
+pane_current_path               Current path if available
+pane_dead                       1 if pane is dead
+pane_dead_status                Exit status of process in dead pane
+pane_fg                         Pane foreground colour
+pane_format                     1 if format is for a pane
+pane_height                     Height of pane
+pane_id                #D       Unique pane ID
+pane_in_mode                    1 if pane is in a mode
+pane_index             #P       Index of pane
+pane_input_off                  1 if input to pane is disabled
+pane_last                       1 if last pane
+pane_left                       Left of pane
+pane_marked                     1 if this is the marked pane
+pane_marked_set                 1 if a marked pane is set
+pane_mode                       Name of pane mode, if any
+pane_path                       Path of pane (can be set by application)
+pane_pid                        PID of first process in pane
+pane_pipe                       1 if pane is being piped
+pane_right                      Right of pane
+pane_search_string              Last search string in copy mode
+pane_start_command              Command pane started with
+pane_synchronized               1 if pane is synchronized
+pane_tabs                       Pane tab positions
+pane_title             #T       Title of pane (can be set by application)
+pane_top                        Top of pane
+pane_tty                        Pseudo terminal of pane
+pane_width                      Width of pane
+pid                             Server PID
+rectangle_toggle                1 if rectangle selection is activated
+scroll_position                 Scroll position in copy mode
+scroll_region_lower             Bottom of scroll region in pane
+scroll_region_upper             Top of scroll region in pane
+search_match                    Search match if any
+search_present                  1 if search started in copy mode
+selection_active                1 if selection started and changes with the cursor in copy mode
+selection_end_x                 X position of the end of the selection
+selection_end_y                 Y position of the end of the selection
+selection_present               1 if selection started in copy mode
+selection_start_x               X position of the start of the selection
+selection_start_y               Y position of the start of the selection
+session_activity                Time of session last activity
+session_alerts                  List of window indexes with alerts
+session_attached                Number of clients session is attached to
+session_attached_list           List of clients session is attached to
+session_created                 Time session created
+session_format                  1 if format is for a session
+session_group                   Name of session group
+session_group_attached          Number of clients sessions in group are attached to
+session_group_attached_list     List of clients sessions in group are attached to
+session_group_list              List of sessions in group
+session_group_many_attached     1 if multiple clients attached to sessions in group
+session_group_size              Size of session group
+session_grouped                 1 if session in a group
+session_id                      Unique session ID
+session_last_attached           Time session last attached
+session_many_attached           1 if multiple clients attached
+session_marked                  1 if this session contains the marked pane
+session_name           #S       Name of session
+session_path                    Working directory of session
+session_stack                   Window indexes in most recent order
+session_windows                 Number of windows in session
+socket_path                     Server socket path
+start_time                      Server start time
+version                         Server version
+window_active                   1 if window active
+window_active_clients           Number of clients viewing this window
+window_active_clients_list      List of clients viewing this window
+window_active_sessions          Number of sessions on which this window is active
+window_active_sessions_list     List of sessions on which this window is active
+window_activity                 Time of window last activity
+window_activity_flag            1 if window has activity
+window_bell_flag                1 if window has bell
+window_bigger                   1 if window is larger than client
+window_cell_height              Height of each cell in pixels
+window_cell_width               Width of each cell in pixels
+window_end_flag                 1 if window has the highest index
+window_flags           #F       Window flags with # escaped as ##
+window_raw_flags                Window flags with nothing escaped
+window_format                   1 if format is for a window
+window_height                   Height of window
+window_id                       Unique window ID
+window_index           #I       Index of window
+window_last_flag                1 if window is the last used
+window_layout                   Window layout description, ignoring zoomed window panes
+window_linked                   1 if window is linked across sessions
+window_linked_sessions          Number of sessions this window is linked to
+window_linked_sessions_list     List of sessions this window is linked to
+window_marked_flag              1 if window contains the marked pane
+window_name            #W       Name of window
+window_offset_x                 X offset into window if larger than client
+window_offset_y                 Y offset into window if larger than client
+window_panes                    Number of panes in window
+window_silence_flag             1 if window has silence alert
+window_stack_index              Index in session most recent stack
+window_start_flag               1 if window has the lowest index
+window_visible_layout           Window layout description, respecting zoomed window panes
+window_width                    Width of window
+window_zoomed_flag              1 if window is zoomed
+wrap_flag                       Pane wrap flag
+
+============================
+-0.3.2- command substitution
+============================
+#(command)
+NOTE: unlike bash, command substitution in tmux only uses the LATEST line.
+where latest means temporally latest.  On the first invocation, there have
+been no lines.  It would very likely be substituted as "<'command arg...' not ready>"
+However, any formatting afterwards would then update to whatever the latest line
+is.  Even if you use display-message -d 0 ..., the formatting happens before
+waiting for keypress, so it will still end up as "not ready".
+
+==============
+-0.3.3- styles
+==============
+#[stylename]
+#[opt1 opt2 opt3]
+#[opt1,opt2,opt3]
+
+stylenames:
+	default
+
+options:
+	fg=color
+		name      black|red|green|yellow|blue|magenta|cyan|white
+		bright*   * is one of the above
+		dark*     NOTE not in man page, but seems to work.
+		colourN   N = 0-255 for 256 colors
+		default   for the default colour
+		terminal  for the terminal default colour
+		#ffffff   rgb
+	bg=color
+	none
+	acs bright/bold dim underscore blink reverse hidden italics
+	overline strikethrough double-underscore, curly-underscore,
+	dotted-underscore, dashed-underscore
+	align=left|centre|right
+	filll=color
+	list=on|focus|left-marker|right-marker
+	nolist
+	push-default|pop-default
+	range=left|right|window|X
+	norange
 
 =============
 -0.4- quoting
