@@ -374,7 +374,16 @@ can_write_eof()
 write_eof()
 
 transport
-get_extra_info(name, default=None)
+get_extra_info(name:str, default=None)
+	names can be:
+		sockets:
+			peername, socket, sockname
+		ssl sockets:
+			compression, cipher, peercert, sslcontext, ssl_object
+		pipe:
+			pipe
+		subprocess:
+			subprocess
 async drain()
 
 3.7+
