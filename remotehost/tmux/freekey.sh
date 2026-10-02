@@ -5,70 +5,130 @@
 # Otheriwse, tmux needs to parse the configs
 # between each invocation.
 
-_check() # <chars> [prefix]
+extract_tables() # info [out=tables]
 {
-	# Check each key if binding exists.
-	for ((i=0; i<${#1}; ++i))
+	local -n et__info="${1}"
+	local -n et__tables="${2:-tables}"
+	local et__line
+	et__tables=()
+	for et__line in "${et__info[@]}"
 	do
-		if ! tmux list-keys -T"${table}" "${2}${1:i:1}" &>/dev/null
+		if [[ "${et__line}" =~ ^'bind-key'[[:blank:]]*[-r]*[[:blank:]]*'-T'[[:blank:]]*([^[:blank:]]*) ]]
 		then
-			printf '%s' "${1:i:1}"
+			local et__table="${BASH_REMATCH[1]}"
+			if [[ " ${et__tables[*]} " != *" ${et__table} "* ]]
+			then
+				et__tables+=("${et__table}")
+			fi
 		fi
 	done
-	echo
 }
 
-check() {
-	local table=
+check_table() # info [tablename=prefix]
+{
+	# Find all the free keys for the given table
+	# and tmux list-keys line array.
+	local -n info="${1}"
+	local table="${2:-prefix}"
+	local prefixes=('C-' 'S-' 'M-')
+	local names=(
+		Up Down Left Right BSpace BTab DC End
+		Enter Escape F{1..12} Home
+		IC NPage PPage Space Tab Any
+	)
+	local keys=(
+		'abcdefghijklmnopqrstuvwxyz'
+		'ABCDEFGHIJKLMNOPQRSTUVWXYZ'
+		'`1234567890-=~!@#$%^&*()_+[]{}\|;:,./<>?"'\'
+		"${names[*]} "
+	)
+	local Ckeys=("${keys[@]}")
+	local Skeys=("${keys[@]}")
+	local Mkeys=("${keys[@]}")
+
+	local line
+	for line in "${info[@]}"
+	do
+		if [[ "${line}" =~ ^'bind-key'[[:blank:]]*[-r]*[[:blank:]]*'-T'[[:blank:]]*"${table}"[[:blank:]]*([^[:blank:]]*) ]]
+		then
+			local key="${BASH_REMATCH[1]}"
+			local arrname=keys
+			if [[ "${key}" = @(C-*|S-*|M-*) ]]; then
+				arrname="${key:0:1}keys"
+				key="${key:2}"
+			fi
+			local -n arr="${arrname}"
+			[[ "${key}" = \\? ]] && key="${key:1}"
+			case "${key}" in
+				[a-z]) arr[0]="${arr[0]/"${key}"/}" ;;
+				[A-Z]) arr[1]="${arr[1]/"${key}"/}" ;;
+				*)
+					if ((${#key} > 1))
+					then
+						arr[3]="${arr[3]/"${key} "/}"
+					else
+						arr[2]="${arr[2]/"${key}"/}"
+					fi
+			esac
+		fi
+	done
+	echo "${table}"
+	for pre in '' C- S- M-
+	do
+		printf '\t%s\n' "${pre:-raw}"
+		local -n arr="${pre::1}keys"
+		printf '\t\t%s\n' "${arr[@]::${#arr[@]}-1}"
+		printf '\t\t%s\t%s\t%s\t%s\n' ${arr[3]}
+	done
+}
+
+tmux_freekeys() {
+	local target_tables=()
+	local listit=
 	while (("${#}"))
 	do
 		case "${1}" in
-			-T)
-				shift
-				table="${1}"
-				;;
-			-T*)
-				table="${1:1}"
-				;;
 			-h|--help)
-				echo "${BASH_SOURCE[0]} [-T tablename]"
+				local msg="${BASH_SOURCE[0]} [-h] [-l] [tablename ...]
+				-h|--help
+				    display this help message
+				-l|--list-tables
+				    just list existing tables and exit.
+				"
+				echo "${msg//$'\t'}"
 				return
 				;;
-			*)
-				((${#table})) && { echo "unknown arg ${table}"; return; }
-				table="${1}"
+			-l|--list-tables)
+				listit=1
 				;;
+			*)
+				target_tables+=("${1}")
 		esac
 		shift
 	done
-	table="${table:-prefix}"
-	echo "Checking table: ${table}"
-	printf '%s\n' '------------------------------'
+	((listit)) && target_tables=()
+	local lines
+	if ((${#target_tables[@]} == 1))
+	then
+		readarray -t lines < <(tmux list-keys -T "${target_tables[0]}")
+	else
+		readarray -t lines < <(tmux list-keys)
+	fi
+	if ((listit)); then
+		extract_tables lines target_tables
+		printf '%s\n' "${target_tables[@]}"
+		return
+	fi
+	if ((!${#target_tables[@]}))
+	then
+		extract_tables lines target_tables
+	fi
 
-	local alpha=abcdefghijklmnopqrstuvwxyz
-	printf 'Unused lower : '
-	_check "${alpha}"
-	printf 'Unused C-lower : '
-	_check "${alpha}" C-
-
-	printf 'Unused upper : '
-	_check "${alpha^^}"
-
-	printf 'Unused digit : '
-	_check 01234567890
-
-	printf 'Unused symbol: '
-	_check '`~!@#$%^&*()-_=+[]{}\|;:"'"'"',<.>/?'
-
-	echo 'Unused named keys:'
-	for name in Up Down Left Right BSpace BTab DC End Enter Escape F{1..12} Home \
-		IC NPage PPage Space Tab Any
+	local table
+	for table in "${target_tables[@]}"
 	do
-		if ! tmux list-keys -T"${table}" "${name}" &>/dev/null
-		then
-			echo "  ${name}"
-		fi
+		check_table lines "${table}"
 	done
 }
 
-check "${@}"
+tmux_freekeys "${@}"
