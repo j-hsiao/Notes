@@ -1,3 +1,50 @@
+-0- miscellaneous
+-1- options
+
+=================
+-0- miscellaneous
+=================
 about:config
 	devtools.netmonitor.responseBodyLimit
 	default value is 1048576 (1 MiB)
+
+===========
+-1- options
+===========
+https://wiki.mozilla.org/Firefox/CommandLineOptions#-new-instance
+=============
+-1.1- profile
+=============
+-P profilename
+	NOTE: can give a non-existent profile and the profile manager will open up
+-profile profile_path
+-ProfileManager
+	open the profile manager
+-CreateProfile "profile_name[ profile_dir]"
+	Create a new profile in default rdir but do not start
+
+
+-width pixels
+-height pixels
+
+=========
+instances
+=========
+-new-instance
+	"Open a new instance, not a new window in running instance"
+	but does not seem to work if picking a profile that already exists.
+	Picking a different profile also seems to already automatically
+	create a ?new instance?
+-no-remote
+	do not connect to a running instance
+-headless
+-foreground
+-browser
+-new-tab
+-new-window
+--kiosk
+-preferences
+-private
+-private-window
+-safe-mode
+-url
