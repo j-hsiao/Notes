@@ -245,6 +245,19 @@ setup_readline() {
 }
 setup_tmux() {
 	local refpath="${NOTESDIR/#"${HOME}/"/'$HOME/'}/remotehost/tmux/tmux.conf"
+	local tmuxversion="$(tmux -V)"
+	tmuxversion="${tmuxversion//[a-zA-Z ]}"
+	tmuxversion=(${tmuxversion//./ })
+	local target=(3 2) i
+	for ((i=0; i<2; ++i))
+	do
+		((tmuxversion[i] > target[i])) && break
+		if ((tmuxversion[i] < target[i]))
+		then
+			refpath="${refpath/%tmux.conf/compat_tmux.conf}"
+			break
+		fi
+	done
 	refpath="${refpath//'\'/'\\'}"
 	echo "Updating ~/.tmux.conf"
 	${DRYRUN:+echo} replace_section "${HOME}/.tmux.conf" "source-file \"${refpath//'"'/'\"'}\"" "# ${BASH_SOURCE[0]}: tmux" 0
