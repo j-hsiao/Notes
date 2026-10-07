@@ -57,6 +57,11 @@ else
 		local rbm__stack=(0 ${#rbm__arr[0]})
 		local rbm__chunks=()
 		local rbm__i
+		if (( "${#rbm__arr[@]}" < 2 ))
+		then
+			[[ "${rbm__arr[0]}" =~ "${rbm__arr[0]}" ]]
+			return
+		fi
 		for ((rbm__i=1; rbm__i < ${#rbm__arr[@]}; ++rbm__i))
 		do
 			local rbm__pre="${rbm__arr[0]:rbm__stack[-2]:rbm__stack[-1] - rbm__stack[-2]}"
