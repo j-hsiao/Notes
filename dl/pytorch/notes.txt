@@ -9,6 +9,7 @@
 -1- models
 -1.1- methods
 -1.2- Predefined modules
+-1.2.1- Modifying models
 -1.3- saving/loading
 -2- functionals
 -2.1- losses
@@ -25,7 +26,7 @@ https://seba-1511.github.io/tutorials/intermediate/dist_tuto.html
 https://pytorch.org/docs/stable/distributed.html
 https://seba-1511.github.io/tutorials/beginner/blitz/tensor_tutorial.html
 
-torch.no_grad() context manager for inference
+torch.no_grad() context manager for inference, turn off grad calcs.
 
 =============
 -0.1- tensors
@@ -106,10 +107,12 @@ Modules are usually just classes that have torch.nn.Parameter attrs
 =============
 parameters() gives the "learnable parameters"
 
-eval(): Turn randomness layers off (ex. dropout, batch norm, etc)
-
+eval():
 train(mode=bool):
-	TODO
+	mode: T: training, F: eval
+
+	Turn on/off training-only behaviors (ex. dropout, batchnorm, etc)
+	Return self.
 
 to(device) immediate inputs and outputs must be on device too.
 
@@ -160,8 +163,58 @@ nn.Linear (linear transform, aka matrix multiply)
 	A is an inchans x outchans matrix array
 	b is an inchans array.
 
+	NOTE: typically an "fc" layer is just a linear layer
+	with whatever previous layer flattened.
+
+
+nn.LSTM
+	__init__(
+		input_size,hidden_size,
+		num_layers=1, bias=True, batch_first=False,
+		dropout=0.0, bidirectional=False, proj_size=0,
+		device=None, dtype=None
+	):
+		num_layers: chained LSTM cells.
+		bias: use bias weights or not
+		bidirectional: bool, use bidirectional lstm.
+
+	__call__(input, (hidden, cell)=zeros):
+		hidden_seq, (hiddenlast, celllast)
+
+		hidden and cell should have shape:
+			hidden: (D*num_layers, batch, proj_size or hidden_size)
+			cell: (D*num_layers, batch, hidden_size)
+		Generally speaking, hidden should be used as the "output".
 
 other models in torchvision.models
+
+========================
+-1.2.1- Modifying models
+========================
+
+method 1:
+https://stackoverflow.com/questions/56976775/how-to-modify-pretrained-torchvision-models-in-pytorch-to-return-two-outputs-for
+
+Start with a torchvision.models.*
+
+Check the corresponding code/structure of the model
+Replace any unwanted with nn.Identity.
+Run the model
+use the output
+
+example:
+	class MyModel(nn.Module):
+		def __init__(self, ...):
+			self.base = torchvision.models.basemodel()
+			self.base.fc = nn.Identity()
+
+		def forward(self, x):
+			out = self.base(x)
+			dostuff with out
+
+
+
+
 
 ====================
 -1.3- saving/loading
@@ -401,26 +454,3 @@ def average_gradients(model):
         dist.all_reduce(
             param.grad.data, op = dist.reduce_op.SUM)
         param.grad.data /= size
-
-
-______________________________
--3- others
-	-3.1- torch.no_grad()
-		use context manager torch.no_grad() to turn off gradients for all
-		ex:
-			# define values with requires_grad=True
-			make some calcs
-
-			with torch.no_grad():
-			    do stuff and no gradient calculations
-	-3.3- train/eval modes
-		model.eval()
-		model.train(mode = True)
-
-		change module behavior for things like dropout
-			model.eval() -> don't do dropout
-			model.train() -> do do dropout
-
-
-		... documentation doesn't say anything about mode
-		maybe model.train(mode = False) is the same as model.eval()???
