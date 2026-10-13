@@ -15,6 +15,8 @@
 -2.1- losses
 -3- optimizers
 -4- data
+-4.1- custom datasets
+-4.2- loading
 -5- training
 -6- distributed
 
@@ -325,6 +327,40 @@ Example:
 
 * BUT if data loading really was an issue, wouldn't you just preprocess and
 	save the preprocessed input data and train on that?
+
+=====================
+-4.1- custom datasets
+=====================
+torch.utils.data.Dataset
+
+Represent an ordered collection of training data.
+
+Must implement __init__, __len__, and __getitem__
+
+
+=============
+-4.2- loading
+=============
+torch.utils.data.DataLoader(data,...):
+	batch_size: int
+	shuffle: bool
+	sampler: Sampler or iterable of dataset indices
+	batch_sampler: Sampler or iterable of batches of data indices.
+	num_workers
+	collate_fn
+	pin_memory
+	drop_last: drop last (incomplete) batch
+	timeout
+	worker_init_fn
+	generator: torch.Generator, ?random number generator?
+	prefetch_factor: int, batches loaded in advance per worker
+	persistent_workers: bool
+	pin_memory_device
+
+Iterates, batches, shuffles, etc.
+This basically does something kind of like:
+Any preprocessing should probably be handled by the Dataset.
+
 
 ============
 -5- training
