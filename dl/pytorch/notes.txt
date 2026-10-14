@@ -229,11 +229,14 @@ net.load_state_dict(torch.load(path, weights_only=True))
 ===============
 -2- functionals
 ===============
+torch.nn.functional.*
+
 Functionals just modules without any internal "parameters".
 
 examples:
 	relu
 	max_pool2d
+	softmax
 
 Sidenotes:
 	"fully-connected" layer can be mimicked by flattening
@@ -271,6 +274,14 @@ examples:
 	SoftMarginLoss
 	TripletMarginLoss
 	TripletMarginWithDistanceLoss
+
+
+Losses are generally functions called with 2 args: result, target
+
+Examples:
+	CrossEntropyLoss(result, target):
+		where result is generally NC, a vector for classification.
+		target: N (class indices) or NC (class probs per batch)
 
 ==============
 -3- optimizers
@@ -360,6 +371,15 @@ torch.utils.data.DataLoader(data,...):
 Iterates, batches, shuffles, etc.
 This basically does something kind of like:
 Any preprocessing should probably be handled by the Dataset.
+
+===============
+-4.3- splitting
+===============
+Datasets can be split using torch.utils.data.random_split
+torch.utils.data.random_split(dataset, [splitlengths,...], generator)
+
+This can split a single dataset into 2 disjoint datasets
+(ex. to make a validation testset)
 
 
 ============
