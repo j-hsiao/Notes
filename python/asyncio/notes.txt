@@ -573,6 +573,10 @@ asyncio.*
 	new_event_loop()
 		create a new event loop.
 
+	async run_in_executor(executor=None, func, *args):
+		run func with *args in an "executor" and return the result
+		executor=None to use the default executor.
+
 ============
 -2.1.x1- fds
 ============
