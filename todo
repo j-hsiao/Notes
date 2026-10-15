@@ -1,12 +1,18 @@
 * reorganize informacion
-* firewall notes: ufw, iptables, nftables, ...
 * convert vim plugins to package
-* vim single-quote a highlighted region
-  replace all ' with '\'' and then surround region in single quotes
-  remove all empty single-quote strings (vim: delete all instances of \%([^\\]\@<=\)'' )
-* vim format table: align items
-* vim modify alignment, [fF] ch,
-  like normal mode [fF] except use previous line(s) position.
+* vim updates
+  - single-quote nested quote strings
+    * replace all ' with '\'' or '"'"' and then surround region in single quotes
+    * Collapse all empty single-quotes (vim: delete all instances of \%([^\\]\@<=\)'' )
+    * repeats of \' maybe become wrapped in double quotes?
+      2 \' = 4 chars, using double quotes, also 4 chars = break even
+      more than 2 repeats = shorter.
+    * ?maybe? have a double-quote version? escape('\"$`')
+      different ft probably has a different set, note bash history cannot be escaped...
+  - vim format table: align items
+  - vim modify alignment, [fF] ch,
+    like normal mode [fF] except use previous line(s) position.
+* firewall notes: ufw, iptables, nftables, ...
 * ydo script
   macro: keep a fullscreen topmost tk window to capture mouse/keyboard.
   Use -alpha to see through to desktop/other apps.
@@ -18,6 +24,7 @@
         regardless of mouse acceleration etc.
       if mouse click or keyboard: ensure withdrawn and then click/keypress
     pop up window again.
+* pydrive
 * cppy
   cpp reference <-> py borrowed reference
   cpp value     <-> py owned reference
