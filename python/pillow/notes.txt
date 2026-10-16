@@ -1,245 +1,302 @@
-####################
-contents::
-####################
-::||;;''
-Modules
-  Image
-    constructor
-    properties
-    static functions
-      merge
-      open
-      alpha_composite
-    instance functions
-      open
-      save
-      crop
-      paste
-      split
-      merge
-      resize
-      rotate
-      transpose
-      transform
-      convert
-      filter
-  ImageFilter
-    filters:
-    others:
-::||::''
-    
+-1- general
+-1.0- Image
+-1.1- modes
+-1.2- text
+-1.2.1- anchors
+-1.2.2- fonts
+-1.3- drawing
+
+-1.x- other
+-1.x.1- filters
+
+-2- Other libs
+-2.1- numpy
+-2.2- tk
+
+===========
+-1- general
+===========
+PIL is generally split into modules that should be imported as needed.
+Common modules are: Image|ImageTk|ImageDraw|ImageFont
+
+from PIL import ...
+
+Sizes are always width,height.
+
+coordinates are always x (leftright),y (updown)
+
+===========
+-1.0- Image
+===========
+Image.Image is the basic image class.
+
+Empty images can be created with Image.new(mode, size)
+
+
+-----
+attrs
+-----
+height: int
+width: int
+size: (width, height)
+format: file extension
+
+-------
+methods
+-------
+open(fname): lazy open a file as Image
+save(fname, format, options):
+	format: JPEG|PNG|BMP
+crop((l,t,r,b)):
+	Return a view on region
+load():
+	allocate and load data.
+	(if a view, will allocate and own data.)
+paste(Image, region, alpha):
+	paste image into self.
+	Image: pil image or pixel value
+	region: (l,t) or (l,t,r,b)
+	alpha: for pasted transparency
+
+split():
+	return channels
+
+resize(shape)
+rotate(deg, resample, expand):
+	Retrun a rotated copy.
+	deg: degrees, counter-clockwise
+	resample: Image.NEAREST|BILINEAR|BICUBIC
+	expand: true/false:
+		expand size to contain entire rotated image
+		or otherwise, maintain shape and crop corners.
+
+transpose(Image.FLIP_LEFT_RIGHT|FLIP_TOP_BOTTOM|ROTATE_90|ROTATE_180|ROTATE_270)
+	Return a transposed copy
+
+transform(size, method, data, resample,fill):
+	size: output size
+	method: Image.EXTENT|AFFINE|PERSPECTIVE|QUAD|MESH
+		EXTENT seems to just be cropping or an IamgeTransformHandler
+	data: the transform info
+	resample: resampling methods NEAREST|BILINEAR|BICUBIC
+	fill: ?an arg for ImageTransformHandler? if method was that
+	fillcolor: background fill color
+
+convert(mode, matrix, dither, palette, colors)
+	matrix: 4 or 12-tuple (matmul to get a new pixel)
+	dither: use dithering, NONE|FLOYDSTEINBERG
+	palette: palette to use for conversion or WEB|ADAPTIVE
+	colors: number of colors for adaptive palette
+
+filter(filt):
+	run an ImageFilter on image.
 
 
 
+===========
+-1.1- modes
+===========
+main modes:
+	1: 1-bit black/white image
+	L: 8-bit gray
+	P: 256-colors with color palette
+	RGB: 24-bit px
+	RGBA: 32-bit px
+	CMYK
+	YCbCr
+	LAB
+	HSV
+	I: 32-bit int pixels
+	F: 32-bit float pixels
+alt modes:
+	LA: L with alpha
+	PA: P with alpha
+	RGBX: RGB with padding
+	RGBa: premultiplied alpha
+	La: L with premultiplied alpha
+	I;16: 16-bit uint px
+	I;16L: 16-bit little endian uint px
+	I;16B: 16-bit big endian uint px
+	I;16N: 16-bit native endian uint px
 
 
 
+===========
+-1.2- text
+===========
+===============
+-1.2.1- anchors
+===============
+Text uses anchors for where to align text relative to coordinate.
+Generally this is a 2-letter code with left/right and top/bottom anchors.
 
-####################
-Modules::
-####################
-______________________________
-Image||
-main class is Image class
+----------
+left/right
+----------
+l: left
+m: middle
+r: right
 
-  ______________________________
-  constructor: ??
-    ??
-  ______________________________
-  properties;;
-
-    format
-      file extension
-
-      
-    size
-      dimensions (x,y)
-
-
-    mode
-      1     : binary
-      L     : grayscale
-      P     : color indexing
-      RGB   : standard rgb
-      RGBA  : standard rgba
-      CMYK  : standard CMYK
-      YCbCr : video format
-      LAB   : L*a*b...??
-      HSV   : HSV
-      I     : 32-bit ints
-      F     : 32-bit floats
+----------
+top/bottom
+----------
+t: top
+m: middle
+b: bottom (eg. bottom of g)
 
 
-  ______________________________
-  static functions;;
-    merge
-      (mode, imgs)
-        mode: see the mode properties
-              above
-        imgs: images to merge together
-
-    open
-      (fname, [mode])
-        fname: file name
-        mode: must be 'r'
-
-        
-      NOTE
-        doesn't actually look at contents
-        until it needs to, so this is a
-        fast operation
+left/right text only: (as opposed to vertical, like chinese)
+a: ascender (top of first line of text, if multiline)
+s: baseline (line that text would be written on)
+d: descender (bottom of last line of text (multiline))
 
 
-    alpha_composite
-      (im1, im2)
-        im1: 1st image (rgba)
-        im2: 2nd image (rgba)
-      returns:
-        composite image according to alpha
+=============
+-1.2.2- fonts
+=============
+PIL.ImageFont
 
-      
+Generally, fonts are stored in some file under some default system dirs:
+	/usr/share/fonts/
+	C:\Windows\Fonts
 
-  ______________________________
-  instance functions;;
+PIL will generally search these dirs automatically so only the basename
+is really necessary.  Furthermore, it seems to search extensions too
+so only the base name without extension is needed at minimum.
 
-    save
-      (fname, [format, options])
-        fname: file name
-        format: format to save as
-                "JPEG"
-                "PNG"
-                "BMP"
-        options: additional options for image
-                 writer
+Generally use ImageFont.truetype(filename, size) to get a loaded font.
 
 
-    crop
-      (region)
-        region: 4-tuple of coords
-          (x1 y1 x2 y2)
-          x1y1 = top left
-          x2y2 = bottom right
+-----
+attrs
+-----
+index: index in font file (ttc)
+path: filepath to font
+size: font size
 
-      returns:
-        Image object for cropped region
-      NOTE:
-        use the load() function to break
-        connection, else, going to be
-        referencing the original
-    
-    paste
-      (Image, region, alpha)
-        Image: image
-               can also be an int
-               can also be a tuple
-                 just adds this color to all
-                 pixels
-        region: 4-tuple: see crop
-                2-tuple: gives upper left
-        alpha: alpha mask for transparency
-               for pasted image must be
-               an Image object
-      returns:
-        None
-      side effects:
-        mutates this image
-      NOTE:
-        input image will be converted to this
-        image's mode if they don't match
+--------------
+Useful Methods
+--------------
 
+font_variant(*, size=10, index=0, encoding='', layout_engine=None)
+	Get a variation of the current font (ex. change font size)
+getbbox(text, mode='', direction=None, features=None, language=None, stroke_width=0, anchor=None)
+	Return bounding box (l,t,r,b)
+	direction: 'rtl'|'ltr'|'ttb'
+	language: BCP 47 language code
+	anchor: -1.2.1- text anchor
+getlength(text, mode, direction, features, language)
+getmetrics() -> (ascent, descent) (base->highest, base->lowest)
 
-    split
-      ()
-      returns:
-        each separate image band
+getmask(text, mode, direction, features, language, stroke_width, anchor, ink, start):
+getmask2(text, ...)
+	make a bitmap for text
+getname()
+
+-------------
+other methods
+-------------
+get_variation_axes()
+get_variation_names()
+set_variation_axes()
+set_variation_names()
 
 
-    resize
-      (dims)
-        dims: a tuple with dimensions
-      returns:
-        new resized image
+=============
+-1.3- drawing
+=============
+imdraw = PIL.ImageDraw.Draw(im)
 
-    rotate
-      (deg, [resample, exapnd])
-        deg: degrees counter-clockwise
-        resample: PIL.Image.NEAREST
-                  PIL.Image.BILINEAR
-                  PIL.Image.BICUBIC
-        expand: True: expand to hold rotated img
-                false: crop rotated image
+imdraw is an ImageDraw.ImageDraw instance with various drawing methods
+
+-----
+attrs
+-----
+fill: whether ink is a fill or outline color
+font: default font, can be set as instance or class attr
+fontmode: 1/L: disable/enable antialiasing
+ink: int, internal rep of default color.
+
+-------
+methods
+-------
+getfont()
+
+arc(ltrb, start, end, fill, width)
+bitmap(xy, bitmap, fill): similar to Image.paste()
+chord(ltrb, start, end, fill, width): arc + connect endpoints
+circle(cxy, radius, fill, outline, width)
+ellipse(ltrb, fill, outline, width)
+line(xycoords, fill, width, joint)
+pieslice(...)
+point(...)
+polygon(...)
+rectangle(...)
+regular_polygon(...)
+rounded_rectangle(...)
+shape(...)
+
+text(xy, text, fill, font, anchor, spacing, align='left|center|right|justify', ...)
+multiline_text(...)
+textbbox(...)
+multiline_textbbox(...)
+
+draw/get bbox of text.
+If text contains \n, auto-pass to multiline* variant.
+
+=============
+-1.x- other
+=============
+===============
+-1.x.1- filters
+===============
+BLUR
+CONTOUR
+DETAIL
+EDGE_ENHANCE
+EDGE_ENHANCE_MORE
+EMBOSS
+FIND_EDGES
+SMOOTH
+SMOOTH_MORE
+SHARPEN
+
+others:
+  GaussianBlur(rad=2)
+  UnsharpMask(radius=2, percent=150, threshold=3)
 
 
-    transpose
-      (flag)
-        flag:
-          PIL.Image.FLIP_LEFT_RIGHT
-          PIL.Image.FLIP_TOP_BOTTOM
-          PIL.Image.ROTATE_90
-          PIL.Image.ROTATE_180
-          PIL.Image.ROTATE_270
-      returns:
-        new copy correspondingly transformed
+==============
+-2- Other libs
+==============
+===========
+-2.1- numpy
+===========
+PIL can be converted to/from numpy, BUT only via copies.
+
+pilimage = Image.fromarray(npimage)
+
+npimage = np.asarray(pilimage)
+npimage = np.array(pilimage)
+
+NOTE: asarray is read-only BUT it does not seem to share the buffer.
+Taking np.asarray(pim) gives a read-only view but the view
+does not reflect any changes after the view was already taken.
+The only alternative is that pil drawing functions re-allocate
+the buffer which doesn't really make any sense.
 
 
-    transform
-      (size, method, [data, resample fill])
-        size: dimensions of output
-        method: method of xform
-                PIL.Image.EXTENT        : cut out a rectangular subregion
-                PIL.Image.AFFINE        : affine transform
-                PIL.Image.PERSPECTIVE   : perspective transform
-                PIL.Image.QUAD          : map quad to rectangle
-                PIL.Image.MESH          : map source quads in one operation
-        data: extra data for xform method
-        resample: resampling after filter
-                  see rotate->resample above
-        fill:???
+========
+-2.2- tk
+========
+ImageTk.PhotoImage can replace the tk.PhotoImage.  It has easier
+image handling, taking a pill image as argument.
 
+PhotoImage(pilim)
+PhotoImage(mode, size):
+	Create an empty image in given mode and size
 
-    convert
-      ([mode, matrix, dither, palette, colors])
-        mode: see Image.mode
-        matrix: conversion matrix should be
-                4- or 12-tuple
-                (for multiplying each pixel
-                to get new pixel colors)
-        dither: dithering method, used from
-                RGB to P or L or 1
-                values:
-                  NONE
-                  FLOYDSTEINBERG
-        palette: from RGB to P
-                 values:
-                   WEB
-                   ADAPTIVE
-        colors: number of colors for ADAPTIVE
-                DEFAULT = 256
-      returns:
-        converted image
-                
-
-    filter
-      (filter)
-        filter: the filter to use
-                see: ImageFilter
-      returns:
-        filtered image
-______________________________
-ImageFilter||
-  filter:
-    BLUR                  
-    CONTOUR
-    DETAIL
-    EDGE_ENHANCE
-    EDGE_ENHANCE_MORE
-    EMBOSS
-    FIND_EDGES
-    SMOOTH
-    SMOOTH_MORE
-    SHARPEN
-  others:
-    GaussianBlur(rad=2)
-    UnsharpMask(radius=2, percent=150, threshold=3)
-    
-    
+methods:
+	paste(pilim) (might be slow if currently displayed)
+	width()
+	height()
