@@ -5,40 +5,59 @@
 
 if [[ "${BASH_SOURCE[0]}" = "${0}" ]]
 then
+	targets=()
+	while (($#))
+	do
+		case "${1}" in
+			-h|--help)
+				local msg='usage: tbind [-h] [src dst]...
+
+				Bind sources at destinations.  Arguments are alternating source and
+				destination dirs.
+				'
+				echo "${msg//$'\t'}" >&2
+				exit
+				;;
+			*) targets+=("${1}") ;;
+		esac
+		shift
+	done
+	if [[ "${USER}" != root ]]
+	then
+		sudo bash "${BASH_SOURCE[0]}" "${targets[@]}"
+		exit
+	fi
 	tbind()
 	{
-		local src="${1%/}"
-		local dst="${2:-${src##*/}}"
-		shift 2
-		if mount "${src}" "${dst}" -o bind
-		then
-			trap 'trap - RETURN; umount "${dst}"' RETURN
-			echo "Mounted ${src} at ${dst}..."
-			if (($#))
-			then
-				tbind "${@}"
-			else
-				printf "Press enter to cancel..."
-				read
-			fi
-		fi
+		local targets=("${@}")
+		local dsts=() inp item
+		trap 'trap - RETURN; for item in "${dsts[@]}"; do umount "${item}"; done' RETURN
+		while true
+		do
+			echo 'mounting'
+			local idx
+			for ((idx=1; idx<${#targets[@]}; idx+=2))
+			do
+				echo "  ${targets[idx-1]} @ ${targets[idx]}"
+				mount "${targets[@]:idx-1:2}" -o bind || { echo 'mount error'; return 1; }
+				dsts+=("${targets[idx]}")
+			done
+			read -p 'Press enter to continue.' inp
+			echo 'umounting'
+			while (("${#dsts[@]}"))
+			do
+				echo "  ${dsts[-1]}"
+				umount "${dsts[-1]}" && unset dsts[-1] || { echo 'umount error'; return 1; }
+			done
+			{ read -p 'Remount? (y/n): ' -r inp && [[ "${inp}" != n* ]]; } || return
+		done
 	}
-	tbind "${@}"
+	tbind "${targets[@]}"
 else
-	if [[ "${BASH_SOURCE[0]}" = /* ]]
+	if [[ "${BASH_SOURCE[0]}" != /* ]]
 	then
-		tbind() # src dst
-		{
-			if [[ "${USER}" != root ]]
-			then
-				local pre=sudo
-			else
-				local pre=
-			fi
-			${pre} bash "${BASH_SOURCE[0]}" "${@}"
-		}
-	else
 		. "${PWD}/${BASH_SOURCE[0]}" "${@}"
+	else
+		tbind () { bash "${BASH_SOURCE[0]}" "${@}"; }
 	fi
 fi
-
