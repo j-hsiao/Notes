@@ -405,6 +405,8 @@ adds methods:
 	pause_writing()
 	resume_writing()
 
+NOTE: there are no Writer protocols because
+StreamWriter just directly writes to the transport.
 
 ------------------------------------
 asyncio.streams.StreamReaderProtocol
@@ -414,6 +416,20 @@ but mainly provides a protocol interface.  It will feed data to the
 reader provided as an argument.
 
 StreamReaderProtocol(reader, connectcb=None, loop=None)
+
+methods:
+	data_received(data)
+	eof_received()
+
+These methods feed data to the reader so the reader can
+read/readline/readexactly/readuntil.
+
+NOTE:
+	online python docs do not mention StreamReader having a
+	`feed_data` method, but they do mention the data_received()
+	method for the protocol.  It seems the "most correct" way to use
+	a StreamReader is to have a StreamReaderProtocol(reader,...)
+	and call its data_received/eof_received() methods.
 
 ==============
 -1.3.4- server
@@ -542,9 +558,40 @@ get cancelled on keyboard interrupt.
 ==================
 -1.5- subprocesses
 ==================
+asyncio.subprocess
+
+async create_subprocess_exec(*command, **kwargs)
+async create_subprocess_shell(*command, **kwargs)
+
+These are similar to subprocess.Popen(command, **kwargs).
+These return an asyncio.subprocess.Process instance
+
+attrs:
+	returncode
+
+async:
+	wait()
+	communicate(data=None)
+
+methods:
+	send_signal()
+	terminate()
+	kill()
+
+In testing, wait() seems to have some kind of delay, especially if
+stdin, stdout, stderr all None (ie. gave some value other than subprocess.PIPE)
+
 ============
 -1.6- queues
 ============
+asyncio.Queue()
+async
+	put(...)
+	get()
+methods:
+	put_nowait()
+	get_nowait()
+
 ================
 -1.7- exceptions
 ================
@@ -613,18 +660,45 @@ protocols: bytes format/timing
 Most connection-oriented loop methods take a protocol factory
 and return a (transport, protocol) tuple
 
-Protocols have these methods:
-	connection:
-		connection_made(transport)
-		connection_lost(exc)
+---------
+Protocols
+---------
+connection protocols:
+	connection_made(transport)
+	connection_lost(exc)
 
-	flow control:
-		pause_writing(): transport buffer is full
-		resume_writing(): transport buffer has space
+FlowControlMixin:
+	pause_writing(): transport buffer is full
+	resume_writing(): transport buffer has space
 
-	streaming:
-		data_received(data)
-		eof_received()
+StreamReaderProtocol:
+	data_received(data)
+	eof_received()
+
+-----------
+transports
+-----------
+base:
+	close()
+	is_closing()
+	get_extra_info(name, default)
+	set_protocol(proto)
+	get_protocol(proto)
+
+reading:
+	is_reading()
+	pause_reading()
+	resume_reading()
+
+writing:
+	abort()
+	can_write_eof()
+	get_write_buffer_size()
+	get_write_buffer_limits() -> (low, high)
+	set_write_buffer_limits(high, low)
+	write(data)
+	writelines(data)
+	write_eof()
 
 ==============
 -2.4- policies
