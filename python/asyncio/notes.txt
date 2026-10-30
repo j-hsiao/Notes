@@ -299,7 +299,6 @@ Generally,
 	asyncio.streams.FlowControlMixin controls output io.
 	aysncio.streams.StreamReaderProtocol(StreamReader) controls input io.
 
-
 NOTE: these are also aliased directly under asyncio.
 
 ===
@@ -510,7 +509,7 @@ Wrapping an reader
 import sys
 reader = asyncio.StreamReader()
 loop = aysncio.get_event_loop()
-tp, pt = await loop.connect_read_pipe(lambda: asyncio.StreamReaderProtocol(reader), sys.stdin)
+tp, pt = await loop.connect_read_pipe((lambda: asyncio.StreamReaderProtocol(reader)), sys.stdin)
 ```
 
 NOTES:
@@ -522,13 +521,15 @@ Wrapping a writer
 -----------------
 ```
 loop = asyncio.get_event_loop()
-tp, pt = await loop.connect_write_pipe(asyncio.streams.FlowControlMixin, sys.stdout)
+tp, pt = await loop.connect_write_pipe(lambda: asyncio.StreamReaderProtocol(None)), sys.stdout)
 writer = asyncio.streams.StreamWriter(tp, pt, reader, loop)
 ```
 
 NOTES:
 	pt: given to StreamReader to add support for async "drain" method
 	reader: async drain() will error if reader also errors (eg, from disconnect), can set to None
+	StreamReaderProtocol: Use this even for write pipes because StreamReaderProtocol allows for
+		wait_closed() usage, but FlowControlMixin will cause a NotImplementedError.
 
 	StreamWriter.close() probably callse the tp or pt.close()
 	which WILL close the corresponding fd.  No way to "detach" like io.BufferedWriter.
