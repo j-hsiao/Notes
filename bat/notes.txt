@@ -327,3 +327,8 @@ time can range from -1 to 99999.
 /NOBREAK
 	Ignore keypresses and waits the time (must use ctrl+c to break)
 	Otherwise, break on any keypress.
+
+===========
+-x.3- title
+===========
+title "new console window title"
