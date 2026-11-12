@@ -586,6 +586,10 @@ diff from bash
 ====================================
 [-t|-s] [client|session|window|pane]
 	These specify target client/session/window/pane for a command
+
+	full specification:
+		session:window.pane
+
 	______
 	client
 		The pty (/dev/...) of any currently attached client.
@@ -613,9 +617,8 @@ diff from bash
 		empty indicates next unused index or current window depending on the command.
 		______________
 		special tokens
-			long            meaning
-			{start} (^)     lowest window index
-			{end} ($)       highest window index
+			[{start}|^]   lowest window index
+			[{end}|$]     highest window index
 	____
 	pane
 		window[.id] where window is as above.  Empty id means the active pane.
@@ -782,6 +785,8 @@ swapp | swap-pane [-dDUZ] [-s src-pane] [-t dst-pane]
 breakp | break-pane
 capturep | capture-pane [-aepPqCJN] [-b buffer-name] [-E end-line] [-S start-line] [-t target-pane]
 	write a pane to a buffer(-b) or stdout(-p)
+	This is basically like a screen-shot except it's text.
+	Note however, it ignores whether the pane is in copy-mode
 choose-client
 choose-tree [-GNrswZ] [-F format] [-f filter] [-K key-format] [-O sort-order] [-t target-pane]
 customize-mode [-NZ] [-F format] [-f filter] [-t target-pane] [template]
