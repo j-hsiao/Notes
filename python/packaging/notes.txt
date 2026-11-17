@@ -439,21 +439,38 @@ now you can:
 --------------------
 repo structure notes
 --------------------
-	package directories must be normalized names (PEP503):
-		all lowercase, any run of -_. replaced with single -
-		ie:
-			original name: some----____.._.--..__.-package
-			normalized name: some-package
-	package files:
-		Files within the package directory don't need to use the
-		normalized name.  They can be generated with:
-			py -m pip wheel -w /reporoot/normalized-name
+package directories must be normalized names (PEP503):
+	all lowercase, any run of -_. replaced with single -
+	ie:
+		original name: some----____.._.--..__.-package
+		normalized name: some-package
+package files:
+	Files within the package directory don't need to use the
+	normalized name.  They can be generated with:
+		py -m pip wheel -w /reporoot/normalized-name
 
-		If the directory does not exist, it will be created.
+	If the directory does not exist, it will be created.
 
-	If you change a package name (in setup.py), make sure you:
-		update any install_requires of dependent packages.
-		uninstall/delete any alternative names/build products
+If you change a package name (in setup.py), make sure you:
+	update any install_requires of dependent packages.
+	uninstall/delete any alternative names/build products
+
+NOTE --index-url and --extra-index-url can take a file://abspath
+as a local repository.  HOWEVER index.html is still REQUIRED.
+(generate with python -m http.server), curl/wget
+NOTE: do not output directly to the final index.html destination.
+The output file is generally created first.
+As a result, http.server sees an empty index.html and serves it
+instead of generating one.
+could do something like `curl... | {sleep 1; cat > destination}` maybe?
+older python versions (tested 3.10) use html4, but more recent pip
+requires html5, 3.13 uses html5.
+To convert the html4 to html5 can just replace the <!DOCTYPE...> line
+with a simple <!DOCTYPE html>
+It seems the extra info after the initial "<!DOCTYPE HTML" is what
+causes the warning about requiring html5.
+
+
 
 =======
 -7- pip
