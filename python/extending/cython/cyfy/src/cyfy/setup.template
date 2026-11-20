@@ -30,14 +30,18 @@ for pkg, dns, fns in os.walk('cysrc', followlinks=True):
     for fn in fns:
         if fn.endswith('.py') or fn.endswith('.pyx'):
             modulepath = os.path.join(pkg, fn)
-            modulename = '.'.join([pkgname, fn.split('.', 1)[0]])
+            pkgp.append(fn.split('.', 1)[0])
+            modulename = '.'.join(pkgp)
+            pkgp.pop()
             modules.append(Extension(modulename, [modulepath]))
 
 for pkg, dns, fns in os.walk('src', followlinks=True):
     pkgp = pkg.split(os.sep)[1:]
     pkgname = '.'.join(pkgp)
     for fn in fns:
-        modulename = '.'.join([pkgname, fn.split('.', 1)[0]])
+        pkgp.append(fn.split('.', 1)[0])
+        modulename = '.'.join(pkgp)
+        pkgp.pop()
         if fn.endswith('.pyc'):
             continue
         kwargs['packages'].add(pkgname)

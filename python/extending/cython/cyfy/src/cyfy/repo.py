@@ -195,6 +195,11 @@ def handle_package(src, cydir, srcdir):
     """
     src = os.path.abspath(src)
     npre = len(src.split(os.sep))-1
+    if os.path.isfile(src):
+        mkdir(cydir)
+        mklink(src, os.path.join(cydir, os.path.basename(src)))
+        return
+
     for pkgpath, dns, fns in os.walk(src, followlinks=True):
         pkgp = pkgpath.split(os.sep)
         if '__pycache__' in pkgp or any([_.endswith('.egg_info') for _ in pkgp]):
