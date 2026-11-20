@@ -1,5 +1,6 @@
 -0- general
 -1- setuptools
+-1.0- info
 -1.1- pyproject.toml
 -1.2- setup.py
 -1.3- using setup.py
@@ -52,6 +53,52 @@ setup.py is required to use extensions and cython.
 ______________________________
 from setuptools import setup
 from setuptools.config import read_configuration
+
+===========
+-1.0- info
+===========
+Setuptools generally sees a repo as one of 2 default layouts:
+----------
+src layout
+----------
+This generally has a structure like:
+It is assumed that all code lives inside src.
+
+/
+	pyproject.toml
+	setup.py
+	src/
+		package/
+			submodule.py
+		module.py
+
+-----------
+flat layout
+-----------
+Every python file found in the repo is added.
+/
+	pyproject.toml
+	setup.py
+	package/
+		submodule.py
+	module.py
+
+---------------------------
+specifying packages/modules
+---------------------------
+setup.py        pyproject.toml [tool.setuptools]
+package_data    package-data
+	{pkg:[datapat]}
+package_dir     package-dir
+	{pkg:diname}
+packages        packages
+	['pkg.name']
+py_modules      py-modules
+	['module.name'
+
+NOTE
+	package_data requires the package to be included.
+	Otherwise it will be ignored.
 
 ====================
 -1.1- pyproject.toml

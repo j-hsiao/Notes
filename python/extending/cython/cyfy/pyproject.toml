@@ -1,0 +1,15 @@
+[build-system]
+requires = ['setuptools', 'wheel']
+build-backend = 'setuptools.build_meta'
+
+[project]
+name = 'cyfy'
+version = '0.0.1'
+dependencies = ['tomli', 'tomli-w']
+scripts = { cyfy = 'cyfy.repo:run' }
+
+[tool.setuptools.package-data]
+cyfy = ['setup.template']
+
+[tool.distutils.egg_info]
+egg_base = '.egg'

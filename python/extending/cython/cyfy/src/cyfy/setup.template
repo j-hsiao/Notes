@@ -1,0 +1,52 @@
+# Generic cythonizing setup.py
+# Expect layout:
+# /
+#   cysrc/
+#     modules-to-cythonize
+#   src
+#     data-and-raw-pys
+#   pyproject.toml (optional)
+
+from setuptools import setup
+from Cython.Build import cythonize
+from setuptools.extension import Extension
+
+import os
+import importlib
+import traceback
+import sys
+
+modules = []
+kwargs = {
+    'packages': set(),
+    'package_dir': {'': 'src'},
+    'py_modules': [],
+    'package_data': {},
+}
+
+for pkg, dns, fns in os.walk('cysrc', followlinks=True):
+    pkgp = pkg.split(os.sep)[1:]
+    pkgname = '.'.join(pkgp)
+    for fn in fns:
+        if fn.endswith('.py') or fn.endswith('.pyx'):
+            modulepath = os.path.join(pkg, fn)
+            modulename = '.'.join([pkgname, fn.split('.', 1)[0]])
+            modules.append(Extension(modulename, [modulepath]))
+
+for pkg, dns, fns in os.walk('src', followlinks=True):
+    pkgp = pkg.split(os.sep)[1:]
+    pkgname = '.'.join(pkgp)
+    for fn in fns:
+        modulename = '.'.join([pkgname, fn.split('.', 1)[0]])
+        if fn.endswith('.pyc'):
+            continue
+        kwargs['packages'].add(pkgname)
+        if fn.endswith('.py'):
+            kwargs['py_modules'].append(modulename)
+        else:
+            kwargs['package_data'].setdefault(pkgname, []).append(fn)
+
+kwargs['packages'].update(kwargs['package_data'])
+kwargs['packages'] = list(kwargs['packages'])
+kwargs['ext_modules'] = cythonize(modules, build_dir='build')
+setup(**kwargs)
