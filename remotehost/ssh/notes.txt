@@ -364,6 +364,12 @@ PasswordAuthentication [yes|no]
 Port: port to connect to at remote
 
 ProxyCommand
+	commandline command whose stdin/stdout should be used as communication
+	to the target ssh server.
+	Common commands:
+		* ssh -q -W targethost:targetport temporarytarget
+		* nc host port
+
 ProxyJump [user@]host[:port],[...]
 	comma-delimited list of proxies.
 	Connect to user@host:port before connecting to target
