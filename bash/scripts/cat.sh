@@ -84,7 +84,7 @@ cat() {
 	else
 		if hash file &>/dev/null
 		then
-			if file --mime "${args[@]}" | grep 'charset=binary' &>/dev/null
+			if file --mime "${args[@]}" | grep -v '/x-empty' | grep 'charset=binary' &>/dev/null
 			then
 				command cat "${args[@]}" | less
 				return
