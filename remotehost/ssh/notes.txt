@@ -1,21 +1,22 @@
 contents:
 -0- summary
-	-0.0- authorization
-	-0.1- basic usage
-		-0.1.1- extra usage
-	-0.2- certification
-		-0.2.1- server
-		-0.2.2- user
+-0.0- authorization
+-0.1- basic usage
+-0.1.1- extra usage
+-0.1.1.1- master/slave
+-0.2- certification
+-0.2.1- server
+-0.2.2- user
 -1- ssh client
-	-1.0- options
-	-1.1- config
-	-1.2- keys
-	-1.3- forwarding
-	-1.4- ssh_known_hosts
+-1.0- options
+-1.1- config
+-1.2- keys
+-1.3- forwarding
+-1.4- ssh_known_hosts
 -2- scp
 -3- ssh server
-	-3.1- config
-	-3.2- authorized_keys
+-3.1- config
+-3.2- authorized_keys
 
 ===========
 -0- summary
@@ -108,6 +109,41 @@ y y y y y 0
 ===================
 quit ssh session: return ~ .
 	pressing keys in sequence will kill an ssh session even if it is hung.
+
+======================
+-0.1.1.1- master/slave
+======================
+Master/Slave connections are ssh sessions over a single master connection.
+This is basically multiplexing ssh sessions over a single ssh connection.
+
+------
+master
+------
+Open a master connection:
+	ssh -MNfS socket -o ControlPersist=yes host
+-M: place ssh client into "master" mode.
+-N: do not execute a remote command.  Useful for forwarding or  master mode
+-f: background the process
+-S: specify unix socket
+ControlPersist=yes: keep connection until timeout or done or exit requested
+
+(Or can omit -Nf if the master session will be used...
+In this case, it lasts until the session is exited)
+
+Request a close (if ControlPersist was 'yes' or '0')
+	ssh -S socket -O exit stuff
+
+-----
+slave
+-----
+ssh -S socket host
+
+Not sure about ssh version, but host is required, even if it is unused.
+"usage: ..." if host is omitted
+
+
+scp -o ControlPath=socket ...
+
 
 
 ===================
@@ -295,6 +331,10 @@ options:
 	Hostname              %% and %h
 	LocalCommand          all
 	ProxyCommand          %% %h %n %p %r
+
+	ControlPersist yes|*no|idle_timeout(seconds)
+		Master ssh connection should persist until
+		close requested.
 
 ------
 syntax
