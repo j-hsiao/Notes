@@ -104,6 +104,7 @@ y y y y y 0
 2. Append public key into ssh server's /home/$USER/.ssh/authorized_keys
 3. user ssh $USER@server -i privatekey
 
+
 ===================
 -0.1.1- extra usage
 ===================
@@ -117,6 +118,38 @@ Master/Slave connections are ssh sessions over a single master connection.
 This is basically multiplexing ssh sessions over a single ssh connection.
 
 ------
+config
+------
+ControlMaster:
+	yes: be a control master
+	no: be a slave (if controlpath) or normal (new connection)
+	    If a master exists, then no re-authentication needed.  The master is
+	    already authenticated.
+	ask: Ask the master if okay to connect.  Requires ssh-askpass
+		2nd ssh got message "master refused session request: permission denied"
+		master got: ssh_askpass: exec(/usr/bin/ssh-askpass): No such file or directory
+
+		Even after installing it, it didn't seem to work:  2nd ssh
+		just hung waiting for an answer, master ssh hung too.
+		but over the same tcp connection? (the ControlMaster)
+	auto: Connect to master if it exists.  Otherwise make a new one.
+	autoask: Ask a master if it exists, else create a new one.
+
+ControlPath: The path of a ControlMaster socket.  Recommended to have connection
+	identifying information such as %h%p%r (remote host/port/user), or %C
+	which is calculated from all 3 with some extra info.  This is probably
+	because ??using a ControlMaster socket ignores all host/user connection
+	information and just uses that connection??  In testing, this is how it
+	seems to behave.
+	Otherwise, if a connection already exists, then when you try using a different
+	user, it'll just use the existing master and you end up as the old user.
+
+ControlPersist:
+	no: immediately close the master after ssh exits
+	0|yes: keep master open indefinitely until explicitly closed (-O exit)
+	int > 0: Close master after N seconds after the last slave disconnected.
+
+------
 master
 ------
 Open a master connection:
@@ -125,7 +158,6 @@ Open a master connection:
 -N: do not execute a remote command.  Useful for forwarding or  master mode
 -f: background the process
 -S: specify unix socket
-ControlPersist=yes: keep connection until timeout or done or exit requested
 
 (Or can omit -Nf if the master session will be used...
 In this case, it lasts until the session is exited)
@@ -141,10 +173,7 @@ ssh -S socket host
 Not sure about ssh version, but host is required, even if it is unused.
 "usage: ..." if host is omitted
 
-
 scp -o ControlPath=socket ...
-
-
 
 ===================
 -0.2- certification
@@ -272,6 +301,15 @@ chmod 600 authorized_keys
 -p port
 	Specify the target port to ssh to. (alternative to ssh://[user@]host:port)
 
+-o config=value
+	Add custom ssh_config values.
+-O command
+	Send a command to a ControlMaster.
+	check: check if it exists
+	forward: ??request forwarding without command execution??
+	cancel: stop forwardings
+	exit: exit
+	stop: stop accepting anymore multiplex requests
 
 ============
 -1.1- config
