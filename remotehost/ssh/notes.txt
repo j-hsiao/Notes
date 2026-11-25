@@ -117,63 +117,29 @@ quit ssh session: return ~ .
 Master/Slave connections are ssh sessions over a single master connection.
 This is basically multiplexing ssh sessions over a single ssh connection.
 
-------
-config
-------
-ControlMaster:
-	yes: be a control master
-	no: be a slave (if controlpath) or normal (new connection)
-	    If a master exists, then no re-authentication needed.  The master is
-	    already authenticated.
-	ask: Ask the master if okay to connect.  Requires ssh-askpass
-		2nd ssh got message "master refused session request: permission denied"
-		master got: ssh_askpass: exec(/usr/bin/ssh-askpass): No such file or directory
+NOTE slaves must still provide a hostname.  It is used to search the
+ssh_config for options to apply such as forwarding.
 
-		Even after installing it, it didn't seem to work:  2nd ssh
-		just hung waiting for an answer, master ssh hung too.
-		but over the same tcp connection? (the ControlMaster)
-	auto: Connect to master if it exists.  Otherwise make a new one.
-	autoask: Ask a master if it exists, else create a new one.
-
-ControlPath: The path of a ControlMaster socket.  Recommended to have connection
-	identifying information such as %h%p%r (remote host/port/user), or %C
-	which is calculated from all 3 with some extra info.  This is probably
-	because ??using a ControlMaster socket ignores all host/user connection
-	information and just uses that connection??  In testing, this is how it
-	seems to behave.
-	Otherwise, if a connection already exists, then when you try using a different
-	user, it'll just use the existing master and you end up as the old user.
-
-ControlPersist:
-	no: immediately close the master after ssh exits
-	0|yes: keep master open indefinitely until explicitly closed (-O exit)
-	int > 0: Close master after N seconds after the last slave disconnected.
+relevant config options:
+	ControlMaster
+	ControlPath
+	ControlPersist
 
 ------
 master
 ------
 Open a master connection:
-	ssh -MNfS socket -o ControlPersist=yes host
--M: place ssh client into "master" mode.
--N: do not execute a remote command.  Useful for forwarding or  master mode
--f: background the process
--S: specify unix socket
+	ssh -MNfS socket host
 
-(Or can omit -Nf if the master session will be used...
-In this case, it lasts until the session is exited)
-
-Request a close (if ControlPersist was 'yes' or '0')
-	ssh -S socket -O exit stuff
-
+Close the master:
+	ssh -S socket -O exit host
 -----
 slave
 -----
 ssh -S socket host
 
-Not sure about ssh version, but host is required, even if it is unused.
-"usage: ..." if host is omitted
-
-scp -o ControlPath=socket ...
+for scp, use -o:
+	scp -o ControlPath=socket ...
 
 ===================
 -0.2- certification
@@ -294,17 +260,24 @@ chmod 600 authorized_keys
 -i identityfile
 	Specify the identityfile to use.
 -f
-	Go to background just before command.  This allows running
-	ssh in the background while also allowing password prompting etc.
+	Go to background after auth but before command.
 -l loginname
 	Specify the login name. (alternative to user@host)
 -p port
 	Specify the target port to ssh to. (alternative to ssh://[user@]host:port)
 
+-M
+	place ssh client into "master" mode (-o ControlMaster=yes)
+-N
+	Do nothing, just exist. (?same as using command `sleep infinity`?).
+	Seems to ignore provided command if any.
+-S unixsockpath
+	Specify the controlpath (-o ControlPathunix=unixsockpath)
+
 -o config=value
 	Add custom ssh_config values.
 -O command
-	Send a command to a ControlMaster.
+	Send a command to a ControlMaster. Seems to ignore provided command if any.
 	check: check if it exists
 	forward: ??request forwarding without command execution??
 	cancel: stop forwardings
@@ -476,6 +449,41 @@ TCPKeepAlive: [yes|no] send TCP keepalive messages, will dc if
 	network is down temporarily
 
 User: specify the user to ssh as
+
+ControlMaster:
+	yes:
+		be a control master.  The control master stays until all slaves are gone.
+		New slaves can be added as long as the master has not exited yet.
+		example:
+			1. start a master
+			2. start slave a
+			3. exit master (waits on slaves)
+			4. start slave b
+			5. exit slave a
+			6. exit slave b
+			7. all slaves gone, master exits
+	no:
+		be a slave (if controlpath) or normal (new connection)
+		If a master exists, then no re-authentication needed.  The master is
+		already authenticated.
+	ask: Ask the master if okay to connect.  Requires ssh-askpass
+		2nd ssh got message "master refused session request: permission denied"
+		master got: ssh_askpass: exec(/usr/bin/ssh-askpass): No such file or directory
+
+		Even after installing it, it didn't seem to work:  2nd ssh
+		just hung waiting for an answer, master ssh hung too.
+		but over the same tcp connection? (the ControlMaster)
+	auto: Connect to master if it exists.  Otherwise make a new one.
+	autoask: Ask a master if it exists, else create a new one.
+
+ControlPath: The path of a ControlMaster socket.  Recommended to have connection
+	identifying information such as %h%p%r (remote host/port/user), or %C
+	which is calculated from all 3 with some extra info.
+
+ControlPersist:
+	no: immediately close the master socket after ssh exits
+	0|yes: keep master open indefinitely until explicitly closed (-O exit)
+	int > 0: Close master after N seconds after the last slave disconnected.
 
 ---------
 patterns:
