@@ -61,8 +61,13 @@ function to_() {
 		COMPREPLY=("${pick}")
 	fi
 
-	if (("${#COMPREPLY[@]}">1))
+	if (("${#COMPREPLY[@]}"==1))
 	then
+		if [[ "${COMPREPLY[0]}" != */ ]]
+		then
+			COMPREPLY[0]="${COMPREPLY[0]}/"
+		fi
+	else
 		local i=0
 		if (("${#COMPREPLY[@]}">"${LINES}"))
 		then
