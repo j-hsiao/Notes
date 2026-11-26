@@ -4,6 +4,7 @@
 cat() {
 	# Wrap cat to prevent catting large files.
 	local args=()
+	local files=()
 	local limit=$((LINES*COLUMNS*10))
 	while (($#))
 	do
@@ -43,7 +44,8 @@ cat() {
 					return 1
 				fi
 				;;
-			*) args+=("${1}");;
+			-*) args+=("${1}");;
+			*) files+=("${1}"); args+=("${1}");;
 		esac
 		shift
 	done
@@ -55,7 +57,7 @@ cat() {
 		command cat "${args[@]}"
 		return
 	fi
-	if ((${#args[@]} == 0))
+	if ((${#files[@]} == 0))
 	then
 		local buf
 		# bash strings cannot contain null bytes
@@ -84,14 +86,14 @@ cat() {
 	else
 		if hash file &>/dev/null
 		then
-			if file --mime "${args[@]}" | grep -v '/x-empty' | grep 'charset=binary' &>/dev/null
+			if file --mime "${files[@]}" | grep -v '/x-empty' | grep 'charset=binary' &>/dev/null
 			then
-				command cat "${args[@]}" | less
+				command cat "${files[@]}" | less
 				return
 			fi
 		fi
 		local tot
-		tot=$(du -bc "${args[@]}" | tail -n 1)
+		tot=$(du -bc "${files[@]}" | tail -n 1)
 		if (("${tot%%[[:blank:]]*}" < limit))
 		then
 			command cat "${args[@]}"
