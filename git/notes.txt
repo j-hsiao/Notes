@@ -342,6 +342,24 @@ push tags
 	git push origin --tags
 	git push origin <tagname>
 
+=================
+-2.2.12- rev-list
+=================
+List commits reachable (or not if prefixed with ^) by traversing parents.
+
+Example: git rev-list dev ^@
+lists all commits between dev and @
+
+if no extra branches, then the next child would be:
+	git rev-list dev ^@ | tail -n 1
+
+shortcut for ^a b is a..b
+
+flags:
+	--reverse: from older to newer
+	--ancestry-path: show only commits directly between the given commits when a range.
+
+
 ==========
 -3- rebase
 ==========
@@ -419,6 +437,8 @@ git config [--global | --local] alias.<aliascommand> "command and args"
 example:
 	git config --local alias.graph "log --all --decorate --oneline --graph"
 	git config --local --unset alias.graph
+
+If prefixed with !, interpret it as a shell command.
 
 =================
 -6- miscellaneous
