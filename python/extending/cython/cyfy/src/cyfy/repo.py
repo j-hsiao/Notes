@@ -37,8 +37,21 @@ def setup_logging(lvls):
         try:
             level = int(level)
         except ValueError:
-            level = getattr(logging, level)
+            level = getattr(logging, level, logging.WARNING)
         logging.getLogger(name).setLevel(level)
+
+def parse_project(args):
+    ret = {}
+    for name, val in args:
+        dct = ret
+        parts = name.split('.')
+        for item in parts[:-1]:
+            try:
+                dct = dct[item]
+            except KeyError:
+                dct = dct[item] = {}
+        dct[name] = val
+    return ret
 
 def parser(**kwargs):
     kwargs.setdefault('formatter_class', argparse.ArgumentDefaultsHelpFormatter)
@@ -63,21 +76,46 @@ def dget(dct, dotname, *default):
     else:
         return dct
 
-def parse_toml(ret, path):
+def parse_toml(path):
+    """Parse a toml file and return the dict."""
     try:
         with open(path, 'rb') as f:
-            return {'toml': tomli.load(f)}
+            return tomli.load(f)
     except Exception:
+        lg.exception('Toml load failed.')
         return {}
 
-def parse_setup(ret, path):
+def parse_setup(path):
+    """Parse a setup.py file and return a pyproject.toml-like dict."""
     # TODO
+    # find the setup() call
+    # parse kwargs/args
+    # look for certain keys
+    # format to match pyproject.toml.
     return {}
 
 
 def is_root(path):
     return any([os.path.isfile(os.path.join(path, _)) for _ in ('pyproject.toml', 'setup.py')])
+def is_module(path):
+    return path.endswith('.py') or path.endswith('.pyx') or path.endswith('.pxd')
+def is_package(path):
+    if os.path.isdir(path):
+        for _, _, fn in os.walk(path, followlinks=True):
+            if is_module(fn):
+                return True
+    return False
+
+
 def find_root(path):
+    """Return a dict with root and modules.
+
+    The root is usually a directory containing a pyproject.toml or setup.py.
+    path can be:
+        root dir (should contain src/ pyproject.toml or setup.py)
+        package dir or module: its dir should be a root dir.
+        a module (no root)
+    """
     path = os.path.abspath(path)
     if os.path.isdir(os.path.join(path, 'src')):
         srcdir = os.path.join(path, 'src')
@@ -90,6 +128,12 @@ def find_root(path):
             return dict(root=path, modules=[mdir])
         if os.path.isfile(mdir + '.py'):
             return dict(root=path, modules=[mdir + '.py'])
+        modules = []
+        for item in os.listdir(path):
+            candidate = os.path.join(path, item)
+            if (is_module(candidate) and item != 'setup.py') or is_package(candidate):
+                modules.append(candidate)
+        return dict(root=path, modules=modules)
     dn = os.path.dirname(path)
     if is_root(dn):
         return dict(root=dn, modules=[path])
@@ -103,30 +147,36 @@ def find_info(path):
     root = ret.get('root')
     if root is None:
         return ret
-    ret = merge(ret, parse_toml(ret, os.path.join(root, 'pyproject.toml')))
-    ret = merge(ret, parse_setup(ret, os.path.join(root, 'setup.py')))
+    ret['toml'] = merge(
+        parse_toml(os.path.join(root, 'pyproject.toml')),
+        parse_setup(os.path.join(root, 'setup.py')))
     return ret
 
-def merge(a, b):
+def merge(a, b, overwrite=None):
     """Return merged result of and b."""
     if isinstance(a, list):
-        ret = set(a)
-        ret.update(b)
+        ret = list(a)
+        for item in b:
+            if item not in a:
+                ret.append(item)
         return list(ret)
     elif isinstance(a, dict):
         ret = dict(a)
         for k, v in b.items():
             if k in ret:
                 try:
-                    ret[k] = merge(ret[k], v)
+                    ret[k] = merge(ret[k], v, overwrite)
                 except Exception:
-                    raise ValueError('Merge {} failed: {} vs {}', k, ret[k], v)
+                    raise ValueError('Merge {} failed: {} vs {}'.format(k, ret[k], v))
             else:
                 ret[k] = v
         return ret
     else:
         if a != b:
-            raise ValueError('Invalid merge {} vs {}'.format(a, b))
+            if overwrite is None:
+                raise ValueError('Invalid merge {} vs {}'.format(a, b))
+            elif overwrite:
+                return b
         return a
 
 def merged(key, dcts, *default):
@@ -154,7 +204,7 @@ def calc_name(args, infos):
     if args.name:
         return args.name
     try:
-        name = merged('project.name', infos)
+        name = merged('toml.project.name', infos)
         if name:
             return name
     except Exception:
@@ -202,14 +252,14 @@ def handle_package(src, cydir, srcdir):
 
     for pkgpath, dns, fns in os.walk(src, followlinks=True):
         pkgp = pkgpath.split(os.sep)
-        if '__pycache__' in pkgp or any([_.endswith('.egg_info') for _ in pkgp]):
+        if '__pycache__' in pkgp or any([_.endswith('.egg-info') for _ in pkgp]):
             continue
         sub = pkgp[npre:]
         lg.info('Search package %s', sub)
         for fn in fns:
             if fn == '__main__.py':
                 tgt = srcdir
-            elif fn.endswith('.py') or fn.endswith('.pyx'):
+            elif is_module(fn):
                 tgt = cydir
             elif fn.endswith('.pyc'):
                 continue
@@ -227,6 +277,7 @@ def run(args=None):
     infos = [find_info(item) for item in args.modules]
     for md, info in zip(args.modules, infos):
         lg.debug('module: %r : %s', md, info)
+    print('infos is', infos)
     project_name = calc_name(args, infos)
     if not args.out:
         if not os.path.isdir(project_name):
@@ -248,6 +299,7 @@ def run(args=None):
         project['version'] = args.version
     project.setdefault('version', '0.0.1')
     toml.setdefault('tool', {}).setdefault('distutils', {}).setdefault('egg_info', {}).setdefault('egg_base', '.egg')
+    project.update(merge(project, parse_project(args.project), True))
 
     print('output    :', args.out, file=sys.stderr)
     for top, dct in toml.items():

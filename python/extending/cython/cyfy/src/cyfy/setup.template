@@ -12,9 +12,6 @@ from Cython.Build import cythonize
 from setuptools.extension import Extension
 
 import os
-import importlib
-import traceback
-import sys
 
 modules = []
 kwargs = {
@@ -24,7 +21,7 @@ kwargs = {
     'package_data': {},
 }
 
-for pkg, dns, fns in os.walk('cysrc', followlinks=True):
+for pkg, _, fns in os.walk('cysrc', followlinks=True):
     pkgp = pkg.split(os.sep)[1:]
     pkgname = '.'.join(pkgp)
     for fn in fns:
@@ -35,7 +32,7 @@ for pkg, dns, fns in os.walk('cysrc', followlinks=True):
             pkgp.pop()
             modules.append(Extension(modulename, [modulepath]))
 
-for pkg, dns, fns in os.walk('src', followlinks=True):
+for pkg, _, fns in os.walk('src', followlinks=True):
     pkgp = pkg.split(os.sep)[1:]
     pkgname = '.'.join(pkgp)
     for fn in fns:
